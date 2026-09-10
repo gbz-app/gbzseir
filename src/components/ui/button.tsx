@@ -23,17 +23,18 @@ const buttonVariants = cva(
       },
       // Mobile-first: default and icon sizes meet the 44px touch-target guideline.
       size: {
+        // Pill-shaped buttons everywhere (Anchor-style design language).
         default:
-          "h-11 gap-2 rounded-xl px-4 text-[15px] font-semibold has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3 [&_svg:not([class*='size-'])]:size-[18px]",
-        xs: "h-7 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-9 gap-1.5 rounded-lg px-3 text-[13px] font-semibold in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-4",
-        lg: "h-12 gap-2 rounded-xl px-5 text-base font-semibold has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4 [&_svg:not([class*='size-'])]:size-5",
-        icon: "size-11 rounded-xl [&_svg:not([class*='size-'])]:size-5",
+          "h-11 gap-2 rounded-full px-5 text-[15px] font-semibold has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4 [&_svg:not([class*='size-'])]:size-[18px]",
+        xs: "h-7 gap-1 rounded-full px-2.5 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-9 gap-1.5 rounded-full px-3.5 text-[13px] font-semibold in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5 [&_svg:not([class*='size-'])]:size-4",
+        lg: "h-12 gap-2 rounded-full px-6 text-base font-semibold has-data-[icon=inline-end]:pr-5 has-data-[icon=inline-start]:pl-5 [&_svg:not([class*='size-'])]:size-5",
+        icon: "size-11 rounded-full [&_svg:not([class*='size-'])]:size-5",
         "icon-xs":
-          "size-7 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3.5",
+          "size-7 rounded-full in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3.5",
         "icon-sm":
-          "size-9 rounded-lg in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-12 rounded-xl [&_svg:not([class*='size-'])]:size-5",
+          "size-9 rounded-full in-data-[slot=button-group]:rounded-lg",
+        "icon-lg": "size-12 rounded-full [&_svg:not([class*='size-'])]:size-5",
       },
     },
     defaultVariants: {

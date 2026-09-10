@@ -21,7 +21,7 @@ export function LocationChip({ className }: { className?: string }) {
         onClick={() => setOpen(true)}
         aria-label={`Konum: ${label}. Değiştirmek için dokun`}
         className={cn(
-          "flex h-9 max-w-[10rem] min-w-0 items-center gap-1 rounded-full bg-muted pr-2 pl-2.5 text-[13px] font-semibold text-foreground transition-colors outline-none hover:bg-muted/70 focus-visible:ring-3 focus-visible:ring-ring/50",
+          "flex h-11 max-w-[11rem] min-w-0 items-center gap-1.5 rounded-full bg-card pr-3 pl-3.5 text-sm font-semibold text-foreground shadow-soft ring-1 ring-foreground/[0.06] transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
           className,
         )}
       >

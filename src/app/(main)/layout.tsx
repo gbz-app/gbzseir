@@ -6,7 +6,7 @@ import { InstallPrompt } from "@/components/pwa/install-prompt";
 /** Main app shell: TopBar (tab roots only) + content + BottomNav + onboarding + install prompt. */
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative mx-auto flex min-h-dvh w-full max-w-2xl flex-col bg-background">
+    <div className="app-bg relative mx-auto flex min-h-dvh w-full max-w-2xl flex-col">
       <a
         href="#icerik"
         className="sr-only z-50 rounded-lg bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2"

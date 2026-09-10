@@ -29,11 +29,11 @@ export const SUPPORT = {
 
 /** Brand colors used outside CSS (manifest, viewport theme-color, icons). */
 export const BRAND_COLORS = {
-  primary: "#0F766E",
-  primaryDark: "#115E59",
+  primary: "#8C6CF0",
+  primaryDark: "#6D4FD8",
   accent: "#F59E0B",
-  backgroundLight: "#F7FAF9",
-  backgroundDark: "#0B1413",
+  backgroundLight: "#EFE8FB",
+  backgroundDark: "#15121F",
 } as const;
 
 /** Prototype flags. */

@@ -12,7 +12,8 @@ const TAGLINE = site.match(/APP_TAGLINE = "([^"]+)"/)?.[1] ?? "";
 const outDir = join(root, "public/icons");
 mkdirSync(outDir, { recursive: true });
 
-const TEAL = "#0F766E";
+// Brand violet (the constant name is historic; keep in sync with BRAND_COLORS.primary).
+const TEAL = "#8C6CF0";
 const WHITE = "#FFFFFF";
 
 /** SVG elements of a Lucide icon (24x24 grid), read from the installed lucide-react package. */
@@ -102,7 +103,7 @@ const og = svg(
   630,
   `<rect width="1200" height="630" fill="${TEAL}"/>
    <text x="96" y="290" font-family="Google Sans, Segoe UI, Arial, Helvetica, sans-serif" font-size="120" font-weight="700" fill="${WHITE}">${esc(APP_NAME)}</text>
-   <text x="100" y="370" font-family="Google Sans, Segoe UI, Arial, Helvetica, sans-serif" font-size="48" font-weight="500" fill="#CCFBF1">${esc(TAGLINE)}</text>
+   <text x="100" y="370" font-family="Google Sans, Segoe UI, Arial, Helvetica, sans-serif" font-size="48" font-weight="500" fill="#EDE7FE">${esc(TAGLINE)}</text>
    <text x="100" y="446" font-family="Google Sans, Segoe UI, Arial, Helvetica, sans-serif" font-size="32" fill="${WHITE}" opacity="0.85">Nöbetçi eczane · İlanlar · Ustalar · Gezilecek yerler</text>`,
 );
 writeFileSync(join(outDir, "og-image.png"), await sharp(Buffer.from(og)).png({ compressionLevel: 9 }).toBuffer());
