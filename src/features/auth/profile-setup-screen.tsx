@@ -109,7 +109,7 @@ export function ProfileSetupScreen({ next, initial }: { next: string; initial?: 
     }
     removeItem(MARKETING_CONSENT_SESSION_KEY, "session");
     await refreshProfile();
-    toast.success(`Hoş geldin ${clean(values.firstName)} 👋`);
+    toast.success(`Hoş geldin ${clean(values.firstName)}`);
     router.replace(next);
     router.refresh();
   };

@@ -1,15 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Google_Sans } from "next/font/google";
 import "./globals.css";
 import { APP_DESCRIPTION, APP_FULL_NAME, APP_NAME, BRAND_COLORS, SITE_URL } from "@/config/site";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { AppProviders } from "@/components/providers/app-providers";
 import { OnboardingPreScript } from "@/features/onboarding/onboarding-pre-script";
 
-// latin-ext is required for ğ, ş, ı, İ.
-const jakarta = Plus_Jakarta_Sans({
+// The whole UI uses Google Sans (variable, 400-700). latin-ext is required for ğ, ş, ı, İ.
+const googleSans = Google_Sans({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-jakarta",
+  variable: "--font-google-sans",
   display: "swap",
 });
 
@@ -53,7 +53,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="tr" className={jakarta.variable} suppressHydrationWarning>
+    <html lang="tr" className={googleSans.variable} suppressHydrationWarning>
       <head>
         <ThemeScript />
         <OnboardingPreScript />

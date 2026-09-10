@@ -40,12 +40,12 @@ export type BusinessSummary = {
   status: BusinessStatus | string;
   owner_id?: string | null;
   logo_url?: string | null;
-  /** Roles of the business: 'service_provider' | 'shop' | 'employer' (businesses.kinds). */
-  kinds?: string[] | null;
+  /** Roles of the business (businesses.kinds): 'service' | 'shop' | 'employer'. */
+  kinds?: BusinessKind[] | string[] | null;
 };
 
-/** businesses.kinds values. */
-export type BusinessKind = "service_provider" | "shop" | "employer";
+/** businesses.kinds values, exactly as stored in the database. */
+export type BusinessKind = "service" | "shop" | "employer";
 
 /** Generic target reference for favorites/reports/contact events. */
 export type TargetType = "listing" | "job" | "business" | "place" | "pharmacy" | "service_request" | "lead" | "review" | "user";

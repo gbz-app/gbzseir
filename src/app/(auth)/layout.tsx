@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { X } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
+import { APP_NAME } from "@/config/site";
 import { routes } from "@/core/routes";
 
 /** Auth screens: no bottom nav, centered narrow column. */
@@ -8,8 +8,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-safe pb-safe">
       <header className="flex h-(--topbar-h) items-center justify-between">
-        <Link href={routes.home()} className="rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-          <Logo />
+        <Link
+          href={routes.home()}
+          className="rounded-lg font-heading text-lg font-bold tracking-tight outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          {APP_NAME}
         </Link>
         <Link
           href={routes.home()}

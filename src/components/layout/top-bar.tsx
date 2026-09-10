@@ -6,7 +6,6 @@ import { Bell, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/config/site";
 import { routes } from "@/core/routes";
-import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { LocationChip } from "@/components/shared/location-chip";
 import { useAuth } from "@/lib/auth/auth-provider";
@@ -46,9 +45,8 @@ export function TopBar() {
       )}
     >
       <div className="flex h-(--topbar-h) items-center gap-1.5 px-4">
-        <Link href={routes.home()} aria-label={`${APP_NAME} ana sayfa`} className="flex min-w-0 items-center gap-2 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-          <LogoMark className="size-8" />
-          <span className="hidden font-heading text-lg font-extrabold tracking-tight min-[380px]:inline">{APP_NAME}</span>
+        <Link href={routes.home()} aria-label={`${APP_NAME} ana sayfa`} className="flex min-w-0 items-center rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+          <span className="truncate font-heading text-xl font-bold tracking-tight">{APP_NAME}</span>
         </Link>
         <div className="ml-auto flex min-w-0 items-center gap-0.5">
           <LocationChip />

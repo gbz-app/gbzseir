@@ -1571,6 +1571,21 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_clear_demo_data: { Args: { p_scopes: string[] }; Returns: Json }
+      admin_data_health: { Args: never; Returns: Json }
+      admin_publish_flow: {
+        Args: { p_category_id: string; p_schema: Json }
+        Returns: Json
+      }
+      admin_request_candidates: {
+        Args: { p_request_id: string }
+        Returns: {
+          area_match: boolean
+          business_id: string
+          business_name: string
+          score: number
+        }[]
+      }
       admin_review_business: {
         Args: { p_approve: boolean; p_business_id: string; p_reason?: string }
         Returns: Json
@@ -1599,6 +1614,7 @@ export type Database = {
         Returns: Json
       }
       business_is_public: { Args: { p_business_id: string }; Returns: boolean }
+      business_panel_stats: { Args: never; Returns: Json }
       close_request: {
         Args: { p_code: string; p_hired_business_id?: string }
         Returns: Json
@@ -1671,6 +1687,14 @@ export type Database = {
         Returns: undefined
       }
       mark_notifications_read: { Args: { p_ids?: string[] }; Returns: number }
+      my_lead_extras: {
+        Args: { p_lead_ids: string[] }
+        Returns: {
+          hired: boolean
+          lead_id: string
+          summary: string
+        }[]
+      }
       nearby_pois: {
         Args: {
           p_kind?: string

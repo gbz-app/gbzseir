@@ -1,10 +1,24 @@
 import type { Metadata } from "next";
-import { MapPin } from "lucide-react";
-import { ComingSoon } from "@/components/shared/coming-soon";
+import { Suspense } from "react";
+import { routes } from "@/core/routes";
+import { CITY } from "@/config/site";
+import { NearbyExplorer } from "@/features/nearby/components/nearby-explorer";
+import { NearbyExplorerSkeleton } from "@/features/nearby/components/nearby-explorer-skeleton";
 
-// Placeholder created by the app-shell agent; the nearby agent replaces this page.
-export const metadata: Metadata = { title: "Yakınımda" };
+export const metadata: Metadata = {
+  title: "Yakınımda",
+  description: `${CITY.name}'de yakınındaki nöbetçi eczane, eczane, cami, otobüs durağı, gezilecek yer ve işletmeleri haritada gör; tek dokunuşla ara ya da yol tarifi al.`,
+  alternates: { canonical: routes.nearby.root() },
+};
 
-export default function Page() {
-  return <ComingSoon title="Yakınımda" icon={MapPin} description="Yakınındaki nöbetçi eczane, cami, durak ve gezilecek yerler burada olacak." withHeader={false} />;
+/** D1 - Yakınımda. Static shell; the explorer reads ?tur= and the location on the client. */
+export default function NearbyPage() {
+  return (
+    <>
+      <h1 className="sr-only">Yakınımda</h1>
+      <Suspense fallback={<NearbyExplorerSkeleton />}>
+        <NearbyExplorer />
+      </Suspense>
+    </>
+  );
 }

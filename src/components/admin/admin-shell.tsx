@@ -23,7 +23,6 @@ import {
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/config/site";
 import { routes, isRouteActive } from "@/core/routes";
-import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
@@ -72,8 +71,8 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
 
 function Brand() {
   return (
-    <Link href={routes.admin.root()} className="flex items-center gap-2 px-3 font-heading text-base font-extrabold">
-      <LogoMark className="size-7" /> {APP_NAME} <span className="rounded-md bg-highlight-soft px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-highlight-foreground uppercase">Yönetim</span>
+    <Link href={routes.admin.root()} className="flex items-center gap-2 px-3 font-heading text-base font-bold">
+      {APP_NAME} <span className="rounded-md bg-highlight-soft px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-highlight-foreground uppercase">Yönetim</span>
     </Link>
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CloudOff, Cross } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
+import { APP_NAME } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/core/routes";
 import { OfflineRetry } from "./offline-retry";
@@ -16,7 +16,7 @@ export default function OfflinePage() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-safe pb-safe">
       <header className="flex h-(--topbar-h) items-center">
-        <Logo />
+        <span className="font-heading text-lg font-bold tracking-tight">{APP_NAME}</span>
       </header>
       <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
         <div className="flex size-24 items-center justify-center rounded-[2rem] bg-brand-soft text-primary">

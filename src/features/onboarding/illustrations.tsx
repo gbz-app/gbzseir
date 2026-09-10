@@ -1,325 +1,280 @@
 /**
- * Inline SVG illustrations for the onboarding slides. Animations use the gz-* keyframes from globals.css
- * and only run while the slide is active (remounted via `key`), and are disabled by prefers-reduced-motion.
+ * Onboarding slide illustrations: flat 2D compositions made only of Lucide icons and simple shapes
+ * (no custom drawings, gradients or shadows). Animations use the gz-* keyframes from globals.css, run only
+ * while the slide is active (the slide remounts via `key`), and are disabled by prefers-reduced-motion.
+ * Positions are percentages of the 320x260 illustration box, so the compositions scale with it.
  */
 import * as React from "react";
+import {
+  BadgeCheck,
+  Bike,
+  Briefcase,
+  Bus,
+  CircleCheck,
+  Cross,
+  Landmark,
+  Lock,
+  MapPin,
+  PaintRoller,
+  Phone,
+  Send,
+  ShieldCheck,
+  Star,
+  Store,
+  Truck,
+  Utensils,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type IlluProps = { active: boolean };
+type Motion = { className?: string; style?: React.CSSProperties };
 
-const TEAL = "#0F766E";
-const TEAL_L = "#14B8A6";
-const TEAL_XL = "#99F6E4";
-const AMBER = "#F59E0B";
-const GREEN = "#10B981";
-const BLUE = "#3B82F6";
-const CARD = "var(--card)";
-const LINE = "var(--border)";
-const INK = "var(--foreground)";
-const MUTED = "var(--muted-foreground)";
-
-function anim(active: boolean, cls: string, delayMs = 0): { className?: string; style?: React.CSSProperties } {
-  if (!active) return { style: { opacity: 1 } };
-  return { className: `svg-anim ${cls}`, style: { animationDelay: `${delayMs}ms` } };
+/** Animation class + delay, applied only while the slide is active. */
+function anim(active: boolean, cls: string, delayMs = 0): Motion {
+  if (!active) return {};
+  return { className: cls, style: { animationDelay: `${delayMs}ms` } };
 }
 
-function Svg({ children, label }: { children: React.ReactNode; label: string }) {
+type Tone = "brand" | "primary" | "success" | "successSolid" | "highlight" | "info" | "card";
+const TONES: Record<Tone, string> = {
+  brand: "bg-brand-soft text-primary",
+  primary: "bg-primary text-primary-foreground",
+  success: "bg-success-soft text-success",
+  successSolid: "bg-success text-success-foreground",
+  highlight: "bg-highlight-soft text-highlight-foreground",
+  info: "bg-info-soft text-info",
+  card: "bg-card text-primary ring-1 ring-border",
+};
+
+function Frame({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <svg viewBox="0 0 320 260" role="img" aria-label={label} className="h-full w-full overflow-visible">
-      <defs>
-        <filter id="gz-shadow" x="-20%" y="-20%" width="140%" height="160%">
-          <feDropShadow dx="0" dy="6" stdDeviation="7" floodColor="#0B3B37" floodOpacity="0.16" />
-        </filter>
-        <linearGradient id="gz-teal" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={TEAL_L} />
-          <stop offset="1" stopColor={TEAL} />
-        </linearGradient>
-      </defs>
+    <div role="img" aria-label={label} className="relative h-full w-full select-none">
       {children}
-    </svg>
+    </div>
   );
 }
 
-function FloatBadge({ x, y, children, active, delay }: { x: number; y: number; children: React.ReactNode; active: boolean; delay: number }) {
+/** Icon inside a flat rounded box (in-flow). */
+function IconBox({ icon: Icon, tone = "brand", round, className, motion }: { icon: LucideIcon; tone?: Tone; round?: boolean; className?: string; motion?: Motion }) {
   return (
-    <g transform={`translate(${x} ${y})`}>
-      <g {...anim(active, "animate-float", delay)}>
-        <circle r="19" fill={CARD} filter="url(#gz-shadow)" />
-        {children}
-      </g>
-    </g>
+    <span
+      className={cn("flex shrink-0 items-center justify-center", round ? "rounded-full" : "rounded-[28%]", TONES[tone], className, motion?.className)}
+      style={motion?.style}
+    >
+      <Icon className="size-[54%]" strokeWidth={1.75} aria-hidden />
+    </span>
   );
 }
 
-/** 1. Gebze skyline: castle tower, mosque with minaret, historic house + floating pill / bus / briefcase. */
+/** Absolutely positioned IconBox. `className` sets position and width (square via aspect ratio). */
+function Tile({ className, ...box }: React.ComponentProps<typeof IconBox>) {
+  return (
+    <div className={cn("absolute aspect-square", className)}>
+      <IconBox {...box} className="h-full w-full" />
+    </div>
+  );
+}
+
+function Bar({ w, tone = "ink", className }: { w: string; tone?: "ink" | "muted"; className?: string }) {
+  return <span className={cn("block h-2 rounded-full", tone === "ink" ? "bg-foreground/70" : "bg-muted-foreground/35", className)} style={{ width: w }} />;
+}
+
+function Backdrop() {
+  return <div className="absolute top-[3%] left-[18.5%] aspect-square w-[63%] rounded-full bg-brand-soft" />;
+}
+
+/** 1. Everything in the city in one place: a landmark with pharmacy, bus, job, service and map icons around it. */
 export function SkylineIllustration({ active }: IlluProps) {
   return (
-    <Svg label="Gebze silueti: kale, cami ve tarihi ev">
-      <circle cx="160" cy="138" r="104" fill="var(--brand-soft)" />
-      <ellipse cx="160" cy="226" rx="130" ry="12" fill={TEAL} opacity="0.12" />
-      {/* Castle tower */}
-      <g {...anim(active, "animate-slide-up", 100)}>
-        <rect x="42" y="120" width="50" height="104" rx="4" fill="#5EAAA2" />
-        {[42, 56, 70, 84].map((x) => (
-          <rect key={x} x={x} y="110" width="8" height="12" rx="1.5" fill="#5EAAA2" />
-        ))}
-        <path d="M58 224v-26a9 9 0 0 1 18 0v26z" fill={TEAL} />
-        <rect x="61" y="140" width="12" height="16" rx="6" fill={TEAL} opacity="0.7" />
-      </g>
-      {/* Mosque */}
-      <g {...anim(active, "animate-slide-up", 0)}>
-        <rect x="112" y="150" width="92" height="74" rx="4" fill={TEAL_L} />
-        <path d="M118 152a40 40 0 0 1 80 0z" fill="url(#gz-teal)" />
-        <rect x="156" y="104" width="4" height="10" rx="2" fill={AMBER} />
-        <path d="M122 170a10 10 0 0 1 20 0v14h-20zM174 170a10 10 0 0 1 20 0v14h-20z" fill={CARD} opacity="0.85" />
-        <path d="M148 224v-24a10 10 0 0 1 20 0v24z" fill={TEAL} />
-        {/* Minaret */}
-        <rect x="212" y="84" width="12" height="140" rx="3" fill={TEAL_L} />
-        <rect x="208" y="120" width="20" height="6" rx="3" fill={TEAL} />
-        <path d="M212 86l6-30 6 30z" fill={TEAL} />
-        <circle cx="218" cy="52" r="2.5" fill={AMBER} />
-      </g>
-      {/* Historic house */}
-      <g {...anim(active, "animate-slide-up", 200)}>
-        <rect x="238" y="146" width="54" height="78" rx="3" fill={CARD} stroke={LINE} strokeWidth="2" />
-        <rect x="234" y="140" width="62" height="10" rx="2" fill="#C2410C" opacity="0.85" />
-        <path d="M232 142l33-24 33 24z" fill="#C2410C" />
-        {[250, 272].map((x) => (
-          <rect key={`a${x}`} x={x} y="158" width="10" height="16" rx="2" fill={TEAL_XL} />
-        ))}
-        {[250, 272].map((x) => (
-          <rect key={`b${x}`} x={x} y="184" width="10" height="16" rx="2" fill={TEAL_XL} />
-        ))}
-        <rect x="259" y="204" width="12" height="20" rx="2" fill="#9A3412" />
-      </g>
-      {/* Trees */}
-      <circle cx="104" cy="210" r="12" fill={GREEN} opacity="0.85" />
-      <circle cx="30" cy="212" r="10" fill={GREEN} opacity="0.7" />
-      <circle cx="300" cy="214" r="9" fill={GREEN} opacity="0.7" />
-      {/* Floating icons */}
-      <FloatBadge x={70} y={64} active={active} delay={0}>
-        <g transform="rotate(-35)">
-          <rect x="-11" y="-5" width="22" height="10" rx="5" fill={AMBER} />
-          <path d="M0 -5h6a5 5 0 0 1 0 10H0z" fill={TEAL_L} />
-        </g>
-      </FloatBadge>
-      <FloatBadge x={252} y={58} active={active} delay={600}>
-        <rect x="-10" y="-9" width="20" height="16" rx="4" fill={BLUE} />
-        <rect x="-7" y="-6" width="14" height="6" rx="1.5" fill="#DBEAFE" />
-        <circle cx="-5" cy="9" r="2.4" fill={INK} />
-        <circle cx="5" cy="9" r="2.4" fill={INK} />
-      </FloatBadge>
-      <FloatBadge x={160} y={36} active={active} delay={1200}>
-        <rect x="-10" y="-6" width="20" height="14" rx="3" fill={TEAL} />
-        <path d="M-4 -6v-3h8v3" fill="none" stroke={TEAL} strokeWidth="2.4" strokeLinejoin="round" />
-        <rect x="-10" y="-1" width="20" height="2" fill={TEAL_XL} />
-      </FloatBadge>
-    </Svg>
+    <Frame label="Eczane, ulaşım, iş ilanları, ustalar ve gezilecek yerler tek uygulamada">
+      <Backdrop />
+      <Tile icon={Landmark} tone="primary" className="top-[31%] left-[37.5%] w-[25%]" motion={anim(active, "animate-pop")} />
+      <Tile icon={Cross} tone="success" round className="top-[9%] left-[21%] w-[14%]" motion={anim(active, "animate-float", 0)} />
+      <Tile icon={Bus} tone="info" round className="top-[5%] left-[63%] w-[14%]" motion={anim(active, "animate-float", 500)} />
+      <Tile icon={Briefcase} tone="highlight" round className="top-[52%] left-[12%] w-[14%]" motion={anim(active, "animate-float", 1000)} />
+      <Tile icon={Wrench} tone="card" round className="top-[55%] left-[73%] w-[14%]" motion={anim(active, "animate-float", 1500)} />
+      <Tile icon={MapPin} tone="card" round className="top-[78%] left-[43%] w-[14%]" motion={anim(active, "animate-float", 2000)} />
+    </Frame>
   );
 }
 
-/** 2. Map with pulsing location dot, dropping pins and a "Nöbetçi" card sliding up. */
+/** 2. Flat map with the user's location, nearby places dropping in and a "Nöbetçi" card sliding up. */
 export function MapIllustration({ active }: IlluProps) {
   return (
-    <Svg label="Harita üzerinde konumun ve yakındaki yerler">
-      <rect x="22" y="16" width="276" height="228" rx="28" fill="var(--brand-soft)" filter="url(#gz-shadow)" />
-      <path d="M40 80c30 10 50-20 90-8s60 30 110 10 50 10 50 10" stroke={CARD} strokeWidth="14" fill="none" strokeLinecap="round" />
-      <path d="M110 16v228M22 150c60-6 120 20 276-10" stroke={CARD} strokeWidth="10" fill="none" />
-      <path d="M210 16c-10 60 20 120 0 228" stroke={CARD} strokeWidth="8" fill="none" />
-      <ellipse cx="70" cy="200" rx="34" ry="20" fill={GREEN} opacity="0.25" />
-      <ellipse cx="262" cy="52" rx="30" ry="18" fill={BLUE} opacity="0.2" />
-      {/* Pins */}
-      {[
-        { x: 78, y: 112, c: TEAL, d: 200 },
-        { x: 246, y: 104, c: GREEN, d: 450 },
-        { x: 190, y: 62, c: AMBER, d: 700 },
-      ].map((p) => (
-        <g key={p.x} transform={`translate(${p.x} ${p.y})`}>
-          <g {...anim(active, "animate-pin-drop", p.d)}>
-            <path d="M0 18C-8 9-12 3-12-3a12 12 0 0 1 24 0c0 6-4 12-12 21z" fill={p.c} />
-            <circle cy="-3" r="4.5" fill={CARD} />
-          </g>
-        </g>
-      ))}
-      {/* Me */}
-      <g transform="translate(160 118)">
-        <circle r="10" fill={BLUE} opacity="0.35" {...anim(active, "animate-pulse-ring")} />
-        <circle r="9" fill={BLUE} stroke="#fff" strokeWidth="3.5" />
-      </g>
-      {/* Duty card */}
-      <g {...anim(active, "animate-slide-up", 900)}>
-        <rect x="46" y="170" width="228" height="58" rx="16" fill={CARD} filter="url(#gz-shadow)" />
-        <circle cx="74" cy="199" r="15" fill={GREEN} />
-        <path d="M71 190h6v6h6v6h-6v6h-6v-6h-6v-6h6z" fill="#fff" />
-        <rect x="98" y="186" width="92" height="10" rx="5" fill={INK} opacity="0.85" />
-        <rect x="98" y="203" width="60" height="8" rx="4" fill={MUTED} opacity="0.5" />
-        <rect x="204" y="188" width="56" height="22" rx="11" fill={AMBER} />
-        <text x="232" y="203" textAnchor="middle" fontSize="11" fontWeight="800" fill="#451A03">
-          Nöbetçi
-        </text>
-      </g>
-    </Svg>
+    <Frame label="Harita üzerinde konumun ve yakındaki yerler">
+      <div className="absolute inset-x-[7%] top-[5%] bottom-[5%] overflow-hidden rounded-[2rem] bg-brand-soft">
+        <div className="absolute top-[26%] -left-[10%] h-[5%] w-[120%] -rotate-6 bg-card" />
+        <div className="absolute top-[52%] -left-[10%] h-[4%] w-[120%] rotate-3 bg-card" />
+        <div className="absolute top-0 left-[30%] h-full w-[4%] bg-card" />
+        <div className="absolute top-0 left-[72%] h-full w-[3%] rotate-6 bg-card" />
+      </div>
+      <Tile icon={Cross} tone="success" round className="top-[12%] left-[16%] w-[12%]" motion={anim(active, "animate-pin-drop", 200)} />
+      <Tile icon={Landmark} tone="highlight" round className="top-[10%] left-[66%] w-[12%]" motion={anim(active, "animate-pin-drop", 450)} />
+      <Tile icon={Bus} tone="info" round className="top-[36%] left-[76%] w-[12%]" motion={anim(active, "animate-pin-drop", 700)} />
+      <div className="absolute top-[34%] left-[46%] aspect-square w-[8%]">
+        <span className={cn("absolute inset-0 rounded-full bg-info/40", active && "animate-pulse-ring")} />
+        <span className="absolute inset-0 rounded-full bg-info ring-4 ring-card" />
+      </div>
+      <div className="absolute inset-x-[12%] top-[64%] h-[25%]">
+        <div
+          className={cn("flex h-full w-full items-center gap-3 rounded-2xl bg-card px-[5%] ring-1 ring-border", anim(active, "animate-slide-up", 900).className)}
+          style={anim(active, "animate-slide-up", 900).style}
+        >
+          <IconBox icon={Cross} tone="success" round className="h-[62%] w-auto aspect-square" />
+          <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <Bar w="85%" />
+            <Bar w="55%" tone="muted" />
+          </span>
+          <span className="rounded-full bg-highlight px-2.5 py-1 text-[11px] font-bold text-highlight-foreground">Nöbetçi</span>
+        </div>
+      </div>
+    </Frame>
   );
 }
 
-function Star({ x, y }: { x: number; y: number }) {
-  return <path transform={`translate(${x} ${y}) scale(0.55)`} d="M12 2l3 6.3 6.9 1-5 4.8 1.2 6.9L12 17.8 5.9 21l1.2-6.9-5-4.8 6.9-1z" fill={AMBER} />;
-}
-
-/** 3. Stacked verified business cards with rating and green call button. */
+/** 3. A verified business card with rating, "Onaylı" badge and a call button. */
 export function BusinessIllustration({ active }: IlluProps) {
+  const card = anim(active, "animate-slide-up", 300);
+  const badge = anim(active, "animate-pop", 800);
+  const call = anim(active, "animate-pop", 1100);
   return (
-    <Svg label="Onaylı işletme kartları, puan ve arama butonu">
-      <circle cx="160" cy="130" r="100" fill="var(--brand-soft)" />
-      <g transform="rotate(-8 160 130)" {...anim(active, "animate-fade-in", 0)}>
-        <rect x="70" y="56" width="180" height="92" rx="18" fill={CARD} stroke={LINE} strokeWidth="2" opacity="0.7" />
-      </g>
-      <g transform="rotate(5 160 130)" {...anim(active, "animate-fade-in", 150)}>
-        <rect x="66" y="76" width="188" height="96" rx="18" fill={CARD} stroke={LINE} strokeWidth="2" opacity="0.85" />
-      </g>
-      <g {...anim(active, "animate-slide-up", 300)}>
-        <rect x="54" y="104" width="212" height="112" rx="20" fill={CARD} filter="url(#gz-shadow)" />
-        <circle cx="88" cy="140" r="20" fill="url(#gz-teal)" />
-        <path d="M81 133l14 14M95 133l-14 14" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
-        <circle cx="81" cy="133" r="3.5" fill="none" stroke="#fff" strokeWidth="2.5" />
-        <circle cx="95" cy="133" r="3.5" fill="none" stroke="#fff" strokeWidth="2.5" />
-        <rect x="118" y="126" width="84" height="11" rx="5.5" fill={INK} opacity="0.85" />
-        <Star x={118} y={143} />
-        <text x="134" y="154" fontSize="12" fontWeight="800" fill={INK}>
-          4,8
-        </text>
-        <text x="156" y="154" fontSize="11" fill={MUTED}>
-          (126)
-        </text>
-        <g {...anim(active, "animate-pop", 800)}>
-          <rect x="70" y="174" width="70" height="24" rx="12" fill="var(--brand-soft)" />
-          <circle cx="84" cy="186" r="6" fill={TEAL} />
-          <path d="M81 186l2 2 4-4" stroke="#fff" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          <text x="95" y="190" fontSize="11" fontWeight="800" fill={TEAL}>
-            Onaylı
-          </text>
-        </g>
-        <g transform="translate(236 186)" {...anim(active, "animate-pop", 1100)}>
-          <circle r="19" fill={GREEN} />
-          <path
-            d="M-6 -8c1-1 2.6-1 3.4.2l1.6 2.5c.6 1 .4 2.2-.4 2.9l-1.2 1c.9 2 2.4 3.6 4.4 4.6l1-1.3c.7-.8 1.9-1 2.9-.4l2.5 1.6c1.2.8 1.3 2.4.2 3.4l-1.3 1.2c-1.5 1.4-3.8 1.6-5.6.6-4.6-2.6-8.2-6.3-10.6-11-1-1.8-.7-4 .8-5.4z"
-            fill="#fff"
-          />
-        </g>
-      </g>
-    </Svg>
+    <Frame label="Onaylı işletme kartı, puan ve arama butonu">
+      <Backdrop />
+      <div className="absolute top-[14%] left-[21%] h-[34%] w-[58%] -rotate-6 rounded-3xl bg-card/60 ring-1 ring-border" />
+      <div className="absolute top-[22%] left-[19%] h-[36%] w-[62%] rotate-3 rounded-3xl bg-card/80 ring-1 ring-border" />
+      <div className="absolute top-[38%] left-[13%] h-[50%] w-[74%]">
+        <div className={cn("flex h-full w-full flex-col justify-between rounded-3xl bg-card p-[5%] ring-1 ring-border", card.className)} style={card.style}>
+          <div className="flex items-center gap-3">
+            <IconBox icon={Store} tone="primary" className="size-11" />
+            <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <Bar w="80%" />
+              <span className="flex items-center gap-0.5 text-highlight">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <Star key={i} className="size-3 fill-current" strokeWidth={1.75} aria-hidden />
+                ))}
+                <span className="ml-1 text-[11px] font-bold text-foreground">4,8</span>
+                <span className="text-[11px] text-muted-foreground">(126)</span>
+              </span>
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span
+              className={cn("flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-1 text-[11px] font-bold text-primary", badge.className)}
+              style={badge.style}
+            >
+              <BadgeCheck className="size-3.5" strokeWidth={2} aria-hidden /> Onaylı
+            </span>
+            <IconBox icon={Phone} tone="successSolid" round className="size-10" motion={call} />
+          </div>
+        </div>
+      </div>
+    </Frame>
   );
 }
 
-/** 4. A 2. el listing card and a job card ("Servis var · Yemek"). */
+/** 4. A second-hand listing card and a job card ("Servis var · Yemek"). */
 export function ListingsIllustration({ active }: IlluProps) {
+  const left = anim(active, "animate-float", 0);
+  const right = anim(active, "animate-float", 700);
+  const chip = anim(active, "animate-pop", 900);
   return (
-    <Svg label="İkinci el ilan ve iş ilanı kartları">
-      <circle cx="160" cy="130" r="100" fill="var(--brand-soft)" />
-      <g {...anim(active, "animate-float", 0)}>
-        <g transform="rotate(-6 100 130)">
-          <rect x="34" y="44" width="128" height="164" rx="18" fill={CARD} filter="url(#gz-shadow)" />
-          <rect x="44" y="54" width="108" height="78" rx="12" fill={TEAL_XL} opacity="0.6" />
-          {/* bike */}
-          <circle cx="76" cy="104" r="14" fill="none" stroke={TEAL} strokeWidth="4" />
-          <circle cx="120" cy="104" r="14" fill="none" stroke={TEAL} strokeWidth="4" />
-          <path d="M76 104l14-22h18l12 22M90 82l8 22h-22M104 76h8" fill="none" stroke={TEAL} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-          <rect x="46" y="144" width="86" height="10" rx="5" fill={INK} opacity="0.8" />
-          <text x="46" y="178" fontSize="15" fontWeight="800" fill={TEAL}>
-            2.750 TL
-          </text>
-          <rect x="46" y="188" width="58" height="8" rx="4" fill={MUTED} opacity="0.45" />
-        </g>
-      </g>
-      <g {...anim(active, "animate-float", 700)}>
-        <g transform="rotate(5 220 140)">
-          <rect x="148" y="70" width="140" height="150" rx="18" fill={CARD} filter="url(#gz-shadow)" />
-          <rect x="162" y="86" width="36" height="36" rx="11" fill={AMBER} />
-          <rect x="171" y="98" width="18" height="14" rx="3" fill="#fff" />
-          <path d="M176 98v-3h8v3" stroke="#fff" strokeWidth="2.5" fill="none" />
-          <rect x="162" y="134" width="104" height="10" rx="5" fill={INK} opacity="0.8" />
-          <rect x="162" y="152" width="70" height="8" rx="4" fill={MUTED} opacity="0.45" />
-          <g {...anim(active, "animate-pop", 900)}>
-            <rect x="162" y="174" width="112" height="26" rx="13" fill="var(--success-soft)" />
-            <text x="218" y="191" textAnchor="middle" fontSize="11" fontWeight="800" fill={GREEN}>
-              Servis var · Yemek
-            </text>
-          </g>
-        </g>
-      </g>
-    </Svg>
+    <Frame label="İkinci el ilan ve iş ilanı kartları">
+      <Backdrop />
+      <div className="absolute top-[12%] left-[7%] h-[72%] w-[44%] -rotate-6">
+        <div className={cn("flex h-full w-full flex-col gap-2 rounded-3xl bg-card p-[7%] ring-1 ring-border", left.className)} style={left.style}>
+          <span className="flex flex-1 items-center justify-center rounded-2xl bg-brand-soft text-primary">
+            <Bike className="size-[46%]" strokeWidth={1.75} aria-hidden />
+          </span>
+          <Bar w="80%" />
+          <span className="text-sm font-bold text-primary">2.750 TL</span>
+          <Bar w="50%" tone="muted" />
+        </div>
+      </div>
+      <div className="absolute top-[22%] left-[49%] h-[66%] w-[45%] rotate-[5deg]">
+        <div className={cn("flex h-full w-full flex-col gap-2.5 rounded-3xl bg-card p-[7%] ring-1 ring-border", right.className)} style={right.style}>
+          <IconBox icon={Briefcase} tone="highlight" className="size-10" />
+          <Bar w="85%" />
+          <Bar w="60%" tone="muted" />
+          <span
+            className={cn(
+              "mt-auto flex items-center justify-center gap-1 rounded-full bg-success-soft px-2 py-1.5 text-[10px] font-bold whitespace-nowrap text-success",
+              chip.className,
+            )}
+            style={chip.style}
+          >
+            <Bus className="size-3" strokeWidth={2} aria-hidden /> Servis var · <Utensils className="size-3" strokeWidth={2} aria-hidden /> Yemek
+          </span>
+        </div>
+      </div>
+    </Frame>
   );
 }
 
-/** 5. Checklist -> paper plane -> 3 firm cards "İlgileniyorum". */
+/** 5. Answered questions -> request sent -> three firms say "İlgileniyorum". */
 export function ServiceRequestIllustration({ active }: IlluProps) {
+  const list = anim(active, "animate-slide-up", 0);
+  const firms: { icon: LucideIcon; tone: Tone; top: string }[] = [
+    { icon: Wrench, tone: "brand", top: "12%" },
+    { icon: PaintRoller, tone: "highlight", top: "39%" },
+    { icon: Truck, tone: "info", top: "66%" },
+  ];
   return (
-    <Svg label="Talep formu firmalara gidiyor, firmalar ilgileniyor">
-      <circle cx="160" cy="130" r="104" fill="var(--brand-soft)" />
-      {/* checklist */}
-      <g {...anim(active, "animate-slide-up", 0)}>
-        <rect x="18" y="62" width="104" height="136" rx="16" fill={CARD} filter="url(#gz-shadow)" />
-        {[88, 122, 156].map((y, i) => (
-          <g key={y}>
-            <g {...anim(active, "animate-pop", 300 + i * 250)}>
-              <circle cx="40" cy={y} r="9" fill={i < 3 ? TEAL : LINE} />
-              <path d={`M35.5 ${y}l3 3 6-6`} stroke="#fff" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </g>
-            <rect x="56" y={y - 5} width={i === 1 ? 44 : 54} height="10" rx="5" fill={INK} opacity="0.7" />
-          </g>
-        ))}
-      </g>
-      {/* plane */}
-      <g transform="translate(150 96)">
-        <g {...anim(active, "animate-fly", 400)}>
-          <path d="M-16 4L18-12 8 16 1 7z" fill={TEAL_L} />
-          <path d="M1 7l17-19-10 28z" fill={TEAL} />
-        </g>
-      </g>
-      <path d="M126 130c14-6 22-20 34-24" stroke={TEAL} strokeWidth="2" strokeDasharray="4 5" fill="none" opacity="0.5" />
-      {/* firms */}
-      {[46, 106, 166].map((y, i) => (
-        <g key={y} {...anim(active, "animate-slide-up", 700 + i * 220)}>
-          <rect x="178" y={y} width="126" height="48" rx="14" fill={CARD} filter="url(#gz-shadow)" />
-          <circle cx="200" cy={y + 24} r="11" fill={[TEAL, AMBER, BLUE][i]} />
-          <rect x="218" y={y + 12} width="54" height="8" rx="4" fill={INK} opacity="0.75" />
-          <rect x="218" y={y + 27} width="76" height="14" rx="7" fill="var(--success-soft)" />
-          <text x="256" y={y + 37.5} textAnchor="middle" fontSize="9" fontWeight="800" fill={GREEN}>
-            İlgileniyorum
-          </text>
-        </g>
-      ))}
-    </Svg>
+    <Frame label="Talep formu firmalara gidiyor, firmalar ilgileniyor">
+      <Backdrop />
+      <div className="absolute top-[20%] left-[3%] h-[58%] w-[35%]">
+        <div className={cn("flex h-full w-full flex-col justify-center gap-[14%] rounded-3xl bg-card px-[12%] ring-1 ring-border", list.className)} style={list.style}>
+          {[0, 1, 2].map((i) => {
+            const pop = anim(active, "animate-pop", 300 + i * 250);
+            return (
+              <span key={i} className="flex items-center gap-2">
+                <CircleCheck className={cn("size-5 shrink-0 text-primary", pop.className)} style={pop.style} strokeWidth={2} aria-hidden />
+                <Bar w={i === 1 ? "55%" : "75%"} />
+              </span>
+            );
+          })}
+        </div>
+      </div>
+      <Tile icon={Send} tone="brand" round className="top-[28%] left-[40.5%] w-[12%]" motion={anim(active, "animate-fly", 400)} />
+      {firms.map((f, i) => {
+        const m = anim(active, "animate-slide-up", 700 + i * 220);
+        return (
+          <div key={f.top} className="absolute left-[55%] h-[21%] w-[42%]" style={{ top: f.top }}>
+            <div className={cn("flex h-full w-full items-center gap-2 rounded-2xl bg-card px-[6%] ring-1 ring-border", m.className)} style={m.style}>
+              <IconBox icon={f.icon} tone={f.tone} round className="size-8" />
+              <span className="flex min-w-0 flex-1 flex-col gap-1">
+                <Bar w="70%" />
+                <span className="w-fit rounded-full bg-success-soft px-1.5 py-0.5 text-[9px] font-bold text-success">İlgileniyorum</span>
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </Frame>
   );
 }
 
-/** 6. Phone with a location pin and a privacy shield. */
+/** 6. A phone with a location pin, a privacy shield and a lock. */
 export function LocationIllustration({ active }: IlluProps) {
+  const phone = anim(active, "animate-slide-up", 0);
   return (
-    <Svg label="Konum pini ve gizlilik kalkanı">
-      <circle cx="160" cy="130" r="104" fill="var(--brand-soft)" />
-      <g {...anim(active, "animate-slide-up", 0)}>
-        <rect x="106" y="28" width="108" height="206" rx="24" fill={INK} />
-        <rect x="113" y="36" width="94" height="190" rx="18" fill={CARD} />
-        <path d="M113 110c30 8 60-18 94-6M113 170c26-10 64 8 94-4M150 36v190" stroke="var(--brand-soft)" strokeWidth="9" fill="none" />
-        <rect x="146" y="42" width="28" height="6" rx="3" fill={INK} opacity="0.8" />
-      </g>
-      <g transform="translate(160 132)">
-        <ellipse cy="26" rx="16" ry="5" fill={TEAL} opacity="0.2" {...anim(active, "animate-pulse-ring", 600)} />
-        <g {...anim(active, "animate-pin-drop", 300)}>
-          <path d="M0 26C-14 12-22 2-22-8a22 22 0 0 1 44 0c0 10-8 20-22 34z" fill="url(#gz-teal)" />
-          <circle cy="-8" r="8" fill="#fff" />
-        </g>
-      </g>
-      <g transform="translate(236 176)" {...anim(active, "animate-pop", 900)}>
-        <path d="M0 -30l24 9v17c0 16-10 28-24 34-14-6-24-18-24-34v-17z" fill={CARD} filter="url(#gz-shadow)" />
-        <path d="M0 -22l17 6v12c0 11-7 20-17 25-10-5-17-14-17-25v-12z" fill={GREEN} />
-        <path d="M-7 -1l5 5 10-10" stroke="#fff" strokeWidth="3.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      </g>
-      <g transform="translate(82 84)" {...anim(active, "animate-float", 400)}>
-        <circle r="17" fill={CARD} filter="url(#gz-shadow)" />
-        <rect x="-7" y="-2" width="14" height="11" rx="2.5" fill={AMBER} />
-        <path d="M-4 -2v-3a4 4 0 0 1 8 0v3" stroke={AMBER} strokeWidth="2.5" fill="none" />
-      </g>
-    </Svg>
+    <Frame label="Konum pini ve gizlilik kalkanı">
+      <Backdrop />
+      <div className="absolute top-[7%] left-[33%] h-[86%] w-[34%]">
+        <div className={cn("relative h-full w-full overflow-hidden rounded-[1.75rem] border-[5px] border-foreground bg-card", phone.className)} style={phone.style}>
+          <div className="absolute top-[38%] -left-[20%] h-[5%] w-[140%] -rotate-12 bg-brand-soft" />
+          <div className="absolute top-[70%] -left-[20%] h-[5%] w-[140%] rotate-6 bg-brand-soft" />
+          <div className="absolute top-0 left-[36%] h-full w-[7%] bg-brand-soft" />
+          <div className="absolute top-[3%] left-[35%] h-[3%] w-[30%] rounded-full bg-foreground/80" />
+        </div>
+      </div>
+      <div className="absolute top-[40%] left-[42%] aspect-square w-[16%]">
+        <span className={cn("absolute inset-0 rounded-full bg-primary/30", active && "animate-pulse-ring")} style={active ? { animationDelay: "600ms" } : undefined} />
+        <IconBox icon={MapPin} tone="primary" round className="relative h-full w-full" motion={anim(active, "animate-pin-drop", 300)} />
+      </div>
+      <Tile icon={ShieldCheck} tone="success" className="top-[60%] left-[68%] w-[16%]" motion={anim(active, "animate-pop", 900)} />
+      <Tile icon={Lock} tone="highlight" round className="top-[18%] left-[16%] w-[13%]" motion={anim(active, "animate-float", 400)} />
+    </Frame>
   );
 }

@@ -1,0 +1,68 @@
+/**
+ * Safe parsers for poi.details (jsonb). Unknown shapes never throw.
+ */
+import type { Json } from "@/lib/database.types";
+import type { PlaceCategory, PlaceDetails, PlacePhoto, StopDetails } from "../types";
+
+const CATEGORIES: PlaceCategory[] = ["tarihi", "park", "doga", "muze", "avm", "diger"];
+
+function obj(details: Json | null | undefined): Record<string, Json | undefined> {
+  return details && typeof details === "object" && !Array.isArray(details) ? (details as Record<string, Json | undefined>) : {};
+}
+
+function str(v: Json | undefined): string | null {
+  if (typeof v === "string") {
+    const t = v.trim();
+    return t ? t : null;
+  }
+  if (typeof v === "number") return String(v);
+  return null;
+}
+
+function parsePhotos(v: Json | undefined): PlacePhoto[] {
+  if (!Array.isArray(v)) return [];
+  const out: PlacePhoto[] = [];
+  for (const p of v) {
+    if (typeof p === "string" && /^https?:\/\//.test(p)) out.push({ url: p, alt: null, credit: null });
+    else if (p && typeof p === "object" && !Array.isArray(p)) {
+      const o = p as Record<string, Json | undefined>;
+      const url = str(o.url) ?? str(o.src);
+      if (url && /^https?:\/\//.test(url)) out.push({ url, alt: str(o.alt) ?? str(o.caption), credit: str(o.credit) ?? str(o.attribution) });
+    }
+  }
+  return out;
+}
+
+export function parsePlaceDetails(details: Json | null | undefined): PlaceDetails {
+  const d = obj(details);
+  const cat = str(d.category);
+  return {
+    category: CATEGORIES.includes(cat as PlaceCategory) ? (cat as PlaceCategory) : "diger",
+    description: str(d.description),
+    curated: d.curated === true,
+    photos: parsePhotos(d.photos),
+    hours: str(d.hours) ?? str(d.opening_hours),
+    fee: str(d.fee),
+    wikidata: str(d.wikidata),
+  };
+}
+
+export function parseStopDetails(details: Json | null | undefined): StopDetails {
+  const d = obj(details);
+  const lines = Array.isArray(d.lines)
+    ? Array.from(new Set(d.lines.map((l) => str(l as Json)).filter((l): l is string => !!l))).sort((a, b) =>
+        a.localeCompare(b, "tr-TR", { numeric: true }),
+      )
+    : [];
+  return {
+    lines,
+    stopCode: str(d.stop_code),
+    shelter: typeof d.shelter === "boolean" ? d.shelter : null,
+  };
+}
+
+/** "Ücretsiz" / "free" / "0" -> true (for schema.org isAccessibleForFree). */
+export function isFreeEntry(fee: string | null | undefined): boolean {
+  if (!fee) return false;
+  return /^(ücretsiz|ucretsiz|free|yok|0)$/i.test(fee.trim());
+}

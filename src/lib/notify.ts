@@ -74,7 +74,9 @@ export async function notifyUser(userId: string, input: NotifyInput): Promise<No
     const admin = createAdminClient();
     const { data } = await admin
       .from(TABLES.notifications)
-      .insert({ user_id: userId, type: input.type, title: input.title, body: input.body, link: input.link ?? null })
+      // push_sent_at is set because this function pushes itself below; otherwise the notifications_push_webhook
+      // trigger (-> /api/notifications/push) would send the same notification a second time.
+      .insert({ user_id: userId, type: input.type, title: input.title, body: input.body, link: input.link ?? null, push_sent_at: new Date().toISOString() })
       .select("id")
       .single();
     notificationId = (data as { id?: string } | null)?.id ?? null;

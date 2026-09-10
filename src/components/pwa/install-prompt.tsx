@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Bell, Download, EllipsisVertical, Plus, Share, SquarePlus, X } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, Download, EllipsisVertical, Plus, Share, Smartphone, SquarePlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME, STORAGE_KEYS } from "@/config/site";
-import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/shared/bottom-sheet";
 import { useBottomNavHidden } from "@/components/layout/nav-visibility";
@@ -77,8 +76,8 @@ export function InstallPrompt() {
           aria-label="Uygulamayı yükle"
         >
           <div className="flex items-center gap-3 rounded-2xl bg-card p-3 pr-2 shadow-card ring-1 ring-foreground/[0.06]">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-soft">
-              <LogoMark className="size-8" />
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-primary">
+              <Smartphone className="size-6" strokeWidth={1.75} aria-hidden />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm leading-tight font-bold">{APP_NAME}&apos;i ana ekrana ekle</p>
@@ -122,8 +121,8 @@ function IosGuide() {
         }
       >
         <div className="flex h-12 items-center justify-around rounded-xl bg-muted px-4 text-muted-foreground" aria-hidden>
-          <span className="text-lg">‹</span>
-          <span className="text-lg">›</span>
+          <ChevronLeft className="size-5" strokeWidth={1.75} />
+          <ChevronRight className="size-5" strokeWidth={1.75} />
           <span className="relative flex size-9 items-center justify-center rounded-lg bg-card text-primary shadow-soft ring-2 ring-primary">
             <Share className="size-5" />
             <span className="absolute inset-0 animate-pulse-ring rounded-lg bg-primary/30" />

@@ -6,7 +6,6 @@ import { ArrowRight, Loader2, LocateFixed, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { APP_NAME, APP_TAGLINE } from "@/config/site";
-import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
 import { useApproxLocation } from "@/lib/location/use-approx-location";
@@ -124,8 +123,7 @@ function finish() {
 function SplashContent() {
   return (
     <div className="flex flex-col items-center gap-5">
-      <LogoMark className="size-24 animate-pop" />
-      <p className="font-heading text-3xl font-extrabold tracking-tight">{APP_NAME}</p>
+      <p className="animate-pop font-heading text-4xl font-bold tracking-tight">{APP_NAME}</p>
       <span className="relative mt-2 block h-1 w-24 overflow-hidden rounded-full bg-muted" aria-hidden>
         <span className="absolute inset-y-0 left-0 w-1/2 animate-[gz-splash-bar_1.1s_ease-in-out_infinite] rounded-full bg-primary" />
       </span>
@@ -221,9 +219,7 @@ function OnboardingSlides({ onDone }: { onDone: () => void }) {
     >
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col pt-safe pb-safe">
         <div className="flex h-14 items-center justify-between px-4">
-          <span className="flex items-center gap-2 font-heading text-base font-extrabold">
-            <LogoMark className="size-7" /> {APP_NAME}
-          </span>
+          <span className="font-heading text-lg font-bold tracking-tight">{APP_NAME}</span>
           {!last ? (
             <Button variant="ghost" onClick={close} className="text-muted-foreground">
               Atla
