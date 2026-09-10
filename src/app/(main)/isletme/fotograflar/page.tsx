@@ -1,10 +1,28 @@
 import type { Metadata } from "next";
-import { ImagePlus } from "lucide-react";
-import { ComingSoon } from "@/components/shared/coming-soon";
+import { redirect } from "next/navigation";
+import { routes } from "@/core/routes";
+import { PageHeader } from "@/components/shared/page-header";
+import { requireProfile } from "@/lib/auth/server";
+import { mediaPathFromUrl } from "@/features/business/components/editor/image-picker";
+import { PhotosManager } from "@/features/business/components/photos-manager";
+import { getOwnerBusiness } from "@/features/business/lib/owner-queries";
 
-// Placeholder created by the app-shell agent; the profile-business agent replaces this page.
-export const metadata: Metadata = { title: "Fotoğraflar" };
+export const metadata: Metadata = { title: "Fotoğraflar", robots: { index: false } };
 
-export default function Page() {
-  return <ComingSoon title="Fotoğraflar" icon={ImagePlus} backHref="/isletme" />;
+/** İşletme fotoğrafları (kapak + portfolyo). */
+export default async function BusinessPhotosPage() {
+  const { user } = await requireProfile(routes.business.photos());
+  const b = await getOwnerBusiness();
+  if (!b) redirect(routes.business.intro());
+
+  return (
+    <>
+      <PageHeader title="Fotoğraflar" subtitle={b.name} backHref={routes.business.root()} />
+      <PhotosManager
+        businessId={b.id}
+        cover={b.cover_url ? { url: b.cover_url, path: mediaPathFromUrl(b.cover_url, user.id) } : null}
+        photos={b.photos.map((p) => ({ id: p.id, url: p.url }))}
+      />
+    </>
+  );
 }
