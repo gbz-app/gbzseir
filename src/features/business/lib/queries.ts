@@ -11,7 +11,7 @@ import { createPublicClient } from "./public-client";
  */
 
 export const PUBLIC_BUSINESS_COLUMNS =
-  "id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,neighbourhood_id,kinds,category_label,working_hours,verification_level,vacation_mode,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at";
+  "id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,neighbourhood_id,kinds,category_label,working_hours,verification_level,vacation_mode,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at,vertical,price_level,star_rating,amenities,website,instagram";
 
 export type ServiceCategoryLite = {
   id: string;
@@ -45,6 +45,12 @@ export type PublicBusiness = {
   created_at: string;
   updated_at: string;
   approved_at: string | null;
+  vertical: string | null;
+  price_level: number | null;
+  star_rating: number | null;
+  amenities: string[];
+  website: string | null;
+  instagram: string | null;
 };
 
 export type BusinessPhoto = { id: string; url: string; sort: number };
@@ -56,9 +62,10 @@ export type BusinessDetail = PublicBusiness & {
   photos: BusinessPhoto[];
 };
 
-type RawDetail = Omit<PublicBusiness, "kinds" | "rating_avg"> & {
+type RawDetail = Omit<PublicBusiness, "kinds" | "rating_avg" | "amenities"> & {
   kinds: string[] | null;
   rating_avg: number | string | null;
+  amenities: string[] | null;
   neighbourhoods: { name: string } | null;
   business_service_categories: Array<{ service_categories: ServiceCategoryLite | null }> | null;
   business_service_areas: Array<{ neighbourhoods: { id: string; name: string } | null }> | null;
@@ -100,6 +107,7 @@ export const getPublicBusinessBySlug = cache(async (slug: string): Promise<Busin
     ...rest,
     kinds: parseKinds(raw.kinds),
     rating_avg: toNumber(raw.rating_avg),
+    amenities: raw.amenities ?? [],
     neighbourhood_name: neighbourhoods?.name ?? null,
     categories: (business_service_categories ?? [])
       .map((x) => x.service_categories)

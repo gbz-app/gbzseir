@@ -39,6 +39,12 @@ export const BRAND_COLORS = {
 /** Prototype flags. */
 export const OTP_DEMO_MODE = process.env.NEXT_PUBLIC_OTP_DEMO_MODE === "true";
 
+/** Feature switches (turn on when the feature is ready to launch). */
+export const FEATURES = {
+  /** New business applications (existing businesses keep their panel). Paused for now. */
+  businessApplications: false,
+} as const;
+
 /** localStorage keys used across the app (all access must be wrapped in try/catch). */
 export const STORAGE_KEYS = {
   onboarded: "gebzem.onboarded.v1",

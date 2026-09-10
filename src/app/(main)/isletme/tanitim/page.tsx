@@ -20,7 +20,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { VerifiedBadge } from "@/components/shared/badges";
-import { APP_NAME, CITY } from "@/config/site";
+import { APP_NAME, CITY, FEATURES, SUPPORT } from "@/config/site";
+import { telHref } from "@/core/phone";
 import { routes } from "@/core/routes";
 import { getCurrentUser, getProfile } from "@/lib/auth/server";
 import { BusinessLogo } from "@/features/business/components/business-logo";
@@ -92,6 +93,9 @@ export default async function BusinessIntroPage() {
       </p>
     );
     primary = { href: routes.content.help(), label: "Yardım ve iletişim" };
+  } else if (!business && !FEATURES.businessApplications) {
+    note = <p className="text-sm">Yeni işletme başvuruları yakında açılacak. İşletmeni listelemek ya da reklam vermek için bize ulaşabilirsin.</p>;
+    primary = { href: telHref(SUPPORT.phone), label: `Bizi ara: ${SUPPORT.phoneDisplay}` };
   }
 
   return (

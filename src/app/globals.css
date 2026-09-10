@@ -296,6 +296,8 @@ html[data-onboarding="open"] {
     overscroll-behavior: none;
     overflow-x: clip;
     scrollbar-width: none;
+    /* App-like: no double-tap zoom (pinch is blocked by the viewport + <NoZoom />). */
+    touch-action: manipulation;
   }
   html::-webkit-scrollbar {
     display: none;

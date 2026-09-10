@@ -1,26 +1,44 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Briefcase, CalendarDays, ChevronRight, Handshake, MapPin, MessageSquareReply, ShieldCheck, Star, Tag, TreePalm, Wrench } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/shared/page-header";
+import {
+  BedDouble,
+  Briefcase,
+  CalendarDays,
+  ChevronRight,
+  Globe,
+  Handshake,
+  Images,
+  MapPin,
+  MessageSquareReply,
+  QrCode,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Tag,
+  Ticket,
+  TreePalm,
+  UtensilsCrossed,
+  Wrench,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { VerifiedBadge } from "@/components/shared/badges";
-import { FavoriteButton } from "@/components/shared/favorite-button";
+import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
+import { DetailActions, DetailHero, DetailSheet, PRIMARY_CTA, SECONDARY_CTA } from "@/components/shared/detail-hero";
 import { PriceText } from "@/components/shared/price-text";
 import { JsonLd } from "@/components/seo/json-ld";
 import { APP_NAME, CITY, SITE_URL } from "@/config/site";
-import { formatDate, formatNumber, truncate } from "@/core/format";
+import { formatDate, formatNumber, formatPrice, truncate } from "@/core/format";
 import { routes } from "@/core/routes";
 import { trCompare } from "@/core/tr";
-import { BusinessLogo } from "@/features/business/components/business-logo";
-import { FirmActionBar } from "@/features/business/components/firm-action-bar";
 import { FirmGallery } from "@/features/business/components/firm-gallery";
 import { FirmMoreMenu } from "@/features/business/components/firm-more-menu";
+import { MenuSections, menuItemCount } from "@/features/business/components/menu-view";
 import { OpenNowStatus, WorkingHoursTable } from "@/features/business/components/open-now";
-import { RatingInline, Stars, formatRating } from "@/features/business/components/rating";
-import { hasAnyHours, openingHoursSpecification, parseWorkingHours } from "@/features/business/lib/hours";
-import { KIND_SHORT_LABELS } from "@/features/business/lib/kinds";
+import { Stars, formatRating } from "@/features/business/components/rating";
+import { RoomCard } from "@/features/business/components/room-card";
+import { DAY_KEYS, hasAnyHours, openingHoursSpecification, parseWorkingHours, type WorkingHours } from "@/features/business/lib/hours";
 import {
   getBusinessActiveListings,
   getBusinessReviews,
@@ -31,6 +49,11 @@ import {
   type ServiceCategoryLite,
 } from "@/features/business/lib/queries";
 import { createPublicClient } from "@/features/business/lib/public-client";
+import { getBusinessMenu, getBusinessRooms, type MenuSection, type Room } from "@/features/business/lib/vertical-queries";
+import { LISTABLE_VERTICALS, VERTICAL_INFO, amenityList, hasMenu, hasRooms, priceLevelInfo, resolveVertical, type Vertical } from "@/features/business/lib/verticals";
+import { EventCard } from "@/features/events/components/event-card";
+import { listBusinessEvents, type EventItem } from "@/features/events/queries";
+import { MiniMap } from "@/features/nearby/map/mini-map";
 
 export const revalidate = 300;
 
@@ -59,9 +82,15 @@ const WORK_TYPE_LABELS: Record<string, string> = {
   gunluk: "Günlük",
 };
 
+const SCHEMA_TYPE: Partial<Record<Vertical, string>> = { yemek: "Restaurant", restoran: "Restaurant", kafe: "CafeOrCoffeeShop", otel: "Hotel", magaza: "Store" };
+
 async function neighbourhoodTotal(): Promise<number> {
   const { count } = await createPublicClient().from("neighbourhoods").select("id", { count: "exact", head: true });
   return count ?? 0;
+}
+
+function isAlwaysOpen(hours: WorkingHours): boolean {
+  return DAY_KEYS.every((k) => hours[k]?.open === "00:00" && hours[k]?.close === "23:59");
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -75,20 +104,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     160,
   );
   const url = routes.businesses.detail(b.slug);
-  const image = b.cover_url ?? b.logo_url;
+  const image = b.cover_url ?? b.photos[0]?.url ?? b.logo_url;
   return {
     title,
     description,
     alternates: { canonical: url },
-    openGraph: {
-      type: "website",
-      locale: "tr_TR",
-      siteName: APP_NAME,
-      title,
-      description,
-      url,
-      images: [{ url: image ?? "/icons/og-image.png", alt: b.name }],
-    },
+    openGraph: { type: "website", locale: "tr_TR", siteName: APP_NAME, title, description, url, images: [{ url: image ?? "/icons/og-image.png", alt: b.name }] },
   };
 }
 
@@ -109,10 +130,10 @@ function Section({ id, title, icon: Icon, children, action }: { id?: string; tit
   return (
     <section id={id} className="scroll-mt-20" aria-labelledby={id ? `${id}-baslik` : undefined}>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 id={id ? `${id}-baslik` : undefined} className="flex items-center gap-2 text-lg font-bold">
+        <h2 id={id ? `${id}-baslik` : undefined} className="flex items-center gap-2 text-lg font-semibold">
           {Icon ? <Icon className="size-5 text-primary" aria-hidden /> : null}
           {title}
-        </h3>
+        </h2>
         {action}
       </div>
       {children}
@@ -120,11 +141,20 @@ function Section({ id, title, icon: Icon, children, action }: { id?: string; tit
   );
 }
 
+function Tile({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col items-center justify-center rounded-2xl bg-card px-2 py-3 text-center shadow-soft ring-1 ring-foreground/[0.05]">
+      <div className="max-w-full truncate text-[17px] leading-tight font-semibold tabular-nums">{children}</div>
+      <div className="mt-1 text-xs text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
 function ReviewItem({ r, businessName }: { r: PublicReview; businessName: string }) {
   return (
-    <li className="rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]">
+    <li className="rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
       <div className="flex items-center justify-between gap-3">
-        <p className="font-semibold">{r.author_name ?? "Gebzem kullanıcısı"}</p>
+        <p className="font-semibold">{r.author_name ?? `${APP_NAME} kullanıcısı`}</p>
         <time dateTime={r.created_at} className="text-xs text-muted-foreground">
           {formatDate(r.created_at, { month: "long" })}
         </time>
@@ -132,7 +162,7 @@ function ReviewItem({ r, businessName }: { r: PublicReview; businessName: string
       <Stars value={r.rating} className="mt-1" />
       {r.comment ? <p className="mt-2 text-[15px] leading-relaxed whitespace-pre-line">{r.comment}</p> : null}
       {r.reply ? (
-        <div className="mt-3 rounded-xl bg-muted/70 px-3.5 py-3 text-sm">
+        <div className="mt-3 rounded-2xl bg-muted/70 px-3.5 py-3 text-sm">
           <p className="flex items-center gap-1.5 text-xs font-bold text-primary">
             <MessageSquareReply className="size-3.5" aria-hidden /> {businessName} yanıtladı
           </p>
@@ -149,13 +179,13 @@ function ListingItem({ l }: { l: BusinessListing }) {
     <li>
       <Link
         href={isJob ? routes.listings.job(l.id) : routes.listings.classified(l.id)}
-        className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-soft ring-1 ring-foreground/[0.06] outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="flex items-center gap-3 rounded-3xl bg-card p-3 shadow-soft ring-1 ring-foreground/[0.05] outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {l.thumb_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={l.thumb_url} alt="" loading="lazy" className="size-14 shrink-0 rounded-xl object-cover" />
+          <img src={l.thumb_url} alt="" loading="lazy" className="size-14 shrink-0 rounded-2xl object-cover" />
         ) : (
-          <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+          <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
             {isJob ? <Briefcase className="size-6" aria-hidden /> : <Tag className="size-6" aria-hidden />}
           </span>
         )}
@@ -187,17 +217,23 @@ export default async function FirmPage({ params }: Props) {
   const b = await getPublicBusinessBySlug(normalizeSlug(slug));
   if (!b) notFound();
 
-  const [reviews, listings, allCategories, totalNeighbourhoods] = await Promise.all([
+  const vertical = resolveVertical(b.vertical, b.kinds);
+  const info = VERTICAL_INFO[vertical];
+  const [reviews, listings, allCategories, totalNeighbourhoods, menu, rooms, events] = await Promise.all([
     getBusinessReviews(b.id).catch(() => [] as PublicReview[]),
     getBusinessActiveListings(b.id).catch(() => [] as BusinessListing[]),
     getServiceCategories().catch(() => [] as ServiceCategoryLite[]),
     neighbourhoodTotal().catch(() => 0),
+    hasMenu(vertical) ? getBusinessMenu(b.id).catch(() => [] as MenuSection[]) : Promise.resolve([] as MenuSection[]),
+    hasRooms(vertical) ? getBusinessRooms(b.id).catch(() => [] as Room[]) : Promise.resolve([] as Room[]),
+    listBusinessEvents(b.id).catch(() => [] as EventItem[]),
   ]);
 
   const url = `${SITE_URL}${routes.businesses.detail(b.slug)}`;
   const hours = parseWorkingHours(b.working_hours);
   const showHours = hasAnyHours(hours);
-  const isService = b.kinds.includes("service");
+  const alwaysOpen = showHours && isAlwaysOpen(hours);
+  const isService = b.kinds.includes("service") || vertical === "hizmet";
   const verified = b.verification_level >= 1;
   const hasLocation = typeof b.lat === "number" && typeof b.lng === "number";
   const groups = groupCategories(b.categories, allCategories);
@@ -205,26 +241,34 @@ export default async function FirmPage({ params }: Props) {
   const jobs = listings.filter((l) => l.type === "job");
   const classifieds = listings.filter((l) => l.type !== "job");
   const memberSince = b.approved_at ?? b.created_at;
+  const amenities = amenityList(b.amenities);
+  const priceLevel = priceLevelInfo(b.price_level);
+  const itemCount = menuItemCount(menu);
+  const availableRooms = rooms.filter((r) => r.is_available && r.price_try != null);
+  const minRoomPrice = availableRooms.length ? Math.min(...availableRooms.map((r) => r.price_try!)) : null;
+  const heroImages = [...new Set([b.cover_url, ...b.photos.map((p) => p.url)].filter((u): u is string => !!u))];
+  const backHref = LISTABLE_VERTICALS.includes(vertical) ? routes.businesses.vertical(vertical) : routes.businesses.root();
 
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": "LocalBusiness",
+    "@type": SCHEMA_TYPE[vertical] ?? "LocalBusiness",
     "@id": url,
     name: b.name,
     url,
     description: b.description ?? undefined,
     telephone: b.phone ?? undefined,
-    image: [b.cover_url, b.logo_url, ...b.photos.slice(0, 3).map((p) => p.url)].filter(Boolean),
+    image: heroImages.slice(0, 4),
     logo: b.logo_url ?? undefined,
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: b.address ?? undefined,
-      addressLocality: CITY.name,
-      addressRegion: CITY.province,
-      addressCountry: "TR",
-    },
+    priceRange: priceLevel?.symbol,
+    starRating: b.star_rating ? { "@type": "Rating", ratingValue: b.star_rating } : undefined,
+    hasMenu: itemCount ? `${SITE_URL}${routes.businesses.menu(b.slug)}` : undefined,
+    address: { "@type": "PostalAddress", streetAddress: b.address ?? undefined, addressLocality: CITY.name, addressRegion: CITY.province, addressCountry: "TR" },
     geo: hasLocation ? { "@type": "GeoCoordinates", latitude: b.lat, longitude: b.lng } : undefined,
-    areaServed: coversAll || b.areas.length === 0 ? { "@type": "City", name: CITY.name } : b.areas.map((a) => ({ "@type": "Place", name: `${a.name}, ${CITY.name}` })),
+    areaServed: isService
+      ? coversAll || b.areas.length === 0
+        ? { "@type": "City", name: CITY.name }
+        : b.areas.map((a) => ({ "@type": "Place", name: `${a.name}, ${CITY.name}` }))
+      : undefined,
     openingHoursSpecification: showHours ? openingHoursSpecification(hours) : undefined,
     aggregateRating:
       b.rating_count > 0
@@ -246,222 +290,323 @@ export default async function FirmPage({ params }: Props) {
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Ana sayfa", item: SITE_URL },
-      { "@type": "ListItem", position: 2, name: "Firmalar", item: `${SITE_URL}${routes.businesses.root()}` },
+      { "@type": "ListItem", position: 2, name: info.plural, item: `${SITE_URL}${backHref}` },
       { "@type": "ListItem", position: 3, name: b.name, item: url },
     ],
   };
 
+  // Third stat tile depends on the vertical.
+  let thirdTile: { label: string; value: React.ReactNode } | null = null;
+  if (vertical === "otel" && minRoomPrice != null) thirdTile = { label: "gecelik, en düşük", value: formatPrice(minRoomPrice) };
+  else if (priceLevel) thirdTile = { label: priceLevel.label, value: priceLevel.symbol };
+  else if (isService) thirdTile = { label: "yanıtlanan talep", value: formatNumber(b.leads_accepted_count) };
+  else thirdTile = { label: "üyelik", value: <span className="capitalize">{monthYear.format(new Date(memberSince)).split(" ")[1]}</span> };
+
   return (
     <>
       <JsonLd data={[jsonLd, breadcrumb]} />
-      <PageHeader
-        title={b.name}
-        subtitle={b.category_label ?? undefined}
-        backHref={routes.businesses.root()}
-        hideBottomNav
-        actions={
-          <>
-            <FavoriteButton targetType="business" targetId={b.id} />
-            <FirmMoreMenu businessId={b.id} />
-          </>
-        }
+
+      <DetailHero
+        images={heroImages}
+        alt={`${b.name} fotoğrafı`}
+        backHref={backHref}
+        shareTitle={b.name}
+        shareText={`${b.name} | ${APP_NAME}`}
+        favorite={{ targetType: "business", targetId: b.id }}
+        fallbackIcon={<info.icon className="size-16" strokeWidth={1.5} aria-hidden />}
       />
 
-      <article className="flex flex-col gap-7 px-4 pt-4 pb-32">
-        <div>
-          <div className="relative">
-            <div className="aspect-[16/7] overflow-hidden rounded-3xl bg-linear-to-br from-brand-soft via-muted to-highlight-soft ring-1 ring-foreground/[0.06]">
-              {b.cover_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={b.cover_url} alt={`${b.name} kapak fotoğrafı`} className="size-full object-cover" fetchPriority="high" />
+      <DetailSheet className="pb-36">
+        <article className="flex flex-col gap-7">
+          <header>
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-primary">{b.category_label ?? info.label}</p>
+                <h1 className="mt-1 text-[1.625rem] leading-tight font-semibold tracking-tight text-balance">{b.name}</h1>
+              </div>
+              <FirmMoreMenu businessId={b.id} />
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="size-4" aria-hidden />
+                {b.neighbourhood_name ? `${b.neighbourhood_name} Mah., ` : ""}
+                {CITY.name}
+              </span>
+              {verified ? <VerifiedBadge /> : null}
+              {b.star_rating ? (
+                <span className="inline-flex items-center gap-0.5 font-medium text-foreground" aria-label={`${b.star_rating} yıldızlı otel`}>
+                  {Array.from({ length: b.star_rating }, (_, i) => (
+                    <Star key={i} className="size-3.5 fill-highlight text-highlight" aria-hidden />
+                  ))}
+                </span>
               ) : null}
             </div>
-            <BusinessLogo name={b.name} url={b.logo_url} size="xl" className="absolute -bottom-10 left-4 shadow-card ring-4 ring-background" />
+            <div className="mt-2">{alwaysOpen ? <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">7/24 açık</span> : showHours ? <OpenNowStatus hours={hours} /> : null}</div>
+          </header>
+
+          <div className="grid grid-cols-3 gap-2">
+            <a href="#yorumlar" className="rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+              <Tile label={b.rating_count ? "puan" : "henüz puan yok"}>
+                <span className="inline-flex items-center gap-1">
+                  <Star className="size-4 fill-highlight text-highlight" aria-hidden />
+                  {b.rating_count ? formatRating(b.rating_avg) : "-"}
+                </span>
+              </Tile>
+            </a>
+            <a href="#yorumlar" className="rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+              <Tile label="yorum">{formatNumber(b.rating_count)}</Tile>
+            </a>
+            {thirdTile ? <Tile label={thirdTile.label}>{thirdTile.value}</Tile> : null}
           </div>
 
-          <div className="mt-12">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-2xl leading-tight font-extrabold text-balance">{b.name}</h2>
-              {verified ? <VerifiedBadge /> : null}
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {[b.category_label, b.neighbourhood_name ? `${b.neighbourhood_name} Mah.` : null, CITY.name].filter(Boolean).join(" · ")}
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-              {b.rating_count > 0 ? (
-                <a href="#yorumlar" className="rounded-lg outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50">
-                  <RatingInline avg={b.rating_avg} count={b.rating_count} showCountLabel />
-                </a>
-              ) : (
-                <RatingInline avg={0} count={0} />
-              )}
-              {showHours ? <OpenNowStatus hours={hours} /> : null}
-            </div>
-            {b.kinds.length ? (
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {b.kinds.map((k) => (
-                  <Badge key={k} variant="secondary" className="h-6 px-2.5">
-                    {KIND_SHORT_LABELS[k]}
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        {b.vacation_mode ? (
-          <div role="note" className="flex items-start gap-3 rounded-2xl bg-highlight-soft px-4 py-3 text-sm text-highlight-foreground dark:text-foreground">
-            <TreePalm className="mt-0.5 size-5 shrink-0 text-highlight" aria-hidden />
-            <p>
-              <strong className="block">Bu işletme şu an tatilde.</strong>
-              Yeni hizmet taleplerini geçici olarak almıyor. Acil bir durum için arayabilirsin.
-            </p>
-          </div>
-        ) : null}
-
-        {b.description ? (
-          <Section title="Hakkında">
-            <p className="text-[15px] leading-relaxed whitespace-pre-line">{b.description}</p>
-          </Section>
-        ) : null}
-
-        {isService && groups.length > 0 ? (
-          <Section id="hizmetler" title="Hizmetler" icon={Wrench}>
-            <div className="flex flex-col gap-3">
-              {groups.map((g) => (
-                <div key={g.name}>
-                  <p className="mb-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">{g.name}</p>
-                  <ul className="flex flex-wrap gap-1.5">
-                    {g.items.map((c) => (
-                      <li key={c.id} className="rounded-full bg-brand-soft px-3 py-1.5 text-sm font-semibold text-primary">
-                        {c.name}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+          {amenities.length ? (
+            <ul className="flex flex-wrap gap-2" aria-label="Olanaklar">
+              {amenities.map((a) => (
+                <li key={a.key} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-card px-3 text-sm font-medium shadow-soft ring-1 ring-foreground/[0.05]">
+                  <a.icon className="size-4 text-primary" aria-hidden />
+                  {a.label}
+                </li>
               ))}
-            </div>
-            <Link
-              href={routes.services.root()}
-              className="mt-4 flex items-center gap-3 rounded-2xl bg-info-soft p-4 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <Handshake className="size-6 shrink-0 text-info" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="block font-bold">Ücretsiz teklif al</span>
-                <span className="text-muted-foreground">Talebini oluştur; bu firma dahil uygun firmalar seni arasın.</span>
-              </span>
-              <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            </Link>
-          </Section>
-        ) : null}
+            </ul>
+          ) : null}
 
-        {isService && b.areas.length > 0 ? (
-          <Section title="Hizmet verdiği mahalleler" icon={MapPin}>
-            {coversAll ? (
-              <p className="rounded-2xl bg-brand-soft px-4 py-3 text-sm font-semibold text-primary">Gebze&apos;nin tüm mahallelerine hizmet veriyor.</p>
-            ) : (
-              <ul className="flex flex-wrap gap-1.5">
-                {b.areas.map((a) => (
-                  <li key={a.id} className="rounded-full border bg-card px-3 py-1.5 text-sm font-medium">
-                    {a.name}
+          {b.vacation_mode ? (
+            <div role="note" className="flex items-start gap-3 rounded-2xl bg-highlight-soft px-4 py-3 text-sm text-highlight-foreground dark:text-foreground">
+              <TreePalm className="mt-0.5 size-5 shrink-0 text-highlight" aria-hidden />
+              <p>
+                <strong className="block">Bu işletme şu an tatilde.</strong>
+                Yeni talepleri geçici olarak almıyor. Acil bir durum için arayabilirsin.
+              </p>
+            </div>
+          ) : null}
+
+          {itemCount ? (
+            <Link
+              href={routes.businesses.menu(b.slug)}
+              className="flex items-center gap-3 rounded-3xl bg-foreground p-4 text-background shadow-float outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-background/15">
+                <QrCode className="size-6" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">Menüyü incele</span>
+                <span className="text-sm text-background/75">
+                  {menu.length} bölüm · {itemCount} ürün · QR menü
+                </span>
+              </span>
+              <ChevronRight className="size-5 shrink-0" aria-hidden />
+            </Link>
+          ) : null}
+
+          {b.description ? (
+            <Section title="Hakkında">
+              <p className="text-[15px] leading-relaxed whitespace-pre-line text-foreground/90">{b.description}</p>
+            </Section>
+          ) : null}
+
+          {itemCount ? (
+            <Section
+              id="menu"
+              title="Menü"
+              icon={UtensilsCrossed}
+              action={
+                <Link href={routes.businesses.menu(b.slug)} className="inline-flex min-h-11 items-center gap-0.5 text-sm font-semibold text-primary">
+                  Tümü <ChevronRight className="size-4" aria-hidden />
+                </Link>
+              }
+            >
+              <MenuSections sections={menu.slice(0, 2)} itemLimit={3} />
+              <Button asChild variant="outline" size="lg" className="mt-4 w-full">
+                <Link href={routes.businesses.menu(b.slug)}>Menünün tamamını gör ({itemCount} ürün)</Link>
+              </Button>
+            </Section>
+          ) : null}
+
+          {rooms.length ? (
+            <Section id="odalar" title={`Odalar (${rooms.length})`} icon={BedDouble}>
+              <ul className="flex flex-col gap-3">
+                {rooms.map((r) => (
+                  <li key={r.id}>
+                    <RoomCard room={r} name={b.name} />
                   </li>
                 ))}
               </ul>
-            )}
-          </Section>
-        ) : null}
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Fiyatlar işletme tarafından girilir; müsaitlik ve rezervasyon için oteli ara.</p>
+            </Section>
+          ) : null}
 
-        {b.photos.length > 0 ? (
-          <Section title="İş fotoğrafları">
-            <FirmGallery photos={b.photos} name={b.name} />
-          </Section>
-        ) : null}
+          {b.photos.length > 0 ? (
+            <Section id="galeri" title={`Galeri (${b.photos.length})`} icon={Images}>
+              <FirmGallery photos={b.photos} name={b.name} layout="grid" />
+            </Section>
+          ) : null}
 
-        {showHours ? (
-          <Section title="Çalışma saatleri" icon={CalendarDays}>
-            <WorkingHoursTable hours={hours} />
-          </Section>
-        ) : null}
+          {events.length ? (
+            <Section id="etkinlikler" title="Etkinlikler" icon={Ticket}>
+              <ul className="flex flex-col gap-3">
+                {events.map((e) => (
+                  <li key={e.id}>
+                    <EventCard event={e} />
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          ) : null}
 
-        {b.address || hasLocation ? (
-          <Section title="Adres" icon={MapPin}>
-            <div className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]">
-              <p className="min-w-0 flex-1 text-[15px] leading-relaxed">
+          {isService && groups.length > 0 ? (
+            <Section id="hizmetler" title="Hizmetler" icon={Wrench}>
+              <div className="flex flex-col gap-3">
+                {groups.map((g) => (
+                  <div key={g.name}>
+                    <p className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{g.name}</p>
+                    <ul className="flex flex-wrap gap-1.5">
+                      {g.items.map((c) => (
+                        <li key={c.id} className="rounded-full bg-brand-soft px-3 py-1.5 text-sm font-semibold text-primary">
+                          {c.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <Link
+                href={routes.services.root()}
+                className="mt-4 flex items-center gap-3 rounded-3xl bg-card p-4 text-sm shadow-soft ring-1 ring-foreground/[0.05] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <Handshake className="size-6 shrink-0 text-primary" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">Ücretsiz teklif al</span>
+                  <span className="text-muted-foreground">Talebini oluştur; bu firma dahil uygun firmalar seni arasın.</span>
+                </span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              </Link>
+            </Section>
+          ) : null}
+
+          {isService && b.areas.length > 0 ? (
+            <Section title="Hizmet verdiği mahalleler" icon={MapPin}>
+              {coversAll ? (
+                <p className="rounded-2xl bg-brand-soft px-4 py-3 text-sm font-semibold text-primary">{CITY.name}&apos;nin tüm mahallelerine hizmet veriyor.</p>
+              ) : (
+                <ul className="flex flex-wrap gap-1.5">
+                  {b.areas.map((a) => (
+                    <li key={a.id} className="rounded-full bg-card px-3 py-1.5 text-sm font-medium ring-1 ring-foreground/[0.08]">
+                      {a.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+          ) : null}
+
+          {showHours && !alwaysOpen ? (
+            <Section title="Çalışma saatleri" icon={CalendarDays}>
+              <WorkingHoursTable hours={hours} />
+            </Section>
+          ) : null}
+
+          {b.address || hasLocation ? (
+            <Section title="Konum" icon={MapPin}>
+              <p className="mb-3 text-[15px] leading-relaxed">
                 {b.address ?? `${b.neighbourhood_name ? `${b.neighbourhood_name} Mah., ` : ""}${CITY.name}`}
-                {b.address && b.neighbourhood_name ? <span className="block text-sm text-muted-foreground">{b.neighbourhood_name} Mah., {CITY.name}</span> : null}
               </p>
-              {hasLocation ? <DirectionsButton lat={b.lat!} lng={b.lng!} name={b.name} size="sm" subjectType="business" subjectId={b.id} /> : null}
-            </div>
-          </Section>
-        ) : null}
+              {hasLocation ? <MiniMap lat={b.lat!} lng={b.lng!} kind="business" name={b.name} /> : null}
+            </Section>
+          ) : null}
 
-        <Section title="Güven bilgileri" icon={ShieldCheck}>
-          <dl className="grid grid-cols-2 gap-2.5">
-            <div className="rounded-2xl bg-card p-3.5 shadow-soft ring-1 ring-foreground/[0.06]">
-              <dt className="text-xs font-semibold text-muted-foreground">Üyelik tarihi</dt>
-              <dd className="mt-1 font-bold capitalize">{monthYear.format(new Date(memberSince))}</dd>
-            </div>
-            <div className="rounded-2xl bg-card p-3.5 shadow-soft ring-1 ring-foreground/[0.06]">
-              <dt className="text-xs font-semibold text-muted-foreground">Yanıtladığı talep</dt>
-              <dd className="mt-1 font-bold tabular-nums">{formatNumber(b.leads_accepted_count)}</dd>
-            </div>
-            {verified ? (
-              <div className="col-span-2 flex items-start gap-2.5 rounded-2xl bg-brand-soft p-3.5 text-sm">
-                <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
-                <p>
-                  <strong className="text-primary">Onaylı işletme.</strong> Başvurusu {APP_NAME} ekibi tarafından incelendi ve onaylandı.
-                </p>
+          {b.website ? (
+            <a
+              href={b.website}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="flex items-center gap-3 rounded-3xl bg-card p-4 text-sm shadow-soft ring-1 ring-foreground/[0.05] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <Globe className="size-5 shrink-0 text-primary" aria-hidden />
+              <span className="min-w-0 flex-1 truncate font-medium">{b.website.replace(/^https?:\/\//, "")}</span>
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </a>
+          ) : null}
+
+          <Section id="yorumlar" title={b.rating_count > 0 ? `Yorumlar (${b.rating_count})` : "Yorumlar"} icon={Star}>
+            {b.rating_count > 0 ? (
+              <div className="mb-3 flex items-center gap-4 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
+                <p className="text-4xl font-semibold tabular-nums">{formatRating(b.rating_avg)}</p>
+                <div>
+                  <Stars value={b.rating_avg} size="md" />
+                  <p className="mt-1 text-sm text-muted-foreground">{b.rating_count} değerlendirme</p>
+                </div>
               </div>
             ) : null}
-          </dl>
-        </Section>
+            {reviews.length > 0 ? (
+              <ul className="flex flex-col gap-2.5">
+                {reviews.map((r) => (
+                  <ReviewItem key={r.id} r={r} businessName={b.name} />
+                ))}
+              </ul>
+            ) : (
+              <p className="rounded-2xl bg-muted/60 px-4 py-4 text-sm text-muted-foreground">Henüz yorum yok.</p>
+            )}
+          </Section>
 
-        <Section id="yorumlar" title={b.rating_count > 0 ? `Yorumlar (${b.rating_count})` : "Yorumlar"} icon={Star}>
-          {b.rating_count > 0 ? (
-            <div className="mb-3 flex items-center gap-4 rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]">
-              <p className="text-4xl font-extrabold tabular-nums">{formatRating(b.rating_avg)}</p>
-              <div>
-                <Stars value={b.rating_avg} size="md" />
-                <p className="mt-1 text-sm text-muted-foreground">{b.rating_count} değerlendirme</p>
+          <Section title="Güven bilgileri" icon={ShieldCheck}>
+            <dl className="grid grid-cols-2 gap-2.5">
+              <div className="rounded-2xl bg-card p-3.5 shadow-soft ring-1 ring-foreground/[0.05]">
+                <dt className="text-xs font-semibold text-muted-foreground">Üyelik tarihi</dt>
+                <dd className="mt-1 font-semibold capitalize">{monthYear.format(new Date(memberSince))}</dd>
               </div>
-            </div>
+              <div className="rounded-2xl bg-card p-3.5 shadow-soft ring-1 ring-foreground/[0.05]">
+                <dt className="text-xs font-semibold text-muted-foreground">{isService ? "Yanıtladığı talep" : "Fotoğraf"}</dt>
+                <dd className="mt-1 font-semibold tabular-nums">{formatNumber(isService ? b.leads_accepted_count : b.photos.length)}</dd>
+              </div>
+              {verified ? (
+                <div className="col-span-2 flex items-start gap-2.5 rounded-2xl bg-brand-soft p-3.5 text-sm">
+                  <Sparkles className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+                  <p>
+                    <strong className="text-primary">Onaylı işletme.</strong> Bilgileri {APP_NAME} ekibi tarafından incelendi.
+                  </p>
+                </div>
+              ) : null}
+            </dl>
+          </Section>
+
+          {jobs.length > 0 ? (
+            <Section title="İş ilanları" icon={Briefcase}>
+              <ul className="flex flex-col gap-2.5">
+                {jobs.map((l) => (
+                  <ListingItem key={l.id} l={l} />
+                ))}
+              </ul>
+            </Section>
           ) : null}
-          {reviews.length > 0 ? (
-            <ul className="flex flex-col gap-2.5">
-              {reviews.map((r) => (
-                <ReviewItem key={r.id} r={r} businessName={b.name} />
-              ))}
-            </ul>
-          ) : (
-            <p className="rounded-2xl bg-muted/60 px-4 py-4 text-sm text-muted-foreground">Henüz yorum yok.</p>
-          )}
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            Yorumları yalnızca bu firmayla {APP_NAME} üzerinden çalışan müşteriler yazabilir.
-          </p>
-        </Section>
 
-        {jobs.length > 0 ? (
-          <Section title="İş ilanları" icon={Briefcase}>
-            <ul className="flex flex-col gap-2.5">
-              {jobs.map((l) => (
-                <ListingItem key={l.id} l={l} />
-              ))}
-            </ul>
-          </Section>
+          {classifieds.length > 0 ? (
+            <Section title="İlanları" icon={Tag}>
+              <ul className="flex flex-col gap-2.5">
+                {classifieds.map((l) => (
+                  <ListingItem key={l.id} l={l} />
+                ))}
+              </ul>
+            </Section>
+          ) : null}
+        </article>
+      </DetailSheet>
+
+      <DetailActions>
+        {b.phone ? <CallButton phone={b.phone} subjectType="business" subjectId={b.id} label="Ara" variant="default" size="lg" className={PRIMARY_CTA} /> : null}
+        {hasLocation ? (
+          <DirectionsButton
+            lat={b.lat!}
+            lng={b.lng!}
+            name={b.name}
+            iconOnly={!!b.phone}
+            variant="secondary"
+            size="lg"
+            subjectType="business"
+            subjectId={b.id}
+            className={b.phone ? SECONDARY_CTA : PRIMARY_CTA}
+          />
         ) : null}
-
-        {classifieds.length > 0 ? (
-          <Section title="İlanları" icon={Tag}>
-            <ul className="flex flex-col gap-2.5">
-              {classifieds.map((l) => (
-                <ListingItem key={l.id} l={l} />
-              ))}
-            </ul>
-          </Section>
-        ) : null}
-      </article>
-
-      <FirmActionBar businessId={b.id} name={b.name} phone={b.phone} lat={b.lat} lng={b.lng} />
+      </DetailActions>
     </>
   );
 }

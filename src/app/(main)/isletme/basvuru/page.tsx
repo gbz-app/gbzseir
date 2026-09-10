@@ -7,6 +7,8 @@ import { ApplyWizard, type ApplyData } from "@/features/business/components/appl
 import { mediaPathFromUrl } from "@/features/business/components/editor/image-picker";
 import { defaultHours, hasAnyHours, parseWorkingHours } from "@/features/business/lib/hours";
 import { getOwnerBusiness } from "@/features/business/lib/owner-queries";
+import { FEATURES } from "@/config/site";
+import { ApplicationsPaused } from "@/features/business/components/applications-paused";
 
 export const metadata: Metadata = { title: "İşletme Başvurusu", robots: { index: false } };
 
@@ -15,6 +17,7 @@ export default async function BusinessApplyPage() {
   const { user, profile } = await requireProfile(routes.business.apply());
   const existing = await getOwnerBusiness();
   if (existing && existing.status !== "pending" && existing.status !== "rejected") redirect(routes.business.root());
+  if (!FEATURES.businessApplications) return <ApplicationsPaused />;
 
   const loginPhone = profile.phone ?? fromSupabasePhone(user.phone);
   const toInput = (e164: string | null | undefined) => (e164 ? formatPhoneInputTR(e164) : "");

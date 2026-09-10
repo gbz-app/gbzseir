@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Briefcase, ChevronRight, Clock, Store, Tag, type LucideIcon } from "lucide-react";
+import { FEATURES } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
@@ -63,13 +64,13 @@ export default async function PostChooserPage() {
                   <Clock /> Başvuru durumunu gör
                 </Link>
               </Button>
-            ) : (
+            ) : business || FEATURES.businessApplications ? (
               <Button asChild variant="outline">
                 <Link href={business ? routes.business.root() : routes.business.intro()}>
                   <Store /> İşletme hesabına geç
                 </Link>
               </Button>
-            )}
+            ) : null}
           </div>
         )}
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{BANNED_CATEGORIES_TEXT}</p>

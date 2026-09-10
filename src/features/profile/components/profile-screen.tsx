@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { APP_NAME, CITY } from "@/config/site";
+import { APP_NAME, CITY, FEATURES } from "@/config/site";
 import { initials } from "@/core/format";
 import { routes } from "@/core/routes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -179,7 +179,7 @@ export function ProfileScreen() {
       href: routes.business.root(),
       icon: Clock,
     };
-  } else if (rejected) {
+  } else if (rejected && FEATURES.businessApplications) {
     promo = {
       title: "Başvurun onaylanmadı",
       text: "Bilgileri düzeltip tekrar gönderebilirsin.",
@@ -187,7 +187,7 @@ export function ProfileScreen() {
       href: routes.business.apply(),
       icon: Store,
     };
-  } else if (!promoDismissed) {
+  } else if (!promoDismissed && FEATURES.businessApplications) {
     promo = {
       title: "İşletmen mi var?",
       text: `Ücretsiz işletme hesabı aç, ${CITY.name}lilere ulaş.`,

@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LocationChip } from "@/components/shared/location-chip";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useUnreadNotifications } from "@/lib/notifications/use-unread-notifications";
+import { MarketsButton } from "@/features/markets/components/markets-sheet";
+import { WeatherButton } from "@/features/weather/components/weather-sheet";
 import { TOPBAR_PATHS } from "./nav-config";
 import { useScrolled } from "./nav-visibility";
 
@@ -67,7 +69,9 @@ export function TopBar() {
               <span className="block truncate text-[15px] font-semibold">{user ? profile?.full_name || "Hoş geldin" : "Giriş yap"}</span>
             </span>
           </Link>
-          <div className="ml-auto">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <WeatherButton />
+            <MarketsButton />
             {user ? (
               <NotificationBell />
             ) : (

@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { CalendarDays, Gift, Store } from "lucide-react";
 import { istanbulDateKey, istanbulParts } from "@/core/time";
+import { FEATURES } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Button } from "@/components/ui/button";
 import { ExploreHeader, FilterChip } from "@/components/shared/explore-header";
@@ -88,12 +89,14 @@ export function EventsExplorer({ events }: { events: EventItem[] }) {
         <div className="flex flex-col items-center rounded-3xl bg-card px-6 py-10 text-center shadow-soft ring-1 ring-foreground/[0.05]">
           <CalendarDays className="size-10 text-primary/50" strokeWidth={1.5} aria-hidden />
           <p className="mt-3 font-semibold">Yaklaşan etkinlik yok</p>
-          <p className="mt-1 text-sm text-muted-foreground">İşletmen etkinlik düzenliyorsa işletme panelinden ekleyebilirsin.</p>
-          <Button asChild variant="outline" className="mt-5">
-            <Link href={routes.business.intro()}>
-              <Store /> İşletme sayfası aç
-            </Link>
-          </Button>
+          <p className="mt-1 text-sm text-muted-foreground">İşletmeler etkinliklerini işletme panelinden ekleyebilir.</p>
+          {FEATURES.businessApplications ? (
+            <Button asChild variant="outline" className="mt-5">
+              <Link href={routes.business.intro()}>
+                <Store /> İşletme sayfası aç
+              </Link>
+            </Button>
+          ) : null}
         </div>
       ) : (
         <>

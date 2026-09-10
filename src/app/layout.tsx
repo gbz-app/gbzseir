@@ -5,6 +5,7 @@ import { APP_DESCRIPTION, APP_FULL_NAME, APP_NAME, BRAND_COLORS, SITE_URL } from
 import { ThemeScript } from "@/components/theme/theme-script";
 import { AppProviders } from "@/components/providers/app-providers";
 import { LandscapeLock } from "@/components/layout/landscape-lock";
+import { NoZoom } from "@/components/layout/no-zoom";
 import { OnboardingPreScript } from "@/features/onboarding/onboarding-pre-script";
 
 // The whole UI uses Google Sans (variable, 400-700). latin-ext is required for ğ, ş, ı, İ.
@@ -45,6 +46,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // App-like: no pinch / double-tap zoom (iOS gestures are also blocked by <NoZoom />).
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: BRAND_COLORS.backgroundLight },
@@ -62,6 +66,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-dvh bg-background font-sans text-foreground">
         <AppProviders>{children}</AppProviders>
         <LandscapeLock />
+        <NoZoom />
       </body>
     </html>
   );

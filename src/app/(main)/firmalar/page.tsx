@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { ErrorState } from "@/components/shared/error-state";
 import { ListSkeleton } from "@/components/shared/skeletons";
 import { JsonLd } from "@/components/seo/json-ld";
-import { APP_NAME, CITY, SITE_URL } from "@/config/site";
+import { APP_NAME, CITY, FEATURES, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { slugifyTr, trCompare } from "@/core/tr";
 import { FirmsDirectory, type DirectoryChip, type DirectoryItem } from "@/features/business/components/firms-directory";
@@ -110,18 +110,20 @@ export default async function FirmsPage() {
               <span className="text-muted-foreground">Talebini oluştur, uygun firmalar seni arasın.</span>
             </span>
           </Link>
-          <Link
-            href={routes.business.intro()}
-            className="flex items-center gap-3 rounded-2xl bg-brand-soft p-4 transition-transform outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]"
-          >
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-card text-primary shadow-soft">
-              <Store className="size-5" aria-hidden />
-            </span>
-            <span className="min-w-0 text-sm">
-              <span className="block font-bold">İşletmen mi var?</span>
-              <span className="text-muted-foreground">Ücretsiz işletme sayfanı aç.</span>
-            </span>
-          </Link>
+          {FEATURES.businessApplications ? (
+            <Link
+              href={routes.business.intro()}
+              className="flex items-center gap-3 rounded-2xl bg-brand-soft p-4 transition-transform outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]"
+            >
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-card text-primary shadow-soft">
+                <Store className="size-5" aria-hidden />
+              </span>
+              <span className="min-w-0 text-sm">
+                <span className="block font-bold">İşletmen mi var?</span>
+                <span className="text-muted-foreground">Ücretsiz işletme sayfanı aç.</span>
+              </span>
+            </Link>
+          ) : null}
         </div>
       </div>
     </>
