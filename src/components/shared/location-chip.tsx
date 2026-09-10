@@ -1,0 +1,42 @@
+"use client";
+
+import * as React from "react";
+import { ChevronDown, LocateFixed, MapPin } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { CITY } from "@/config/site";
+import { useApproxLocation } from "@/lib/location/use-approx-location";
+import { NeighbourhoodPicker } from "./neighbourhood-picker";
+
+/** Top-bar chip showing the current neighbourhood (or "Gebze"); tap to change or use GPS. */
+export function LocationChip({ className }: { className?: string }) {
+  const loc = useApproxLocation();
+  const [open, setOpen] = React.useState(false);
+  const label = loc.neighbourhood?.name ?? (loc.coords ? "Konumum" : CITY.name);
+  const Icon = loc.coords ? LocateFixed : MapPin;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={`Konum: ${label}. Değiştirmek için dokun`}
+        className={cn(
+          "flex h-9 max-w-[10rem] min-w-0 items-center gap-1 rounded-full bg-muted pr-2 pl-2.5 text-[13px] font-semibold text-foreground transition-colors outline-none hover:bg-muted/70 focus-visible:ring-3 focus-visible:ring-ring/50",
+          className,
+        )}
+      >
+        <Icon className="size-4 shrink-0 text-primary" aria-hidden />
+        <span className="truncate">{label}</span>
+        <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+      </button>
+      <NeighbourhoodPicker
+        open={open}
+        onOpenChange={setOpen}
+        showTrigger={false}
+        showUseLocation
+        value={loc.neighbourhood?.id ?? null}
+        title="Konumunu seç"
+      />
+    </>
+  );
+}
