@@ -43,10 +43,13 @@ export async function requireProfile(nextPath: string): Promise<{ user: User; pr
   return { user, profile };
 }
 
-/** Admin guard: non-admins get a 404 (the admin area is not advertised). */
-export async function requireAdmin(): Promise<{ user: User; profile: Profile }> {
+/**
+ * Admin guard: guests are sent to the login screen (and come back to /admin); signed-in non-admins get a 404
+ * (the admin area is not advertised).
+ */
+export async function requireAdmin(nextPath: string = routes.admin.root()): Promise<{ user: User; profile: Profile }> {
   const user = await getCurrentUser();
-  if (!user) notFound();
+  if (!user) redirect(routes.auth.login(nextPath));
   const profile = await getProfile();
   if (!profile || profile.role !== "admin") notFound();
   return { user, profile };
