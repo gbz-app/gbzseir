@@ -134,6 +134,13 @@ export const PROFILE_STATUS: LabelMap = {
   banned: { label: "Engelli", tone: "destructive" },
 };
 
+export const SUPPORT_STATUS: LabelMap = {
+  new: { label: "Yeni", tone: "info" },
+  in_progress: { label: "İnceleniyor", tone: "warning" },
+  resolved: { label: "Çözüldü", tone: "success" },
+  spam: { label: "Spam", tone: "outline" },
+};
+
 export const PROFILE_STATUS_HELP: Record<string, string> = {
   active: "Hesap normal çalışır.",
   restricted: "Yeni ilanları her zaman onaya düşer.",

@@ -11,6 +11,7 @@ import {
   FolderTree,
   Home,
   LayoutDashboard,
+  LifeBuoy,
   MapPinned,
   Megaphone,
   Menu,
@@ -19,6 +20,7 @@ import {
   Store,
   Tag,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -38,6 +40,8 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { href: routes.admin.serviceCategories(), label: "Hizmet kategorileri", icon: FolderTree },
   { href: routes.admin.requests(), label: "Hizmet talepleri", icon: ClipboardList },
   { href: routes.admin.users(), label: "Kullanıcılar", icon: Users },
+  { href: routes.admin.support(), label: "Destek mesajları", icon: LifeBuoy },
+  { href: routes.admin.finance(), label: "Muhasebe", icon: Wallet },
   { href: routes.admin.news(), label: "Haberler", icon: Newspaper },
   { href: routes.admin.announcements(), label: "Duyurular", icon: Megaphone },
   { href: routes.admin.places(), label: "Yerler", icon: MapPinned },

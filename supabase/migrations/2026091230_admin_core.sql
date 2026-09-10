@@ -207,6 +207,25 @@ exception when others then
   null; -- auditing must never break the original write
 end $$;
 
+-- Turkish labels for the status / topic values used in audit summaries.
+create or replace function private.tr_label(p_kind text, p_value text)
+returns text
+language sql
+immutable
+set search_path = public
+as $$
+  select coalesce(case p_kind
+    when 'profile' then case p_value when 'active' then 'Aktif' when 'restricted' then 'Kısıtlı' when 'banned' then 'Engelli' end
+    when 'role' then case p_value when 'user' then 'Kullanıcı' when 'admin' then 'Yönetici' end
+    when 'business' then case p_value when 'pending' then 'Onay bekliyor' when 'approved' then 'Onaylı' when 'rejected' then 'Reddedildi' when 'suspended' then 'Askıda' end
+    when 'listing' then case p_value when 'draft' then 'Taslak' when 'pending_review' then 'Onay bekliyor' when 'active' then 'Yayında'
+      when 'rejected' then 'Reddedildi' when 'expired' then 'Süresi doldu' when 'sold' then 'Satıldı' when 'filled' then 'Pozisyon doldu'
+      when 'paused' then 'Durduruldu' when 'deleted' then 'Silindi' end
+    when 'topic' then case p_value when 'sikayet' then 'şikayet' when 'teknik_destek' then 'teknik destek' when 'reklam' then 'reklam'
+      when 'isletme' then 'işletme' when 'oneri' then 'öneri' when 'diger' then 'diğer' end
+  end, p_value)
+$$;
+
 -- Profiles
 create or replace function private.audit_profiles()
 returns trigger
@@ -241,10 +260,14 @@ begin
       jsonb_build_object('to', (select name from public.neighbourhoods where id = new.neighbourhood_id)));
   end if;
   if new.status is distinct from old.status then
-    perform private.audit(new.id, 'profile.status', 'profile', new.id, 'Hesap durumu: ' || old.status || ' → ' || new.status, jsonb_build_object('from', old.status, 'to', new.status));
+    perform private.audit(new.id, 'profile.status', 'profile', new.id,
+      'Hesap durumu: ' || private.tr_label('profile', old.status) || ' → ' || private.tr_label('profile', new.status),
+      jsonb_build_object('from', old.status, 'to', new.status));
   end if;
   if new.role is distinct from old.role then
-    perform private.audit(new.id, 'profile.role', 'profile', new.id, 'Rol: ' || old.role || ' → ' || new.role, jsonb_build_object('from', old.role, 'to', new.role));
+    perform private.audit(new.id, 'profile.role', 'profile', new.id,
+      'Rol: ' || private.tr_label('role', old.role) || ' → ' || private.tr_label('role', new.role),
+      jsonb_build_object('from', old.role, 'to', new.role));
   end if;
   if new.marketing_consent is distinct from old.marketing_consent then
     perform private.audit(new.id, 'profile.consent', 'profile', new.id,
@@ -298,7 +321,8 @@ begin
     return new;
   end if;
   if new.status is distinct from old.status then
-    perform private.audit(new.owner_id, 'business.status', 'business', new.id, 'İşletme durumu: ' || old.status || ' → ' || new.status,
+    perform private.audit(new.owner_id, 'business.status', 'business', new.id,
+      'İşletme durumu: ' || private.tr_label('business', old.status) || ' → ' || private.tr_label('business', new.status),
       jsonb_build_object('from', old.status, 'to', new.status, 'reason', new.rejection_reason));
   end if;
   if new.vacation_mode is distinct from old.vacation_mode then
@@ -341,7 +365,8 @@ begin
     perform private.audit(new.owner_id, 'listing.created', 'listing', new.id,
       (case when new.type = 'job' then 'İş ilanı verildi: ' else 'İlan verildi: ' end) || new.title, jsonb_build_object('status', new.status));
   elsif new.status is distinct from old.status then
-    perform private.audit(new.owner_id, 'listing.status', 'listing', new.id, 'İlan durumu: ' || old.status || ' → ' || new.status || ' (' || new.title || ')',
+    perform private.audit(new.owner_id, 'listing.status', 'listing', new.id,
+      'İlan durumu: ' || private.tr_label('listing', old.status) || ' → ' || private.tr_label('listing', new.status) || ' (' || new.title || ')',
       jsonb_build_object('from', old.status, 'to', new.status));
   end if;
   return new;
@@ -361,7 +386,7 @@ begin
   if tg_table_name = 'reviews' then
     perform private.audit(new.author_id, 'review.created', 'business', new.business_id, 'Yorum yazdı (' || new.rating || ' yıldız)', '{}'::jsonb);
   elsif tg_table_name = 'contact_messages' then
-    perform private.audit(new.user_id, 'support.message', 'support', new.id, 'Destek mesajı gönderdi (' || new.topic || ')', '{}'::jsonb);
+    perform private.audit(new.user_id, 'support.message', 'support', new.id, 'Destek mesajı gönderdi (' || private.tr_label('topic', new.topic) || ')', '{}'::jsonb);
   elsif tg_table_name = 'events' then
     perform private.audit(new.created_by, 'event.created', 'event', new.id, 'Etkinlik ekledi: ' || new.title, '{}'::jsonb);
   end if;

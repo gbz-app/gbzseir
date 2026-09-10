@@ -737,7 +737,6 @@ export type Database = {
       }
       contact_messages: {
         Row: {
-          admin_note: string | null
           business_name: string | null
           created_at: string
           email: string | null
@@ -756,7 +755,6 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          admin_note?: string | null
           business_name?: string | null
           created_at?: string
           email?: string | null
@@ -775,7 +773,6 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          admin_note?: string | null
           business_name?: string | null
           created_at?: string
           email?: string | null
@@ -2129,6 +2126,49 @@ export type Database = {
           {
             foreignKeyName: "store_stats_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_notes: {
+        Row: {
+          message_id: string
+          note: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          message_id: string
+          note: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          message_id?: string
+          note?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_notes_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "contact_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_notes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_notes_updated_by_fkey"
+            columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
