@@ -177,18 +177,18 @@ export default async function HomePage() {
     {
       href: routes.nearby.root("cami"),
       label: "Camiler",
-      text: "Namaz vakitleri ve yol tarifi",
+      text: "Namaz vakitleri",
       icon: MoonStar,
       tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
     },
     {
       href: routes.nearby.root("durak"),
       label: "Duraklar",
-      text: "Yakındaki duraklar ve hatlar",
+      text: "Duraklar ve hatlar",
       icon: Bus,
       tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300",
     },
-    { href: routes.nearby.root(), label: "Harita", text: "Yakınındakileri keşfet", icon: MapIcon, tone: "bg-brand-soft text-primary" },
+    { href: routes.nearby.root(), label: "Harita", text: "Yakınındakiler", icon: MapIcon, tone: "bg-brand-soft text-primary" },
     {
       href: routes.businesses.root(),
       label: "Firmalar",
@@ -199,7 +199,7 @@ export default async function HomePage() {
   ];
 
   return (
-    <div className="flex flex-col gap-6 px-4 pt-1 pb-8">
+    <div className="flex flex-col gap-6 px-4 pt-2 pb-8">
       <JsonLd
         data={{
           "@context": "https://schema.org",
@@ -228,14 +228,14 @@ export default async function HomePage() {
             <li key={g.label} className="shrink-0 snap-start">
               <Link
                 href={g.href}
-                className={cn(CARD, "flex w-[16.5rem] items-center gap-3 p-3 outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50")}
+                className={cn(CARD, "flex w-[12.5rem] items-center gap-2.5 p-2.5 outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50")}
               >
-                <span className={cn("flex size-16 shrink-0 items-center justify-center rounded-2xl", g.tone)}>
-                  <g.icon className="size-7" strokeWidth={1.75} aria-hidden />
+                <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-2xl", g.tone)}>
+                  <g.icon className="size-6" strokeWidth={1.75} aria-hidden />
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-[15px] font-semibold">{g.label}</span>
-                  <span className="mt-0.5 line-clamp-2 block text-xs leading-snug text-muted-foreground">{g.text}</span>
+                  <span className="block truncate text-sm font-semibold">{g.label}</span>
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">{g.text}</span>
                 </span>
               </Link>
             </li>
@@ -244,20 +244,18 @@ export default async function HomePage() {
       </section>
 
       <section aria-label="Kategoriler">
-        <ul className="grid grid-cols-2 gap-3">
+        <ul className="grid grid-cols-3 gap-2.5">
           {MAIN_CARDS.map((m) => (
             <li key={m.label}>
               <Link
                 href={m.href}
-                className={cn(CARD, "flex h-full flex-col gap-3 p-4 outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50")}
+                aria-label={`${m.label}: ${m.text}`}
+                className={cn(CARD, "flex h-full flex-col items-center gap-2 px-2 py-3.5 text-center outline-none transition-transform active:scale-[0.97] focus-visible:ring-3 focus-visible:ring-ring/50")}
               >
-                <span className={cn("flex size-12 items-center justify-center rounded-2xl", m.tone)}>
-                  <m.icon className="size-6" strokeWidth={1.75} aria-hidden />
+                <span className={cn("flex size-11 items-center justify-center rounded-2xl", m.tone)}>
+                  <m.icon className="size-5" strokeWidth={1.75} aria-hidden />
                 </span>
-                <span>
-                  <span className="block text-base font-semibold">{m.label}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">{m.text}</span>
-                </span>
+                <span className="text-sm font-semibold">{m.label}</span>
               </Link>
             </li>
           ))}

@@ -4,6 +4,7 @@ import "./globals.css";
 import { APP_DESCRIPTION, APP_FULL_NAME, APP_NAME, BRAND_COLORS, SITE_URL } from "@/config/site";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { AppProviders } from "@/components/providers/app-providers";
+import { LandscapeLock } from "@/components/layout/landscape-lock";
 import { OnboardingPreScript } from "@/features/onboarding/onboarding-pre-script";
 
 // The whole UI uses Google Sans (variable, 400-700). latin-ext is required for ğ, ş, ı, İ.
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-dvh bg-background font-sans text-foreground">
         <AppProviders>{children}</AppProviders>
+        <LandscapeLock />
       </body>
     </html>
   );

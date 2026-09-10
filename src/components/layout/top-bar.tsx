@@ -27,27 +27,65 @@ function NotificationBell() {
   );
 }
 
-/** Top bar of the 5 tab roots: avatar + bell + search on the left, location pill on the right. Other pages use <PageHeader/>. */
+function UserAvatar({ className }: { className?: string }) {
+  const { user, profile } = useAuth();
+  return (
+    <Avatar className={cn("size-11 shadow-soft ring-2 ring-card", className)}>
+      {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt="" /> : null}
+      <AvatarFallback className="bg-brand-soft text-sm font-semibold text-primary">
+        {user && profile?.full_name ? initials(profile.full_name) : <UserRound className="size-5" strokeWidth={1.75} aria-hidden />}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
+/**
+ * Top bar of the tab roots. Home: avatar + "Merhaba / Ad" on the left, notifications on the right.
+ * Other tab roots: avatar, bell and search on the left, location pill on the right. Other pages use <PageHeader/>.
+ */
 export function TopBar() {
   const pathname = usePathname();
   const { user, profile } = useAuth();
   const scrolled = useScrolled(4);
   if (!TOPBAR_PATHS.includes(pathname)) return null;
 
+  const headerClass = cn("sticky top-0 z-40 pt-safe transition-[background-color,box-shadow] duration-200", scrolled && "bg-background/80 shadow-soft backdrop-blur-md");
+  const profileHref = user ? routes.profile.root() : routes.auth.login(pathname);
+
+  if (pathname === "/") {
+    return (
+      <header className={headerClass}>
+        <div className="flex h-(--topbar-h) items-center gap-3 px-4">
+          <Link
+            href={profileHref}
+            aria-label={user ? "Profilim" : "Giriş yap"}
+            className="flex min-w-0 items-center gap-3 rounded-full pr-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <UserAvatar />
+            <span className="min-w-0">
+              <span className="block text-xs text-muted-foreground">Merhaba</span>
+              <span className="block truncate text-[15px] font-semibold">{user ? profile?.full_name || "Hoş geldin" : "Giriş yap"}</span>
+            </span>
+          </Link>
+          <div className="ml-auto">
+            {user ? (
+              <NotificationBell />
+            ) : (
+              <Link href={profileHref} aria-label="Bildirimler için giriş yap" className={ROUND_BUTTON}>
+                <Bell className="size-5" strokeWidth={1.75} />
+              </Link>
+            )}
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
-    <header className={cn("sticky top-0 z-40 pt-safe transition-[background-color,box-shadow] duration-200", scrolled && "bg-background/80 shadow-soft backdrop-blur-md")}>
+    <header className={headerClass}>
       <div className="flex h-(--topbar-h) items-center gap-2 px-4">
-        <Link
-          href={user ? routes.profile.root() : routes.auth.login(pathname)}
-          aria-label={user ? "Profilim" : "Giriş yap"}
-          className="shrink-0 rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <Avatar className="size-11 shadow-soft ring-2 ring-card">
-            {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt="" /> : null}
-            <AvatarFallback className="bg-brand-soft text-sm font-semibold text-primary">
-              {user && profile?.full_name ? initials(profile.full_name) : <UserRound className="size-5" strokeWidth={1.75} aria-hidden />}
-            </AvatarFallback>
-          </Avatar>
+        <Link href={profileHref} aria-label={user ? "Profilim" : "Giriş yap"} className="shrink-0 rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+          <UserAvatar />
         </Link>
         {user ? <NotificationBell /> : null}
         <Link href={routes.search()} aria-label="Ara" className={ROUND_BUTTON}>
