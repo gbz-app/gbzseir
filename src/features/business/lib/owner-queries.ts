@@ -66,7 +66,7 @@ export const getOwnerBusiness = cache(async (): Promise<OwnerBusiness | null> =>
   const { data, error } = await supabase
     .from("businesses")
     .select(
-      `${OWNER_COLUMNS},neighbourhoods(name),business_service_categories(category_id),business_service_areas(neighbourhood_id),business_photos(id,url,sort)`,
+      `${OWNER_COLUMNS},neighbourhoods!businesses_neighbourhood_id_fkey(name),business_service_categories(category_id),business_service_areas(neighbourhood_id),business_photos(id,url,sort)`,
     )
     .eq("owner_id", user.id)
     .order("created_at")

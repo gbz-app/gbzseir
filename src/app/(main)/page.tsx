@@ -2,28 +2,14 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
-import {
-  Briefcase,
-  Bus,
-  ChefHat,
-  ChevronRight,
-  Coffee,
-  Cross,
-  ExternalLink,
-  Map as MapIcon,
-  MoonStar,
-  Store,
-  Tag,
-  UtensilsCrossed,
-  Wrench,
-  type LucideIcon,
-} from "lucide-react";
+import { Briefcase, Bus, ChevronRight, Cross, ExternalLink, Map as MapIcon, MoonStar, Store, Tag, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JsonLd } from "@/components/seo/json-ld";
 import { FeaturedBusinessesRail } from "@/features/business/home-widgets";
+import { VERTICAL_INFO, type Vertical } from "@/features/business/lib/verticals";
 import { getNews } from "@/features/content/news/get-news";
 import type { NewsItem } from "@/features/content/news/parse";
 import { HomeHero } from "@/features/home/components/home-hero";
@@ -41,29 +27,24 @@ const RAIL = "no-scrollbar -mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-p
 
 type Tile = { href: string; label: string; text: string; icon: LucideIcon; tone: string };
 
+const vertical = (v: Vertical, label?: string): Tile => {
+  const info = VERTICAL_INFO[v];
+  return { href: routes.businesses.vertical(v), label: label ?? info.label, text: info.subtitle, icon: info.icon, tone: info.tone };
+};
+
 const MAIN_CARDS: Tile[] = [
+  vertical("yemek"),
+  vertical("restoran"),
+  vertical("kafe"),
+  vertical("otel"),
+  vertical("hizmet", "Hizmetler"),
   {
-    href: routes.businesses.root({ kategori: "yemek" }),
-    label: "Yemek",
-    text: "Lokanta ve ev yemekleri",
-    icon: UtensilsCrossed,
-    tone: "bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300",
+    href: routes.events.root(),
+    label: "Etkinlik",
+    text: VERTICAL_INFO.etkinlik.subtitle,
+    icon: VERTICAL_INFO.etkinlik.icon,
+    tone: VERTICAL_INFO.etkinlik.tone,
   },
-  {
-    href: routes.businesses.root({ kategori: "restoran" }),
-    label: "Restoran",
-    text: "Gebze'nin restoranları",
-    icon: ChefHat,
-    tone: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300",
-  },
-  {
-    href: routes.businesses.root({ kategori: "kafe" }),
-    label: "Kafe",
-    text: "Kafe ve pastaneler",
-    icon: Coffee,
-    tone: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
-  },
-  { href: routes.services.root(), label: "Hizmetler", text: "Usta ve hizmet al", icon: Wrench, tone: "bg-brand-soft text-primary" },
   {
     href: routes.listings.root("ikinci-el"),
     label: "İkinci El",
@@ -244,18 +225,18 @@ export default async function HomePage() {
       </section>
 
       <section aria-label="Kategoriler">
-        <ul className="grid grid-cols-3 gap-2.5">
+        <ul className="grid grid-cols-4 gap-2">
           {MAIN_CARDS.map((m) => (
             <li key={m.label}>
               <Link
                 href={m.href}
                 aria-label={`${m.label}: ${m.text}`}
-                className={cn(CARD, "flex h-full flex-col items-center gap-2 px-2 py-3.5 text-center outline-none transition-transform active:scale-[0.97] focus-visible:ring-3 focus-visible:ring-ring/50")}
+                className={cn(CARD, "flex h-full flex-col items-center gap-1.5 rounded-2xl px-1 py-3 text-center outline-none transition-transform active:scale-[0.97] focus-visible:ring-3 focus-visible:ring-ring/50")}
               >
-                <span className={cn("flex size-11 items-center justify-center rounded-2xl", m.tone)}>
+                <span className={cn("flex size-10 items-center justify-center rounded-xl", m.tone)}>
                   <m.icon className="size-5" strokeWidth={1.75} aria-hidden />
                 </span>
-                <span className="text-sm font-semibold">{m.label}</span>
+                <span className="w-full truncate text-[13px] font-semibold">{m.label}</span>
               </Link>
             </li>
           ))}

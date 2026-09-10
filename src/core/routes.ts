@@ -93,6 +93,15 @@ export const routes = {
   businesses: {
     root: (query?: QueryRecord) => withQuery("/firmalar", query),
     detail: (slug: string) => `/firma/${enc(slug)}`,
+    /** Vertical list: /kesfet/yemek | restoran | kafe | otel | hizmet | magaza */
+    vertical: (tur: string, query?: QueryRecord) => withQuery(`/kesfet/${enc(tur)}`, query),
+    /** Public digital menu (QR menü target) */
+    menu: (slug: string) => `/menu/${enc(slug)}`,
+  },
+
+  events: {
+    root: (query?: QueryRecord) => withQuery("/etkinlikler", query),
+    detail: (slug: string) => `/etkinlik/${enc(slug)}`,
   },
 
   profile: {
@@ -117,6 +126,10 @@ export const routes = {
     edit: () => "/isletme/duzenle",
     photos: () => "/isletme/fotograflar",
     reviews: () => "/isletme/yorumlar",
+    menu: () => "/isletme/menu",
+    menuQr: () => "/isletme/menu/qr",
+    rooms: () => "/isletme/odalar",
+    events: () => "/isletme/etkinlikler",
     leads: () => "/isletme/talepler",
     lead: (id: string | number) => `/isletme/talepler/${enc(id)}`,
   },
@@ -162,6 +175,12 @@ export const PUBLIC_STATIC_ROUTES: Array<{ path: string; priority: number; chang
   { path: "/ilanlar", priority: 0.8, changeFrequency: "hourly" },
   { path: "/hizmetler", priority: 0.8, changeFrequency: "weekly" },
   { path: "/firmalar", priority: 0.7, changeFrequency: "daily" },
+  { path: "/kesfet/yemek", priority: 0.7, changeFrequency: "daily" },
+  { path: "/kesfet/restoran", priority: 0.7, changeFrequency: "daily" },
+  { path: "/kesfet/kafe", priority: 0.7, changeFrequency: "daily" },
+  { path: "/kesfet/otel", priority: 0.7, changeFrequency: "daily" },
+  { path: "/kesfet/hizmet", priority: 0.6, changeFrequency: "daily" },
+  { path: "/etkinlikler", priority: 0.7, changeFrequency: "daily" },
   { path: "/haberler", priority: 0.6, changeFrequency: "hourly" },
   { path: "/duyurular", priority: 0.5, changeFrequency: "daily" },
   { path: "/yardim", priority: 0.3, changeFrequency: "monthly" },

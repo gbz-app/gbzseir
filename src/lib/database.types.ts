@@ -124,6 +124,101 @@ export type Database = {
           },
         ]
       }
+      business_menu_items: {
+        Row: {
+          business_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_available: boolean
+          name: string
+          photo_url: string | null
+          price_try: number | null
+          section_id: string
+          sort: number
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_available?: boolean
+          name: string
+          photo_url?: string | null
+          price_try?: number | null
+          section_id: string
+          sort?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_available?: boolean
+          name?: string
+          photo_url?: string | null
+          price_try?: number | null
+          section_id?: string
+          sort?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_menu_items_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_menu_items_section_fk"
+            columns: ["section_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "business_menu_sections"
+            referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      business_menu_sections: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          name: string
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          name: string
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_menu_sections_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_photos: {
         Row: {
           business_id: string
@@ -149,6 +244,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "business_photos_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_rooms: {
+        Row: {
+          amenities: string[]
+          bed_info: string | null
+          business_id: string
+          capacity: number
+          created_at: string
+          description: string | null
+          id: string
+          is_available: boolean
+          name: string
+          photos: string[]
+          price_try: number | null
+          size_m2: number | null
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          amenities?: string[]
+          bed_info?: string | null
+          business_id: string
+          capacity?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_available?: boolean
+          name: string
+          photos?: string[]
+          price_try?: number | null
+          size_m2?: number | null
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          amenities?: string[]
+          bed_info?: string | null
+          business_id?: string
+          capacity?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_available?: boolean
+          name?: string
+          photos?: string[]
+          price_try?: number | null
+          size_m2?: number | null
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_rooms_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
@@ -219,12 +373,14 @@ export type Database = {
       businesses: {
         Row: {
           address: string | null
+          amenities: string[]
           approved_at: string | null
           category_label: string | null
           cover_url: string | null
           created_at: string
           description: string | null
           id: string
+          instagram: string | null
           is_demo: boolean
           kinds: string[]
           lat: number | null
@@ -236,25 +392,31 @@ export type Database = {
           neighbourhood_id: string | null
           owner_id: string
           phone: string | null
+          price_level: number | null
           rating_avg: number
           rating_count: number
           rejection_reason: string | null
           search_norm: string | null
           slug: string
+          star_rating: number | null
           status: string
           updated_at: string
           vacation_mode: boolean
           verification_level: number
+          vertical: string | null
+          website: string | null
           working_hours: Json
         }
         Insert: {
           address?: string | null
+          amenities?: string[]
           approved_at?: string | null
           category_label?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          instagram?: string | null
           is_demo?: boolean
           kinds?: string[]
           lat?: number | null
@@ -266,25 +428,31 @@ export type Database = {
           neighbourhood_id?: string | null
           owner_id: string
           phone?: string | null
+          price_level?: number | null
           rating_avg?: number
           rating_count?: number
           rejection_reason?: string | null
           search_norm?: string | null
           slug: string
+          star_rating?: number | null
           status?: string
           updated_at?: string
           vacation_mode?: boolean
           verification_level?: number
+          vertical?: string | null
+          website?: string | null
           working_hours?: Json
         }
         Update: {
           address?: string | null
+          amenities?: string[]
           approved_at?: string | null
           category_label?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          instagram?: string | null
           is_demo?: boolean
           kinds?: string[]
           lat?: number | null
@@ -296,15 +464,19 @@ export type Database = {
           neighbourhood_id?: string | null
           owner_id?: string
           phone?: string | null
+          price_level?: number | null
           rating_avg?: number
           rating_count?: number
           rejection_reason?: string | null
           search_norm?: string | null
           slug?: string
+          star_rating?: number | null
           status?: string
           updated_at?: string
           vacation_mode?: boolean
           verification_level?: number
+          vertical?: string | null
+          website?: string | null
           working_hours?: Json
         }
         Relationships: [
@@ -441,6 +613,116 @@ export type Database = {
           phone?: string
         }
         Relationships: []
+      }
+      events: {
+        Row: {
+          address: string | null
+          business_id: string | null
+          category: string
+          cover_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string | null
+          id: string
+          is_demo: boolean
+          is_free: boolean
+          lat: number | null
+          lng: number | null
+          neighbourhood_id: string | null
+          phone: string | null
+          price_note: string | null
+          price_try: number | null
+          slug: string | null
+          starts_at: string
+          status: string
+          ticket_url: string | null
+          title: string
+          updated_at: string
+          venue_name: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_id?: string | null
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_demo?: boolean
+          is_free?: boolean
+          lat?: number | null
+          lng?: number | null
+          neighbourhood_id?: string | null
+          phone?: string | null
+          price_note?: string | null
+          price_try?: number | null
+          slug?: string | null
+          starts_at: string
+          status?: string
+          ticket_url?: string | null
+          title: string
+          updated_at?: string
+          venue_name?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_id?: string | null
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_demo?: boolean
+          is_free?: boolean
+          lat?: number | null
+          lng?: number | null
+          neighbourhood_id?: string | null
+          phone?: string | null
+          price_note?: string | null
+          price_try?: number | null
+          slug?: string | null
+          starts_at?: string
+          status?: string
+          ticket_url?: string | null
+          title?: string
+          updated_at?: string
+          venue_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_neighbourhood_id_fkey"
+            columns: ["neighbourhood_id"]
+            isOneToOne: false
+            referencedRelation: "neighbourhoods"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       favorites: {
         Row: {

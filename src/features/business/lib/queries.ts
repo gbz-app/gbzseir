@@ -87,7 +87,7 @@ export const getPublicBusinessBySlug = cache(async (slug: string): Promise<Busin
   const { data, error } = await createPublicClient()
     .from("businesses")
     .select(
-      `${PUBLIC_BUSINESS_COLUMNS},neighbourhoods(name),business_service_categories(service_categories(id,name,slug,parent_id,icon,sort)),business_service_areas(neighbourhoods(id,name)),business_photos(id,url,sort)`,
+      `${PUBLIC_BUSINESS_COLUMNS},neighbourhoods!businesses_neighbourhood_id_fkey(name),business_service_categories(service_categories(id,name,slug,parent_id,icon,sort)),business_service_areas(neighbourhoods(id,name)),business_photos(id,url,sort)`,
     )
     .eq("slug", slug)
     .eq("status", "approved")
@@ -222,7 +222,7 @@ export const listApprovedBusinesses = cache(async (limit = 500): Promise<Directo
   const { data, error } = await createPublicClient()
     .from("businesses")
     .select(
-      "id,slug,name,logo_url,cover_url,category_label,kinds,lat,lng,rating_avg,rating_count,verification_level,vacation_mode,description,working_hours,neighbourhoods(name),business_service_categories(category_id),business_photos(count)",
+      "id,slug,name,logo_url,cover_url,category_label,kinds,lat,lng,rating_avg,rating_count,verification_level,vacation_mode,description,working_hours,neighbourhoods!businesses_neighbourhood_id_fkey(name),business_service_categories(category_id),business_photos(count)",
     )
     .eq("status", "approved")
     .order("rating_avg", { ascending: false })

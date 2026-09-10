@@ -92,7 +92,7 @@ type BusinessRow = {
 async function loadBusinesses(point: LatLng): Promise<NearbyItem[]> {
   const { data, error } = await createClient()
     .from("businesses")
-    .select("id,slug,name,category_label,phone,address,lat,lng,working_hours,vacation_mode,verification_level,neighbourhoods(name)")
+    .select("id,slug,name,category_label,phone,address,lat,lng,working_hours,vacation_mode,verification_level,neighbourhoods!businesses_neighbourhood_id_fkey(name)")
     .eq("status", "approved")
     .not("lat", "is", null)
     .not("lng", "is", null)

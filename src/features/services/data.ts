@@ -127,7 +127,7 @@ export async function getFirmsForCategories(categoryIds: string[], limit = 5): P
   const { data, error } = await publicClient()
     .from("businesses")
     .select(
-      "id,slug,name,logo_url,rating_avg,rating_count,verification_level,category_label,neighbourhoods(name),business_service_categories!inner(category_id)",
+      "id,slug,name,logo_url,rating_avg,rating_count,verification_level,category_label,neighbourhoods!businesses_neighbourhood_id_fkey(name),business_service_categories!inner(category_id)",
     )
     .eq("status", "approved")
     .contains("kinds", ["service"])

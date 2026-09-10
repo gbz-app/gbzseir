@@ -16,6 +16,7 @@ await sql(`
   delete from public.reviews where is_demo;
   delete from public.announcements where is_demo;
   delete from public.service_requests where is_demo;
+  delete from public.events where is_demo;
   delete from public.businesses where is_demo;
   delete from public.pharmacy_duty where source = 'demo';
 `);
