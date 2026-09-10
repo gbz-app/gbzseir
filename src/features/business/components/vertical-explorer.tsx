@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowUpRight, Clock, LocateFixed, Map as MapIcon, Search, Store, Wrench, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CITY, FEATURES } from "@/config/site";
+import { CITY } from "@/config/site";
 import { distanceMeters, formatDistance } from "@/core/geo";
 import { routes } from "@/core/routes";
 import { slugifyTr } from "@/core/tr";
@@ -24,7 +24,7 @@ type Row = { item: VerticalCard; distance: number | null; open: OpenStatus | nul
 const NOUN: Partial<Record<Vertical, string>> = { hizmet: "firma", otel: "otel", magaza: "mağaza" };
 
 /** /kesfet/[tur]: search, chips, big photo cards and a map view of one vertical. */
-export function VerticalExplorer({ vertical, items }: { vertical: Vertical; items: VerticalCard[] }) {
+export function VerticalExplorer({ vertical, items, applicationsOpen }: { vertical: Vertical; items: VerticalCard[]; applicationsOpen: boolean }) {
   const info = VERTICAL_INFO[vertical];
   const loc = useApproxLocation();
   const now = useNow();
@@ -154,7 +154,7 @@ export function VerticalExplorer({ vertical, items }: { vertical: Vertical; item
           </span>
           <p className="mt-4 font-semibold">Bu kategoride henüz işletme yok</p>
           <p className="mt-1 text-sm text-muted-foreground">Yeni işletmeler yakında burada listelenecek.</p>
-          {FEATURES.businessApplications ? (
+          {applicationsOpen ? (
             <Button asChild className="mt-5">
               <Link href={routes.business.intro()}>
                 <Store /> İşletme sayfası aç

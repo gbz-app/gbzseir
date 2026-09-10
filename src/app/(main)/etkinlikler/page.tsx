@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ErrorState } from "@/components/shared/error-state";
+import { getAppSettings } from "@/lib/app-settings";
 import { JsonLd } from "@/components/seo/json-ld";
 import { APP_NAME, CITY, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function EventsPage() {
-  const events = await listUpcomingEvents().catch(() => null);
+  const [events, settings] = await Promise.all([listUpcomingEvents().catch(() => null), getAppSettings()]);
   if (!events) {
     return (
       <div className="px-4 py-10">
@@ -38,7 +39,7 @@ export default async function EventsPage() {
           })),
         }}
       />
-      <EventsExplorer events={events} />
+      <EventsExplorer events={events} applicationsOpen={settings.businessApplications} />
     </>
   );
 }

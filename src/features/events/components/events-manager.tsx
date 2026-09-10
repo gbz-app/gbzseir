@@ -23,7 +23,8 @@ import { eventPriceLabel, eventWhenShort } from "../format";
 import type { EventStatus, OwnerEvent } from "../owner-queries";
 
 export type EventOwnerBusiness = {
-  id: string;
+  /** null = city event created by an admin (no organizer business). */
+  id: string | null;
   name: string;
   address: string | null;
   phone: string | null;

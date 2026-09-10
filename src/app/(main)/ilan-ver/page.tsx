@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Briefcase, ChevronRight, Clock, Store, Tag, type LucideIcon } from "lucide-react";
-import { FEATURES } from "@/config/site";
+import { getAppSettings } from "@/lib/app-settings";
 import { routes } from "@/core/routes";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
@@ -32,7 +32,7 @@ function ChoiceCard({ href, icon: Icon, title, text }: { href: string; icon: Luc
 /** E5 - İlan türü seçimi. */
 export default async function PostChooserPage() {
   const { user } = await requireProfile(routes.listings.post());
-  const business = await getMyBusiness(user.id);
+  const [business, settings] = await Promise.all([getMyBusiness(user.id), getAppSettings()]);
   const approved = business?.status === "approved";
 
   return (
@@ -64,7 +64,7 @@ export default async function PostChooserPage() {
                   <Clock /> Başvuru durumunu gör
                 </Link>
               </Button>
-            ) : business || FEATURES.businessApplications ? (
+            ) : business || settings.businessApplications ? (
               <Button asChild variant="outline">
                 <Link href={business ? routes.business.root() : routes.business.intro()}>
                   <Store /> İşletme hesabına geç

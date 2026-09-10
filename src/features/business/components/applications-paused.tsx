@@ -2,12 +2,14 @@ import Link from "next/link";
 import { Phone, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
-import { APP_NAME, SUPPORT } from "@/config/site";
+import { APP_NAME } from "@/config/site";
 import { telHref } from "@/core/phone";
 import { routes } from "@/core/routes";
+import { displayTrPhone, getAppSettings } from "@/lib/app-settings";
 
-/** Shown instead of the application wizard while FEATURES.businessApplications is off. */
-export function ApplicationsPaused() {
+/** Shown instead of the application wizard while applications are closed (Ayarlar > Yeni işletme başvuruları). */
+export async function ApplicationsPaused() {
+  const { supportPhone } = await getAppSettings();
   return (
     <>
       <PageHeader title="İşletme başvurusu" backHref={routes.profile.root()} />
@@ -22,12 +24,12 @@ export function ApplicationsPaused() {
         </p>
         <div className="mt-6 flex w-full max-w-xs flex-col gap-2">
           <Button asChild size="lg">
-            <a href={telHref(SUPPORT.phone)}>
-              <Phone /> {SUPPORT.phoneDisplay}
+            <a href={telHref(supportPhone)}>
+              <Phone /> {displayTrPhone(supportPhone)}
             </a>
           </Button>
           <Button asChild variant="outline" size="lg">
-            <Link href={routes.home()}>Ana sayfaya dön</Link>
+            <Link href={routes.content.help("isletme")}>Mesaj gönder</Link>
           </Button>
         </div>
       </div>

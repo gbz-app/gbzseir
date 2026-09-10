@@ -2,6 +2,7 @@ import { TopBar } from "@/components/layout/top-bar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { OnboardingGate } from "@/features/onboarding/onboarding-gate";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { AnnouncementBanner } from "@/components/layout/announcement-banner";
 
 /** Main app shell: TopBar (tab roots only) + content + BottomNav + onboarding + install prompt. */
 export default function MainLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +15,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         İçeriğe geç
       </a>
       <TopBar />
+      <AnnouncementBanner />
       <main id="icerik" className="flex flex-1 flex-col">
         {children}
       </main>

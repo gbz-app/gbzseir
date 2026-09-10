@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Mail, Phone } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PageHeader } from "@/components/shared/page-header";
-import { APP_NAME, SUPPORT } from "@/config/site";
+import { APP_NAME } from "@/config/site";
+import { displayTrPhone, getAppSettings } from "@/lib/app-settings";
 import { formatPhoneInputTR, fromSupabasePhone, telHref } from "@/core/phone";
 import { routes } from "@/core/routes";
 import { getCurrentUser, getProfile } from "@/lib/auth/server";
@@ -31,7 +32,7 @@ type Props = { searchParams: Promise<{ konu?: string }> };
 /** Yardım ve destek merkezi. */
 export default async function HelpPage({ searchParams }: Props) {
   const { konu } = await searchParams;
-  const user = await getCurrentUser();
+  const [user, settings] = await Promise.all([getCurrentUser(), getAppSettings()]);
   let messages: MyMessage[] = [];
   let prefill = { name: "", phone: "" };
   if (user) {
@@ -71,15 +72,15 @@ export default async function HelpPage({ searchParams }: Props) {
         </section>
 
         <section className="grid grid-cols-2 gap-2.5">
-          <a href={telHref(SUPPORT.phone)} className="flex flex-col gap-1 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
+          <a href={telHref(settings.supportPhone)} className="flex flex-col gap-1 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
             <Phone className="size-5 text-primary" aria-hidden />
             <span className="mt-1 text-xs text-muted-foreground">Telefon</span>
-            <span className="text-sm font-semibold">{SUPPORT.phoneDisplay}</span>
+            <span className="text-sm font-semibold">{displayTrPhone(settings.supportPhone)}</span>
           </a>
-          <a href={`mailto:${SUPPORT.email}`} className="flex min-w-0 flex-col gap-1 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
+          <a href={`mailto:${settings.supportEmail}`} className="flex min-w-0 flex-col gap-1 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
             <Mail className="size-5 text-primary" aria-hidden />
             <span className="mt-1 text-xs text-muted-foreground">E-posta</span>
-            <span className="truncate text-sm font-semibold">{SUPPORT.email}</span>
+            <span className="truncate text-sm font-semibold">{settings.supportEmail}</span>
           </a>
         </section>
       </div>

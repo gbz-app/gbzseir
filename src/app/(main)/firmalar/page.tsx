@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { ErrorState } from "@/components/shared/error-state";
 import { ListSkeleton } from "@/components/shared/skeletons";
 import { JsonLd } from "@/components/seo/json-ld";
-import { APP_NAME, CITY, FEATURES, SITE_URL } from "@/config/site";
+import { APP_NAME, CITY, SITE_URL } from "@/config/site";
+import { getAppSettings } from "@/lib/app-settings";
 import { routes } from "@/core/routes";
 import { slugifyTr, trCompare } from "@/core/tr";
 import { FirmsDirectory, type DirectoryChip, type DirectoryItem } from "@/features/business/components/firms-directory";
@@ -62,6 +63,7 @@ function buildDirectory(businesses: DirectoryBusiness[], categories: ServiceCate
 }
 
 export default async function FirmsPage() {
+  const settings = await getAppSettings();
   let data: { items: DirectoryItem[]; chips: DirectoryChip[] } | null = null;
   try {
     const [businesses, categories] = await Promise.all([listApprovedBusinesses(), getServiceCategories()]);
@@ -110,7 +112,7 @@ export default async function FirmsPage() {
               <span className="text-muted-foreground">Talebini oluştur, uygun firmalar seni arasın.</span>
             </span>
           </Link>
-          {FEATURES.businessApplications ? (
+          {settings.businessApplications ? (
             <Link
               href={routes.business.intro()}
               className="flex items-center gap-3 rounded-2xl bg-brand-soft p-4 transition-transform outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]"

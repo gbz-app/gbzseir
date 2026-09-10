@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { CalendarDays, Gift, Store } from "lucide-react";
 import { istanbulDateKey, istanbulParts } from "@/core/time";
-import { FEATURES } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Button } from "@/components/ui/button";
 import { ExploreHeader, FilterChip } from "@/components/shared/explore-header";
@@ -26,7 +25,7 @@ function dayKeys(when: Exclude<When, "all">, now: Date): string[] {
 }
 
 /** /etkinlikler: date + category chips over the upcoming events. */
-export function EventsExplorer({ events }: { events: EventItem[] }) {
+export function EventsExplorer({ events, applicationsOpen }: { events: EventItem[]; applicationsOpen: boolean }) {
   const [when, setWhen] = React.useState<When>("all");
   const [freeOnly, setFreeOnly] = React.useState(false);
   const [cat, setCat] = React.useState<EventCategory | null>(null);
@@ -90,7 +89,7 @@ export function EventsExplorer({ events }: { events: EventItem[] }) {
           <CalendarDays className="size-10 text-primary/50" strokeWidth={1.5} aria-hidden />
           <p className="mt-3 font-semibold">Yaklaşan etkinlik yok</p>
           <p className="mt-1 text-sm text-muted-foreground">İşletmeler etkinliklerini işletme panelinden ekleyebilir.</p>
-          {FEATURES.businessApplications ? (
+          {applicationsOpen ? (
             <Button asChild variant="outline" className="mt-5">
               <Link href={routes.business.intro()}>
                 <Store /> İşletme sayfası aç

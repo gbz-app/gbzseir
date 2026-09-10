@@ -63,6 +63,9 @@ const ICONS: Record<string, LucideIcon> = {
   ellipsis: Ellipsis,
 };
 
+/** Icon names an admin can pick for a listing category. */
+export const CATEGORY_ICON_NAMES = Object.keys(ICONS);
+
 export type CategoryIconProps = Omit<LucideProps, "name"> & { iconName: string | null | undefined; fallback?: "tag" | "briefcase" };
 
 /** Renders the lucide icon of a listing category (decorative). */

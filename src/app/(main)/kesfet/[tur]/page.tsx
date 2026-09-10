@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ErrorState } from "@/components/shared/error-state";
+import { getAppSettings } from "@/lib/app-settings";
 import { JsonLd } from "@/components/seo/json-ld";
 import { APP_NAME, CITY, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function VerticalPage({ params }: Props) {
   const v = listable((await params).tur);
   if (!v) notFound();
-  const items = await listVerticalBusinesses(v).catch(() => null);
+  const [items, settings] = await Promise.all([listVerticalBusinesses(v).catch(() => null), getAppSettings()]);
   if (!items) {
     return (
       <div className="px-4 py-10">
@@ -59,7 +60,7 @@ export default async function VerticalPage({ params }: Props) {
           })),
         }}
       />
-      <VerticalExplorer vertical={v} items={items} />
+      <VerticalExplorer vertical={v} items={items} applicationsOpen={settings.businessApplications} />
     </>
   );
 }

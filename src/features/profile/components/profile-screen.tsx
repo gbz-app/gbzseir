@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { APP_NAME, CITY, FEATURES } from "@/config/site";
+import { APP_NAME, CITY } from "@/config/site";
 import { initials } from "@/core/format";
 import { routes } from "@/core/routes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -113,7 +113,7 @@ function PromoCard({ promo, onDismiss }: { promo: Promo; onDismiss?: () => void 
 }
 
 /** G1/G2 - Profil: header, user row, context banner (business / join) and settings-style rows. */
-export function ProfileScreen() {
+export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean }) {
   const router = useRouter();
   const { user, loading, profile, signOut } = useAuth();
   const { businesses, approved } = useMyBusinesses();
@@ -180,7 +180,7 @@ export function ProfileScreen() {
       href: routes.business.root(),
       icon: Clock,
     };
-  } else if (rejected && FEATURES.businessApplications) {
+  } else if (rejected && applicationsOpen) {
     promo = {
       title: "Başvurun onaylanmadı",
       text: "Bilgileri düzeltip tekrar gönderebilirsin.",
@@ -188,7 +188,7 @@ export function ProfileScreen() {
       href: routes.business.apply(),
       icon: Store,
     };
-  } else if (!promoDismissed && FEATURES.businessApplications) {
+  } else if (!promoDismissed && applicationsOpen) {
     promo = {
       title: "İşletmen mi var?",
       text: `Ücretsiz işletme hesabı aç, ${CITY.name}lilere ulaş.`,
