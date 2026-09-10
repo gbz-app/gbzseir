@@ -152,6 +152,12 @@ export const routes = {
 
   admin: {
     root: () => "/admin",
+    analytics: (query?: QueryRecord) => withQuery("/admin/analitik", query),
+    user: (id: string) => `/admin/kullanicilar/${enc(id)}`,
+    support: (query?: QueryRecord) => withQuery("/admin/destek", query),
+    finance: (query?: QueryRecord) => withQuery("/admin/muhasebe", query),
+    events: () => "/admin/etkinlikler",
+    listingCategories: () => "/admin/ilan-kategorileri",
     listings: () => "/admin/ilanlar",
     reports: () => "/admin/sikayetler",
     businesses: () => "/admin/isletmeler",

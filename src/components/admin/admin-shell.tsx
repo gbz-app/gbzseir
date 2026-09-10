@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Activity,
   ClipboardList,
   Database,
   Flag,
@@ -30,6 +31,7 @@ type AdminNavItem = { href: string; label: string; icon: LucideIcon; exact?: boo
 
 export const ADMIN_NAV: AdminNavItem[] = [
   { href: routes.admin.root(), label: "Genel bakış", icon: LayoutDashboard, exact: true },
+  { href: routes.admin.analytics(), label: "Canlı ve analitik", icon: Activity },
   { href: routes.admin.listings(), label: "İlanlar", icon: Tag },
   { href: routes.admin.reports(), label: "Şikayetler", icon: Flag },
   { href: routes.admin.businesses(), label: "İşletmeler", icon: Store },

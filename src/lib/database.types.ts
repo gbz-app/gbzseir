@@ -17,6 +17,115 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_page_views: {
+        Row: {
+          created_at: string
+          duration_s: number | null
+          id: number
+          path: string
+          session_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_s?: number | null
+          id?: never
+          path: string
+          session_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_s?: number | null
+          id?: never
+          path?: string
+          session_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_page_views_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_page_views_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_page_views_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_sessions: {
+        Row: {
+          browser: string | null
+          device: string | null
+          first_path: string | null
+          id: string
+          last_path: string | null
+          last_seen_at: string
+          os: string | null
+          page_views: number
+          referrer_host: string | null
+          standalone: boolean
+          started_at: string
+          user_id: string | null
+        }
+        Insert: {
+          browser?: string | null
+          device?: string | null
+          first_path?: string | null
+          id: string
+          last_path?: string | null
+          last_seen_at?: string
+          os?: string | null
+          page_views?: number
+          referrer_host?: string | null
+          standalone?: boolean
+          started_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          browser?: string | null
+          device?: string | null
+          first_path?: string | null
+          id?: string
+          last_path?: string | null
+          last_seen_at?: string
+          os?: string | null
+          page_views?: number
+          referrer_host?: string | null
+          standalone?: boolean
+          started_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           body: string | null
@@ -74,6 +183,48 @@ export type Database = {
           },
         ]
       }
+      app_installs: {
+        Row: {
+          created_at: string
+          id: string
+          platform: string
+          session_id: string | null
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform: string
+          session_id?: string | null
+          source: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform?: string
+          session_id?: string | null
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_installs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_installs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           key: string
@@ -89,6 +240,42 @@ export type Database = {
           key?: string
           updated_at?: string
           value?: Json
+        }
+        Relationships: []
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          details: Json
+          entity_id: string | null
+          entity_type: string | null
+          id: number
+          summary: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: never
+          summary: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: never
+          summary?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -784,6 +971,119 @@ export type Database = {
           {
             foreignKeyName: "favorites_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_categories: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_active: boolean
+          kind: string
+          name: string
+          sort: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind: string
+          name: string
+          sort?: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          name?: string
+          sort?: number
+        }
+        Relationships: []
+      }
+      finance_entries: {
+        Row: {
+          amount: number
+          business_id: string | null
+          category_id: string | null
+          counterparty: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          document_url: string | null
+          id: string
+          is_demo: boolean
+          kind: string
+          occurred_on: string
+          payment_method: string
+          updated_at: string
+          vat_rate: number
+        }
+        Insert: {
+          amount: number
+          business_id?: string | null
+          category_id?: string | null
+          counterparty?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_url?: string | null
+          id?: string
+          is_demo?: boolean
+          kind: string
+          occurred_on?: string
+          payment_method?: string
+          updated_at?: string
+          vat_rate?: number
+        }
+        Update: {
+          amount?: number
+          business_id?: string | null
+          category_id?: string | null
+          counterparty?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_url?: string | null
+          id?: string
+          is_demo?: boolean
+          kind?: string
+          occurred_on?: string
+          payment_method?: string
+          updated_at?: string
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_entries_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_entries_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
@@ -1778,6 +2078,63 @@ export type Database = {
           },
         ]
       }
+      store_stats: {
+        Row: {
+          active_installs: number | null
+          created_at: string
+          created_by: string | null
+          downloads: number | null
+          id: string
+          note: string | null
+          platform: string
+          rating: number | null
+          ratings_count: number | null
+          reviews_count: number | null
+          stat_date: string
+        }
+        Insert: {
+          active_installs?: number | null
+          created_at?: string
+          created_by?: string | null
+          downloads?: number | null
+          id?: string
+          note?: string | null
+          platform: string
+          rating?: number | null
+          ratings_count?: number | null
+          reviews_count?: number | null
+          stat_date: string
+        }
+        Update: {
+          active_installs?: number | null
+          created_at?: string
+          created_by?: string | null
+          downloads?: number | null
+          id?: string
+          note?: string | null
+          platform?: string
+          rating?: number | null
+          ratings_count?: number | null
+          reviews_count?: number | null
+          stat_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_stats_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_stats_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       my_leads: {
@@ -1883,8 +2240,15 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_analytics: { Args: { p_days?: number }; Returns: Json }
       admin_clear_demo_data: { Args: { p_scopes: string[] }; Returns: Json }
+      admin_dashboard: { Args: never; Returns: Json }
       admin_data_health: { Args: never; Returns: Json }
+      admin_finance_summary: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
+      admin_online_now: { Args: never; Returns: Json }
       admin_publish_flow: {
         Args: { p_category_id: string; p_schema: Json }
         Returns: Json
@@ -1906,6 +2270,7 @@ export type Database = {
         Args: { p_approve: boolean; p_listing_id: string; p_reason?: string }
         Returns: Json
       }
+      admin_user_overview: { Args: { p_user: string }; Returns: Json }
       apply_business: {
         Args: {
           p_address?: string
@@ -2143,6 +2508,15 @@ export type Database = {
       tr_match: { Args: { p_norm: string; p_q: string }; Returns: boolean }
       tr_norm: { Args: { t: string }; Returns: string }
       tr_slug: { Args: { t: string }; Returns: string }
+      track_heartbeat: { Args: { p_session: string }; Returns: undefined }
+      track_install: {
+        Args: { p_platform: string; p_session: string; p_source: string }
+        Returns: undefined
+      }
+      track_page_view: {
+        Args: { p_meta?: Json; p_path: string; p_session: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
