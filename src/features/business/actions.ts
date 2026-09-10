@@ -8,8 +8,8 @@ import { BUSINESS_CACHE_TAG } from "./lib/cache-tags";
 
 /**
  * Server Action: call after the owner changed their business (page info, photos, hours, vacation mode, review
- * replies). Expires the cached public business data so /firma/<slug> and /firmalar show the change right away.
- * Only works for a signed-in user who owns a business.
+ * replies, menu, rooms, events). Expires the cached public data so /firma/<slug>, /menu/<slug>, the Keşfet lists and
+ * the event pages show the change right away. Only works for a signed-in user who owns a business.
  */
 export async function refreshMyBusinessPages(): Promise<{ ok: boolean }> {
   const user = await getCurrentUser();
@@ -19,6 +19,10 @@ export async function refreshMyBusinessPages(): Promise<{ ok: boolean }> {
   if (!data) return { ok: false };
   updateTag(BUSINESS_CACHE_TAG);
   revalidatePath(routes.businesses.detail(data.slug));
+  revalidatePath(routes.businesses.menu(data.slug));
   revalidatePath(routes.businesses.root());
+  revalidatePath("/kesfet/[tur]", "page");
+  revalidatePath(routes.events.root());
+  revalidatePath("/etkinlik/[slug]", "page");
   return { ok: true };
 }

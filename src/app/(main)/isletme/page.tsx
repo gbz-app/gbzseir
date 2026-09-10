@@ -3,6 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   ArrowRight,
+  BedDouble,
+  Megaphone,
+  QrCode,
+  Ticket,
   Briefcase,
   ChevronRight,
   CircleAlert,
@@ -33,6 +37,7 @@ import { VacationToggle } from "@/features/business/components/vacation-toggle";
 import { MIN_PORTFOLIO_PHOTOS, businessChecklist, type ChecklistKey } from "@/features/business/lib/completeness";
 import { KIND_SHORT_LABELS } from "@/features/business/lib/kinds";
 import { getOwnerBusiness } from "@/features/business/lib/owner-queries";
+import { hasMenu, hasRooms, resolveVertical } from "@/features/business/lib/verticals";
 
 export const metadata: Metadata = { title: "İşletme Paneli", robots: { index: false } };
 
@@ -184,6 +189,7 @@ export default async function BusinessPanelPage() {
   const stats = (data ?? {}) as Stats;
   const isService = b.kinds.includes("service");
   const isEmployer = b.kinds.includes("employer");
+  const vertical = resolveVertical(b.vertical, b.kinds);
   const pageHref = routes.businesses.detail(b.slug);
   const unreplied = stats.reviews_unreplied ?? 0;
   const callsPrev = stats.calls_prev_week ?? 0;
@@ -333,9 +339,13 @@ export default async function BusinessPanelPage() {
           <ul className="divide-y">
             {isService ? <MenuRow href={routes.business.leads()} icon={ClipboardList} label="Gelen talepler" badge={stats.leads_waiting} /> : null}
             <MenuRow href={routes.business.edit()} icon={Pencil} label="İşletme sayfamı düzenle" />
-            <MenuRow href={routes.business.photos()} icon={ImagePlus} label="Fotoğraflar" />
+            {hasMenu(vertical) ? <MenuRow href={routes.business.menu()} icon={QrCode} label="Menü ve QR menü" /> : null}
+            {hasRooms(vertical) ? <MenuRow href={routes.business.rooms()} icon={BedDouble} label="Odalar" /> : null}
+            <MenuRow href={routes.business.photos()} icon={ImagePlus} label="Fotoğraflar ve galeri" />
+            <MenuRow href={routes.business.events()} icon={Ticket} label="Etkinliklerim" />
             <MenuRow href={routes.business.reviews()} icon={Star} label="Yorumlar" badge={unreplied} />
             {isEmployer ? <MenuRow href={routes.profile.jobs()} icon={Briefcase} label="İş ilanlarım" /> : null}
+            <MenuRow href={routes.content.help("reklam")} icon={Megaphone} label="Reklam ve öne çıkma" />
             <li>
               <VacationToggle businessId={b.id} initial={b.vacation_mode} />
             </li>

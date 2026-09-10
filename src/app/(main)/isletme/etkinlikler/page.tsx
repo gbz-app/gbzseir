@@ -1,0 +1,31 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { PageHeader } from "@/components/shared/page-header";
+import { routes } from "@/core/routes";
+import { requireProfile } from "@/lib/auth/server";
+import { getOwnerBusiness } from "@/features/business/lib/owner-queries";
+import { EventsManager } from "@/features/events/components/events-manager";
+import { getOwnerEvents } from "@/features/events/owner-queries";
+
+export const metadata: Metadata = { title: "Etkinliklerim", robots: { index: false } };
+
+/** H7 - İşletmenin etkinlikleri (her tür işletme). */
+export default async function OwnerEventsPage() {
+  await requireProfile(routes.business.events());
+  const b = await getOwnerBusiness();
+  if (!b) redirect(routes.business.intro());
+  if (b.status !== "approved") redirect(routes.business.root());
+  const events = await getOwnerEvents(b.id).catch(() => []);
+
+  return (
+    <>
+      <PageHeader title="Etkinliklerim" subtitle={b.name} backHref={routes.business.root()} />
+      <div className="px-4 pt-4 pb-10">
+        <EventsManager
+          business={{ id: b.id, name: b.name, address: b.address, phone: b.phone, lat: b.lat, lng: b.lng, neighbourhoodId: b.neighbourhood_id }}
+          initial={events}
+        />
+      </div>
+    </>
+  );
+}

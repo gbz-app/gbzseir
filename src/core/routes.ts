@@ -137,7 +137,8 @@ export const routes = {
   content: {
     news: () => "/haberler",
     announcements: () => "/duyurular",
-    help: () => "/yardim",
+    /** Destek merkezi; `konu` opens a form: sikayet | teknik_destek | reklam | isletme | oneri | diger */
+    help: (konu?: string) => withQuery("/yardim", { konu }),
     sources: () => "/kaynaklar",
   },
 

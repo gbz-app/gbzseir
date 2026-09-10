@@ -12,7 +12,7 @@ import type { BusinessPhoto } from "./queries";
  */
 
 const OWNER_COLUMNS =
-  "id,owner_id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,neighbourhood_id,kinds,category_label,working_hours,status,rejection_reason,verification_level,vacation_mode,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at";
+  "id,owner_id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,neighbourhood_id,kinds,category_label,working_hours,status,rejection_reason,verification_level,vacation_mode,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at,vertical,price_level,star_rating,amenities,website,instagram";
 
 export type OwnerBusiness = {
   id: string;
@@ -40,14 +40,21 @@ export type OwnerBusiness = {
   created_at: string;
   updated_at: string;
   approved_at: string | null;
+  vertical: string | null;
+  price_level: number | null;
+  star_rating: number | null;
+  amenities: string[];
+  website: string | null;
+  instagram: string | null;
   neighbourhood_name: string | null;
   category_ids: string[];
   area_ids: string[];
   photos: BusinessPhoto[];
 };
 
-type Raw = Omit<OwnerBusiness, "kinds" | "status" | "rating_avg" | "neighbourhood_name" | "category_ids" | "area_ids" | "photos"> & {
+type Raw = Omit<OwnerBusiness, "kinds" | "status" | "rating_avg" | "amenities" | "neighbourhood_name" | "category_ids" | "area_ids" | "photos"> & {
   kinds: string[] | null;
+  amenities: string[] | null;
   status: string;
   rating_avg: number | string | null;
   neighbourhoods: { name: string } | null;
@@ -82,6 +89,7 @@ export const getOwnerBusiness = cache(async (): Promise<OwnerBusiness | null> =>
     kinds: parseKinds(raw.kinds),
     status: (STATUSES as string[]).includes(raw.status) ? (raw.status as BusinessStatus) : "pending",
     rating_avg: Number.isFinite(rating) ? rating : 0,
+    amenities: raw.amenities ?? [],
     neighbourhood_name: neighbourhoods?.name ?? null,
     category_ids: (business_service_categories ?? []).map((c) => c.category_id),
     area_ids: (business_service_areas ?? []).map((a) => a.neighbourhood_id),

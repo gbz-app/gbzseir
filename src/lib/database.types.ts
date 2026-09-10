@@ -550,30 +550,60 @@ export type Database = {
       }
       contact_messages: {
         Row: {
+          admin_note: string | null
+          business_name: string | null
           created_at: string
+          email: string | null
           handled: boolean
           id: string
           message: string
           name: string | null
+          page_path: string | null
           phone: string | null
+          resolved_at: string | null
+          status: string
+          subject: string | null
+          topic: string
+          updated_at: string
+          user_agent: string | null
           user_id: string | null
         }
         Insert: {
+          admin_note?: string | null
+          business_name?: string | null
           created_at?: string
+          email?: string | null
           handled?: boolean
           id?: string
           message: string
           name?: string | null
+          page_path?: string | null
           phone?: string | null
+          resolved_at?: string | null
+          status?: string
+          subject?: string | null
+          topic?: string
+          updated_at?: string
+          user_agent?: string | null
           user_id?: string | null
         }
         Update: {
+          admin_note?: string | null
+          business_name?: string | null
           created_at?: string
+          email?: string | null
           handled?: boolean
           id?: string
           message?: string
           name?: string | null
+          page_path?: string | null
           phone?: string | null
+          resolved_at?: string | null
+          status?: string
+          subject?: string | null
+          topic?: string
+          updated_at?: string
+          user_agent?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -2073,6 +2103,20 @@ export type Database = {
       }
       send_sms_hook: { Args: { event: Json }; Returns: Json }
       short_name: { Args: { p_full_name: string }; Returns: string }
+      submit_contact_message: {
+        Args: {
+          p_business_name?: string
+          p_email?: string
+          p_message: string
+          p_name?: string
+          p_page_path?: string
+          p_phone?: string
+          p_subject?: string
+          p_topic: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
       submit_review: {
         Args: {
           p_business_id: string

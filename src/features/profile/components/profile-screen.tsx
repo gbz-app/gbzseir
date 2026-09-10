@@ -13,6 +13,7 @@ import {
   FileText,
   Heart,
   LogOut,
+  Megaphone,
   Settings,
   Store,
   Tag,
@@ -258,7 +259,8 @@ export function ProfileScreen() {
       <p className="mt-6 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Uygulama</p>
       <ul className="divide-y">
         <Row icon={Settings} label="Ayarlar" href={routes.profile.settings()} />
-        <Row icon={CircleHelp} label="Yardım ve iletişim" href={routes.content.help()} />
+        <Row icon={CircleHelp} label="Yardım ve destek" href={routes.content.help()} />
+        <Row icon={Megaphone} label="Reklam ve iş birliği" href={routes.content.help("reklam")} />
         <Row icon={FileText} label="Yasal metinler" href={routes.legal.kvkk()} />
       </ul>
 
