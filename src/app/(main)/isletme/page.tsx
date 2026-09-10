@@ -2,64 +2,94 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  BadgeCheck,
+  ArrowRight,
   Briefcase,
   ChevronRight,
-  Circle,
   CircleAlert,
   CircleCheck,
+  Circle,
   ClipboardList,
   Clock,
-  ExternalLink,
+  Gauge,
   ImagePlus,
+  MessageSquareText,
+  Navigation,
   Pencil,
   PhoneCall,
+  Plus,
+  SlidersHorizontal,
   Star,
+  Store,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/shared/page-header";
 import { requireProfile } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
-import { BusinessLogo } from "@/features/business/components/business-logo";
-import { RatingInline } from "@/features/business/components/rating";
+import { formatRating } from "@/features/business/components/rating";
 import { VacationToggle } from "@/features/business/components/vacation-toggle";
-import { businessChecklist } from "@/features/business/lib/completeness";
+import { MIN_PORTFOLIO_PHOTOS, businessChecklist, type ChecklistKey } from "@/features/business/lib/completeness";
 import { KIND_SHORT_LABELS } from "@/features/business/lib/kinds";
 import { getOwnerBusiness } from "@/features/business/lib/owner-queries";
 
 export const metadata: Metadata = { title: "İşletme Paneli", robots: { index: false } };
 
 type Stats = {
-  ok?: boolean;
   leads_week?: number;
   leads_waiting?: number;
   calls_week?: number;
   calls_prev_week?: number;
   calls_total?: number;
+  phone_reveals_week?: number;
+  directions_week?: number;
   reviews_unreplied?: number;
 };
 
-function StatCard({ label, value, hint, icon: Icon, href }: { label: string; value: number; hint?: string; icon: LucideIcon; href?: string }) {
-  const body = (
-    <>
-      <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-        <Icon className="size-4" aria-hidden /> {label}
-      </span>
-      <span className="mt-1.5 block text-2xl font-bold tabular-nums">{value}</span>
-      {hint ? <span className="mt-0.5 block text-xs text-muted-foreground">{hint}</span> : null}
-    </>
+/** Bento tile surface. */
+const TILE = "relative flex flex-col rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]";
+
+const MINI_LABEL: Record<ChecklistKey, string> = {
+  logo: "Logo",
+  location: "Konum",
+  categories: "Kategori",
+  cover: "Kapak",
+  photos: "Fotoğraf",
+  hours: "Saatler",
+};
+
+function ArrowBadge() {
+  return (
+    <span className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground ring-1 ring-foreground/15" aria-hidden>
+      <ArrowRight className="size-3.5" />
+    </span>
   );
-  const cls = "block rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]";
-  return href ? (
-    <Link href={href} className={cn(cls, "transition-colors hover:bg-muted/50")}>
-      {body}
+}
+
+/** Small stat tile: colored icon, unit top-right, big number, label and an arrow. */
+function StatTile({ href, icon: Icon, iconClass, value, unit, label }: { href: string; icon: LucideIcon; iconClass: string; value: string | number; unit?: string; label: string }) {
+  return (
+    <Link href={href} className={cn(TILE, "transition-transform outline-none active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50")}>
+      <div className="flex items-start justify-between gap-2">
+        <Icon className={cn("size-6", iconClass)} strokeWidth={1.75} aria-hidden />
+        {unit ? <span className="truncate text-xs text-muted-foreground tabular-nums">{unit}</span> : null}
+      </div>
+      <p className="mt-5 text-[2rem] leading-none font-medium tabular-nums">{value}</p>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <span className="truncate text-sm text-muted-foreground">{label}</span>
+        <ArrowBadge />
+      </div>
     </Link>
-  ) : (
-    <div className={cls}>{body}</div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-2xl bg-muted/60 px-3 py-2.5">
+      <p className="truncate text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-base font-semibold tabular-nums">{value}</p>
+    </div>
   );
 }
 
@@ -67,7 +97,7 @@ function MenuRow({ href, icon: Icon, label, badge }: { href: string; icon: Lucid
   return (
     <li>
       <Link href={href} className="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60">
-        <Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+        <Icon className="size-5 shrink-0 text-muted-foreground" strokeWidth={1.75} aria-hidden />
         <span className="flex-1 text-[15px] font-medium">{label}</span>
         {badge ? <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground tabular-nums">{badge}</span> : null}
         <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
@@ -89,18 +119,16 @@ function StatusCard({ icon: Icon, tone, title, text, action }: { icon: LucideIco
   );
 }
 
-/** H3 - İşletme paneli. */
+/** H3 - İşletme paneli ("Genel bakış" bento dashboard). */
 export default async function BusinessPanelPage() {
   await requireProfile(routes.business.root());
   const b = await getOwnerBusiness();
   if (!b) redirect(routes.business.intro());
 
-  const header = <PageHeader title="İşletme Paneli" subtitle={b.name} backHref={routes.profile.root()} />;
-
   if (b.status !== "approved") {
     return (
       <>
-        {header}
+        <PageHeader title="İşletme Paneli" subtitle={b.name} backHref={routes.profile.root()} />
         <div className="px-4 pt-5 pb-8">
           {b.status === "pending" ? (
             <StatusCard
@@ -156,6 +184,10 @@ export default async function BusinessPanelPage() {
   const stats = (data ?? {}) as Stats;
   const isService = b.kinds.includes("service");
   const isEmployer = b.kinds.includes("employer");
+  const pageHref = routes.businesses.detail(b.slug);
+  const unreplied = stats.reviews_unreplied ?? 0;
+  const callsPrev = stats.calls_prev_week ?? 0;
+
   const checklist = businessChecklist({
     kinds: b.kinds,
     logo_url: b.logo_url,
@@ -167,92 +199,148 @@ export default async function BusinessPanelPage() {
     categoryCount: b.category_ids.length,
     photoCount: b.photos.length,
   });
-  const callsWeek = stats.calls_week ?? 0;
-  const callsPrev = stats.calls_prev_week ?? 0;
-  const callsHint = callsPrev ? `Geçen hafta ${callsPrev}` : `Toplam ${stats.calls_total ?? 0}`;
+  const nextItem = checklist.items.find((i) => !i.done) ?? null;
+  const minis = [...checklist.items.filter((i) => !i.done), ...checklist.items.filter((i) => i.done)].slice(0, 3);
+  const miniValue = (key: ChecklistKey, done: boolean) =>
+    done ? "Tamam" : key === "photos" ? `${Math.min(b.photos.length, MIN_PORTFOLIO_PHOTOS)}/${MIN_PORTFOLIO_PHOTOS}` : "Eksik";
 
   return (
     <>
-      {header}
-      <div className="flex flex-col gap-5 px-4 pt-4 pb-8">
-        <section className="flex items-center gap-4 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]">
-          <BusinessLogo name={b.name} url={b.logo_url} size="lg" />
-          <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-1.5 text-lg font-bold">
-              <span className="truncate">{b.name}</span>
-              {b.verification_level >= 1 ? <BadgeCheck className="size-5 shrink-0 text-primary" aria-label="Onaylı işletme" /> : null}
-            </p>
-            <p className="mt-0.5 text-sm text-muted-foreground">{b.kinds.map((k) => KIND_SHORT_LABELS[k]).join(" · ")}</p>
-            <RatingInline avg={b.rating_avg} count={b.rating_count} className="mt-1 text-sm" />
+      <PageHeader
+        title="Genel bakış"
+        subtitle={b.name}
+        backHref={routes.profile.root()}
+        actions={
+          <Link
+            href={routes.business.edit()}
+            aria-label="İşletme sayfamı düzenle"
+            className="flex size-10 items-center justify-center rounded-full bg-card shadow-soft ring-1 ring-foreground/[0.06] transition-colors hover:bg-muted"
+          >
+            <SlidersHorizontal className="size-5" strokeWidth={1.75} aria-hidden />
+          </Link>
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-3 px-4 pt-4 pb-8">
+        {isService ? (
+          <StatTile
+            href={routes.business.leads()}
+            icon={ClipboardList}
+            iconClass="text-info"
+            value={stats.leads_waiting ?? 0}
+            unit={`${stats.leads_week ?? 0} bu hafta`}
+            label="Bekleyen talep"
+          />
+        ) : (
+          <StatTile href={pageHref} icon={Navigation} iconClass="text-info" value={stats.directions_week ?? 0} unit="bu hafta" label="Yol tarifi" />
+        )}
+        <StatTile
+          href={pageHref}
+          icon={PhoneCall}
+          iconClass="text-success"
+          value={stats.calls_week ?? 0}
+          unit={callsPrev ? `geçen hafta ${callsPrev}` : "bu hafta"}
+          label="Arama"
+        />
+
+        <section className={cn(TILE, "col-span-2")} aria-labelledby="profil-gucu">
+          <div className="flex items-start justify-between gap-2">
+            <Gauge className="size-6 text-primary" strokeWidth={1.75} aria-hidden />
+            <span id="profil-gucu" className="text-xs text-muted-foreground">
+              Profil gücü
+            </span>
           </div>
+          <p className="mt-4 flex items-baseline gap-1.5">
+            <span className="text-[2.2rem] leading-none font-medium tabular-nums">%{checklist.percent}</span>
+            <span className="text-sm text-muted-foreground">{checklist.complete ? "profilin eksiksiz" : `/100 · ${checklist.total - checklist.done} adım kaldı`}</span>
+          </p>
+          <div className="mt-4 flex items-center gap-3">
+            <div
+              className="h-2.5 flex-1 overflow-hidden rounded-full bg-brand-soft"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={checklist.percent}
+              aria-label="Profil gücü"
+            >
+              <div className="h-full rounded-full bg-primary" style={{ width: `${checklist.percent}%` }} />
+            </div>
+            {nextItem ? (
+              <Link
+                href={nextItem.href}
+                aria-label={`${nextItem.label} ekle`}
+                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-primary ring-1 ring-primary/20 transition-colors hover:bg-primary hover:text-primary-foreground"
+              >
+                <Plus className="size-5" aria-hidden />
+              </Link>
+            ) : null}
+          </div>
+          <ul className="mt-4 grid grid-cols-3 gap-2">
+            {minis.map((item) => (
+              <li key={item.key}>
+                <Link href={item.href} className="block rounded-2xl bg-muted/60 px-3 py-2.5 transition-colors hover:bg-muted">
+                  <span className="flex items-center justify-between gap-1 text-xs text-muted-foreground">
+                    {MINI_LABEL[item.key]}
+                    {item.done ? <CircleCheck className="size-3.5 text-success" aria-hidden /> : <Circle className="size-3.5 text-muted-foreground/60" aria-hidden />}
+                  </span>
+                  <span className="mt-1 block text-[15px] font-semibold tabular-nums">{miniValue(item.key, item.done)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
 
-        {b.vacation_mode ? (
-          <p className="rounded-2xl bg-highlight-soft px-4 py-3 text-sm font-semibold">Tatil modundasın: yeni hizmet talebi almıyorsun.</p>
-        ) : null}
+        <StatTile
+          href={routes.business.reviews()}
+          icon={Star}
+          iconClass="text-highlight"
+          value={b.rating_count ? formatRating(b.rating_avg) : "-"}
+          unit="/5"
+          label={`${b.rating_count} yorum`}
+        />
+        <StatTile href={routes.business.reviews()} icon={MessageSquareText} iconClass="text-rose-500" value={unreplied} unit="yanıtsız" label="Yorum" />
 
-        <div className="grid grid-cols-2 gap-3">
-          {isService ? (
-            <>
-              <StatCard label="Bekleyen talep" value={stats.leads_waiting ?? 0} icon={ClipboardList} href={routes.business.leads()} />
-              <StatCard label="Bu hafta talep" value={stats.leads_week ?? 0} icon={ClipboardList} href={routes.business.leads()} />
-            </>
-          ) : null}
-          <StatCard label="Bu hafta arama" value={callsWeek} hint={callsHint} icon={PhoneCall} />
-          <StatCard label="Yanıtsız yorum" value={stats.reviews_unreplied ?? 0} icon={Star} href={routes.business.reviews()} />
-        </div>
-
-        {!checklist.complete ? (
-          <section className="rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]" aria-labelledby="profil-tamamla">
-            <div className="flex items-center justify-between gap-3">
-              <h2 id="profil-tamamla" className="text-base font-bold">
-                Profilini tamamla
-              </h2>
-              <span className="text-sm font-bold text-primary tabular-nums">%{checklist.percent}</span>
+        <Link href={pageHref} className={cn(TILE, "col-span-2 transition-transform outline-none active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-ring/50")}>
+          <div className="flex items-start justify-between gap-2">
+            <Store className="size-6 text-primary" strokeWidth={1.75} aria-hidden />
+            <ArrowBadge />
+          </div>
+          <div className="mt-4 flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-[1.6rem] leading-tight font-semibold">{b.name}</p>
+              <p className="mt-0.5 truncate text-sm text-muted-foreground">{b.category_label || b.kinds.map((k) => KIND_SHORT_LABELS[k]).join(" · ")}</p>
             </div>
-            <Progress value={checklist.percent} className="mt-3 h-2" aria-label={`Profil %${checklist.percent} tamamlandı`} />
-            <ul className="mt-3 flex flex-col">
-              {checklist.items.map((item) => (
-                <li key={item.key}>
-                  <Link href={item.href} className="flex min-h-12 items-center gap-3 rounded-xl px-1 py-2 transition-colors hover:bg-muted/60">
-                    {item.done ? (
-                      <CircleCheck className="size-5 shrink-0 text-success" aria-hidden />
-                    ) : (
-                      <Circle className="size-5 shrink-0 text-muted-foreground/60" aria-hidden />
-                    )}
-                    <span className="min-w-0 flex-1">
-                      <span className={cn("block text-[15px]", item.done ? "text-muted-foreground line-through" : "font-medium")}>{item.label}</span>
-                      {!item.done ? <span className="block text-xs text-muted-foreground">{item.hint}</span> : null}
-                    </span>
-                    {!item.done ? <span className="text-sm font-semibold text-primary">Ekle</span> : null}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : (
-          <p className="flex items-center gap-2 rounded-2xl bg-success-soft px-4 py-3 text-sm font-semibold text-success">
-            <CircleCheck className="size-5" aria-hidden /> Harika, profilin eksiksiz.
-          </p>
-        )}
+            <span
+              className={cn(
+                "shrink-0 rounded-full px-3 py-1 text-sm font-semibold ring-1",
+                b.vacation_mode ? "bg-highlight-soft text-highlight-foreground ring-highlight/30" : "bg-success-soft text-success ring-success/20",
+              )}
+            >
+              {b.vacation_mode ? "Tatilde" : "Yayında"}
+            </span>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <MiniStat label="Toplam arama" value={stats.calls_total ?? 0} />
+            {isService ? (
+              <MiniStat label="Kabul edilen talep" value={b.leads_accepted_count} />
+            ) : (
+              <MiniStat label="Numara gösterimi" value={stats.phone_reveals_week ?? 0} />
+            )}
+          </div>
+        </Link>
 
-        <ul className="divide-y overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]">
-          {isService ? <MenuRow href={routes.business.leads()} icon={ClipboardList} label="Gelen talepler" badge={stats.leads_waiting} /> : null}
-          <MenuRow href={routes.business.edit()} icon={Pencil} label="İşletme sayfamı düzenle" />
-          <MenuRow href={routes.business.photos()} icon={ImagePlus} label="Fotoğraflar" />
-          <MenuRow href={routes.business.reviews()} icon={Star} label="Yorumlar" badge={stats.reviews_unreplied} />
-          {isEmployer ? <MenuRow href={routes.profile.jobs()} icon={Briefcase} label="İş ilanlarım" /> : null}
-        </ul>
-
-        <div className="overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]">
-          <VacationToggle businessId={b.id} initial={b.vacation_mode} />
-        </div>
-
-        <Button asChild variant="outline" size="lg">
-          <Link href={routes.businesses.detail(b.slug)}>
-            <ExternalLink /> Sayfamı görüntüle
-          </Link>
-        </Button>
+        <section className="col-span-2 overflow-hidden rounded-3xl bg-card shadow-soft ring-1 ring-foreground/[0.05]" aria-label="Yönet">
+          <ul className="divide-y">
+            {isService ? <MenuRow href={routes.business.leads()} icon={ClipboardList} label="Gelen talepler" badge={stats.leads_waiting} /> : null}
+            <MenuRow href={routes.business.edit()} icon={Pencil} label="İşletme sayfamı düzenle" />
+            <MenuRow href={routes.business.photos()} icon={ImagePlus} label="Fotoğraflar" />
+            <MenuRow href={routes.business.reviews()} icon={Star} label="Yorumlar" badge={unreplied} />
+            {isEmployer ? <MenuRow href={routes.profile.jobs()} icon={Briefcase} label="İş ilanlarım" /> : null}
+            <li>
+              <VacationToggle businessId={b.id} initial={b.vacation_mode} />
+            </li>
+          </ul>
+        </section>
       </div>
     </>
   );

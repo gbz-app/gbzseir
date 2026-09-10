@@ -291,9 +291,20 @@ html[data-onboarding="open"] {
     @apply font-sans;
     -webkit-tap-highlight-color: transparent;
     text-size-adjust: 100%;
+    /* No black rubber-band / pull-to-refresh area, no horizontal scrolling, no visible scrollbar. */
+    background-color: var(--background);
+    overscroll-behavior: none;
+    overflow-x: clip;
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar {
+    display: none;
   }
   body {
     @apply bg-background text-foreground antialiased;
+    overscroll-behavior: none;
+    overflow-x: clip;
+    max-width: 100%;
   }
   button:not(:disabled),
   [role="button"]:not(:disabled) {

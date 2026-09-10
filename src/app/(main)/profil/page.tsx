@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { ProfilePlaceholder } from "./profile-placeholder";
+import { ProfileScreen } from "@/features/profile/components/profile-screen";
 
-// Minimal functional placeholder created by the app-shell agent; the profile-business agent replaces it.
 export const metadata: Metadata = { title: "Profil", robots: { index: false } };
 
+/** G1/G2 - Profil (guest and signed-in). */
 export default function ProfilePage() {
-  return <ProfilePlaceholder />;
+  return <ProfileScreen />;
 }

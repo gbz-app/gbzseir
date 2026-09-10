@@ -27,8 +27,8 @@ export const MAIN_TABS: MainTab[] = [
   { href: routes.profile.root(), label: "Profil", icon: UserRound, match: ["/profil", "/isletme"] },
 ];
 
-/** Paths where the TopBar (logo, location, search, bell) is shown. Other pages render <PageHeader/>. */
-export const TOPBAR_PATHS = ["/", "/yakinimda", "/ilanlar", "/hizmetler", "/profil"];
+/** Paths where the TopBar is shown. Other pages render <PageHeader/> (the profile page has its own header). */
+export const TOPBAR_PATHS = ["/", "/yakinimda", "/ilanlar", "/hizmetler"];
 
 /** Route prefixes where the bottom nav is hidden automatically (full-screen flows). */
 export const BOTTOM_NAV_HIDDEN_PREFIXES = ["/ilan-ver", "/hizmet-talebi", "/isletme/basvuru", "/profil/telefon-degistir"];
