@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
-import { Trash2 } from "lucide-react";
-import { ComingSoon } from "@/components/shared/coming-soon";
+import { routes } from "@/core/routes";
+import { PageHeader } from "@/components/shared/page-header";
+import { requireProfile } from "@/lib/auth/server";
+import { AccountDeleteFlow } from "@/features/profile/components/account-delete-flow";
 
-// Placeholder created by the app-shell agent; the profile-business agent replaces this page.
-export const metadata: Metadata = { title: "Hesabı Sil" };
+export const metadata: Metadata = { title: "Hesabı Sil", robots: { index: false } };
 
-export default function Page() {
-  return <ComingSoon title="Hesabı Sil" icon={Trash2} backHref="/profil/ayarlar" />;
+/** G9 - Hesabı sil. */
+export default async function DeleteAccountPage() {
+  await requireProfile(routes.profile.deleteAccount());
+  return (
+    <>
+      <PageHeader title="Hesabı Sil" backHref={routes.profile.settings()} />
+      <AccountDeleteFlow />
+    </>
+  );
 }
