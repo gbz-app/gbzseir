@@ -11,7 +11,7 @@
  *   cross-origin requests (Supabase, maps), RSC payloads, non-GET requests.
  * - A page can opt out of caching with the response header "X-SW-Cache: no".
  */
-const VERSION = "v3-2026-09-10";
+const VERSION = "v4-2026-09-11";
 const PREFIX = "gebzem";
 const STATIC_CACHE = `${PREFIX}-static-${VERSION}`;
 const PAGES_CACHE = `${PREFIX}-pages-${VERSION}`;
@@ -46,13 +46,17 @@ const PUBLIC_PAGES = [
   /^\/hizmetler(\/[^/]+)?\/?$/,
   /^\/firmalar\/?$/,
   /^\/firma\/[^/]+\/?$/,
+  /^\/kesfet\/[^/]+\/?$/,
+  /^\/etkinlikler\/?$/,
+  /^\/etkinlik\/[^/]+\/?$/,
+  /^\/menu\/[^/]+\/?$/,
   /^\/haberler\/?$/,
   /^\/duyurular\/?$/,
-  /^\/yardim\/?$/,
   /^\/kaynaklar\/?$/,
   /^\/yasal\/[^/]+\/?$/,
 ];
-const NEVER_CACHE = [/^\/api\//, /^\/auth\//, /^\/giris/, /^\/admin/, /^\/profil/, /^\/isletme/, /^\/talep\//, /^\/ilan-ver/, /^\/hizmet-talebi/];
+// /yardim shows the signed-in user's own support messages, so it is never kept offline.
+const NEVER_CACHE = [/^\/api\//, /^\/auth\//, /^\/giris/, /^\/admin/, /^\/profil/, /^\/isletme/, /^\/talep\//, /^\/ilan-ver/, /^\/hizmet-talebi/, /^\/yardim/];
 const SWR_DATA = [/^\/data\//];
 const LIMITS = { [PAGES_CACHE]: 60, [DATA_CACHE]: 60, [IMAGE_CACHE]: 150 };
 const DROP_PARAMS = ["source", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid", "gclid"];
