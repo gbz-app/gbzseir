@@ -15,6 +15,7 @@ import {
   LogOut,
   Megaphone,
   Settings,
+  ShieldCheck,
   Store,
   Tag,
   UserRound,
@@ -258,6 +259,7 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
 
       <p className="mt-6 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Uygulama</p>
       <ul className="divide-y">
+        {user && profile?.role === "admin" ? <Row icon={ShieldCheck} label="Yönetim paneli" href={routes.admin.root()} /> : null}
         <Row icon={Settings} label="Ayarlar" href={routes.profile.settings()} />
         <Row icon={CircleHelp} label="Yardım ve destek" href={routes.content.help()} />
         <Row icon={Megaphone} label="Reklam ve iş birliği" href={routes.content.help("reklam")} />
