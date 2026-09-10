@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
-import { Landmark } from "lucide-react";
-import { ComingSoon } from "@/components/shared/coming-soon";
+import { routes } from "@/core/routes";
+import { CITY } from "@/config/site";
+import { PlacesBrowser } from "@/features/nearby/components/places-browser";
+import { getPlaces } from "@/features/nearby/server/queries";
 
-// Placeholder created by the app-shell agent; the nearby agent replaces this page.
-export const metadata: Metadata = { title: "Gezilecek Yerler" };
+export const revalidate = 3600;
 
-export default function Page() {
-  return <ComingSoon title="Gezilecek Yerler" icon={Landmark} description="Gebze'nin tarihi ve doğal güzellikleri burada olacak." />;
+export const metadata: Metadata = {
+  title: `${CITY.name} Gezilecek Yerler`,
+  description: `${CITY.name}'nin tarihi yapıları, parkları ve doğal güzellikleri: konum, açıklama ve yol tarifi.`,
+  alternates: { canonical: routes.nearby.places() },
+};
+
+/** D6 - Gezilecek yerler. */
+export default async function PlacesPage() {
+  const places = await getPlaces();
+  return <PlacesBrowser places={places} />;
 }
