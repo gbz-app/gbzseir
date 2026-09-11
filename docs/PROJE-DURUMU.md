@@ -1,6 +1,6 @@
 # Gebzem — Proje durumu ve devam rehberi
 
-Son güncelleme: 11 Eylül 2026, gece. Bu dosya, sohbet kapanırsa yeni bir oturumun (Claude Code ya da bir geliştirici) kaldığı yerden devam edebilmesi için yazıldı. Gizli değer içermez; sadece değişken ve kaynak adları geçer.
+Son güncelleme: 12 Eylül 2026. Bu dosya, sohbet kapanırsa yeni bir oturumun (Claude Code ya da bir geliştirici) kaldığı yerden devam edebilmesi için yazıldı. Gizli değer içermez; sadece değişken ve kaynak adları geçer.
 
 Diğer belgeler:
 - `docs/OTURUM-GUNLUGU.md`: sohbetin kronolojik özeti, yapılan hatalar ve dersler
@@ -18,9 +18,9 @@ Diğer belgeler:
 | Kod deposu | GitHub `gbz-app/gbzseir`, dal `main`; `main`'e push = Vercel deploy |
 | Vercel projeleri | `gbzsehir` (public), `gbzsehir-admin` (aynı repo, `NEXT_PUBLIC_APP_MODE=admin`) |
 | Veritabanı | Supabase proje `fboythglcjofakbskstg`, bölge Tokyo (ap-northeast-1); Vercel fonksiyonları `hnd1` |
-| Son canlı commit | `9c9a164` (11 Eylül gece); büyük parti `1c9eb03` ile canlıya çıktı |
+| Son canlı commit | `1574a19` (12 Eylül): Kocaeli faz B + GebzemAI araçları; önceki `ea584ca` (dalga 2a), `6fc64e1` (dalga 1) |
 
-**Deploy durumu:** 26 maddelik partinin kodu `1c9eb03` ile, küçük düzeltmeler `9c9a164` ile canlıda (iki Vercel projesi READY, ana sayfalar 200, konsol hatası yok). Yeni bir oturumda önce `git status` ile commit edilmemiş iş olup olmadığına bakın; varsa `npx tsc --noEmit -p .` → `npx eslint` → `npx next build` → 390px ekran testleri → sadece ilgili dosyalarla commit → push → deploy kontrolü.
+**Deploy durumu:** `1574a19` canlıda (iki Vercel projesi READY, 390px kontrolleri ve konsol temiz). Yeni bir oturumda önce `git status` ile commit edilmemiş iş olup olmadığına bakın; varsa `npx tsc --noEmit -p .` → `npx eslint` → `npx next build` → 390px ekran testleri → sadece ilgili dosyalarla commit → push → deploy kontrolü.
 
 **Gizli değerler nerede:** repo'da yok. Uygulama anahtarları `.env.local` (git-ignored) ve Vercel ortam değişkenlerinde. Yönetim anahtarları (Supabase access token, Vercel token, GitHub token) sahipte; önceki oturumda geçici oturum klasöründe (scratchpad) tutuluyordu ve oturum kapanınca kaybolur. Yeni oturumda bu üçünü sahipten tekrar isteyin; hiçbir zaman commit'e, belgeye veya çıktıya yazmayın.
 
@@ -58,32 +58,30 @@ Ayrıntılı ürün kararları: `docs/OTURUM-GUNLUGU.md` bölüm "Kararlar".
 
 ---
 
-## 4. Durum (11 Eylül 2026 gece)
+## 4. Durum (12 Eylül 2026)
 
-### 4.1 Canlıda
-- Sağlık tek sütun kart, çalışma saatleri kenarlıksız, modern iş ilanı detayı (commit `d3bf2ac`)
-- Hizmet talebi: tüm kategoriler otomatik gönderim, gerçek taleplere örnek firma yok, bildirimi açık olmayanın bildirimi açınca gider (DB)
-- Kritik demo-OTP açığı kapatıldı + 12 güvenlik sertleştirmesi (DB)
-- Tatil modu, "tümünü okundu", işletme kuralları, ilan istatistikleri, kullanıcı etkinlikleri, arama kayıtları, ilan videosu, GebzemAI, şehir rehberi (402 kayıt), doktorlar: **veritabanı tarafı canlı, kodu değil**
-- Google Maps projesi/anahtarı, Cloudflare R2, OpenAI anahtarı kurulu
+### 4.1 Canlıda (`1574a19`)
+- 11 Eylül'deki 26 maddelik parti ve sahibin 12 Eylül listesi: dalga 1 (`6fc64e1`: köşe yuvarlaklığı ailesi, "Örnek" etiketleri yok, ekran dönmez, harita sayfaları doğrudan harita, Google POI'leri gizli + daire pinler, sade rehber listesi, sade Tümü sayfaları, doktor profilleri, Gebze Center sinema), dalga 2a (`ea584ca`: geri gelme takılması düzeldi, arama rehber türleri + doktorlar), faz B (`1574a19`).
+- **Kocaeli, mahallesiz:** 12 ilçe; her yerde ilçe seçici (`DistrictPicker`), filtreler `?ilce=`, kartlarda ilçe adı; başlık/açıklama/JSON-LD Kocaeli. Neighbourhood tabloları veritabanında faz C'ye kadar duruyor.
+- **Veri:** KBB açık verisi 12 ilçe (eczane, cami, akaryakıt, taksi, sağlık/emniyet/eğitim kurumları, müze/tarihi, KocaeliKart 846, toplanma alanı 338, ücretsiz otopark 48), GTFS: 418 hat, 8.480 durak, geometrik durak-hat bağlantısı (sefer saati yok). Banka/ATM araştırması içeride. 56 gezilecek yere CC lisanslı foto.
+- **Haritalar** her yerde Google Maps. **Sinema** Gebze Center (günlük içe aktarma). **Haberler** yalnız bizim yazılarımız.
+- **GebzemAI kodu hazır ve canlıda:** 9 araç (nöbet, işletme, yer, etkinlik, taksi, haber, `doktor_bul`, `otobus_hatlari`, `internet_ara`), önce veritabanı, internet yalnız sonuç yoksa (maliyeti günlük bütçeye eklenir). `ai_enabled` **kapalı**: sahip Admin > GebzemAI'dan açar.
 
-### 4.2 Canlıya çıkanlar (11 Eylül gece, `1c9eb03` + `9c9a164`)
-Header titremesi (yükleme ekranları), alt menü (düz siyah, tam genişlik), ortak alt çubuk (BottomDock), büyük/modern bildirim mesajları, modern şikayet sayfası, "Tümünü okundu yap", yeni tanıtım ekranları (5 adım), işletme açma (türe göre özellikler), tek işletme + destek yönlendirmesi, tür kilidi, adım adım işletme düzenleme, otellere QR menü, profil gücü (görev listesi), ilan sihirbazı ve detay ikonları, ilan istatistik ekranı, ilana 1 video (R2), etkinlikler (herkes oluşturur, kullanıcılar admin onayı; liste kategori tarzı, sade detay, takvime ekle), yeni arama sayfası, kenarlık/gölge temizliği, GebzemAI sayfası (OpenAI), ana sayfada Etkinlik kutusu ve GebzemAI kartı.
+### 4.2 Sahibin kararı / onayı bekleyenler
+1. `2026091386_districts_phase_b.sql` (admin kullanıcı ve veri sağlığı ekranlarına ilçe sayıları): deneme çalıştırması tamam; canlıya uygulama güvenlik filtresine takıldı. Arayüz buna bağlı değil. Onay gelirse: `node --env-file=.env.local scripts/db/sql.mjs supabase/migrations/2026091386_districts_phase_b.sql`.
+2. GebzemAI'yi açmak (Admin > GebzemAI). Soru başı ~0,002 USD; internet araması gerekirse +~0,015 USD; günlük toplam bütçe 5 USD, kişi başı 20 soru/gün.
+3. Yasal taslaklar Çerez 0.2 ve KVKK 0.3 yayımlanmayı bekliyor.
+4. SMS sağlayıcı (6 gerçek hesap yeni giriş başlatamıyor), gerçek nöbet kaynağı (NosyAPI anahtarı ya da Eczacı Odası izni; demo nöbet yalnız Gebze'de), GTFS `stop_times` (sefer saatleri).
+5. Sinema kaynağının şartları (Paribu Cineverse görsel/metin tekrar kullanımını yasaklıyor; afişler kaynağından bağlantıyla gösteriliyor).
+6. OpenAI ve Google harcama limitleri; sohbete yapıştırılan anahtarların yenilenmesi; Cloudflare kurulum anahtarı `gbzsehir-kurulum` video testi sonrası silinmeli.
+7. Yayın öncesi demo veri temizliği (Admin > Veri); iş ilanı OSB listesi (`JOB_LOCATIONS`) hâlâ Gebze bölgesi; "Kocaeli Gündemi" adı.
+8. 166 gezilecek yerin serbest lisanslı fotoğrafı yok (admin'den eklenebilir).
 
-### 4.3 Arka planda çalışıyordu (bittiklerinde sonuçları kontrol edilmeli)
-- Şehir rehberi sayfaları + admin rehber yönetimi (Google pin) + doktorlar (8 adımdan 5'i bitmişti)
-- Kocaeli faz A: `2026091380_kocaeli_districts.sql` (12 ilçe, ilçe alanları, hizmet bölgesi ilçeye) ve KBB verisi + GTFS durak aktarımı (`scripts/db/import-kocaeli.mjs`)
-- Kocaeli banka/ATM + kurum/okul/hastane/şarj/noter derin araştırması (çıktı oturum klasöründeydi; kalıcı kopyası `kocaeli/_arastirma/` altına alınacak)
-- `docs/MIMARI-AGAC.md` yazımı
-
-### 4.4 Sırada
-1. Birleşik build + test + commit + deploy (bölüm 1)
-2. Kocaeli faz B (arayüz): ilçe seçici, mahallenin kaldırılması. Gruplar: (G1) tanıtım + profil, (G2) ilanlar, (G3) işletme, (G4) hizmet talepleri, (G5) etkinlikler, (G6) yakınımda/rehber/arama/AI araçları, (G7) admin. Faz C: mahalle kolonlarını kullanmayı tamamen bırakmak.
-3. Tüm haritaları Google Maps'e geçirmek (harita "Harita"ya basınca yüklensin; maliyet için)
-4. Banka/ATM araştırmasını içeri aktarmak; OSM aylık senkronunu KBB kaynaklı türlerde kapatmak
-5. Nöbetçi eczane için gerçek kaynak (sahibin kararı)
-6. GebzemAI: internet araması (sadece veritabanında yoksa), doktor önerisi aracı, toplu taşıma (sefer saati verisi gelirse); sonra `ai_enabled` açılır
-7. Yayın öncesi: demo verilerin temizlenmesi (Admin > Veri), hukuki metinlerin güncellenmesi (Tokyo barındırma, OpenAI (ABD), R2, arama istatistikleri), SMS sağlayıcı, captcha (Turnstile), admin 2FA, repo'nun OneDrive dışına taşınması
+### 4.3 Sırada (teknik)
+1. Faz C: neighbourhood tabloları, kolonları ve RPC çıktılarındaki neighbourhood alanlarını kaldırmak (kodda `@deprecated` işaretli).
+2. GPS yokken uzaklık etiketi ilçe merkezinden ölçülüyor; "merkeze" ibaresi ya da yalnız GPS'le gösterme (ürün kararı).
+3. Hava durumu ve namaz vakitleri Gebze merkezine göre; ilçeye göre yapılabilir. `roll_demo_duty` yalnız Gebze.
+4. Admin 2FA, Turnstile, repo'nun OneDrive dışına taşınması; Flutter + Go yerel uygulama.
 
 ---
 
@@ -105,8 +103,13 @@ Header titremesi (yükleme ekranları), alt menü (düz siyah, tam genişlik), o
 | 2026091376_city_guide | yeni yer türleri, kurum kategorileri | canlı |
 | 2026091377_business_staff | doktorlar | canlı |
 | 2026091378_gebzemai_openai | sağlayıcı seçimi, model listesi | canlı |
-| 2026091380_kocaeli_districts | ilçeler, ilçe alanları | faz A işi çalışıyordu |
-| 2026091381_kocaeli_import_support | aktarım desteği, toplu taşıma hatları | faz A işi çalışıyordu |
+| 2026091380_kocaeli_districts | ilçeler, ilçe alanları, hizmet bölgesi ilçeye, ilçe dolduran trigger | canlı |
+| 2026091381_kocaeli_import_support | KBB aktarımı, toplu taşıma hatları ve durak bağlantıları | canlı |
+| 2026091382_doctor_profiles | doktor profil sayfası slug'ları | canlı |
+| 2026091383_cinema | sinema filmleri ve seansları | canlı |
+| 2026091384_kocaeli_guide_categories | şehir rehberi kategorileri (Kocaeli) | canlı |
+| 2026091385_search_kinds_audit | arama: rehber türleri + doktorlar; doktor/branş işlem kaydı | canlı |
+| 2026091386_districts_phase_b | admin kullanıcı ve veri sağlığı raporlarına ilçe | yazıldı, deneme OK, **uygulanmadı** (sahip onayı) |
 
 Uygulama şekli: `node --env-file=.env.local scripts/db/sql.mjs <dosya>` (önce yönetim tokenı ortamda olmalı). Önce deneme (BEGIN..ROLLBACK), `CREATE OR REPLACE` öncesi canlı tanımı `pg_get_functiondef` ile okuyun. Uyguladıktan sonra `scripts/db/gen-types.mjs` ile tipleri yenileyin.
 
