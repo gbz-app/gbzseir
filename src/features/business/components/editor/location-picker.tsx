@@ -2,12 +2,11 @@
 
 import * as React from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
-import "maplibre-gl/dist/maplibre-gl.css";
-import type { Map as MapLibreMap } from "maplibre-gl";
-import { Check, LocateFixed, Loader2, Map as MapIcon, MapPin, Search, Trash2, X } from "lucide-react";
+import { Check, LocateFixed, Loader2, Map as MapIcon, MapPin, MapPinOff, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { HideBottomNav } from "@/components/layout/nav-visibility";
+import { MAP_UNAVAILABLE_TITLE, MapPattern } from "@/components/maps/map-states";
 import { CITY } from "@/config/site";
 import { distanceMeters, roundCoord, type LatLng } from "@/core/geo";
 import { createClient } from "@/lib/supabase/client";
@@ -26,25 +25,9 @@ import {
   type PlaceSuggestion,
 } from "@/lib/maps/google";
 
-const MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 const DEFAULT_HINT = "Haritayı kaydırarak iğneyi işletmenin üzerine getir.";
-/** Google map created but never idle by then: fall back to MapLibre. */
+/** Google map created but never idle by then: show the unavailable notice. */
 const MAP_READY_TIMEOUT_MS = 12_000;
-
-let workerConfigured = false;
-
-/**
- * maplibre-gl v6 derives its worker URL from import.meta.url at runtime, which does not survive bundling.
- * Point it at the exact same version on jsDelivr; maplibre loads cross-origin workers through a blob module.
- */
-async function loadMapLibre() {
-  const maplibre = await import("maplibre-gl");
-  if (!workerConfigured) {
-    maplibre.setWorkerUrl(`https://cdn.jsdelivr.net/npm/maplibre-gl@${maplibre.getVersion()}/dist/maplibre-gl-worker.mjs`);
-    workerConfigured = true;
-  }
-  return maplibre;
-}
 
 /** Business pins are public addresses chosen by the owner: keep ~1 m precision. */
 const roundPin = (p: LatLng): LatLng => ({ lat: roundCoord(p.lat, 5), lng: roundCoord(p.lng, 5) });
@@ -67,10 +50,6 @@ export type LocationPickerProps = {
   id?: string;
 };
 
-type Provider = "google" | "maplibre";
-/** Google Maps when a key is configured (and Google has not refused it in this tab), else MapLibre + OpenFreeMap. */
-const pickProvider = (): Provider => (googleMapsAvailable() ? "google" : "maplibre");
-
 const subscribeNoop = () => () => {};
 /** False during SSR and hydration, true afterwards (the map is a portal into document.body). */
 function useIsClient(): boolean {
@@ -82,26 +61,26 @@ function useIsClient(): boolean {
 }
 
 /**
- * Form field: "Konumumu kullan" / "Haritada seç" + a full-screen pin-drop map with a fixed centre pin. Google Maps (with
- * address search and the suggested address) when NEXT_PUBLIC_GOOGLE_MAPS_KEY is set, otherwise MapLibre + OpenFreeMap.
- * If Google cannot load or refuses the key, the same opening continues on MapLibre.
+ * Form field: "Konumumu kullan" / "Haritada seç" + a full-screen Google pin-drop map with a fixed centre pin, address
+ * search and the suggested address. Without NEXT_PUBLIC_GOOGLE_MAPS_KEY, or when Google cannot load or refuses the key,
+ * the opening shows a calm "Harita şu an kullanılamıyor" notice instead (the pin can be added later).
  */
 export function LocationPicker({ value, onChange, fallbackCenter, onNeighbourhood, onAddress, hint = DEFAULT_HINT, autoOpen = false, id }: LocationPickerProps) {
   // null until the user opens or closes the map; autoOpen then shows it right after hydration.
   const [open, setOpen] = React.useState<boolean | null>(null);
   const [start, setStart] = React.useState<LatLng | null>(null);
-  const [provider, setProvider] = React.useState<Provider>(pickProvider);
+  const [unavailable, setUnavailable] = React.useState(() => !googleMapsAvailable());
   const isClient = useIsClient();
   const loc = useApproxLocation();
   const shown = open ?? (autoOpen && isClient);
 
   const openAt = (center: LatLng | null) => {
     setStart(center);
-    setProvider(pickProvider());
+    setUnavailable(!googleMapsAvailable());
     setOpen(true);
   };
   const close = React.useCallback(() => setOpen(false), []);
-  const fallBackToMapLibre = React.useCallback(() => setProvider("maplibre"), []);
+  const markUnavailable = React.useCallback(() => setUnavailable(true), []);
 
   const locateMe = async () => {
     const coords = await loc.request();
@@ -163,10 +142,10 @@ export function LocationPicker({ value, onChange, fallbackCenter, onNeighbourhoo
         </div>
       )}
       {shown ? (
-        provider === "google" ? (
-          <GoogleOverlay initial={initial} zoomed={zoomed} hint={hint} onCancel={close} onConfirm={confirm} onFallback={fallBackToMapLibre} />
+        unavailable ? (
+          <UnavailableOverlay hint={hint} onCancel={close} />
         ) : (
-          <MapLibreOverlay initial={initial} zoomed={zoomed} hint={hint} onCancel={close} onConfirm={confirm} />
+          <GoogleOverlay initial={initial} zoomed={zoomed} hint={hint} onCancel={close} onConfirm={confirm} onFallback={markUnavailable} />
         )
       ) : null}
     </div>
@@ -182,7 +161,7 @@ type OverlayProps = {
 };
 
 /**
- * Full-screen chrome shared by both map providers: title bar, map area, bottom bar. No borders or shadows.
+ * Full-screen chrome of the map (and of its unavailable notice): title bar, map area, bottom bar. No borders or shadows.
  * A nested Radix dialog, so it also works on top of another modal (admin PlaceDialog): the dialog underneath would
  * otherwise keep the pointer events (body pointer-events: none), pull focus out of the address search and close itself
  * on Escape. Radix also locks page scroll and traps focus here; Escape closes only the map.
@@ -238,9 +217,9 @@ function CenterPin({ moving }: { moving: boolean }) {
   );
 }
 
-function MapStatus({ state, onCancel }: { state: "loading" | "error"; onCancel: () => void }) {
+function MapStatus({ state }: { state: "loading" | "unavailable" }) {
   return (
-    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-muted/80 px-6 text-center">
+    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-muted/80 px-6 text-center" role="status">
       {state === "loading" ? (
         <>
           <Loader2 className="size-7 animate-spin text-primary" aria-hidden />
@@ -248,14 +227,30 @@ function MapStatus({ state, onCancel }: { state: "loading" | "error"; onCancel: 
         </>
       ) : (
         <>
-          <p className="font-bold">Harita yüklenemedi</p>
-          <p className="text-sm text-muted-foreground">İnternet bağlantını kontrol et. Konumu daha sonra da ekleyebilirsin.</p>
-          <Button type="button" variant="secondary" onClick={onCancel}>
-            Kapat
-          </Button>
+          <MapPinOff className="size-7 text-muted-foreground" aria-hidden />
+          <p className="font-bold">{MAP_UNAVAILABLE_TITLE}</p>
+          <p className="text-sm text-muted-foreground">Konumu daha sonra da ekleyebilirsin.</p>
         </>
       )}
     </div>
+  );
+}
+
+/** No key, key refused or Google could not load: a calm notice in the same frame, closed from the bottom bar. */
+function UnavailableOverlay({ hint, onCancel }: { hint: string; onCancel: () => void }) {
+  return (
+    <OverlayFrame
+      hint={hint}
+      onCancel={onCancel}
+      footer={
+        <Button type="button" size="lg" variant="secondary" className="w-full" onClick={onCancel}>
+          Kapat
+        </Button>
+      }
+    >
+      <MapPattern className="absolute inset-0" />
+      <MapStatus state="unavailable" />
+    </OverlayFrame>
   );
 }
 
@@ -265,86 +260,6 @@ function LocateButton({ onClick, disabled, locating, className }: { onClick: () 
       {locating ? <Loader2 className="animate-spin" /> : <LocateFixed />}
       Konumumu kullan
     </Button>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// MapLibre + OpenFreeMap (fallback)
-// ---------------------------------------------------------------------------
-function MapLibreOverlay({ initial, zoomed, hint, onCancel, onConfirm }: OverlayProps) {
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const mapRef = React.useRef<MapLibreMap | null>(null);
-  const [center, setCenter] = React.useState<LatLng>(initial);
-  const [state, setState] = React.useState<"loading" | "ready" | "error">("loading");
-  const [moving, setMoving] = React.useState(false);
-  const loc = useApproxLocation();
-
-  React.useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const maplibre = await loadMapLibre();
-        if (cancelled || !containerRef.current) return;
-        const map = new maplibre.Map({
-          container: containerRef.current,
-          style: MAP_STYLE,
-          center: [initial.lng, initial.lat],
-          zoom: zoomed ? 17 : 14,
-          attributionControl: { compact: true },
-          dragRotate: false,
-          pitchWithRotate: false,
-          touchPitch: false,
-        });
-        map.touchZoomRotate.disableRotation();
-        map.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
-        map.on("load", () => !cancelled && setState("ready"));
-        map.on("error", () => {
-          if (!cancelled && !map.isStyleLoaded()) setState("error");
-        });
-        map.on("movestart", () => setMoving(true));
-        map.on("moveend", () => {
-          const c = map.getCenter();
-          setMoving(false);
-          setCenter({ lat: c.lat, lng: c.lng });
-        });
-        mapRef.current = map;
-      } catch {
-        if (!cancelled) setState("error");
-      }
-    })();
-    return () => {
-      cancelled = true;
-      mapRef.current?.remove();
-      mapRef.current = null;
-    };
-    // The map is created once per opening.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const flyToMe = async () => {
-    const coords = await loc.request();
-    if (!coords) {
-      toast.error("Konumun alınamadı.");
-      return;
-    }
-    mapRef.current?.flyTo({ center: [coords.lng, coords.lat], zoom: 17 });
-  };
-
-  return (
-    <OverlayFrame
-      hint={hint}
-      onCancel={onCancel}
-      footer={
-        <Button type="button" size="lg" className="w-full" disabled={state !== "ready" || moving} onClick={() => onConfirm(center, null)}>
-          <Check /> Bu konumu kullan
-        </Button>
-      }
-    >
-      <div ref={containerRef} className="absolute inset-0" aria-label="Harita" />
-      <CenterPin moving={moving} />
-      {state !== "ready" ? <MapStatus state={state} onCancel={onCancel} /> : null}
-      <LocateButton onClick={flyToMe} disabled={state !== "ready" || loc.status === "locating"} locating={loc.status === "locating"} className="right-3 bottom-4" />
-    </OverlayFrame>
   );
 }
 
@@ -398,9 +313,9 @@ function GoogleOverlay({ initial, zoomed, hint, onCancel, onConfirm, onFallback 
     void (async () => {
       try {
         const maps = await loadGoogleMaps();
-        const [{ Map }, { ControlPosition }] = await Promise.all([maps.importLibrary("maps"), maps.importLibrary("core")]);
+        const [{ Map }, { ControlPosition, ColorScheme }] = await Promise.all([maps.importLibrary("maps"), maps.importLibrary("core")]);
         if (cancelled || !containerRef.current) return;
-        // The script loaded but the map never settles (tiles blocked, no connection): continue on MapLibre.
+        // The script loaded but the map never settles (tiles blocked, no connection): show the unavailable notice.
         readyTimer = window.setTimeout(() => {
           if (!idled) fallback();
         }, MAP_READY_TIMEOUT_MS);
@@ -413,6 +328,8 @@ function GoogleOverlay({ initial, zoomed, hint, onCancel, onConfirm, onFallback 
           clickableIcons: false,
           gestureHandling: "greedy",
           keyboardShortcuts: false,
+          // Follows the app theme (set once, when the map is created; no Map ID needed).
+          colorScheme: document.documentElement.classList.contains("dark") ? (ColorScheme?.DARK ?? "DARK") : (ColorScheme?.LIGHT ?? "LIGHT"),
         });
         listeners.push(map.addListener("center_changed", () => setMoving(true)));
         listeners.push(
@@ -430,7 +347,7 @@ function GoogleOverlay({ initial, zoomed, hint, onCancel, onConfirm, onFallback 
         );
         mapRef.current = map;
       } catch {
-        // Google could not load (network, blocked script, no quota): continue on MapLibre.
+        // Google could not load (network, blocked script, no quota): show the unavailable notice.
         fallback();
       }
     })();
@@ -495,7 +412,7 @@ function GoogleOverlay({ initial, zoomed, hint, onCancel, onConfirm, onFallback 
     >
       <div ref={containerRef} className="absolute inset-0" aria-label="Harita" />
       <CenterPin moving={moving} />
-      {ready ? <PlaceSearch onPick={goTo} /> : <MapStatus state="loading" onCancel={onCancel} />}
+      {ready ? <PlaceSearch onPick={goTo} /> : <MapStatus state="loading" />}
       <LocateButton onClick={flyToMe} disabled={!ready || loc.status === "locating"} locating={loc.status === "locating"} className="right-3 bottom-8" />
     </OverlayFrame>
   );

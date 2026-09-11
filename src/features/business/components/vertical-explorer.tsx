@@ -9,10 +9,11 @@ import { distanceMeters, formatDistance } from "@/core/geo";
 import { routes } from "@/core/routes";
 import { slugifyTr } from "@/core/tr";
 import { Button } from "@/components/ui/button";
-import { ExploreHeader, FilterChip, ROUND_ICON_BUTTON, useNow } from "@/components/shared/explore-header";
+import { ExploreHeader, FilterChip, useNow } from "@/components/shared/explore-header";
 import { HideBottomNav } from "@/components/layout/nav-visibility";
-import { LazyNearbyMap } from "@/features/nearby/map/lazy-map";
-import type { MapPoint } from "@/features/nearby/map/types";
+import { GoogleMap } from "@/components/maps/google-map";
+import { MAP_OPEN_BUTTON } from "@/components/maps/map-states";
+import type { MapPoint } from "@/components/maps/types";
 import { useApproxLocation } from "@/lib/location/use-approx-location";
 import { openStatusAt, parseWorkingHours, type OpenStatus } from "../lib/hours";
 import type { VerticalCard } from "../lib/vertical-queries";
@@ -195,11 +196,7 @@ export function VerticalExplorer({
 
       {mappable.length > 0 && !showDoctors ? (
         <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--bottomnav-h)+env(safe-area-inset-bottom,0px)+1.5rem)] z-30 flex justify-center">
-          <button
-            type="button"
-            onClick={() => setMapOpen(true)}
-            className="pointer-events-auto inline-flex h-12 items-center gap-2 rounded-full bg-foreground px-5 text-[15px] font-semibold text-background shadow-float outline-none active:scale-95 focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
+          <button type="button" onClick={() => setMapOpen(true)} className={MAP_OPEN_BUTTON}>
             <MapIcon className="size-5" aria-hidden /> Harita
           </button>
         </div>
@@ -229,23 +226,31 @@ function MapView({ title, rows, user, onClose }: { title: string; rows: Row[]; u
   return (
     <div className="fixed inset-0 z-[60] bg-background" role="dialog" aria-modal="true" aria-label={`${title} haritası`}>
       <HideBottomNav />
-      <LazyNearbyMap
+      <GoogleMap
         points={points}
         user={user}
         center={CITY.center}
-        zoom={12.5}
+        zoom={12}
         selectedId={selected}
         onSelect={setSelected}
         fitKey="all"
         padding={{ top: 96, right: 32, bottom: 200, left: 32 }}
+        gestures="greedy"
         className="absolute inset-0"
         ariaLabel={`${title} haritada`}
       />
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-2 px-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)]">
-        <button type="button" onClick={onClose} aria-label="Haritayı kapat" className={cn(ROUND_ICON_BUTTON, "pointer-events-auto")}>
-          <X className="size-5" />
+        {/* Same round button as the events map (no shadow); focus moves into the dialog, Escape or this button closes it. */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Haritayı kapat"
+          autoFocus
+          className="pointer-events-auto flex size-11 shrink-0 items-center justify-center rounded-full bg-card text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <X className="size-5" aria-hidden />
         </button>
-        <span className="pointer-events-auto rounded-full bg-card px-4 py-2.5 text-sm font-semibold shadow-soft ring-1 ring-foreground/[0.06]">
+        <span className="pointer-events-auto rounded-full bg-card px-4 py-2.5 text-sm font-semibold">
           {title} · {rows.length}
         </span>
       </div>
@@ -253,7 +258,7 @@ function MapView({ title, rows, user, onClose }: { title: string; rows: Row[]; u
         <div className="absolute inset-x-0 bottom-0 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
           <Link
             href={routes.businesses.detail(current.item.slug)}
-            className="flex items-center gap-3 rounded-3xl bg-card p-2.5 shadow-float ring-1 ring-foreground/[0.06] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="flex items-center gap-3 rounded-3xl bg-card p-2.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <span className="relative size-20 shrink-0 overflow-hidden rounded-2xl bg-muted">
               {current.item.photo_url ? (

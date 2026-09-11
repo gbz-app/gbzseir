@@ -173,6 +173,7 @@ export type Database = {
           body: string | null
           created_at: string
           created_by: string | null
+          district_ids: string[]
           ends_at: string | null
           id: string
           is_demo: boolean
@@ -186,6 +187,7 @@ export type Database = {
           body?: string | null
           created_at?: string
           created_by?: string | null
+          district_ids?: string[]
           ends_at?: string | null
           id?: string
           is_demo?: boolean
@@ -199,6 +201,7 @@ export type Database = {
           body?: string | null
           created_at?: string
           created_by?: string | null
+          district_ids?: string[]
           ends_at?: string | null
           id?: string
           is_demo?: boolean
@@ -602,6 +605,36 @@ export type Database = {
           },
         ]
       }
+      business_service_districts: {
+        Row: {
+          business_id: string
+          district_id: string
+        }
+        Insert: {
+          business_id: string
+          district_id: string
+        }
+        Update: {
+          business_id?: string
+          district_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_service_districts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_service_districts_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_services: {
         Row: {
           business_id: string
@@ -736,6 +769,7 @@ export type Database = {
           cover_url: string | null
           created_at: string
           description: string | null
+          district_id: string | null
           id: string
           instagram: string | null
           is_demo: boolean
@@ -773,6 +807,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           description?: string | null
+          district_id?: string | null
           id?: string
           instagram?: string | null
           is_demo?: boolean
@@ -810,6 +845,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           description?: string | null
+          district_id?: string | null
           id?: string
           instagram?: string | null
           is_demo?: boolean
@@ -840,6 +876,13 @@ export type Database = {
           working_hours?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "businesses_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "businesses_neighbourhood_id_fkey"
             columns: ["neighbourhood_id"]
@@ -1058,6 +1101,51 @@ export type Database = {
         }
         Relationships: []
       }
+      districts: {
+        Row: {
+          active: boolean
+          center: unknown
+          created_at: string
+          id: string
+          kbb_ilce_id: number | null
+          lat: number
+          lng: number
+          name: string
+          osm_relation_id: number | null
+          province: string
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          center?: unknown
+          created_at?: string
+          id: string
+          kbb_ilce_id?: number | null
+          lat: number
+          lng: number
+          name: string
+          osm_relation_id?: number | null
+          province?: string
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          center?: unknown
+          created_at?: string
+          id?: string
+          kbb_ilce_id?: number | null
+          lat?: number
+          lng?: number
+          name?: string
+          osm_relation_id?: number | null
+          province?: string
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       doctor_branches: {
         Row: {
           active: boolean
@@ -1192,6 +1280,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          district_id: string | null
           ends_at: string | null
           has_contact_phone: boolean | null
           id: string
@@ -1226,6 +1315,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          district_id?: string | null
           ends_at?: string | null
           has_contact_phone?: boolean | null
           id?: string
@@ -1260,6 +1350,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          district_id?: string | null
           ends_at?: string | null
           has_contact_phone?: boolean | null
           id?: string
@@ -1311,6 +1402,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
             referencedColumns: ["id"]
           },
           {
@@ -1820,6 +1918,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           description: string | null
+          district_id: string | null
           expires_at: string
           flags: string[]
           id: string
@@ -1852,6 +1951,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string | null
+          district_id?: string | null
           expires_at?: string
           flags?: string[]
           id?: string
@@ -1884,6 +1984,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string | null
+          district_id?: string | null
           expires_at?: string
           flags?: string[]
           id?: string
@@ -1921,6 +2022,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "listing_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
             referencedColumns: ["id"]
           },
           {
@@ -2334,6 +2442,7 @@ export type Database = {
           address: string | null
           created_at: string
           details: Json
+          district_id: string | null
           email: string | null
           hidden: boolean
           id: string
@@ -2361,6 +2470,7 @@ export type Database = {
           address?: string | null
           created_at?: string
           details?: Json
+          district_id?: string | null
           email?: string | null
           hidden?: boolean
           id?: string
@@ -2388,6 +2498,7 @@ export type Database = {
           address?: string | null
           created_at?: string
           details?: Json
+          district_id?: string | null
           email?: string | null
           hidden?: boolean
           id?: string
@@ -2413,6 +2524,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "poi_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "poi_neighbourhood_id_fkey"
             columns: ["neighbourhood_id"]
             isOneToOne: false
@@ -2425,6 +2543,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          district_id: string | null
           email: string | null
           extra_business_slots: number
           full_name: string | null
@@ -2445,6 +2564,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          district_id?: string | null
           email?: string | null
           extra_business_slots?: number
           full_name?: string | null
@@ -2465,6 +2585,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          district_id?: string | null
           email?: string | null
           extra_business_slots?: number
           full_name?: string | null
@@ -2483,6 +2604,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_neighbourhood_id_fkey"
             columns: ["neighbourhood_id"]
@@ -2824,11 +2952,15 @@ export type Database = {
           created_at: string
           customer_id: string | null
           dispatch_note: string | null
+          district_id: string | null
           flow_id: string | null
           hide_phone: boolean
           hired_business_id: string | null
           id: string
           is_demo: boolean
+          lat: number | null
+          lng: number | null
+          location: unknown
           max_providers: number
           neighbourhood_id: string | null
           note: string | null
@@ -2849,11 +2981,15 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           dispatch_note?: string | null
+          district_id?: string | null
           flow_id?: string | null
           hide_phone?: boolean
           hired_business_id?: string | null
           id?: string
           is_demo?: boolean
+          lat?: number | null
+          lng?: number | null
+          location?: unknown
           max_providers?: number
           neighbourhood_id?: string | null
           note?: string | null
@@ -2874,11 +3010,15 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           dispatch_note?: string | null
+          district_id?: string | null
           flow_id?: string | null
           hide_phone?: boolean
           hired_business_id?: string | null
           id?: string
           is_demo?: boolean
+          lat?: number | null
+          lng?: number | null
+          location?: unknown
           max_providers?: number
           neighbourhood_id?: string | null
           note?: string | null
@@ -2910,6 +3050,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
             referencedColumns: ["id"]
           },
           {
@@ -3086,6 +3233,8 @@ export type Database = {
           category_name: string | null
           category_slug: string | null
           created_at: string | null
+          district_id: string | null
+          district_name: string | null
           has_note: boolean | null
           id: string | null
           max_providers: number | null
@@ -3123,6 +3272,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
             referencedColumns: ["id"]
           },
           {
@@ -3304,6 +3460,7 @@ export type Database = {
           p_category_label?: string
           p_cover_url?: string
           p_description?: string
+          p_district_id?: string
           p_kinds: string[]
           p_lat?: number
           p_lng?: number
@@ -3313,6 +3470,7 @@ export type Database = {
           p_phone?: string
           p_service_area_ids?: string[]
           p_service_category_ids?: string[]
+          p_service_district_ids?: string[]
           p_vertical?: string
           p_working_hours?: Json
         }
@@ -3351,6 +3509,14 @@ export type Database = {
         }
         Returns: Json
       }
+      district_for_point: {
+        Args: { p_lat: number; p_lng: number }
+        Returns: {
+          id: string
+          method: string
+          name: string
+        }[]
+      }
       duty_import_record: {
         Args: {
           p_day: string
@@ -3368,6 +3534,8 @@ export type Database = {
         Returns: {
           address: string
           distance_m: number
+          district_id: string
+          district_name: string
           duty_end: string
           duty_id: string
           duty_start: string
@@ -3389,6 +3557,8 @@ export type Database = {
         Returns: {
           address: string
           distance_m: number
+          district_id: string
+          district_name: string
           duty_end: string
           duty_id: string
           duty_start: string
@@ -3452,6 +3622,8 @@ export type Database = {
           address: string
           details: Json
           distance_m: number
+          district_id: string
+          district_name: string
           id: string
           kind: string
           lat: number
@@ -3497,6 +3669,8 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: {
           category: string
+          district_id: string
+          district_name: string
           id: string
           image_url: string
           kind: string
@@ -3528,6 +3702,7 @@ export type Database = {
         Args: {
           p_attrs?: Json
           p_category_id?: string
+          p_district_id?: string
           p_max_price?: number
           p_min_price?: number
           p_neighbourhood_id?: string
@@ -3544,6 +3719,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           description: string | null
+          district_id: string | null
           expires_at: string
           flags: string[]
           id: string
@@ -3591,7 +3767,8 @@ export type Database = {
         Args: {
           p_business_id: string
           p_category_ids: string[]
-          p_neighbourhood_ids: string[]
+          p_district_ids?: string[]
+          p_neighbourhood_ids?: string[]
         }
         Returns: Json
       }
@@ -3645,8 +3822,11 @@ export type Database = {
           p_address_note?: string
           p_answers: Json
           p_category_id: string
+          p_district_id?: string
           p_hide_phone?: boolean
-          p_neighbourhood_id: string
+          p_lat?: number
+          p_lng?: number
+          p_neighbourhood_id?: string
           p_note?: string
           p_photos?: string[]
           p_when_date?: string

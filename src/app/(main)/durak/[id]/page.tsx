@@ -14,7 +14,7 @@ import { KindIcon } from "@/features/nearby/components/kind-icon";
 import { DistanceLabel } from "@/features/nearby/components/distance-label";
 import { NearbyMiniList } from "@/features/nearby/components/nearby-mini-list";
 import { InfoReportSheet } from "@/features/nearby/components/info-report-sheet";
-import { MiniMap } from "@/features/nearby/map/mini-map";
+import { MapPreviewCard } from "@/components/maps/map-preview-card";
 import { KBB_SOURCE, OSM_COPYRIGHT_URL, OSM_SOURCE, displayStopName } from "@/features/nearby/config";
 import { parseStopDetails } from "@/features/nearby/lib/details";
 import { poiJsonLd } from "@/features/nearby/jsonld";
@@ -86,7 +86,7 @@ export default async function StopPage({ params }: Props) {
             <p className="text-sm text-muted-foreground">Bu durak için hat bilgisi henüz yok.</p>
           )}
         </DetailSection>
-        {hasPoint ? <MiniMap lat={poi.lat as number} lng={poi.lng as number} kind="bus_stop" name={name} /> : null}
+        {hasPoint ? <MapPreviewCard lat={poi.lat as number} lng={poi.lng as number} kind="bus_stop" name={name} address={poi.address} /> : null}
         <NearbyMiniList title="Yakındaki duraklar" rows={nearby} />
         <DataSourceNote
           source={poi.source === "osm" ? OSM_SOURCE : KBB_SOURCE}

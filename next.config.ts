@@ -32,19 +32,20 @@ const CSP_ENFORCED = "object-src 'none'; base-uri 'self'; frame-ancestors 'self'
  * - Supabase: REST/Auth/Storage over https, Realtime over wss; stored images are on this host (media bucket).
  * - Cloudflare R2 (media adapter): photos, listing videos and posters from the public bucket host (img-src,
  *   media-src); the browser PUTs uploads to <account>.r2.cloudflarestorage.com with a presigned URL (connect-src).
- * - Maps: MapLibre style, tiles, sprites and glyphs from OpenFreeMap; its worker comes from jsDelivr as a blob: module
- *   worker. Google Maps hosts are allowed for map / geocoding use.
+ * - Maps: Google Maps JavaScript API only (no OpenStreetMap / OpenFreeMap tiles since 2026-09-11): scripts, tiles and
+ *   fonts from *.googleapis.com / *.gstatic.com, some requests to *.google.com. Google's CSP guide also lists
+ *   'unsafe-eval' for a few map features: decide on it (security trade-off) before this policy is enforced.
  * - Cloudflare Turnstile (script + iframe), Open-Meteo, Vercel preview toolbar (vercel.live).
  */
 const CSP_REPORT_ONLY = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.jsdelivr.net https://maps.googleapis.com https://vercel.live",
+  "script-src 'self' 'unsafe-inline' blob: https://challenges.cloudflare.com https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com https://vercel.live",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  `img-src 'self' data: blob: ${supabaseOrigin} ${mediaSources} https://tiles.openfreemap.org https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com`,
+  `img-src 'self' data: blob: ${supabaseOrigin} ${mediaSources} https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://*.google.com`,
   "font-src 'self' data: https://fonts.gstatic.com",
-  `connect-src 'self' ${supabaseOrigin} wss://${supabaseHost} https://*.r2.cloudflarestorage.com https://tiles.openfreemap.org https://cdn.jsdelivr.net https://api.open-meteo.com https://maps.googleapis.com https://*.googleapis.com https://challenges.cloudflare.com https://vercel.live`,
+  `connect-src 'self' ${supabaseOrigin} wss://${supabaseHost} https://*.r2.cloudflarestorage.com https://api.open-meteo.com https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com https://*.google.com https://challenges.cloudflare.com https://vercel.live`,
   "worker-src 'self' blob:",
-  "frame-src 'self' https://challenges.cloudflare.com https://vercel.live",
+  "frame-src 'self' https://challenges.cloudflare.com https://*.google.com https://vercel.live",
   `media-src 'self' blob: ${supabaseOrigin} ${mediaSources}`,
   "manifest-src 'self'",
   "object-src 'none'",

@@ -10,8 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/core/format";
 import { routes } from "@/core/routes";
+import { DEFAULT_DOCTOR_BRANCH } from "@/features/business/components/doctors/doctor-meta";
 import { BUSINESS_VERTICALS, DEFAULT_EVENT_CATEGORY, LISTABLE_VERTICALS, VERTICAL_INFO, parseVertical, subcategoryMatcher, type Vertical } from "@/features/business/lib/verticals";
 import { NEWS_CATEGORY_ORDER } from "@/features/content/news/parse";
+import { INSTITUTION_FALLBACK_CATEGORY, institutionGroupMeta, parseInstitutionGroup } from "@/features/guide/lib/constants";
 import { AdminCard, EmptyCard, FilterTabs } from "@/features/admin/components/admin-ui";
 import {
   AmenityEditor,
@@ -28,7 +30,7 @@ import { oneOf } from "@/features/admin/lib/params";
 
 export const metadata: Metadata = { title: "Kategori sözlükleri" };
 
-const TABS = ["chipler", "olanaklar", "etkinlik", "haber", "yer"] as const;
+const TABS = ["chipler", "olanaklar", "etkinlik", "haber", "yer", "kurum", "brans"] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABELS: Record<Tab, string> = {
   chipler: "Keşfet chipleri",
@@ -36,6 +38,8 @@ const TAB_LABELS: Record<Tab, string> = {
   etkinlik: "Etkinlik kategorileri",
   haber: "Haber kategorileri",
   yer: "Yer kategorileri",
+  kurum: "Kurum kategorileri",
+  brans: "Doktor branşları",
 };
 const SCOPES = ["isletme", "oda"] as const;
 
@@ -55,7 +59,10 @@ const editButton = (label: string) => (
   </Button>
 );
 
-/** Kategori sözlükleri: keşfet chipleri, işletme olanakları, oda özellikleri; etkinlik, haber ve yer kategorileri. */
+/**
+ * Kategori sözlükleri: keşfet chipleri, işletme olanakları, oda özellikleri; etkinlik, haber, yer ve kurum kategorileri;
+ * doktor branşları.
+ */
 export default async function AdminVocabulariesPage({ searchParams }: Props) {
   await requireAdmin();
   const sp = await searchParams;
@@ -66,7 +73,7 @@ export default async function AdminVocabulariesPage({ searchParams }: Props) {
     <>
       <AdminPageHeader
         title="Kategori sözlükleri"
-        description="Keşfet listelerindeki alt kategori chiplerini, işletme ve oda olanaklarını; etkinlik, haber ve gezilecek yer kategorilerini düzenle. Değişiklik uygulamada birkaç saniyede görünür; yeni sürüm gerekmez."
+        description="Keşfet listelerindeki alt kategori chiplerini, işletme ve oda olanaklarını; etkinlik, haber, gezilecek yer ve resmî kurum kategorilerini ve doktor branşlarını düzenle. Değişiklik uygulamada birkaç saniyede görünür; yeni sürüm gerekmez."
       />
       <FilterTabs ariaLabel="Sözlük" items={TABS.map((t) => ({ label: TAB_LABELS[t], active: t === tab, href: routes.admin.vocabularies({ sekme: t === "chipler" ? undefined : t }) }))} />
       <div className="mt-5 grid gap-4">
@@ -78,6 +85,10 @@ export default async function AdminVocabulariesPage({ searchParams }: Props) {
           <NewsCategoriesSection supabase={supabase} />
         ) : tab === "yer" ? (
           <PlaceCategoriesSection supabase={supabase} />
+        ) : tab === "kurum" ? (
+          <InstitutionCategoriesSection supabase={supabase} />
+        ) : tab === "brans" ? (
+          <DoctorBranchesSection supabase={supabase} />
         ) : (
           <EventCategoriesSection supabase={supabase} />
         )}
@@ -261,7 +272,7 @@ function countKeys(keys: Iterable<string | null>): Map<string, number> {
 const toCategoryRows = (data: readonly CategoryValue[] | null): CategoryValue[] =>
   (data ?? []).map((r) => ({ id: r.id, key: r.key, label: r.label, icon: r.icon, sort: r.sort, active: r.active }));
 
-/** Event / news / place category list: icon, label, badges, order and usage, each row with its editor. */
+/** Category list (event, news, place, institution, doctor branch): icon, label, badges, order and usage, each row with its editor. */
 function CategoryCard({
   kind,
   title,
@@ -270,6 +281,8 @@ function CategoryCard({
   used,
   noun,
   fixed,
+  addLabel = "Kategori ekle",
+  meta,
 }: {
   kind: CategoryKind;
   title: string;
@@ -279,6 +292,9 @@ function CategoryCard({
   noun: string;
   /** Keys the database never deletes, shown with `badge`. */
   fixed: { keys: readonly string[]; badge: string };
+  addLabel?: string;
+  /** Extra text before the order in the row's second line (e.g. the institution group). */
+  meta?: (c: CategoryValue) => string;
 }) {
   return (
     <AdminCard
@@ -289,7 +305,7 @@ function CategoryCard({
           kind={kind}
           trigger={
             <Button size="sm">
-              <Plus /> Kategori ekle
+              <Plus /> {addLabel}
             </Button>
           }
         />
@@ -302,7 +318,7 @@ function CategoryCard({
             return (
               <li key={c.id} className="flex items-start gap-3 py-3">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted">
-                  <VocabIconView name={c.icon} className="size-4" />
+                  <VocabIconView name={c.icon} kind={kind} className="size-4" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-1.5">
@@ -311,7 +327,7 @@ function CategoryCard({
                     {c.active ? null : <Badge variant="secondary">Pasif</Badge>}
                   </span>
                   <span className="block text-xs text-muted-foreground">
-                    sıra {c.sort} · {formatNumber(used.get(c.key) ?? 0)} {noun}
+                    {meta ? `${meta(c)} · ` : ""}sıra {c.sort} · {formatNumber(used.get(c.key) ?? 0)} {noun}
                   </span>
                 </span>
                 <CategoryEditor kind={kind} item={c} deletable={!locked} trigger={editButton(c.label)} />
@@ -364,7 +380,7 @@ async function NewsCategoriesSection({ supabase }: { supabase: ServerSupabase })
   );
 }
 
-/** details.category of a place row, when it is set. */
+/** details.category of a place or institution row, when it is set. */
 const detailsCategory = (d: Json) => (d && typeof d === "object" && !Array.isArray(d) && typeof d.category === "string" ? d.category : null);
 
 async function PlaceCategoriesSection({ supabase }: { supabase: ServerSupabase }) {
@@ -382,6 +398,53 @@ async function PlaceCategoriesSection({ supabase }: { supabase: ServerSupabase }
       used={countKeys((places.data ?? []).map((p) => detailsCategory(p.details)))}
       noun="yer"
       fixed={{ keys: ["diger"], badge: "Varsayılan" }}
+    />
+  );
+}
+
+/** Group label of an institution category ("Belediye ve kamu", "Adalet"...). */
+function institutionGroupLabel(group: string | undefined): string {
+  const key = parseInstitutionGroup(group);
+  return key ? institutionGroupMeta(key).label : "Grup yok";
+}
+
+async function InstitutionCategoriesSection({ supabase }: { supabase: ServerSupabase }) {
+  const [list, institutions] = await Promise.all([
+    supabase.from("institution_categories").select("id,key,label_tr,group_key,icon,sort,active").order("sort").order("label_tr"),
+    supabase.from("poi").select("details").eq("kind", "institution").limit(5000),
+  ]);
+  if (list.error) return <LoadError />;
+  const rows: CategoryValue[] = list.data.map((r) => ({ id: r.id, key: r.key, label: r.label_tr, icon: r.icon, sort: r.sort, active: r.active, group: r.group_key }));
+  return (
+    <CategoryCard
+      kind="institution"
+      title="Kurum kategorileri"
+      description="Şehir rehberinde resmî kurum eklerken seçilir; kurum kartlarında, grubunun listesindeki filtrede ve kendi sayfasında (/rehber/...) görünür. Kullanılan kategori silinmez, pasife alınır; Diğer kamu kurumu varsayılandır."
+      rows={rows}
+      used={countKeys((institutions.data ?? []).map((p) => detailsCategory(p.details)))}
+      noun="kurum"
+      fixed={{ keys: [INSTITUTION_FALLBACK_CATEGORY], badge: "Varsayılan" }}
+      meta={(c) => institutionGroupLabel(c.group)}
+    />
+  );
+}
+
+async function DoctorBranchesSection({ supabase }: { supabase: ServerSupabase }) {
+  const [list, staff] = await Promise.all([
+    supabase.from("doctor_branches").select("id,key,label,icon,sort,active").order("sort").order("label"),
+    supabase.from("business_staff").select("branch").limit(10000),
+  ]);
+  if (list.error) return <LoadError />;
+  return (
+    <CategoryCard
+      kind="branch"
+      title="Doktor branşları"
+      description="Sağlık işletmeleri doktor eklerken seçer; doktor kartında ve Keşfet > Sağlık > Doktorlar sayfasındaki branş filtresinde görünür. Doktoru olan branş silinmez, pasife alınır; Diğer varsayılandır."
+      rows={toCategoryRows(list.data)}
+      used={countKeys((staff.data ?? []).map((s) => s.branch))}
+      noun="doktor"
+      fixed={{ keys: [DEFAULT_DOCTOR_BRANCH], badge: "Varsayılan" }}
+      addLabel="Branş ekle"
     />
   );
 }

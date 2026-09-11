@@ -19,7 +19,7 @@ import { EventPhoneReveal } from "@/features/events/components/event-phone-revea
 import { eventDateLabel, eventPriceLabel } from "@/features/events/format";
 import { getEventBySlug, getVenueBusiness, type EventItem } from "@/features/events/queries";
 import { isEventPast } from "@/features/events/status";
-import { MiniMap } from "@/features/nearby/map/mini-map";
+import { MapPreviewCard } from "@/components/maps/map-preview-card";
 
 export const revalidate = 300;
 
@@ -279,7 +279,7 @@ export default async function EventPage({ params }: Props) {
           {hasLocation ? (
             <section id="konum" tabIndex={-1} className="scroll-mt-6 outline-none">
               <h2 className="mb-2 text-base font-semibold">Konum</h2>
-              <MiniMap lat={e.lat!} lng={e.lng!} kind="place" name={e.venue_name ?? e.title} className="rounded-3xl ring-0" />
+              <MapPreviewCard lat={e.lat!} lng={e.lng!} kind="place" name={e.venue_name ?? e.title} />
               <div className="mt-3 flex items-center gap-3">
                 <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{placeSub ?? placeName ?? CITY.name}</p>
                 <DirectionsButton lat={e.lat!} lng={e.lng!} name={e.venue_name ?? e.title} size="sm" variant="secondary" className="shrink-0 bg-card shadow-none hover:bg-muted" />

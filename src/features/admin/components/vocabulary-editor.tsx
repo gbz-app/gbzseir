@@ -10,30 +10,35 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { FilterChip } from "@/components/shared/explore-header";
-import { CATEGORY_ICON_NAMES, categoryIcon } from "@/features/business/lib/category-visuals";
 import { BUSINESS_VERTICALS, VERTICAL_INFO, VOCAB_ICON_NAMES, subcategoryMatcher, type Vertical } from "@/features/business/lib/verticals";
+import { INSTITUTION_GROUPS } from "@/features/guide/lib/constants";
 import {
   deleteAmenityAction,
+  deleteDoctorBranchAction,
   deleteEventCategoryAction,
+  deleteInstitutionCategoryAction,
   deleteNewsCategoryAction,
   deletePlaceCategoryAction,
   deleteSubcategoryAction,
   saveAmenityAction,
+  saveDoctorBranchAction,
   saveEventCategoryAction,
+  saveInstitutionCategoryAction,
   saveNewsCategoryAction,
   savePlaceCategoryAction,
   saveSubcategoryAction,
 } from "../actions/vocabularies";
 import type { ActionResult } from "../lib/action-result";
+import { CATEGORY_ICON_SETS, categoryKindIcon, type CategoryKind } from "../lib/vocab-icons";
 import { ConfirmDialog } from "./confirm-dialog";
 import { useAdminAction } from "./use-admin-action";
 
 export type SubcategoryValue = { id: string; vertical: Vertical; key: string; label: string; keywords: string[]; exclude: string[]; sort: number; active: boolean };
 export type AmenityScope = "business" | "room";
 export type AmenityValue = { id: string; scope: AmenityScope; key: string; label: string; icon: string | null; verticals: Vertical[]; sort: number; active: boolean };
-/** event_categories, news_categories and place_categories share this shape. */
-export type CategoryKind = "event" | "news" | "place";
-export type CategoryValue = { id: string; key: string; label: string; icon: string | null; sort: number; active: boolean };
+/** event_categories, news_categories, place_categories, institution_categories (label_tr, group_key) and doctor_branches share this shape. */
+export type { CategoryKind };
+export type CategoryValue = { id: string; key: string; label: string; icon: string | null; sort: number; active: boolean; /** institution_categories.group_key */ group?: string };
 
 /** Terms from a textarea: one per line (commas also split). */
 const termsOf = (text: string) =>
@@ -42,9 +47,9 @@ const termsOf = (text: string) =>
     .map((t) => t.trim())
     .filter(Boolean);
 
-/** Lucide icon of a vocabulary row (decorative). categoryIcon knows every name the editors offer. */
-export function VocabIconView({ name, className }: { name: string | null | undefined; className?: string }) {
-  return React.createElement(categoryIcon(name), { className, "aria-hidden": true });
+/** Lucide icon of a vocabulary row (decorative), drawn the way the public pages draw that kind (see vocab-icons.ts). */
+export function VocabIconView({ name, kind, className }: { name: string | null | undefined; kind?: CategoryKind; className?: string }) {
+  return React.createElement(categoryKindIcon(kind, name), { className, "aria-hidden": true });
 }
 
 function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
@@ -85,7 +90,7 @@ function ActiveSwitch({ checked, onChange, text }: { checked: boolean; onChange:
   );
 }
 
-function IconPicker({ names = VOCAB_ICON_NAMES, value, onChange }: { names?: readonly string[]; value: string; onChange: (name: string) => void }) {
+function IconPicker({ names = VOCAB_ICON_NAMES, kind, value, onChange }: { names?: readonly string[]; kind?: CategoryKind; value: string; onChange: (name: string) => void }) {
   return (
     <div>
       <p className="mb-1 text-xs font-semibold">Simge</p>
@@ -103,10 +108,27 @@ function IconPicker({ names = VOCAB_ICON_NAMES, value, onChange }: { names?: rea
               value === n ? "border-foreground bg-foreground text-background" : "bg-background hover:bg-muted",
             )}
           >
-            <VocabIconView name={n} className="size-4" />
+            <VocabIconView name={n} kind={kind} className="size-4" />
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Institution category group (institution_categories.group_key): the /rehber list the category belongs to. */
+function GroupPicker({ value, onChange }: { value: string; onChange: (key: string) => void }) {
+  return (
+    <div>
+      <p className="mb-1 text-xs font-semibold">Grup</p>
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Grup">
+        {INSTITUTION_GROUPS.map((g) => (
+          <FilterChip key={g.key} active={value === g.key} onClick={() => onChange(g.key)} icon={g.icon}>
+            {g.label}
+          </FilterChip>
+        ))}
+      </div>
+      <Hint>Kategorideki kurumlar Şehir rehberinde bu grubun listesinde görünür.</Hint>
     </div>
   );
 }
@@ -345,7 +367,7 @@ export function AmenityEditor({ scope, item, trigger }: { scope: AmenityScope; i
   );
 }
 
-type CategorySaveInput = { id?: string; label: string; icon: string | null; sort: number; active: boolean };
+type CategorySaveInput = { id?: string; label: string; icon: string | null; sort: number; active: boolean; group?: string };
 
 const CATEGORY_KINDS: Record<
   CategoryKind,
@@ -354,7 +376,14 @@ const CATEGORY_KINDS: Record<
     description: string;
     placeholder: string;
     activeText: string;
+    deleteTitle: string;
     deleteText: string;
+    /** Shown instead of the key while adding (the key is made from the name once and never changes). */
+    keyHint?: string;
+    /** Longest name the table accepts. */
+    max: number;
+    /** Institution categories also pick their group. */
+    groups?: boolean;
     icons: readonly string[];
     save: (input: CategorySaveInput) => Promise<ActionResult<null>>;
     remove: (input: { id: string }) => Promise<ActionResult<null>>;
@@ -365,8 +394,10 @@ const CATEGORY_KINDS: Record<
     description: "Etkinlik eklerken seçilir; etkinlik kartında ve Etkinlikler sayfasındaki kategori filtresinde görünür.",
     placeholder: "ör. Stand-up",
     activeText: "Kapalıysa yeni etkinliklerde seçilemez; eski etkinliklerde görünmeye devam eder.",
+    deleteTitle: "Kategori silinsin mi?",
     deleteText: "Bu kategoride etkinlik varsa silinmez; pasife alabilirsin.",
-    icons: VOCAB_ICON_NAMES,
+    max: 40,
+    icons: CATEGORY_ICON_SETS.event,
     save: saveEventCategoryAction,
     remove: deleteEventCategoryAction,
   },
@@ -375,8 +406,10 @@ const CATEGORY_KINDS: Record<
     description: "Haber eklerken seçilir; haber kartlarında ve Haberler sayfasındaki filtrede görünür. Fotoğrafı olmayan haberin kapağında simgesi durur.",
     placeholder: "ör. Ekonomi",
     activeText: "Kapalıysa haber eklerken seçilemez; eski haberlerde ve kaynak haberlerinde görünmeye devam eder.",
+    deleteTitle: "Kategori silinsin mi?",
     deleteText: "Bu kategoride haber varsa silinmez; pasife alabilirsin.",
-    icons: CATEGORY_ICON_NAMES,
+    max: 40,
+    icons: CATEGORY_ICON_SETS.news,
     save: saveNewsCategoryAction,
     remove: deleteNewsCategoryAction,
   },
@@ -385,31 +418,65 @@ const CATEGORY_KINDS: Record<
     description: "Gezilecek yer eklerken seçilir; yer kartlarında ve Gezilecek Yerler sayfasındaki filtrede görünür. Fotoğrafı olmayan yerin kapağında simgesi durur.",
     placeholder: "ör. Plaj",
     activeText: "Kapalıysa yer eklerken seçilemez; mevcut yerlerde görünmeye devam eder.",
+    deleteTitle: "Kategori silinsin mi?",
     deleteText: "Bu kategoride yer varsa silinmez; pasife alabilirsin.",
-    icons: CATEGORY_ICON_NAMES,
+    max: 40,
+    icons: CATEGORY_ICON_SETS.place,
     save: savePlaceCategoryAction,
     remove: deletePlaceCategoryAction,
   },
+  institution: {
+    newTitle: "Yeni kurum kategorisi",
+    description: "Şehir rehberinde resmî kurum eklerken seçilir; kurum kartlarında, grubunun listesindeki filtrede ve kendi sayfasında (/rehber/...) görünür.",
+    placeholder: "ör. Göç idaresi",
+    activeText: "Kapalıysa kurum eklerken seçilemez; mevcut kurumlarda görünmeye devam eder.",
+    deleteTitle: "Kategori silinsin mi?",
+    deleteText: "Bu kategoride kurum varsa silinmez; pasife alabilirsin.",
+    keyHint: "Anahtar addan oluşur ve sonradan değişmez; kategori sayfasının adresi olur.",
+    max: 60,
+    groups: true,
+    icons: CATEGORY_ICON_SETS.institution,
+    save: (input) => saveInstitutionCategoryAction({ ...input, group: input.group ?? "" }),
+    remove: deleteInstitutionCategoryAction,
+  },
+  branch: {
+    newTitle: "Yeni doktor branşı",
+    description: "Sağlık işletmeleri doktor eklerken seçer; doktor kartında ve Keşfet > Sağlık > Doktorlar sayfasındaki branş filtresinde görünür.",
+    placeholder: "ör. Üroloji",
+    activeText: "Kapalıysa doktor eklerken seçilemez; bu branştaki doktorlarda görünmeye devam eder.",
+    deleteTitle: "Branş silinsin mi?",
+    deleteText: "Bu branşta doktor varsa silinmez; pasife alabilirsin.",
+    keyHint: "Anahtar addan oluşur ve sonradan değişmez.",
+    max: 40,
+    icons: CATEGORY_ICON_SETS.branch,
+    save: saveDoctorBranchAction,
+    remove: deleteDoctorBranchAction,
+  },
 };
 
-/** Add / edit an event, news or place category. `deletable` is false for the keys the database always keeps. */
+/**
+ * Add / edit an event, news, place or institution category or a doctor branch. `deletable` is false for the keys the
+ * database always keeps. The database's Turkish refusals (used category, key change) come back as the error toast.
+ */
 export function CategoryEditor({ kind, item, deletable = true, trigger }: { kind: CategoryKind; item?: CategoryValue; deletable?: boolean; trigger: React.ReactElement }) {
   const cfg = CATEGORY_KINDS[kind];
   const { pending, run } = useAdminAction();
   const [open, setOpen] = React.useState(false);
   const [label, setLabel] = React.useState(item?.label ?? "");
   const [icon, setIcon] = React.useState(item?.icon ?? "");
+  const [group, setGroup] = React.useState(item?.group ?? "");
   const [sort, setSort] = React.useState(String(item?.sort ?? 100));
   const [active, setActive] = React.useState(item?.active ?? true);
 
   const submit = () =>
-    void run(() => cfg.save({ id: item?.id, label, icon: icon || null, sort: Number(sort), active }), {
+    void run(() => cfg.save({ id: item?.id, label, icon: icon || null, sort: Number(sort), active, group: cfg.groups ? group : undefined }), {
       refresh: true,
       onSuccess: () => {
         setOpen(false);
         if (!item) {
           setLabel("");
           setIcon("");
+          setGroup("");
         }
       },
     });
@@ -426,7 +493,7 @@ export function CategoryEditor({ kind, item, deletable = true, trigger }: { kind
       footerStart={
         item && deletable ? (
           <DeleteButton
-            title="Kategori silinsin mi?"
+            title={cfg.deleteTitle}
             description={`"${item.label}" silinir. ${cfg.deleteText}`}
             action={() => cfg.remove({ id: item.id })}
             onDone={() => setOpen(false)}
@@ -434,10 +501,11 @@ export function CategoryEditor({ kind, item, deletable = true, trigger }: { kind
         ) : null
       }
     >
-      <LabelAndSort label={label} onLabel={setLabel} sort={sort} onSort={setSort} max={40} placeholder={cfg.placeholder} />
-      <IconPicker names={cfg.icons} value={icon} onChange={setIcon} />
+      <LabelAndSort label={label} onLabel={setLabel} sort={sort} onSort={setSort} max={cfg.max} placeholder={cfg.placeholder} />
+      {cfg.groups ? <GroupPicker value={group} onChange={setGroup} /> : null}
+      <IconPicker names={cfg.icons} kind={kind} value={icon} onChange={setIcon} />
       <ActiveSwitch checked={active} onChange={setActive} text={cfg.activeText} />
-      {item ? <p className="text-xs text-muted-foreground">Anahtar: {item.key}</p> : null}
+      {item ? <p className="text-xs text-muted-foreground">Anahtar: {item.key}</p> : cfg.keyHint ? <p className="text-xs text-muted-foreground">{cfg.keyHint}</p> : null}
     </EditorShell>
   );
 }

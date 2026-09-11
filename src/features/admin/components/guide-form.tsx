@@ -126,7 +126,7 @@ export type GuideQueue = {
 
 /**
  * Add / edit a city guide record: basics per kind (institution / place category, bank, fuel brand, EV operator and
- * sockets), map pin (Google Maps with address search, or MapLibre), address and mahalle, phones, e-mail, website, hours,
+ * sockets), map pin (Google Maps with address search), address and mahalle, phones, e-mail, website, hours,
  * texts, photos, verification with its sources, hiding and the import lock.
  */
 export function GuideForm({

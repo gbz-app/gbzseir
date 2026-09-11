@@ -15,7 +15,7 @@ import { DistanceLabel } from "@/features/nearby/components/distance-label";
 import { PrayerTimesPanel } from "@/features/nearby/components/prayer-times";
 import { NearbyMiniList } from "@/features/nearby/components/nearby-mini-list";
 import { InfoReportSheet } from "@/features/nearby/components/info-report-sheet";
-import { MiniMap } from "@/features/nearby/map/mini-map";
+import { MapPreviewCard } from "@/components/maps/map-preview-card";
 import { KBB_SOURCE, OSM_COPYRIGHT_URL, OSM_SOURCE } from "@/features/nearby/config";
 import { poiJsonLd } from "@/features/nearby/jsonld";
 import { getNearbyPois, getPoi, renderNow } from "@/features/nearby/server/queries";
@@ -73,7 +73,7 @@ export default async function MosquePage({ params }: Props) {
             <PrayerTimesPanel days={days} serverNow={now} />
           </DetailSection>
         ) : null}
-        {hasPoint ? <MiniMap lat={poi.lat as number} lng={poi.lng as number} kind="mosque" name={poi.name} /> : null}
+        {hasPoint ? <MapPreviewCard lat={poi.lat as number} lng={poi.lng as number} kind="mosque" name={poi.name} address={poi.address} /> : null}
         <NearbyMiniList title="Yakındaki camiler" rows={nearby} />
         <DataSourceNote
           source={poi.source === "osm" ? OSM_SOURCE : KBB_SOURCE}

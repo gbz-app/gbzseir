@@ -129,6 +129,10 @@ function BankSwitch({ current, counts }: { current: ClientListConfig["kind"]; co
 export function GuideListBrowser({ config, entries, chips, ok, bankCounts, params = null }: GuideListBrowserProps & { params?: URLSearchParams | null }) {
   const [filters, setFilters] = React.useState<Filters>(() => initialFilters(config, chips, params));
   const [sort, setSort] = React.useState<SortMode>("az");
+  // The Google map loads at once only after the user asked for it (the "Harita" segment or the map's own "Haritayı aç"
+  // button), never for a page opened with ?gorunum=harita.
+  const [mapPicked, setMapPicked] = React.useState(false);
+  const onMapLoad = React.useCallback(() => setMapPicked(true), []);
   const [limit, setLimit] = React.useState(STEP);
   const { point } = useReferencePoint();
   const searchRef = React.useRef<HTMLInputElement>(null);
@@ -262,7 +266,10 @@ export function GuideListBrowser({ config, entries, chips, ok, bankCounts, param
             <Segmented<ViewMode>
               ariaLabel="Görünüm"
               value={filters.view}
-              onChange={(v) => update({ view: v })}
+              onChange={(v) => {
+                update({ view: v });
+                if (v === "harita") setMapPicked(true);
+              }}
               options={[
                 { value: "liste", label: "Liste", icon: List },
                 { value: "harita", label: "Harita", icon: MapIcon },
@@ -303,7 +310,7 @@ export function GuideListBrowser({ config, entries, chips, ok, bankCounts, param
             }
           />
         ) : filters.view === "harita" ? (
-          <GuideMapView entries={filtered} title={config.title} />
+          <GuideMapView entries={filtered} title={config.title} autoLoad={mapPicked} onLoad={onMapLoad} />
         ) : (
           <>
             <ul className="flex flex-col gap-2.5" aria-label={config.title}>

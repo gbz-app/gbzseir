@@ -1,6 +1,7 @@
 /**
  * DOM builders for map markers: colored teardrop pins with lucide glyphs (ISC-licensed path data)
- * and the user's pulsing location dot. Plain DOM because maplibre markers are not React-managed.
+ * and the user's pulsing location dot. Plain DOM because they live in a Google Maps OverlayView
+ * (src/components/maps/pin-layer.ts), not in React. Styles: src/components/maps/maps.css.
  */
 import { KIND_META } from "../config";
 import type { MarkerKind } from "../types";
@@ -43,7 +44,7 @@ export function pinSvg(kind: MarkerKind): string {
   );
 }
 
-/** Marker root (positioned by maplibre) + inner pin (scaled when selected). */
+/** Marker root (positioned by the pin layer) + inner pin (scaled when selected). */
 export function createPinElement(kind: MarkerKind, label: string, interactive: boolean): { root: HTMLDivElement; pin: HTMLElement } {
   const root = document.createElement("div");
   root.className = "gz-marker";

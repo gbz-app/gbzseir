@@ -211,14 +211,14 @@ export default async function SourcesPage() {
           <SourceCard
             icon={Layers}
             tone={TONES.tiles}
-            title="OpenFreeMap"
+            title="Google Haritalar"
             subtitle="Harita görüntüleri"
             links={[
-              { label: "OpenFreeMap", href: SOURCE_URLS.openFreeMap },
-              { label: "OpenMapTiles", href: SOURCE_URLS.openMapTiles },
+              { label: "Google Haritalar kullanım şartları", href: SOURCE_URLS.googleMapsTerms },
+              { label: "Google gizlilik politikası", href: SOURCE_URLS.googlePrivacy },
             ]}
           >
-            Uygulamadaki haritalar OpenFreeMap sunucularından gelir. Harita verisi © OpenStreetMap katkıcıları, harita şeması © OpenMapTiles.
+            Uygulamadaki haritalar Google Haritalar ile gösterilir ve yalnızca sen açtığında yüklenir. Harita görüntüleri ve harita verisi © Google; haritadaki yerlerin bilgileri bu sayfadaki kaynaklardan gelir.
           </SourceCard>
         </Section>
 

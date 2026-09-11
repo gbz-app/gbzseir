@@ -88,6 +88,9 @@ export function branchIcon(name: string | null | undefined): LucideIcon {
   return (name ? BRANCH_ICONS[name] : undefined) ?? Stethoscope;
 }
 
+/** Icon names branchIcon draws (the admin branch editor offers these). */
+export const DOCTOR_BRANCH_ICON_NAMES: readonly string[] = Object.keys(BRANCH_ICONS);
+
 /** The branch row of a key; a key missing from the list (database unreadable) falls back to the built-in list. */
 export function findBranch(key: string, list: readonly DoctorBranch[] = DOCTOR_BRANCHES): DoctorBranch | null {
   return list.find((b) => b.key === key) ?? DOCTOR_BRANCHES.find((b) => b.key === key) ?? null;

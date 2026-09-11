@@ -17,7 +17,7 @@ import { DistanceLabel } from "@/features/nearby/components/distance-label";
 import { PharmacyDutyBadges, PharmacyDutySchedule } from "@/features/nearby/components/pharmacy-duty";
 import { NearbyMiniList } from "@/features/nearby/components/nearby-mini-list";
 import { InfoReportSheet } from "@/features/nearby/components/info-report-sheet";
-import { MiniMap } from "@/features/nearby/map/mini-map";
+import { MapPreviewCard } from "@/components/maps/map-preview-card";
 import { KBB_SOURCE, OSM_COPYRIGHT_URL, OSM_SOURCE } from "@/features/nearby/config";
 import { poiJsonLd } from "@/features/nearby/jsonld";
 import { getDutyMode, getNearbyPois, getPharmacyDuties, getPoi, renderNow } from "@/features/nearby/server/queries";
@@ -84,7 +84,7 @@ export default async function PharmacyPage({ params }: Props) {
         ) : null}
         {/* Renders its own "Nöbet günleri" section (it used to be wrapped twice). */}
         <PharmacyDutySchedule duties={duties} serverNow={now} mode={dutyMode} />
-        {hasPoint ? <MiniMap lat={poi.lat as number} lng={poi.lng as number} kind="pharmacy" name={poi.name} /> : null}
+        {hasPoint ? <MapPreviewCard lat={poi.lat as number} lng={poi.lng as number} kind="pharmacy" name={poi.name} address={poi.address} /> : null}
         <NearbyMiniList title="Yakındaki eczaneler" rows={nearby} />
         <DataSourceNote
           source={poi.source === "osm" ? OSM_SOURCE : KBB_SOURCE}

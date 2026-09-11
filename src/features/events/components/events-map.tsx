@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 import { CITY } from "@/config/site";
 import { routes } from "@/core/routes";
 import { HideBottomNav } from "@/components/layout/nav-visibility";
-import { LazyNearbyMap } from "@/features/nearby/map/lazy-map";
-import type { MapPoint } from "@/features/nearby/map/types";
+import { GoogleMap } from "@/components/maps/google-map";
+import type { MapPoint } from "@/components/maps/types";
 import { dateBadge, eventWhenLine } from "../format";
 import type { EventItem } from "../queries";
 import { EventCoverFallback, eventPlaceLine } from "./event-card";
@@ -94,14 +94,15 @@ export function EventsMap({ events, now, onClose }: { events: EventItem[]; now: 
   return (
     <div className="fixed inset-0 z-[60] bg-background" role="dialog" aria-modal="true" aria-label="Etkinlikler haritası">
       <HideBottomNav />
-      <LazyNearbyMap
+      <GoogleMap
         points={points}
         center={CITY.center}
-        zoom={12.5}
+        zoom={12}
         selectedId={selected}
         onSelect={setSelected}
         fitKey="all"
         padding={{ top: 96, right: 32, bottom: 220, left: 32 }}
+        gestures="greedy"
         className="absolute inset-0"
         ariaLabel="Etkinlikler haritada"
       />

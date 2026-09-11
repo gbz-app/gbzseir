@@ -21,7 +21,7 @@ import { DistanceLabel } from "@/features/nearby/components/distance-label";
 import { InfoReportSheet } from "@/features/nearby/components/info-report-sheet";
 import { KIND_META } from "@/features/nearby/config";
 import { geoCoordinates, postalAddress } from "@/features/nearby/jsonld";
-import { MiniMap } from "@/features/nearby/map/mini-map";
+import { MapPreviewCard } from "@/components/maps/map-preview-card";
 
 export const revalidate = 3600;
 
@@ -263,7 +263,7 @@ export default async function GuideDetailPage({ params }: Props) {
           <SheetSection title="Konum">
             {hasPoint ? (
               <>
-                <MiniMap lat={lat} lng={lng} kind={kind} name={item.name} className="rounded-3xl ring-0" />
+                <MapPreviewCard lat={lat} lng={lng} kind={kind} name={item.name} address={addressLine} />
                 <DirectionsButton
                   lat={lat}
                   lng={lng}

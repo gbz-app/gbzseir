@@ -70,7 +70,7 @@ import { ServiceList } from "@/features/business/components/service-list";
 import { LISTABLE_VERTICALS, VERTICAL_INFO, amenityList, hasMenu, hasRooms, priceLevelInfo, resolveVertical, type Vertical } from "@/features/business/lib/verticals";
 import { EventCard } from "@/features/events/components/event-card";
 import { listBusinessEvents, type EventItem } from "@/features/events/queries";
-import { MiniMap } from "@/features/nearby/map/mini-map";
+import { MapPreviewCard } from "@/components/maps/map-preview-card";
 
 export const revalidate = 300;
 
@@ -417,7 +417,7 @@ export default async function FirmPage({ params }: Props) {
           />
           {hasLocation ? (
             <div className="mt-3">
-              <MiniMap lat={b.lat!} lng={b.lng!} kind="business" name={b.name} />
+              <MapPreviewCard lat={b.lat!} lng={b.lng!} kind="business" name={b.name} />
             </div>
           ) : null}
         </Section>

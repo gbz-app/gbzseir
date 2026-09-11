@@ -11,8 +11,8 @@ export const SOURCE_URLS = {
   kbbPortal: "https://kavisacikveri.kocaeli.bel.tr",
   ccBy: "https://creativecommons.org/licenses/by/4.0/deed.tr",
   odbl: "https://opendatacommons.org/licenses/odbl/",
-  openFreeMap: "https://openfreemap.org",
-  openMapTiles: "https://openmaptiles.org",
+  googleMapsTerms: "https://www.google.com/intl/tr/help/terms_maps/",
+  googlePrivacy: "https://policies.google.com/privacy?hl=tr",
   openMeteo: "https://open-meteo.com",
   aladhan: "https://aladhan.com",
 } as const;

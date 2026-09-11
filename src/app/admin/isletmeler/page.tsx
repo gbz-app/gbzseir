@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { DemoBadge, VerifiedBadge } from "@/components/shared/badges";
 import { Badge } from "@/components/ui/badge";
 import { routes, withQuery } from "@/core/routes";
+import { googleMapsPlaceUrl } from "@/core/geo";
 import { publicUrl } from "@/config/app-mode";
 import { formatDateTime, formatNumber, formatPhoneTR, formatRelativeTime } from "@/core/format";
 import {
@@ -21,8 +22,10 @@ import {
   StatusBadge,
 } from "@/features/admin/components/admin-ui";
 import { BusinessActions, DocumentButton } from "@/features/admin/components/business-actions";
+import { BusinessDoctors, type AdminDoctor } from "@/features/admin/components/doctor-admin";
 import { BUSINESS_DOC_KINDS, BUSINESS_KINDS, BUSINESS_STATUS } from "@/features/admin/lib/labels";
 import { oneOf, pageParam, pageRange, searchTerm } from "@/features/admin/lib/params";
+import { DOCTOR_BRANCHES, toDoctor, type DoctorBranch, type RawDoctor } from "@/features/business/components/doctors/doctor-meta";
 import { VERTICAL_INFO, resolveVertical } from "@/features/business/lib/verticals";
 
 export const metadata: Metadata = { title: "İşletmeler" };
@@ -35,7 +38,9 @@ type StatusFilter = (typeof STATUSES)[number];
 const SELECT =
   "id,slug,name,kinds,vertical,category_label,phone,address,description,status,rejection_reason,verification_level,vacation_mode,logo_url,cover_url,working_hours,lat,lng,rating_avg,rating_count,leads_accepted_count,is_demo,created_at,updated_at,approved_at," +
   "owner:profiles!businesses_owner_id_fkey(id,full_name,phone,status),neighbourhoods!businesses_neighbourhood_id_fkey(name)," +
-  "business_service_categories(service_categories(id,name)),business_service_areas(neighbourhoods(id,name)),business_documents(id,kind,path,created_at),business_photos(url,sort)";
+  "business_service_categories(service_categories(id,name)),business_service_areas(neighbourhoods(id,name)),business_documents(id,kind,path,created_at),business_photos(url,sort)," +
+  // Doctors of sağlık businesses (the admin reads hidden rows too).
+  "business_staff(id,business_id,name,title,branch,photo_url,bio,days,hours_note,sort,is_active,is_demo,consent_confirmed_at)";
 
 type BusinessRow = {
   id: string;
@@ -69,6 +74,7 @@ type BusinessRow = {
   business_service_areas: Array<{ neighbourhoods: { id: string; name: string } | null }>;
   business_documents: Array<{ id: string; kind: string; path: string; created_at: string }>;
   business_photos: Array<{ url: string; sort: number }>;
+  business_staff: Array<RawDoctor & { consent_confirmed_at: string | null }> | null;
 };
 
 const DAYS: Array<[string, string]> = [
@@ -91,10 +97,21 @@ function hoursText(wh: unknown): string {
   }).join(" · ");
 }
 
-function BusinessDetails({ b }: { b: BusinessRow }) {
+const isSaglik = (b: BusinessRow) => resolveVertical(b.vertical, b.kinds) === "saglik";
+
+/** The business's doctors in the owner's order (hidden ones too), with the consent time. */
+function adminDoctors(b: BusinessRow): AdminDoctor[] {
+  return (b.business_staff ?? [])
+    .map((r) => ({ ...toDoctor(r), consentAt: r.consent_confirmed_at }))
+    .sort((x, y) => x.sort - y.sort || x.name.localeCompare(y.name, "tr"));
+}
+
+function BusinessDetails({ b, branches }: { b: BusinessRow; branches: readonly DoctorBranch[] }) {
   const categories = b.business_service_categories.map((c) => c.service_categories).filter(Boolean) as Array<{ id: string; name: string }>;
   const areas = b.business_service_areas.map((a) => a.neighbourhoods).filter(Boolean) as Array<{ id: string; name: string }>;
   const photos = [...b.business_photos].sort((x, y) => x.sort - y.sort);
+  const saglik = isSaglik(b);
+  const doctors = adminDoctors(b);
   return (
     <div className="grid gap-4">
       <div className="grid gap-4 lg:grid-cols-2">
@@ -114,7 +131,7 @@ function BusinessDetails({ b }: { b: BusinessRow }) {
                 {b.lat && b.lng ? (
                   <a
                     className="ml-2 text-primary underline-offset-4 hover:underline"
-                    href={`https://www.openstreetmap.org/?mlat=${b.lat}&mlon=${b.lng}#map=17/${b.lat}/${b.lng}`}
+                    href={googleMapsPlaceUrl({ lat: b.lat, lng: b.lng })}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -197,6 +214,8 @@ function BusinessDetails({ b }: { b: BusinessRow }) {
         </div>
       ) : null}
 
+      {saglik || doctors.length ? <BusinessDoctors businessId={b.id} businessName={b.name} canAdd={saglik} doctors={doctors} branches={branches} /> : null}
+
       <div>
         <h3 className="text-sm font-semibold">Belgeler</h3>
         {b.business_documents.length ? (
@@ -250,12 +269,15 @@ export default async function AdminBusinessesPage({ searchParams }: PageProps<"/
   if (q) query = query.ilike("name", `%${q}%`);
   const { from, to } = pageRange(page, PAGE_SIZE);
 
-  const [{ data, count, error }, pendingCount, allCount] = await Promise.all([
+  const [{ data, count, error }, pendingCount, allCount, branchList] = await Promise.all([
     query.range(from, to),
     supabase.from("businesses").select("id", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("businesses").select("id", { count: "exact", head: true }),
+    // Branch picker of the doctor dialogs (inactive ones too: they still label older rows).
+    supabase.from("doctor_branches").select("key,label,icon,active").order("sort").order("label"),
   ]);
   const rows = (data ?? []) as unknown as BusinessRow[];
+  const branches: readonly DoctorBranch[] = branchList.data?.length ? branchList.data : DOCTOR_BRANCHES;
   const baseQuery = { sekme: tab === "tumu" ? undefined : tab, durum: tab === "tumu" && status !== "tumu" ? status : undefined, q };
   const statusLabel: Record<StatusFilter, string> = { tumu: "Tüm durumlar", approved: "Onaylı", suspended: "Askıda", rejected: "Reddedilen", pending: "Bekleyen" };
 
@@ -312,6 +334,7 @@ export default async function AdminBusinessesPage({ searchParams }: PageProps<"/
         ) : (
           rows.map((b) => {
             const publicHref = b.status === "approved" ? publicUrl(routes.businesses.detail(b.slug)) : null;
+            const doctorCount = b.business_staff?.length ?? 0;
             return (
               <AdminCard key={b.id} as="article">
                 <div className="flex items-start gap-3">
@@ -325,7 +348,8 @@ export default async function AdminBusinessesPage({ searchParams }: PageProps<"/
                     </div>
                     <h2 className="mt-1.5 text-lg leading-snug font-bold break-words">{b.name}</h2>
                     <p className="text-sm text-muted-foreground">
-                      {VERTICAL_INFO[resolveVertical(b.vertical, b.kinds)].label} · {"Açılış "}
+                      {VERTICAL_INFO[resolveVertical(b.vertical, b.kinds)].label}
+                      {isSaglik(b) || doctorCount ? ` · ${formatNumber(doctorCount)} doktor` : ""} · {"Açılış "}
                       {formatRelativeTime(b.created_at)}
                     </p>
                   </div>
@@ -333,12 +357,12 @@ export default async function AdminBusinessesPage({ searchParams }: PageProps<"/
 
                 <div className="mt-4">
                   {tab === "basvurular" ? (
-                    <BusinessDetails b={b} />
+                    <BusinessDetails b={b} branches={branches} />
                   ) : (
                     <details className="group">
                       <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-primary select-none">Ayrıntıları göster</summary>
                       <div className="mt-2">
-                        <BusinessDetails b={b} />
+                        <BusinessDetails b={b} branches={branches} />
                       </div>
                     </details>
                   )}

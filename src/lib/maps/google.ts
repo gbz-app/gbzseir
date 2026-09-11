@@ -1,7 +1,9 @@
 /**
- * Google Maps JS API for the browser: a one-time script loader (no npm package) and the few helpers the location
- * picker needs (map, Places Autocomplete (new Places API) and reverse geocoding). The key is
- * NEXT_PUBLIC_GOOGLE_MAPS_KEY (referrer-restricted); without it callers fall back to MapLibre.
+ * Google Maps JS API for the browser: a one-time script loader (no npm package), the types of the map surface used by
+ * src/components/maps (map, OverlayView pins) and the location picker helpers (Places Autocomplete (new Places API)
+ * and reverse geocoding). The key is NEXT_PUBLIC_GOOGLE_MAPS_KEY (referrer-restricted); without it (or when Google
+ * refuses it) callers show a calm "Harita şu an kullanılamıyor" state. There is no Map ID, so no AdvancedMarkerElement:
+ * pins are DOM elements in an OverlayView. Every `new Map()` is a billed map load: create maps only after a user tap.
  * Only the API surface used here is typed (no @types/google.maps dependency).
  */
 import { CITY } from "@/config/site";
@@ -28,6 +30,8 @@ export interface GMapsEventListener {
 export type GMapOptions = {
   center: GLatLngLiteral;
   zoom: number;
+  minZoom?: number;
+  maxZoom?: number;
   disableDefaultUI?: boolean;
   zoomControl?: boolean;
   /** ControlPosition value from importLibrary("core"). */
@@ -35,6 +39,10 @@ export type GMapOptions = {
   clickableIcons?: boolean;
   gestureHandling?: "greedy" | "cooperative" | "none" | "auto";
   keyboardShortcuts?: boolean;
+  /** ColorScheme value from importLibrary("core"); works without a Map ID, only when the map is created. */
+  colorScheme?: string;
+  /** Color of the map div while tiles load. */
+  backgroundColor?: string;
 };
 
 export interface GMap {
@@ -46,12 +54,41 @@ export interface GMap {
   addListener(event: string, handler: () => void): GMapsEventListener;
 }
 
+export type GPoint = { x: number; y: number };
+
+export interface GMapCanvasProjection {
+  fromLatLngToDivPixel(latLng: GLatLng): GPoint | null;
+}
+
+export interface GMapPanes {
+  /** Pane for overlay elements that receive DOM events (our pin buttons). */
+  overlayMouseTarget: HTMLElement;
+  floatPane: HTMLElement;
+}
+
+/** google.maps.OverlayView: subclass it and implement onAdd / draw / onRemove. */
+export interface GOverlayView {
+  setMap(map: GMap | null): void;
+  getPanes(): GMapPanes | null;
+  getProjection(): GMapCanvasProjection | null;
+  onAdd(): void;
+  draw(): void;
+  onRemove(): void;
+}
+
+export type GOverlayViewConstructor = new () => GOverlayView;
+export type GLatLngConstructor = new (lat: number, lng: number) => GLatLng;
+
 interface GCoreLibrary {
   ControlPosition: { RIGHT_CENTER: number; RIGHT_TOP: number; RIGHT_BOTTOM: number; LEFT_BOTTOM: number };
+  LatLng: GLatLngConstructor;
+  /** Missing on older API versions: fall back to the plain string values. */
+  ColorScheme?: { DARK: string; LIGHT: string; FOLLOW_SYSTEM: string };
 }
 
 interface GMapsLibrary {
   Map: new (el: HTMLElement, opts: GMapOptions) => GMap;
+  OverlayView: GOverlayViewConstructor;
 }
 
 type GGeocoderResult = { formatted_address: string; types: string[] };
@@ -144,7 +181,9 @@ export function loadGoogleMaps(): Promise<GoogleMapsNamespace> {
     const script = document.createElement("script");
     const fail = (error: Error) => {
       window.clearTimeout(timer);
-      delete w[CALLBACK];
+      // A script that still arrives after the timeout calls a no-op (not a missing global); the API is then on
+      // window.google and the next loadGoogleMaps() resolves without another script tag.
+      w[CALLBACK] = () => {};
       script.remove();
       loading = null;
       reject(error);
@@ -157,14 +196,16 @@ export function loadGoogleMaps(): Promise<GoogleMapsNamespace> {
       if (maps && typeof maps.importLibrary === "function") resolve(maps as GoogleMapsNamespace);
       else fail(new Error("Google Maps loaded without importLibrary."));
     };
-    // Google calls this global when the key is refused (the map then shows its own error); callers switch to MapLibre.
+    // Google calls this global when the key is refused (the map then shows its own error); callers show their calm
+    // "Harita şu an kullanılamıyor" state instead.
     w.gm_authFailure = () => {
       authFailed = true;
       for (const l of [...authListeners]) l();
     };
+    // No `libraries` param: list and detail maps only need "maps"/"core"; the location picker pulls "places" and
+    // "geocoding" on demand through importLibrary.
     const params = new URLSearchParams({
       key: KEY,
-      libraries: "places",
       language: "tr",
       region: "TR",
       loading: "async",

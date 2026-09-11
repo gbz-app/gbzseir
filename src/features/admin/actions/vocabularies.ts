@@ -5,10 +5,12 @@ import { z } from "zod";
 import { routes } from "@/core/routes";
 import { slugifyTr } from "@/core/tr";
 import { revalidatePublic, type PublicPath } from "@/lib/revalidate-public";
-import { CATEGORY_ICON_NAMES } from "@/features/business/lib/category-visuals";
 import { DEFAULT_EVENT_CATEGORY, LISTABLE_VERTICALS, VERTICALS, VOCAB_ICON_NAMES, type Vertical } from "@/features/business/lib/verticals";
+import { GUIDE_EXTRA_LIST_SLUGS } from "@/features/guide/components/list-config";
+import { GUIDE_SECTIONS, parseInstitutionGroup } from "@/features/guide/lib/constants";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
+import { CATEGORY_ICON_SETS } from "../lib/vocab-icons";
 import { firstIssue, zId } from "../lib/zod";
 
 /** Trimmed, single-spaced, lower-case (Turkish) terms without duplicates. */
@@ -22,10 +24,15 @@ const terms = z
   .refine((l) => l.every((t) => t.length >= 2 && t.length <= 40), "Her ifade 2-40 karakter olmalı.");
 
 const sort = z.coerce.number().int("Sıra tam sayı olmalı.").min(0, "Sıra 0-10000 arası olmalı.").max(10000, "Sıra 0-10000 arası olmalı.");
-const icon = z
-  .string()
-  .refine((n) => VOCAB_ICON_NAMES.includes(n), "Simge geçersiz.")
-  .nullable();
+
+/** A row's icon: one of the names its editor offers. */
+const iconOf = (names: readonly string[]) =>
+  z
+    .string()
+    .refine((n) => names.includes(n), "Simge geçersiz.")
+    .nullable();
+
+const icon = iconOf(VOCAB_ICON_NAMES);
 
 const subcategorySchema = z.object({
   id: zId.optional(),
@@ -57,13 +64,17 @@ const eventCategorySchema = z.object({
   active: z.boolean(),
 });
 
-/** News and place categories: same fields, a wider icon set (CATEGORY_ICON_NAMES). */
-const simpleCategorySchema = eventCategorySchema.extend({
-  icon: z
-    .string()
-    .refine((n) => CATEGORY_ICON_NAMES.includes(n), "Simge geçersiz.")
-    .nullable(),
-});
+/** News, place and institution categories and doctor branches: the event category fields with the kind's icon set and name length. */
+const simpleCategorySchema = (names: readonly string[], noun = "Kategori", max = 40) =>
+  z.object({
+    id: zId.optional(),
+    label: z.string().trim().min(2, `${noun} adı en az 2 karakter olmalı.`).max(max, `${noun} adı en fazla ${max} karakter olabilir.`),
+    icon: iconOf(names),
+    sort,
+    active: z.boolean(),
+  });
+
+type SimpleCategoryInput = z.input<ReturnType<typeof simpleCategorySchema>>;
 
 /** A new key from the label, unique among `taken`: kebab-case for chips, snake_case for amenities and event categories. */
 function newKey(label: string, taken: ReadonlySet<string>, style: "kebab" | "snake", fallback: string): string {
@@ -218,7 +229,8 @@ export async function deleteEventCategoryAction(input: { id: string }): Promise<
 }
 
 // ---------------------------------------------------------------------------
-// News categories (news_articles.category) and place categories (poi.details->>'category' of places), 2026091363
+// News categories (news_articles.category), place categories (poi.details->>'category' of places), 2026091363, and
+// doctor branches (business_staff.branch), 2026091377
 // ---------------------------------------------------------------------------
 
 /** Filter values of the public chips ("Tümü"), never used as a key. */
@@ -227,6 +239,9 @@ const RESERVED_KEYS = ["tumu", "all"];
 const SIMPLE_CATEGORIES = {
   news: {
     table: "news_categories",
+    icons: CATEGORY_ICON_SETS.news,
+    noun: "Kategori",
+    fallbackKey: "kategori",
     revalidate: async () => {
       revalidatePath(routes.admin.newsArticles());
       await revalidateVocabularies([routes.home(), routes.content.news()]);
@@ -234,55 +249,77 @@ const SIMPLE_CATEGORIES = {
   },
   place: {
     table: "place_categories",
+    icons: CATEGORY_ICON_SETS.place,
+    noun: "Kategori",
+    fallbackKey: "kategori",
     revalidate: async () => {
       revalidatePath(routes.admin.places());
       await revalidateVocabularies([routes.home(), routes.nearby.places()]);
+    },
+  },
+  branch: {
+    table: "doctor_branches",
+    icons: CATEGORY_ICON_SETS.branch,
+    noun: "Branş",
+    fallbackKey: "brans",
+    // Branches are read through the "businesses" data cache (doctors/queries.ts): the firm pages' Doktorlar tab and the
+    // Keşfet > Sağlık doctor list; the admin businesses page shows them in the doctor rows.
+    revalidate: async () => {
+      revalidatePath(routes.admin.vocabularies());
+      revalidatePath(routes.admin.businesses());
+      await revalidatePublic({ tags: ["businesses"], paths: [routes.businesses.vertical("saglik"), { path: "/firma/[slug]", type: "page" }] });
     },
   },
 } as const;
 
 type SimpleCategoryKind = keyof typeof SIMPLE_CATEGORIES;
 
-/** Add / edit a news or place category. The key of an existing one never changes (stories and places reference it). */
-async function saveSimpleCategory(kind: SimpleCategoryKind, input: z.input<typeof simpleCategorySchema>): Promise<ActionResult<null>> {
+/**
+ * Add / edit a news or place category or a doctor branch. The key of an existing one never changes (stories, places and
+ * doctors reference it; vocabulary_guard refuses a change with a Turkish message).
+ */
+async function saveSimpleCategory(kind: SimpleCategoryKind, input: SimpleCategoryInput): Promise<ActionResult<null>> {
   return withAdmin(async ({ supabase }) => {
-    const parsed = simpleCategorySchema.safeParse(input);
+    const { table, icons, noun, fallbackKey, revalidate } = SIMPLE_CATEGORIES[kind];
+    const parsed = simpleCategorySchema(icons, noun).safeParse(input);
     if (!parsed.success) return fail(firstIssue(parsed.error));
     const v = parsed.data;
-    const { table, revalidate } = SIMPLE_CATEGORIES[kind];
     const row = { label: v.label, icon: v.icon, sort: v.sort, active: v.active };
     if (v.id) {
       const { data, error } = await supabase.from(table).update(row).eq("id", v.id).select("id").maybeSingle();
-      if (error) return dbFail(error, "Kategori kaydedilemedi.");
-      if (!data) return fail("Kategori bulunamadı.", "not_found");
+      if (error) return dbFail(error, `${noun} kaydedilemedi.`);
+      if (!data) return fail(`${noun} bulunamadı.`, "not_found");
       await revalidate();
-      return ok(null, "Kategori güncellendi.");
+      return ok(null, `${noun} güncellendi.`);
     }
     const taken = await takenKeys(supabase.from(table).select("key").limit(2000));
-    if (!taken) return fail("Kategori kaydedilemedi. Tekrar dene.");
+    if (!taken) return fail(`${noun} kaydedilemedi. Tekrar dene.`);
     for (const k of RESERVED_KEYS) taken.add(k);
-    const { error } = await supabase.from(table).insert({ ...row, key: newKey(v.label, taken, "snake", "kategori") });
-    if (error) return dbFail(error, "Kategori eklenemedi.");
+    const { error } = await supabase.from(table).insert({ ...row, key: newKey(v.label, taken, "snake", fallbackKey) });
+    if (error) return dbFail(error, `${noun} eklenemedi.`);
     await revalidate();
-    return ok(null, "Kategori eklendi.");
+    return ok(null, `${noun} eklendi.`);
   });
 }
 
-/** Delete an unused category. vocabulary_guard refuses a used one (with the count) and the built-in RSS keys / "diger". */
+/**
+ * Delete an unused category or branch. vocabulary_guard / doctor_branch_guard refuse a used one (with the count) and the
+ * built-in RSS keys / "diger" with a Turkish message (hint in_use), which dbFail passes on.
+ */
 async function deleteSimpleCategory(kind: SimpleCategoryKind, input: { id: string }): Promise<ActionResult<null>> {
   return withAdmin(async ({ supabase }) => {
+    const { table, noun, revalidate } = SIMPLE_CATEGORIES[kind];
     const id = zId.safeParse(input.id);
-    if (!id.success) return fail("Geçersiz kategori.");
-    const { table, revalidate } = SIMPLE_CATEGORIES[kind];
+    if (!id.success) return fail(`Geçersiz ${noun.toLocaleLowerCase("tr-TR")}.`);
     const { data, error } = await supabase.from(table).delete().eq("id", id.data).select("id").maybeSingle();
-    if (error) return dbFail(error, "Kategori silinemedi.");
-    if (!data) return fail("Kategori bulunamadı.", "not_found");
+    if (error) return dbFail(error, `${noun} silinemedi.`);
+    if (!data) return fail(`${noun} bulunamadı.`, "not_found");
     await revalidate();
-    return ok(null, "Kategori silindi.");
+    return ok(null, `${noun} silindi.`);
   });
 }
 
-export async function saveNewsCategoryAction(input: z.input<typeof simpleCategorySchema>): Promise<ActionResult<null>> {
+export async function saveNewsCategoryAction(input: SimpleCategoryInput): Promise<ActionResult<null>> {
   return saveSimpleCategory("news", input);
 }
 
@@ -290,10 +327,74 @@ export async function deleteNewsCategoryAction(input: { id: string }): Promise<A
   return deleteSimpleCategory("news", input);
 }
 
-export async function savePlaceCategoryAction(input: z.input<typeof simpleCategorySchema>): Promise<ActionResult<null>> {
+export async function savePlaceCategoryAction(input: SimpleCategoryInput): Promise<ActionResult<null>> {
   return saveSimpleCategory("place", input);
 }
 
 export async function deletePlaceCategoryAction(input: { id: string }): Promise<ActionResult<null>> {
   return deleteSimpleCategory("place", input);
+}
+
+export async function saveDoctorBranchAction(input: SimpleCategoryInput): Promise<ActionResult<null>> {
+  return saveSimpleCategory("branch", input);
+}
+
+export async function deleteDoctorBranchAction(input: { id: string }): Promise<ActionResult<null>> {
+  return deleteSimpleCategory("branch", input);
+}
+
+// ---------------------------------------------------------------------------
+// Institution categories (poi.details->>'category' of kind institution; label_tr + group_key), 2026091376
+// ---------------------------------------------------------------------------
+
+/**
+ * /rehber/<slug> resolves section and combined-list slugs before institution category slugs (key with "-" for "_"), so a
+ * new category must not take one of those, nor the search index route /rehber/dizin.
+ */
+const GUIDE_RESERVED_KEYS = [...GUIDE_SECTIONS.map((s) => s.slug), ...GUIDE_EXTRA_LIST_SLUGS, "dizin"].map((s) => s.replace(/-/g, "_"));
+
+const institutionCategorySchema = simpleCategorySchema(CATEGORY_ICON_SETS.institution, "Kategori", 60).extend({
+  group: z.string().refine((g) => parseInstitutionGroup(g) !== null, "Bir grup seç."),
+});
+
+async function revalidateInstitutionCategories() {
+  revalidatePath(routes.admin.guide());
+  await revalidateVocabularies([routes.guide.root(), { path: "/rehber/[kategori]", type: "page" }, { path: "/kurum/[slug]", type: "page" }, "/rehber/dizin"]);
+}
+
+/** Kurum kategorisi ekle / düzenle: name, group, icon, order, active. The key never changes (poi rows reference it). */
+export async function saveInstitutionCategoryAction(input: z.input<typeof institutionCategorySchema>): Promise<ActionResult<null>> {
+  return withAdmin(async ({ supabase }) => {
+    const parsed = institutionCategorySchema.safeParse(input);
+    if (!parsed.success) return fail(firstIssue(parsed.error));
+    const v = parsed.data;
+    const row = { label_tr: v.label, group_key: v.group, icon: v.icon, sort: v.sort, active: v.active };
+    if (v.id) {
+      const { data, error } = await supabase.from("institution_categories").update(row).eq("id", v.id).select("id").maybeSingle();
+      if (error) return dbFail(error, "Kategori kaydedilemedi.");
+      if (!data) return fail("Kategori bulunamadı.", "not_found");
+      await revalidateInstitutionCategories();
+      return ok(null, "Kategori güncellendi.");
+    }
+    const taken = await takenKeys(supabase.from("institution_categories").select("key").limit(2000));
+    if (!taken) return fail("Kategori kaydedilemedi. Tekrar dene.");
+    for (const k of [...RESERVED_KEYS, ...GUIDE_RESERVED_KEYS]) taken.add(k);
+    const { error } = await supabase.from("institution_categories").insert({ ...row, key: newKey(v.label, taken, "snake", "kurum") });
+    if (error) return dbFail(error, "Kategori eklenemedi.");
+    await revalidateInstitutionCategories();
+    return ok(null, "Kategori eklendi.");
+  });
+}
+
+/** Delete an unused institution category; vocabulary_guard refuses a used one and "diger_kamu" (Turkish message, hint in_use). */
+export async function deleteInstitutionCategoryAction(input: { id: string }): Promise<ActionResult<null>> {
+  return withAdmin(async ({ supabase }) => {
+    const id = zId.safeParse(input.id);
+    if (!id.success) return fail("Geçersiz kategori.");
+    const { data, error } = await supabase.from("institution_categories").delete().eq("id", id.data).select("id").maybeSingle();
+    if (error) return dbFail(error, "Kategori silinemedi.");
+    if (!data) return fail("Kategori bulunamadı.", "not_found");
+    await revalidateInstitutionCategories();
+    return ok(null, "Kategori silindi.");
+  });
 }
