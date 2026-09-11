@@ -38,7 +38,7 @@ const QUICK: Tile[] = [
 
 /** Category cards, 4 per row. */
 const CATEGORIES: Tile[] = [
-  vertical("yemek"),
+  { ...vertical("yemek"), image: "/images/home/yemek.webp", imageClassName: "bg-card" },
   vertical("restoran"),
   vertical("kafe"),
   vertical("hizmet", "Hizmetler"),
