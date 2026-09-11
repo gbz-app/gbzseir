@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { CITY } from "@/config/site";
 import { formatRelativeTime } from "@/core/format";
 import { routes } from "@/core/routes";
-import { EVENT_CATEGORY_INFO, parseEventCategory } from "@/features/business/lib/verticals";
+import { eventCategoryInfo } from "@/features/business/lib/verticals";
+import { DEFAULT_VOCABULARIES, loadVocabularies } from "@/features/business/lib/vocabularies";
 import { EventsManager } from "@/features/events/components/events-manager";
 import { eventPriceLabel, eventWhenShort } from "@/features/events/format";
 import { OWNER_EVENT_COLUMNS, toOwnerEvent } from "@/features/events/owner-queries";
@@ -69,9 +70,11 @@ export default async function AdminEventsPage({ searchParams }: Props) {
   else query = query.order("starts_at", { ascending: false });
   const { from, to } = pageRange(page, PAGE_SIZE);
 
-  const [{ data, count, error }, city] = await Promise.all([
+  const [{ data, count, error }, city, vocab] = await Promise.all([
     query.range(from, to),
     supabase.from("events").select(OWNER_EVENT_COLUMNS).is("business_id", null).order("starts_at", { ascending: false }).limit(100),
+    // Fresh read (the admin site's own cache is not expired by revalidatePublic).
+    loadVocabularies(supabase).catch(() => DEFAULT_VOCABULARIES),
   ]);
   const rows = (data ?? []) as unknown as Row[];
   const cityEvents = ((city.data ?? []) as unknown as Parameters<typeof toOwnerEvent>[0][]).map(toOwnerEvent);
@@ -82,7 +85,11 @@ export default async function AdminEventsPage({ searchParams }: Props) {
 
       <div className="grid gap-4">
         <AdminCard title="Şehir etkinlikleri" description="Bir işletmeye bağlı olmayan etkinlikler (konser, festival, koşu...).">
-          <EventsManager business={{ id: null, name: CITY.name, address: null, phone: null, lat: CITY.center.lat, lng: CITY.center.lng, neighbourhoodId: null }} initial={cityEvents} />
+          <EventsManager
+            business={{ id: null, name: CITY.name, address: null, phone: null, lat: CITY.center.lat, lng: CITY.center.lng, neighbourhoodId: null }}
+            initial={cityEvents}
+            categories={vocab.eventCategories}
+          />
         </AdminCard>
 
         <FilterTabs ariaLabel="Etkinlik filtresi" items={TABS.map((t) => ({ label: TAB_LABELS[t], active: t === tab, href: `${routes.admin.events()}${t === "yaklasan" ? "" : `?sekme=${t}`}` }))} />
@@ -97,7 +104,7 @@ export default async function AdminEventsPage({ searchParams }: Props) {
           </EmptyCard>
         ) : (
           rows.map((e) => {
-            const cat = EVENT_CATEGORY_INFO[parseEventCategory(e.category) ?? "diger"];
+            const cat = eventCategoryInfo(e.category, vocab.eventCategories);
             return (
               <AdminCard key={e.id} as="article">
                 <div className="flex items-start gap-3">

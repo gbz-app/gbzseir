@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { routes } from "@/core/routes";
 import { requireProfile } from "@/lib/auth/server";
 import { getOwnerBusiness } from "@/features/business/lib/owner-queries";
+import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { EventsManager } from "@/features/events/components/events-manager";
 import { getOwnerEvents } from "@/features/events/owner-queries";
 
@@ -15,7 +16,7 @@ export default async function OwnerEventsPage() {
   const b = await getOwnerBusiness();
   if (!b) redirect(routes.business.intro());
   if (b.status !== "approved") redirect(routes.business.root());
-  const events = await getOwnerEvents(b.id).catch(() => []);
+  const [events, vocab] = await Promise.all([getOwnerEvents(b.id).catch(() => []), getVocabularies()]);
 
   return (
     <>
@@ -24,6 +25,7 @@ export default async function OwnerEventsPage() {
         <EventsManager
           business={{ id: b.id, name: b.name, address: b.address, phone: b.phone, lat: b.lat, lng: b.lng, neighbourhoodId: b.neighbourhood_id }}
           initial={events}
+          categories={vocab.eventCategories}
         />
       </div>
     </>

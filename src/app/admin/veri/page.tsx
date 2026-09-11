@@ -8,7 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { formatDateTime, formatNumber, formatRelativeTime } from "@/core/format";
 import { AdminCard, EmptyCard, InfoList, InfoRow, StatTile } from "@/features/admin/components/admin-ui";
 import { DemoCleanup } from "@/features/admin/components/demo-cleanup";
+import { PoiSyncPanel } from "@/features/admin/components/poi-sync-panel";
 import { POI_KINDS, POI_SOURCES, type DemoScope } from "@/features/admin/lib/labels";
+import { POI_KIND_META } from "@/features/admin/lib/poi-kinds";
+import { POI_SYNC_RUN_COLUMNS, poiSyncRunFromRow } from "@/features/nearby/server/poi-sync";
+import type { PoiKind } from "@/features/nearby/types";
 
 export const metadata: Metadata = { title: "Veri sağlığı" };
 
@@ -49,11 +53,32 @@ const COUNT_LABELS: Record<string, string> = {
   notifications_unsent: "Gönderilmemiş bildirim",
 };
 
-/** Veri sağlığı: kaynaklar, nöbetçi eczane, haber akışları, sayımlar ve örnek veri temizliği. */
+/** Veri sağlığı: kaynaklar, yer verisi eşitleme, nöbetçi eczane, haber akışları, sayımlar ve örnek veri temizliği. */
 export default async function AdminDataPage() {
   await requireAdmin();
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("admin_data_health");
+  const [{ data, error }, lastRunRes, activeRunRes] = await Promise.all([
+    supabase.rpc("admin_data_health"),
+    // Last finished run (a preview only shows to the admin who asked for it).
+    supabase
+      .from("data_sync_runs")
+      .select(POI_SYNC_RUN_COLUMNS)
+      .eq("dataset", "poi")
+      .eq("dry_run", false)
+      .neq("status", "running")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // An admin request the public app is still working on ("Şimdi eşitle" before a reload).
+    supabase
+      .from("data_sync_runs")
+      .select(POI_SYNC_RUN_COLUMNS)
+      .eq("dataset", "poi")
+      .eq("status", "running")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
   const h = data as unknown as Health | null;
   if (error || !h) {
     return (
@@ -66,6 +91,8 @@ export default async function AdminDataPage() {
     );
   }
   const demoTotal = Object.values(h.demo).reduce<number>((a, b) => a + (b ?? 0), 0);
+  const lastRun = lastRunRes.data ? poiSyncRunFromRow(lastRunRes.data) : null;
+  const activeRun = activeRunRes.data ? poiSyncRunFromRow(activeRunRes.data) : null;
 
   return (
     <>
@@ -93,7 +120,7 @@ export default async function AdminDataPage() {
                 <tbody className="divide-y">
                   {h.poi.map((p) => (
                     <tr key={`${p.kind}-${p.source}-${p.license}`}>
-                      <td className="py-1.5">{POI_KINDS[p.kind] ?? p.kind}</td>
+                      <td className="py-1.5">{POI_KIND_META[p.kind as PoiKind]?.label ?? POI_KINDS[p.kind] ?? p.kind}</td>
                       <td className="py-1.5">
                         {POI_SOURCES[p.source] ?? p.source}
                         {p.license ? <span className="block text-xs text-muted-foreground">{p.license}</span> : null}
@@ -128,6 +155,13 @@ export default async function AdminDataPage() {
             </InfoList>
           </AdminCard>
         </div>
+
+        <AdminCard
+          title="Yer verisi eşitleme"
+          description="Eczane ve camiler (KBB) ile duraklar, taksi durakları, ATM'ler ve gezilecek yerler (OpenStreetMap) her ayın 2'sinde yeniden çekilir. Kaynakta artık olmayan yerler silinmez, gizlenir; kilitli yerlere dokunulmaz."
+        >
+          <PoiSyncPanel lastRun={lastRun} activeRun={activeRun} />
+        </AdminCard>
 
         <AdminCard title="Sayımlar">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">

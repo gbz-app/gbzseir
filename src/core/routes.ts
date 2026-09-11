@@ -181,6 +181,8 @@ export const routes = {
     finance: (query?: QueryRecord) => withQuery("/admin/muhasebe", query),
     events: () => "/admin/etkinlikler",
     listingCategories: () => "/admin/ilan-kategorileri",
+    /** Kategori sözlükleri: ?sekme=chipler|olanaklar|etkinlik, tur (vertical of the chips), kapsam=isletme|oda */
+    vocabularies: (query?: QueryRecord) => withQuery("/admin/sozlukler", query),
     listings: () => "/admin/ilanlar",
     reports: () => "/admin/sikayetler",
     businesses: () => "/admin/isletmeler",

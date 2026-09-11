@@ -13,7 +13,7 @@ import { APP_NAME, CITY, SITE_URL } from "@/config/site";
 import { truncate } from "@/core/format";
 import { routes } from "@/core/routes";
 import { BusinessLogo } from "@/features/business/components/business-logo";
-import { EVENT_CATEGORY_INFO } from "@/features/business/lib/verticals";
+import { vocabIcon } from "@/features/business/lib/verticals";
 import { eventDateLabel, eventPriceLabel, eventTimeLabel } from "@/features/events/format";
 import { getEventBySlug } from "@/features/events/queries";
 import { MiniMap } from "@/features/nearby/map/mini-map";
@@ -64,7 +64,7 @@ export default async function EventPage({ params }: Props) {
   const e = await getEventBySlug(normalizeSlug((await params).slug));
   if (!e) notFound();
 
-  const cat = EVENT_CATEGORY_INFO[e.category];
+  const cat = { label: e.category_label, icon: vocabIcon(e.category_icon, Ticket) };
   const hasLocation = typeof e.lat === "number" && typeof e.lng === "number";
   // A sample organizer's number is a placeholder, never the fallback.
   const phone = e.phone ?? (e.business && !e.business.is_demo ? e.business.phone : null);

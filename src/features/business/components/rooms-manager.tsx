@@ -16,7 +16,7 @@ import { FormScreen } from "@/components/shared/form-screen";
 import { refreshMyBusinessPages } from "../actions";
 import { amountInput, parseAmount } from "../lib/form-utils";
 import type { Room } from "../lib/vertical-queries";
-import { ROOM_AMENITIES } from "../lib/verticals";
+import { ROOM_AMENITIES, roomAmenityOptions, type AmenityDef } from "../lib/verticals";
 import { CharCount, Field } from "./editor/field";
 
 const ROOM_COLUMNS = "id,name,description,price_try,capacity,bed_info,size_m2,amenities,photos,is_available,sort";
@@ -26,8 +26,8 @@ const toRoom = (r: RawRoom): Room => {
   return { ...r, price_try: n !== null && Number.isFinite(n) ? n : null, amenities: r.amenities ?? [], photos: r.photos ?? [] };
 };
 
-/** Owner rooms editor (hotels): add, edit, reorder, availability. Saved immediately. */
-export function RoomsManager({ businessId, initial }: { businessId: string; initial: Room[] }) {
+/** Owner rooms editor (hotels): add, edit, reorder, availability. Saved immediately. `amenities`: room features (vocabularies.ts). */
+export function RoomsManager({ businessId, initial, amenities = ROOM_AMENITIES }: { businessId: string; initial: Room[]; amenities?: readonly AmenityDef[] }) {
   const [rooms, setRooms] = React.useState<Room[]>(initial);
   const [editing, setEditing] = React.useState<Room | "new" | null>(null);
   const supabase = React.useMemo(() => createClient(), []);
@@ -126,6 +126,7 @@ export function RoomsManager({ businessId, initial }: { businessId: string; init
           key={editing === "new" ? "new" : editing.id}
           businessId={businessId}
           room={editing === "new" ? null : editing}
+          features={amenities}
           nextSort={rooms.reduce((m, r) => Math.max(m, r.sort), -1) + 1}
           onClose={() => setEditing(null)}
           onDelete={remove}
@@ -143,6 +144,7 @@ export function RoomsManager({ businessId, initial }: { businessId: string; init
 function RoomForm({
   businessId,
   room,
+  features,
   nextSort,
   onClose,
   onSaved,
@@ -150,6 +152,7 @@ function RoomForm({
 }: {
   businessId: string;
   room: Room | null;
+  features: readonly AmenityDef[];
   nextSort: number;
   onClose: () => void;
   onSaved: (room: Room) => void;
@@ -236,8 +239,8 @@ function RoomForm({
       </Field>
       <Field label="Oda özellikleri" optional>
         <div className="flex flex-wrap gap-2">
-          {Object.entries(ROOM_AMENITIES).map(([k, a]) => (
-            <FilterChip key={k} active={amenities.includes(k)} onClick={() => setAmenities((s) => (s.includes(k) ? s.filter((x) => x !== k) : [...s, k]))} icon={a.icon}>
+          {roomAmenityOptions(features).map((a) => (
+            <FilterChip key={a.key} active={amenities.includes(a.key)} onClick={() => setAmenities((s) => (s.includes(a.key) ? s.filter((x) => x !== a.key) : [...s, a.key]))} icon={a.icon}>
               {a.label}
             </FilterChip>
           ))}

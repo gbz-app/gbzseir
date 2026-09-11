@@ -16,7 +16,7 @@ import { FilterChip } from "@/components/shared/explore-header";
 import { refreshMyBusinessPages } from "../actions";
 import { hoursToJson, validateHours, type WorkingHours } from "../lib/hours";
 import { normalizeInstagram, normalizeUrl } from "../lib/form-utils";
-import { BUSINESS_VERTICALS, PRICE_LEVELS, VERTICAL_INFO, amenitiesFor, hasMenu, type Vertical } from "../lib/verticals";
+import { AMENITIES, BUSINESS_VERTICALS, PRICE_LEVELS, VERTICAL_INFO, amenitiesFor, hasMenu, type AmenityDef, type Vertical } from "../lib/verticals";
 import { AreaPicker } from "./editor/area-picker";
 import { CategoryPicker } from "./editor/category-picker";
 import { CharCount, Field } from "./editor/field";
@@ -70,15 +70,18 @@ const ALWAYS_OPEN: WorkingHours = {
   sun: { open: "00:00", close: "23:59" },
 };
 
-/** /isletme/duzenle: the owner edits every public field of the business page. */
-export function BusinessEditForm({ initial }: { initial: BusinessEditData }) {
+/**
+ * /isletme/duzenle: the owner edits every public field of the business page.
+ * `amenities`: public.amenities of scope business (vocabularies.ts); the built-in list when omitted.
+ */
+export function BusinessEditForm({ initial, amenities = AMENITIES }: { initial: BusinessEditData; amenities?: readonly AmenityDef[] }) {
   const router = useRouter();
   const [d, setD] = React.useState(initial);
   const [uploading, setUploading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const set = <K extends keyof BusinessEditData>(key: K, value: BusinessEditData[K]) => setD((s) => ({ ...s, [key]: value }));
 
-  const amenityOptions = amenitiesFor(d.vertical);
+  const amenityOptions = amenitiesFor(d.vertical, amenities);
   const toggleAmenity = (key: string) => set("amenities", d.amenities.includes(key) ? d.amenities.filter((a) => a !== key) : [...d.amenities, key]);
 
   const save = async () => {
@@ -96,7 +99,9 @@ export function BusinessEditForm({ initial }: { initial: BusinessEditData }) {
 
     setSaving(true);
     const supabase = createClient();
-    const allowed = new Set(amenityOptions.map((a) => a.key));
+    // Amenities of another vertical are dropped; keys the admin turned off (or a list that could not be read) are kept.
+    const offered = new Set(amenityOptions.map((a) => a.key));
+    const known = new Set(amenities.filter((a) => a.active).map((a) => a.key));
     const { error } = await supabase
       .from("businesses")
       .update({
@@ -113,7 +118,7 @@ export function BusinessEditForm({ initial }: { initial: BusinessEditData }) {
         neighbourhood_id: d.neighbourhoodId,
         price_level: d.vertical === "otel" ? null : d.priceLevel,
         star_rating: d.vertical === "otel" ? d.starRating : null,
-        amenities: d.amenities.filter((a) => allowed.has(a)),
+        amenities: d.amenities.filter((a) => offered.has(a) || !known.has(a)),
         working_hours: hoursToJson(d.hours),
       })
       .eq("id", d.id);

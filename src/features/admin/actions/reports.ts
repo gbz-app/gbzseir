@@ -117,8 +117,10 @@ export async function removeReportedContentAction(input: z.input<typeof removeSc
       }
       case "user": {
         if (targetId === userId) return fail("Kendi hesabını engelleyemezsin.", "self");
-        // Same path as Admin > Kullanıcılar: profile status, sign-in ban and hidden public content.
-        const res = await setUserStatusAction({ userId: targetId, status: "banned" });
+        // Same path as Admin > Kullanıcılar (admin_set_user_status): profile status, sign-in ban, closed sessions and
+        // hidden public content. The report is kept as the reason in the audit log.
+        const reason = `Şikayet #${report.id.slice(0, 8).toUpperCase()}${parsed.data.note ? `: ${parsed.data.note}` : ""}`.slice(0, 300);
+        const res = await setUserStatusAction({ userId: targetId, status: "banned", reason });
         if (!res.ok) return fail(res.error, res.hint);
         message = "Kullanıcı engellendi.";
         break;

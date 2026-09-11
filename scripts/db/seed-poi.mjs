@@ -1,14 +1,20 @@
-// Seed points of interest for Gebze:
+// Seed / re-sync points of interest for Gebze:
 //   - pharmacies, mosques, historic sites: Kocaeli Büyükşehir Belediyesi Açık Veri (CC BY 4.0), ilce_id 1338 = Gebze.
 //     Pharmacies/mosques come in EPSG:5254 (TM30) and are transformed to WGS84 in PostGIS.
 //   - bus stops (+ route refs) and named parks: OpenStreetMap via Overpass (ODbL), one query per kind.
 //   - curated places: our own short Turkish descriptions (details.curated = true).
-// Neighbourhood = polygon containing the point (fallback: nearest centre). Idempotent: upsert on (source, source_ref).
-// Usage: node --env-file=.env.local scripts/db/seed-poi.mjs [--cache <dir>]   (cache dir stores raw downloads)
+// Written through public.poi_sync_apply: upsert on (source, source_ref) + last_seen_at, neighbourhood = polygon containing
+// the point (fallback: nearest centre). Rows of a fully downloaded KBB / OSM list that the source no longer has are
+// hidden (never deleted; locked rows keep the admin's edits). Pharmacies, mosques, OSM places and stops are also re-synced
+// every month by src/features/nearby/server/poi-sync.ts with the same rules.
+// Usage: node --env-file=.env.local scripts/db/seed-poi.mjs [--dry-run] [--cache <dir>]
+//   --dry-run: print added / updated / missing counts, write nothing. --cache stores raw downloads (an old cache also
+//   hides what the source added since: dry-run first).
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { overpass, sql, lit, trSlug, UA, sleep } from "./lib.mjs";
+import { overpass, poiSyncApply, sql, trSlug, UA, sleep } from "./lib.mjs";
 
+const DRY_RUN = process.argv.includes("--dry-run");
 const cacheIdx = process.argv.indexOf("--cache");
 const CACHE = cacheIdx > 0 ? process.argv[cacheIdx + 1] : null;
 if (CACHE && !existsSync(CACHE)) mkdirSync(CACHE, { recursive: true });
@@ -82,7 +88,8 @@ try {
   console.warn("coast query failed, continuing without marina/ferry:", e.message);
 }
 
-const rows = []; // {kind,name,slug?,address,phone,x,y,srid,details,source,source_ref,license}
+// Rows without a "phone" key keep the stored phone (only KBB pharmacies / mosques have phones).
+const rows = []; // {kind,name,slug?,address,phone?,x,y,srid,details,source,source_ref,license}
 const gebze = (f) => f.properties?.ilce_id === GEBZE_ILCE_ID;
 
 for (const f of eczane.features.filter(gebze)) {
@@ -118,6 +125,7 @@ const CURATED_KBB = {
   "Osman Hamdi Bey Evi ve Müzesi": { name: "Osman Hamdi Bey Evi ve Müzesi", category: "muze",
     description: "Ressam, arkeolog ve müzeci Osman Hamdi Bey'in yazlarını geçirdiği köşk. Eskihisar koyuna bakan bahçesiyle müze olarak ziyaret edilebiliyor; ressamın hayatı ve eserleri anlatılıyor." },
 };
+// Place details never carry "photos": an admin's photos stay (a missing key reads as no photos).
 const kbbPlaceNames = new Map();
 for (const f of tarihi.features.filter(gebze)) {
   const p = f.properties;
@@ -128,8 +136,8 @@ for (const f of tarihi.features.filter(gebze)) {
   const name = c?.name ?? (raw === "Tarihi Çeşme" && mah ? `Tarihi Çeşme (${titleCaseTr(mah.trim())})` : raw);
   const [x, y] = f.geometry.coordinates;
   kbbPlaceNames.set(name, true);
-  rows.push({ kind: "place", name, address: cleanAddr(p.adres), phone: null, x, y, srid: 4326,
-    details: c ? { category: c.category, description: c.description, curated: true, photos: [] } : { category: "tarihi", curated: false, photos: [] },
+  rows.push({ kind: "place", name, address: cleanAddr(p.adres), x, y, srid: 4326,
+    details: c ? { category: c.category, description: c.description, curated: true } : { category: "tarihi", curated: false },
     source: "kbb", source_ref: `tarihi:${p.poi_id ?? p.objectid}`, license: KBB_LICENSE });
 }
 
@@ -182,12 +190,12 @@ void coastPick;
 
 for (const m of MANUAL) {
   kbbPlaceNames.set(m.name, true);
-  rows.push({ kind: "place", name: m.name, address: m.address, phone: null, x: m.pt[0], y: m.pt[1], srid: m.srid,
-    details: { category: m.category, description: m.description, curated: true, photos: [] },
+  rows.push({ kind: "place", name: m.name, address: m.address, x: m.pt[0], y: m.pt[1], srid: m.srid,
+    details: { category: m.category, description: m.description, curated: true },
     source: "manual", source_ref: m.ref, license: m.srid === 5254 ? KBB_LICENSE : OSM_LICENSE });
 }
 
-// OSM named parks / historic / malls not already covered (non-curated, no description).
+// OSM named parks / historic / malls not already covered (non-curated, no description; an admin's curated flag stays).
 const SKIP_OSM = /(mezarl|sitesi|^müze$|greek|favori avm|lokomotif|türbesi|anıtı|hannibal|kalesi|osman hamdi|hunkar|hünkar|ballıkaya|millet bahçesi|tatlıkuyu vadisi|gebze center)/i;
 const usedOsm = new Set(["relation/13794225", "way/1150515753", "way/1092602566", "way/165140213"]);
 const seenNames = new Set([...kbbPlaceNames.keys()].map((n) => n.toLocaleLowerCase("tr-TR")));
@@ -200,8 +208,8 @@ for (const e of osmPlaces.elements) {
   seenNames.add(key);
   const c = e.center || { lat: e.lat, lon: e.lon };
   const category = t.shop === "mall" ? "avm" : t.tourism === "museum" ? "muze" : t.historic ? "tarihi" : t.leisure === "nature_reserve" ? "doga" : "park";
-  rows.push({ kind: "place", name: t.name, address: null, phone: null, x: c.lon, y: c.lat, srid: 4326,
-    details: { category, curated: false, photos: [], ...(t.wikidata ? { wikidata: t.wikidata } : {}) },
+  rows.push({ kind: "place", name: t.name, address: null, x: c.lon, y: c.lat, srid: 4326,
+    details: { category, ...(t.wikidata ? { wikidata: t.wikidata } : {}) },
     source: "osm", source_ref: id, license: OSM_LICENSE });
 }
 
@@ -216,11 +224,15 @@ for (const r of osmRoutes.elements || []) {
     linesByNode.get(m.ref).add(ref);
   }
 }
-for (const e of osmBus.elements) {
+// The two queries can be answered by different mirrors: without any route the stored lines stay.
+const haveRoutes = linesByNode.size > 0 && !(typeof osmRoutes?.remark === "string" && /error/i.test(osmRoutes.remark));
+if (!osmBus.elements?.length) console.warn("OSM bus stops: empty answer, stops skipped (run again later).");
+else if (!haveRoutes) console.warn("OSM bus routes: empty or truncated answer, stored stop lines kept.");
+for (const e of osmBus.elements || []) {
   const t = e.tags || {};
   const lines = [...(linesByNode.get(e.id) || [])].sort((a, b) => a.localeCompare(b, "tr", { numeric: true }));
-  rows.push({ kind: "bus_stop", name: t.name ? t.name.trim() : "Otobüs Durağı", address: null, phone: null, x: e.lon, y: e.lat, srid: 4326,
-    details: { lines, ...(t.ref ? { stop_code: t.ref } : {}), ...(t.shelter ? { shelter: t.shelter === "yes" } : {}) },
+  rows.push({ kind: "bus_stop", name: t.name ? t.name.trim() : "Otobüs Durağı", address: null, x: e.lon, y: e.lat, srid: 4326,
+    details: { ...(haveRoutes ? { lines } : {}), ...(t.ref ? { stop_code: t.ref } : {}), ...(t.shelter ? { shelter: t.shelter === "yes" } : {}) },
     source: "osm", source_ref: `node/${e.id}`, license: OSM_LICENSE });
 }
 
@@ -248,34 +260,18 @@ for (const r of rows) {
 }
 
 // ---------------------------------------------------------------------------
-// Upsert in batches
+// Write in one transaction; complete lists hide what the source no longer has
 // ---------------------------------------------------------------------------
-let n = 0;
-for (let i = 0; i < rows.length; i += 80) {
-  const batch = rows.slice(i, i + 80);
-  const values = batch
-    .map((r) => `(${lit(r.kind)}, ${lit(r.name)}, ${lit(r.slug)}, ${lit(r.address)}, ${lit(r.phone)}, ${r.x}, ${r.y}, ${r.srid}, ${lit(JSON.stringify(r.details))}::jsonb, ${lit(r.source)}, ${lit(r.source_ref)}, ${lit(r.license)})`)
-    .join(",\n");
-  const q = `
-with v(kind, name, slug, address, phone, x, y, srid, details, source, source_ref, license) as (values ${values}),
-p as (
-  select v.*, extensions.st_transform(extensions.st_setsrid(extensions.st_makepoint(x, y), srid), 4326) as g from v
-)
-insert into public.poi (kind, name, slug, address, phone, location, neighbourhood_id, details, source, source_ref, license)
-select p.kind, p.name, p.slug, p.address, p.phone, p.g::extensions.geography,
-  coalesce(
-    (select b.neighbourhood_id from private.neighbourhood_boundaries b where extensions.st_contains(b.boundary, p.g) limit 1),
-    (select n.id from public.neighbourhoods n order by n.center operator(extensions.<->) p.g::extensions.geography limit 1)),
-  p.details, p.source, p.source_ref, p.license
-from p
-on conflict (source, source_ref) do update set
-  kind = excluded.kind, name = excluded.name, address = excluded.address, phone = excluded.phone,
-  location = excluded.location, neighbourhood_id = excluded.neighbourhood_id,
-  details = public.poi.details || excluded.details, license = excluded.license
-returning id`;
-  const out = await sql(q);
-  n += out.length;
+// Overpass reports a timeout / memory error in "remark" with partial data: such a list is not complete.
+const truncated = (j) => typeof j?.remark === "string" && /error/i.test(j.remark);
+const has = (source, kind) => rows.some((r) => r.source === source && r.kind === kind);
+const groups = [];
+for (const kind of ["pharmacy", "mosque", "place"]) if (has("kbb", kind)) groups.push({ source: "kbb", kind });
+if (has("osm", "place") && !truncated(osmPlaces)) groups.push({ source: "osm", kind: "place" });
+if (has("osm", "bus_stop") && !truncated(osmBus)) groups.push({ source: "osm", kind: "bus_stop" });
+
+await poiSyncApply(rows, groups, { dryRun: DRY_RUN });
+if (!DRY_RUN) {
+  const counts = await sql(`select kind, source, count(*) filter (where not hidden) as visible, count(*) filter (where hidden) as hidden from public.poi group by 1, 2 order by 1, 2`);
+  console.log(JSON.stringify(counts));
 }
-const counts = await sql(`select kind, source, count(*) from public.poi group by 1, 2 order by 1, 2`);
-console.log(`upserted ${n} POIs`);
-console.log(JSON.stringify(counts));

@@ -3,14 +3,14 @@ import { ArrowUpRight, MapPin, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { DemoBadge } from "@/components/shared/badges";
-import { EVENT_CATEGORY_INFO } from "@/features/business/lib/verticals";
+import { vocabIcon } from "@/features/business/lib/verticals";
 import { dateBadge, eventPriceLabel, eventWhenShort } from "../format";
 import type { EventItem } from "../queries";
 
 /** Big photo card of an event: calendar badge, category chip, floating info panel with an arrow. Server-safe. */
 export function EventCard({ event, eager, className }: { event: EventItem; eager?: boolean; className?: string }) {
   const badge = dateBadge(event.starts_at);
-  const cat = EVENT_CATEGORY_INFO[event.category];
+  const cat = { label: event.category_label, icon: vocabIcon(event.category_icon, Ticket) };
   const where = event.venue_name ?? (event.neighbourhood_name ? `${event.neighbourhood_name} Mah.` : null);
   return (
     <Link

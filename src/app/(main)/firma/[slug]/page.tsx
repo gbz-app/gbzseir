@@ -53,6 +53,7 @@ import {
   type ServiceCategoryLite,
 } from "@/features/business/lib/queries";
 import { createPublicClient } from "@/features/business/lib/public-client";
+import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { getBusinessMenu, getBusinessRooms, getBusinessServices, type BusinessService, type MenuSection, type Room } from "@/features/business/lib/vertical-queries";
 import { ServiceList } from "@/features/business/components/service-list";
 import { LISTABLE_VERTICALS, VERTICAL_INFO, amenityList, hasMenu, hasRooms, priceLevelInfo, resolveVertical, type Vertical } from "@/features/business/lib/verticals";
@@ -258,7 +259,7 @@ export default async function FirmPage({ params }: Props) {
   const vertical = resolveVertical(b.vertical, b.kinds);
   const info = VERTICAL_INFO[vertical];
   const offersServices = b.kinds.includes("service") || vertical === "hizmet";
-  const [reviews, listings, allCategories, totalNeighbourhoods, menu, rooms, events, services] = await Promise.all([
+  const [reviews, listings, allCategories, totalNeighbourhoods, menu, rooms, events, services, vocab] = await Promise.all([
     getBusinessReviews(b.id).catch(() => [] as PublicReview[]),
     getBusinessActiveListings(b.id).catch(() => [] as BusinessListing[]),
     getServiceCategories().catch(() => [] as ServiceCategoryLite[]),
@@ -267,6 +268,7 @@ export default async function FirmPage({ params }: Props) {
     hasRooms(vertical) ? getBusinessRooms(b.id).catch(() => [] as Room[]) : Promise.resolve([] as Room[]),
     listBusinessEvents(b.id).catch(() => [] as EventItem[]),
     offersServices ? getBusinessServices(b.id).catch(() => [] as BusinessService[]) : Promise.resolve([] as BusinessService[]),
+    getVocabularies(),
   ]);
 
   const url = `${SITE_URL}${routes.businesses.detail(b.slug)}`;
@@ -281,7 +283,7 @@ export default async function FirmPage({ params }: Props) {
   const jobs = listings.filter((l) => l.type === "job");
   const classifieds = listings.filter((l) => l.type !== "job");
   const memberSince = b.approved_at ?? b.created_at;
-  const amenities = amenityList(b.amenities);
+  const amenities = amenityList(b.amenities, vocab.amenities);
   const priceLevel = priceLevelInfo(b.price_level);
   const itemCount = menuItemCount(menu);
   const availableRooms = rooms.filter((r) => r.is_available && r.price_try != null);
@@ -484,7 +486,7 @@ export default async function FirmPage({ params }: Props) {
   const roomsPanel = rooms.length ? (
     <div>
       <PanelTitle>Odalar</PanelTitle>
-      <RoomList rooms={rooms} businessId={b.id} businessName={b.name} phone={isDemo ? null : b.phone} />
+      <RoomList rooms={rooms} businessId={b.id} businessName={b.name} phone={isDemo ? null : b.phone} amenities={vocab.roomAmenities} />
       <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
         {isDemo ? "Örnek kayıt: odalar ve fiyatlar gerçek değil, rezervasyon yapılamaz." : "Fiyatlar işletme tarafından girilir; müsaitlik ve rezervasyon için oteli ara."}
       </p>

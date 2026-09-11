@@ -1,6 +1,8 @@
 /**
  * Business verticals (işletme türü) and the vocabularies that depend on them: amenities, room features,
- * menu tags, price levels and event categories. Pure TS + lucide icons (server and client safe).
+ * menu tags, price levels, event categories and keşfet chips. Pure TS + lucide icons (server and client safe).
+ * Amenities, room features, event categories and chips are admin-managed tables (2026091351_vocabularies.sql):
+ * the constants here are their seed and the fallback when the database cannot be read (see vocabularies.ts).
  */
 import {
   Accessibility,
@@ -9,12 +11,16 @@ import {
   Bath,
   BedDouble,
   BellRing,
+  BookOpen,
   Brush,
   Building2,
   Bus,
   CalendarCheck,
+  Camera,
   Car,
+  Check,
   ChefHat,
+  CigaretteOff,
   Coffee,
   ConciergeBell,
   CreditCard,
@@ -22,9 +28,12 @@ import {
   DoorOpen,
   Drama,
   Dumbbell,
+  Film,
   Flame,
+  Gamepad2,
   Gem,
   GraduationCap,
+  Heart,
   HeartPulse,
   Laptop,
   Leaf,
@@ -34,16 +43,22 @@ import {
   Palette,
   PartyPopper,
   PawPrint,
+  Pizza,
   Presentation,
   Refrigerator,
   ShoppingBag,
+  ShowerHead,
   Sparkles,
+  Star,
   Store,
   Sunset,
+  Tag,
+  Tent,
   Ticket,
   Trees,
   Trophy,
   Tv,
+  Utensils,
   UtensilsCrossed,
   Vegan,
   Waves,
@@ -168,74 +183,144 @@ export function hasRooms(v: Vertical | null | undefined): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Amenities (businesses.amenities)
+// Vocabulary icons (lucide kebab-case names stored in amenities.icon / event_categories.icon)
 // ---------------------------------------------------------------------------
-type AmenityInfo = { label: string; icon: LucideIcon; for: readonly Vertical[] };
+const VOCAB_ICONS: Record<string, LucideIcon> = {
+  accessibility: Accessibility,
+  "air-vent": AirVent,
+  baby: Baby,
+  bath: Bath,
+  "bed-double": BedDouble,
+  "bell-ring": BellRing,
+  "book-open": BookOpen,
+  brush: Brush,
+  bus: Bus,
+  "calendar-check": CalendarCheck,
+  camera: Camera,
+  car: Car,
+  "chef-hat": ChefHat,
+  "cigarette-off": CigaretteOff,
+  coffee: Coffee,
+  "concierge-bell": ConciergeBell,
+  "credit-card": CreditCard,
+  croissant: Croissant,
+  "door-open": DoorOpen,
+  drama: Drama,
+  dumbbell: Dumbbell,
+  film: Film,
+  flame: Flame,
+  "gamepad-2": Gamepad2,
+  "graduation-cap": GraduationCap,
+  heart: Heart,
+  laptop: Laptop,
+  leaf: Leaf,
+  "lock-keyhole": LockKeyhole,
+  mic: Mic,
+  music: Music,
+  palette: Palette,
+  "party-popper": PartyPopper,
+  "paw-print": PawPrint,
+  pizza: Pizza,
+  presentation: Presentation,
+  refrigerator: Refrigerator,
+  "shopping-bag": ShoppingBag,
+  "shower-head": ShowerHead,
+  sparkles: Sparkles,
+  star: Star,
+  sunset: Sunset,
+  tag: Tag,
+  tent: Tent,
+  ticket: Ticket,
+  trees: Trees,
+  trophy: Trophy,
+  tv: Tv,
+  utensils: Utensils,
+  vegan: Vegan,
+  waves: Waves,
+  "wheat-off": WheatOff,
+  wifi: Wifi,
+  wind: Wind,
+  wrench: Wrench,
+};
+
+/** Icon names an admin can pick for an amenity or an event category. */
+export const VOCAB_ICON_NAMES = Object.keys(VOCAB_ICONS);
+
+export function vocabIcon(name: string | null | undefined, fallback: LucideIcon = Tag): LucideIcon {
+  return (name ? VOCAB_ICONS[name] : undefined) ?? fallback;
+}
+
+// ---------------------------------------------------------------------------
+// Amenities (businesses.amenities) and hotel room features (business_rooms.amenities)
+// ---------------------------------------------------------------------------
+/** A row of public.amenities: scope business is offered to `verticals`; room features have none. Serializable. */
+export type AmenityDef = { key: string; label: string; icon: string | null; verticals: readonly Vertical[]; active: boolean };
 
 const FOOD: readonly Vertical[] = ["yemek", "restoran", "kafe"];
 const ALL: readonly Vertical[] = VERTICALS;
+const amenity = (key: string, label: string, icon: string, verticals: readonly Vertical[] = []): AmenityDef => ({ key, label, icon, verticals, active: true });
 
-export const AMENITIES: Record<string, AmenityInfo> = {
-  wifi: { label: "Ücretsiz Wi-Fi", icon: Wifi, for: ["restoran", "kafe", "otel", "diger"] },
-  otopark: { label: "Otopark", icon: Car, for: ALL },
-  paket_servis: { label: "Paket servis", icon: ShoppingBag, for: FOOD },
-  rezervasyon: { label: "Rezervasyon", icon: CalendarCheck, for: ["restoran", "kafe"] },
-  bahce: { label: "Bahçe / teras", icon: Trees, for: [...FOOD, "otel"] },
-  cocuk_dostu: { label: "Çocuk dostu", icon: Baby, for: [...FOOD, "otel"] },
-  vejetaryen: { label: "Vejetaryen seçenek", icon: Leaf, for: FOOD },
-  kahvalti: { label: "Kahvaltı", icon: Croissant, for: ["kafe", "restoran", "otel"] },
-  canli_muzik: { label: "Canlı müzik", icon: Music, for: ["restoran", "kafe"] },
-  manzara: { label: "Deniz manzarası", icon: Sunset, for: ["restoran", "kafe", "otel"] },
-  kredi_karti: { label: "Kredi kartı", icon: CreditCard, for: ALL },
-  engelli_erisimi: { label: "Engelli erişimi", icon: Accessibility, for: ALL },
-  evcil_hayvan: { label: "Evcil hayvan kabul", icon: PawPrint, for: ["kafe", "otel"] },
-  havuz: { label: "Havuz", icon: Waves, for: ["otel"] },
-  spor_salonu: { label: "Spor salonu", icon: Dumbbell, for: ["otel"] },
-  toplanti_salonu: { label: "Toplantı salonu", icon: Presentation, for: ["otel"] },
-  resepsiyon: { label: "7/24 resepsiyon", icon: ConciergeBell, for: ["otel"] },
-  oda_servisi: { label: "Oda servisi", icon: BellRing, for: ["otel"] },
-  klima: { label: "Klima", icon: AirVent, for: ["otel", "restoran", "kafe"] },
-  transfer: { label: "Transfer", icon: Bus, for: ["otel"] },
-};
+/** Seed / fallback of public.amenities (scope business). */
+export const AMENITIES: readonly AmenityDef[] = [
+  amenity("wifi", "Ücretsiz Wi-Fi", "wifi", ["restoran", "kafe", "otel", "diger"]),
+  amenity("otopark", "Otopark", "car", ALL),
+  amenity("paket_servis", "Paket servis", "shopping-bag", FOOD),
+  amenity("rezervasyon", "Rezervasyon", "calendar-check", ["restoran", "kafe"]),
+  amenity("bahce", "Bahçe / teras", "trees", [...FOOD, "otel"]),
+  amenity("cocuk_dostu", "Çocuk dostu", "baby", [...FOOD, "otel"]),
+  amenity("vejetaryen", "Vejetaryen seçenek", "leaf", FOOD),
+  amenity("kahvalti", "Kahvaltı", "croissant", ["kafe", "restoran", "otel"]),
+  amenity("canli_muzik", "Canlı müzik", "music", ["restoran", "kafe"]),
+  amenity("manzara", "Deniz manzarası", "sunset", ["restoran", "kafe", "otel"]),
+  amenity("kredi_karti", "Kredi kartı", "credit-card", ALL),
+  amenity("engelli_erisimi", "Engelli erişimi", "accessibility", ALL),
+  amenity("evcil_hayvan", "Evcil hayvan kabul", "paw-print", ["kafe", "otel"]),
+  amenity("havuz", "Havuz", "waves", ["otel"]),
+  amenity("spor_salonu", "Spor salonu", "dumbbell", ["otel"]),
+  amenity("toplanti_salonu", "Toplantı salonu", "presentation", ["otel"]),
+  amenity("resepsiyon", "7/24 resepsiyon", "concierge-bell", ["otel"]),
+  amenity("oda_servisi", "Oda servisi", "bell-ring", ["otel"]),
+  amenity("klima", "Klima", "air-vent", ["otel", "restoran", "kafe"]),
+  amenity("transfer", "Transfer", "bus", ["otel"]),
+];
+
+/** Seed / fallback of public.amenities (scope room). */
+export const ROOM_AMENITIES: readonly AmenityDef[] = [
+  amenity("wifi", "Wi-Fi", "wifi"),
+  amenity("klima", "Klima", "air-vent"),
+  amenity("tv", "TV", "tv"),
+  amenity("minibar", "Minibar", "refrigerator"),
+  amenity("kasa", "Kasa", "lock-keyhole"),
+  amenity("balkon", "Balkon", "door-open"),
+  amenity("kuvet", "Küvet", "bath"),
+  amenity("sac_kurutma", "Saç kurutma", "wind"),
+  amenity("calisma_masasi", "Çalışma masası", "laptop"),
+  amenity("cay_kahve", "Çay / kahve seti", "coffee"),
+  amenity("manzara", "Deniz manzarası", "sunset"),
+];
 
 export type AmenityOption = { key: string; label: string; icon: LucideIcon };
 
-export function amenitiesFor(v: Vertical): AmenityOption[] {
-  return Object.entries(AMENITIES)
-    .filter(([, a]) => a.for.includes(v))
-    .map(([key, a]) => ({ key, label: a.label, icon: a.icon }));
+const toOption = (a: AmenityDef): AmenityOption => ({ key: a.key, label: a.label, icon: vocabIcon(a.icon, Check) });
+
+/** Active amenities a business of vertical `v` can pick, in the configured order. */
+export function amenitiesFor(v: Vertical, list: readonly AmenityDef[] = AMENITIES): AmenityOption[] {
+  return list.filter((a) => a.active && a.verticals.includes(v)).map(toOption);
 }
 
-/** Known amenities of a business in the config order (unknown keys are dropped). */
-export function amenityList(keys: readonly string[] | null | undefined): AmenityOption[] {
+/** Known active amenities of a business in the configured order (unknown keys are dropped). */
+export function amenityList(keys: readonly string[] | null | undefined, list: readonly AmenityDef[] = AMENITIES): AmenityOption[] {
   if (!keys?.length) return [];
-  return Object.entries(AMENITIES)
-    .filter(([key]) => keys.includes(key))
-    .map(([key, a]) => ({ key, label: a.label, icon: a.icon }));
+  return list.filter((a) => a.active && keys.includes(a.key)).map(toOption);
 }
 
-// ---------------------------------------------------------------------------
-// Hotel rooms
-// ---------------------------------------------------------------------------
-export const ROOM_AMENITIES: Record<string, { label: string; icon: LucideIcon }> = {
-  wifi: { label: "Wi-Fi", icon: Wifi },
-  klima: { label: "Klima", icon: AirVent },
-  tv: { label: "TV", icon: Tv },
-  minibar: { label: "Minibar", icon: Refrigerator },
-  kasa: { label: "Kasa", icon: LockKeyhole },
-  balkon: { label: "Balkon", icon: DoorOpen },
-  kuvet: { label: "Küvet", icon: Bath },
-  sac_kurutma: { label: "Saç kurutma", icon: Wind },
-  calisma_masasi: { label: "Çalışma masası", icon: Laptop },
-  cay_kahve: { label: "Çay / kahve seti", icon: Coffee },
-  manzara: { label: "Deniz manzarası", icon: Sunset },
-};
+/** Active room features an owner can pick. */
+export function roomAmenityOptions(list: readonly AmenityDef[] = ROOM_AMENITIES): AmenityOption[] {
+  return list.filter((a) => a.active).map(toOption);
+}
 
-export function roomAmenityList(keys: readonly string[] | null | undefined): AmenityOption[] {
-  if (!keys?.length) return [];
-  return Object.entries(ROOM_AMENITIES)
-    .filter(([key]) => keys.includes(key))
-    .map(([key, a]) => ({ key, label: a.label, icon: a.icon }));
+export function roomAmenityList(keys: readonly string[] | null | undefined, list: readonly AmenityDef[] = ROOM_AMENITIES): AmenityOption[] {
+  return amenityList(keys, list);
 }
 
 // ---------------------------------------------------------------------------
@@ -286,23 +371,41 @@ export function priceLevelInfo(level: number | null | undefined): { symbol: stri
 // ---------------------------------------------------------------------------
 // Events
 // ---------------------------------------------------------------------------
-export const EVENT_CATEGORIES = ["konser", "tiyatro", "festival", "spor", "cocuk", "sergi", "atolye", "soylesi", "diger"] as const;
-export type EventCategory = (typeof EVENT_CATEGORIES)[number];
+/** events.category: a key of public.event_categories. */
+export type EventCategory = string;
 
-export const EVENT_CATEGORY_INFO: Record<EventCategory, { label: string; icon: LucideIcon }> = {
-  konser: { label: "Konser", icon: Music },
-  tiyatro: { label: "Tiyatro", icon: Drama },
-  festival: { label: "Festival", icon: PartyPopper },
-  spor: { label: "Spor", icon: Trophy },
-  cocuk: { label: "Çocuk", icon: Baby },
-  sergi: { label: "Sergi", icon: Palette },
-  atolye: { label: "Atölye", icon: Brush },
-  soylesi: { label: "Söyleşi", icon: Mic },
-  diger: { label: "Diğer", icon: Ticket },
-};
+/** A row of public.event_categories. Serializable. */
+export type EventCategoryDef = { key: string; label: string; icon: string | null; active: boolean };
+
+const eventCategory = (key: string, label: string, icon: string): EventCategoryDef => ({ key, label, icon, active: true });
+
+/** Seed / fallback of public.event_categories. */
+export const EVENT_CATEGORIES: readonly EventCategoryDef[] = [
+  eventCategory("konser", "Konser", "music"),
+  eventCategory("tiyatro", "Tiyatro", "drama"),
+  eventCategory("festival", "Festival", "party-popper"),
+  eventCategory("spor", "Spor", "trophy"),
+  eventCategory("cocuk", "Çocuk", "baby"),
+  eventCategory("sergi", "Sergi", "palette"),
+  eventCategory("atolye", "Atölye", "brush"),
+  eventCategory("soylesi", "Söyleşi", "mic"),
+  eventCategory("diger", "Diğer", "ticket"),
+];
+
+/** events.category default. */
+export const DEFAULT_EVENT_CATEGORY: EventCategory = "diger";
+
+export type EventCategoryInfo = { key: string; label: string; icon: LucideIcon };
+
+/** Label and icon of a category key; a key missing from the list (database unreadable) shows the key itself. */
+export function eventCategoryInfo(key: string, list: readonly EventCategoryDef[] = EVENT_CATEGORIES): EventCategoryInfo {
+  const c = list.find((x) => x.key === key);
+  const label = c?.label ?? (key ? `${key.charAt(0).toLocaleUpperCase("tr-TR")}${key.slice(1).replaceAll("_", " ")}` : "Diğer");
+  return { key, label, icon: vocabIcon(c?.icon, Ticket) };
+}
 
 export function parseEventCategory(value: unknown): EventCategory | null {
-  return typeof value === "string" && (EVENT_CATEGORIES as readonly string[]).includes(value) ? (value as EventCategory) : null;
+  return typeof value === "string" && /^[a-z][a-z0-9_]{0,39}$/.test(value) ? value : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -319,6 +422,7 @@ export type VerticalSubcategory = {
 
 const subcat = (key: string, label: string, keywords: readonly string[], exclude?: readonly string[]): VerticalSubcategory => ({ key, label, keywords, exclude });
 
+/** Seed / fallback of public.vertical_subcategories. */
 export const VERTICAL_SUBCATEGORIES: Partial<Record<Vertical, readonly VerticalSubcategory[]>> = {
   yemek: [
     subcat("doner", "Döner", ["döner"]),

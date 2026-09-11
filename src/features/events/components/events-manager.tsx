@@ -18,7 +18,7 @@ import { refreshMyBusinessPages } from "@/features/business/actions";
 import { CharCount, Field } from "@/features/business/components/editor/field";
 import { BusinessImagePicker, type PickedImage } from "@/features/business/components/editor/image-picker";
 import { amountInput, istanbulIso, istanbulParts, normalizeUrl, parseAmount } from "@/features/business/lib/form-utils";
-import { EVENT_CATEGORIES, EVENT_CATEGORY_INFO, type EventCategory } from "@/features/business/lib/verticals";
+import { DEFAULT_EVENT_CATEGORY, EVENT_CATEGORIES, eventCategoryInfo, parseEventCategory, vocabIcon, type EventCategory, type EventCategoryDef } from "@/features/business/lib/verticals";
 import { eventPriceLabel, eventWhenShort } from "../format";
 import type { EventStatus, OwnerEvent } from "../owner-queries";
 
@@ -47,7 +47,7 @@ function toEvent(r: Raw): OwnerEvent {
   const n = r.price_try === null || r.price_try === undefined ? null : Number(r.price_try);
   return {
     ...r,
-    category: (EVENT_CATEGORIES as readonly string[]).includes(r.category) ? (r.category as EventCategory) : "diger",
+    category: parseEventCategory(r.category) ?? DEFAULT_EVENT_CATEGORY,
     price_try: n !== null && Number.isFinite(n) ? n : null,
     status: r.status === "draft" || r.status === "cancelled" ? r.status : "published",
   };
@@ -55,8 +55,16 @@ function toEvent(r: Raw): OwnerEvent {
 
 const isPast = (e: OwnerEvent, now: number) => new Date(e.ends_at ?? e.starts_at).getTime() < now;
 
-/** Owner events: list (upcoming / past) and add / edit / delete. */
-export function EventsManager({ business, initial }: { business: EventOwnerBusiness; initial: OwnerEvent[] }) {
+/** Owner events: list (upcoming / past) and add / edit / delete. `categories`: event_categories (vocabularies.ts). */
+export function EventsManager({
+  business,
+  initial,
+  categories = EVENT_CATEGORIES,
+}: {
+  business: EventOwnerBusiness;
+  initial: OwnerEvent[];
+  categories?: readonly EventCategoryDef[];
+}) {
   const [events, setEvents] = React.useState<OwnerEvent[]>(initial);
   const [editing, setEditing] = React.useState<OwnerEvent | "new" | null>(null);
   const [now] = React.useState(() => Date.now());
@@ -126,6 +134,7 @@ export function EventsManager({ business, initial }: { business: EventOwnerBusin
           key={editing === "new" ? "new" : editing.id}
           business={business}
           event={editing === "new" ? null : editing}
+          categories={categories}
           onClose={() => setEditing(null)}
           onDelete={remove}
           onSaved={(e) => {
@@ -142,20 +151,25 @@ export function EventsManager({ business, initial }: { business: EventOwnerBusin
 function EventForm({
   business,
   event,
+  categories,
   onClose,
   onSaved,
   onDelete,
 }: {
   business: EventOwnerBusiness;
   event: OwnerEvent | null;
+  categories: readonly EventCategoryDef[];
   onClose: () => void;
   onSaved: (e: OwnerEvent) => void;
   onDelete: (e: OwnerEvent) => void;
 }) {
+  // Active categories, plus the event's own one if the admin has since turned it off (or the list could not be read).
+  const own = event && !categories.some((c) => c.key === event.category) ? [{ ...eventCategoryInfo(event.category, categories), icon: null, active: false }] : [];
+  const options: EventCategoryDef[] = [...categories.filter((c) => c.active || c.key === event?.category), ...own];
   const start = event ? istanbulParts(event.starts_at) : null;
   const end = event?.ends_at ? istanbulParts(event.ends_at) : null;
   const [title, setTitle] = React.useState(event?.title ?? "");
-  const [category, setCategory] = React.useState<EventCategory>(event?.category ?? "konser");
+  const [category, setCategory] = React.useState<EventCategory>(event?.category ?? options[0]?.key ?? DEFAULT_EVENT_CATEGORY);
   const [date, setDate] = React.useState(start?.date ?? "");
   const [time, setTime] = React.useState(start?.time ?? "20:00");
   const [endDate, setEndDate] = React.useState(end?.date ?? "");
@@ -239,9 +253,9 @@ function EventForm({
       </Field>
       <Field label="Kategori">
         <div className="flex flex-wrap gap-2">
-          {EVENT_CATEGORIES.map((c) => (
-            <FilterChip key={c} active={category === c} onClick={() => setCategory(c)} icon={EVENT_CATEGORY_INFO[c].icon}>
-              {EVENT_CATEGORY_INFO[c].label}
+          {options.map((c) => (
+            <FilterChip key={c.key} active={category === c.key} onClick={() => setCategory(c.key)} icon={vocabIcon(c.icon, Ticket)}>
+              {c.label}
             </FilterChip>
           ))}
         </div>

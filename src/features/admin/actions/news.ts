@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
 import { CONTENT_CACHE_TAGS } from "@/features/content/cache-tags";
-import { refreshNewsFeeds, testNewsFeed, type NewsRefreshResult } from "@/features/content/news/get-news";
+import { testNewsFeed } from "@/features/content/news/get-news";
 import { revalidatePublic } from "@/lib/revalidate-public";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
@@ -95,22 +95,31 @@ export async function testNewsFeedAction(input: { feedUrl: string; name?: string
   });
 }
 
-/** Fetch every active feed now (same as the 20-minute job) and refresh the news pages. */
-export async function refreshNewsAction(): Promise<ActionResult<null>> {
-  return withAdmin(async () => {
-    let r: NewsRefreshResult;
-    try {
-      r = await refreshNewsFeeds();
-    } catch (e) {
-      console.error("[admin news refresh]", e);
-      return fail("Haber kaynakları okunamadı. Tekrar dene.");
+type RefreshStart = { started?: boolean; reason?: "no_sources" | "recent" | "pending" | "no_secret" };
+
+/**
+ * "Şimdi çek": queues the same call as the 20-minute job (admin_refresh_news_now -> pg_net -> the public app's
+ * /api/cron/news, which fetches every active feed, stores the headlines and expires the public news pages). Returns at
+ * once; `queued` tells the button to reload /admin/haberler a few seconds later. The admin site needs no service role.
+ */
+export async function refreshNewsAction(): Promise<ActionResult<{ queued: boolean }>> {
+  return withAdmin<{ queued: boolean }>(async ({ supabase }) => {
+    const { data: raw, error } = await supabase.rpc("admin_refresh_news_now");
+    if (error) return dbFail(error, "Haber çekimi başlatılamadı. Tekrar dene.");
+    const data = raw as RefreshStart | null;
+    revalidatePath(routes.admin.news());
+    if (data?.started) return ok({ queued: true }, "Çekim başladı. Başlıklar birkaç saniye içinde güncellenir.");
+    switch (data?.reason) {
+      case "pending":
+        return ok({ queued: true }, "Çekim zaten sırada. Başlıklar birkaç saniye içinde güncellenir.");
+      case "recent":
+        return ok({ queued: false }, "Başlıklar az önce çekildi. Bir dakika sonra tekrar deneyebilirsin.");
+      case "no_sources":
+        return ok({ queued: false }, "Aktif haber kaynağı yok.");
+      case "no_secret":
+        return fail("Çekim başlatılamadı: zamanlanmış çekimin anahtarı tanımlı değil. Başlıklar şimdilik sayfa ziyaretlerinde çekiliyor.");
+      default:
+        return fail("Haber çekimi başlatılamadı. Tekrar dene.");
     }
-    await refreshNews();
-    if (r.saveError) return fail("Başlıklar çekildi ama kaydedilemedi. Tekrar dene.");
-    if (!r.sources) return ok(null, "Aktif haber kaynağı yok.");
-    return ok(
-      null,
-      r.failed.length ? `${r.okCount}/${r.sources} kaynak çalıştı. Hata veren: ${r.failed.map((f) => f.name).join(", ")}.` : `${r.sources} kaynağın hepsi çalıştı.`,
-    );
   });
 }

@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { parseEventCategory, type EventCategory } from "@/features/business/lib/verticals";
+import { DEFAULT_EVENT_CATEGORY, parseEventCategory, type EventCategory } from "@/features/business/lib/verticals";
 
 export type EventStatus = "draft" | "published" | "cancelled";
 
@@ -30,7 +30,7 @@ export function toOwnerEvent(r: Raw): OwnerEvent {
   const price = r.price_try === null || r.price_try === undefined ? null : Number(r.price_try);
   return {
     ...r,
-    category: parseEventCategory(r.category) ?? "diger",
+    category: parseEventCategory(r.category) ?? DEFAULT_EVENT_CATEGORY,
     price_try: price !== null && Number.isFinite(price) ? price : null,
     status: r.status === "draft" || r.status === "cancelled" ? r.status : "published",
   };

@@ -7,6 +7,7 @@ import { APP_NAME, CITY, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { VerticalExplorer } from "@/features/business/components/vertical-explorer";
 import { listVerticalBusinesses } from "@/features/business/lib/vertical-queries";
+import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { LISTABLE_VERTICALS, VERTICAL_INFO, parseVertical, type Vertical } from "@/features/business/lib/verticals";
 
 export const revalidate = 300;
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function VerticalPage({ params }: Props) {
   const v = listable((await params).tur);
   if (!v) notFound();
-  const [items, settings] = await Promise.all([listVerticalBusinesses(v).catch(() => null), getAppSettings()]);
+  const [items, settings, vocab] = await Promise.all([listVerticalBusinesses(v).catch(() => null), getAppSettings(), getVocabularies()]);
   if (!items) {
     return (
       <div className="px-4 py-10">
@@ -64,7 +65,7 @@ export default async function VerticalPage({ params }: Props) {
           }}
         />
       ) : null}
-      <VerticalExplorer vertical={v} items={items} applicationsOpen={settings.businessApplications} />
+      <VerticalExplorer vertical={v} items={items} applicationsOpen={settings.businessApplications} subcategories={vocab.subcategories[v] ?? []} />
     </>
   );
 }

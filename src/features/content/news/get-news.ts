@@ -52,7 +52,7 @@ export type NewsResult = {
   fromArchive: boolean;
 };
 
-/** One fetch of every active feed (cron or the admin "Şimdi çek" button). */
+/** One fetch of every active feed (/api/cron/news: the pg_cron job, or the admin "Şimdi çek" button through it). */
 export type NewsRefreshResult = {
   fetchedAt: string;
   sources: number;
@@ -253,8 +253,8 @@ async function loadNews(): Promise<NewsResult> {
 
 /**
  * Fetches every active feed now (no HTTP cache) and stores headlines + feed status. Used by the cron route
- * (/api/cron/news, every 20 minutes) and the admin "Şimdi çek" button. Throws when the service role is missing or
- * the sources cannot be read.
+ * (/api/cron/news, every 20 minutes; the admin "Şimdi çek" button queues the same call through admin_refresh_news_now,
+ * because the admin site has no service role). Throws when the service role is missing or the sources cannot be read.
  */
 export async function refreshNewsFeeds(): Promise<NewsRefreshResult> {
   const admin = createAdminClient();

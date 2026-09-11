@@ -52,8 +52,10 @@ type Stats = {
   calls_week?: number;
   calls_prev_week?: number;
   calls_total?: number;
-  phone_reveals_week?: number;
   directions_week?: number;
+  /** /firma/<slug> + /menu/<slug> views, owner's own sessions excluded. */
+  page_views_7d?: number;
+  page_views_30d?: number;
   reviews_unreplied?: number;
 };
 
@@ -94,11 +96,14 @@ function StatTile({ href, icon: Icon, iconClass, value, unit, label }: { href: s
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: string | number }) {
+function MiniStat({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
     <div className="rounded-2xl bg-muted/60 px-3 py-2.5">
       <p className="truncate text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-base font-semibold tabular-nums">{value}</p>
+      <p className="mt-1 flex min-w-0 items-baseline gap-1.5">
+        <span className="text-base font-semibold tabular-nums">{value}</span>
+        {hint ? <span className="truncate text-xs text-muted-foreground tabular-nums">{hint}</span> : null}
+      </p>
     </div>
   );
 }
@@ -355,7 +360,7 @@ export default async function BusinessPanelPage() {
             {isService ? (
               <MiniStat label="Kabul edilen talep" value={b.leads_accepted_count} />
             ) : (
-              <MiniStat label="Numara gösterimi" value={stats.phone_reveals_week ?? 0} />
+              <MiniStat label="Görüntülenme (7 gün)" value={stats.page_views_7d ?? 0} hint={`30 günde ${stats.page_views_30d ?? 0}`} />
             )}
           </div>
         </Link>

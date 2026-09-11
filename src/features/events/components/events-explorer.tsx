@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CalendarDays, Gift, Store } from "lucide-react";
+import { CalendarDays, Gift, Store, Ticket } from "lucide-react";
 import { istanbulDateKey, istanbulParts } from "@/core/time";
 import { routes } from "@/core/routes";
 import { Button } from "@/components/ui/button";
 import { ExploreHeader, FilterChip } from "@/components/shared/explore-header";
-import { EVENT_CATEGORIES, EVENT_CATEGORY_INFO, type EventCategory } from "@/features/business/lib/verticals";
+import { EVENT_CATEGORIES, vocabIcon, type EventCategory, type EventCategoryDef } from "@/features/business/lib/verticals";
 import { eventDayRange } from "../format";
 import type { EventItem } from "../queries";
 import { EventCard } from "./event-card";
@@ -25,12 +25,29 @@ function dayKeys(when: Exclude<When, "all">, now: Date): string[] {
 }
 
 /** /etkinlikler: date + category chips over the upcoming events. */
-export function EventsExplorer({ events, applicationsOpen }: { events: EventItem[]; applicationsOpen: boolean }) {
+export function EventsExplorer({
+  events,
+  applicationsOpen,
+  categories: order = EVENT_CATEGORIES,
+}: {
+  events: EventItem[];
+  applicationsOpen: boolean;
+  /** event_categories in admin order (vocabularies.ts); orders the category chips. */
+  categories?: readonly EventCategoryDef[];
+}) {
   const [when, setWhen] = React.useState<When>("all");
   const [freeOnly, setFreeOnly] = React.useState(false);
   const [cat, setCat] = React.useState<EventCategory | null>(null);
 
-  const categories = React.useMemo(() => EVENT_CATEGORIES.filter((c) => events.some((e) => e.category === c)), [events]);
+  // Categories of the listed events, in admin order (keys missing from the list go last).
+  const categories = React.useMemo(() => {
+    const rank = (key: string) => {
+      const i = order.findIndex((c) => c.key === key);
+      return i < 0 ? order.length : i;
+    };
+    const seen = new Map(events.map((e) => [e.category, { key: e.category, label: e.category_label, icon: e.category_icon }]));
+    return [...seen.values()].sort((a, b) => rank(a.key) - rank(b.key));
+  }, [events, order]);
 
   const filtered = React.useMemo(() => {
     const keys = when === "all" ? null : dayKeys(when, new Date());
@@ -73,14 +90,11 @@ export function EventsExplorer({ events, applicationsOpen }: { events: EventItem
 
       {categories.length > 1 ? (
         <div className="no-scrollbar -mx-4 -mt-2 flex gap-2 overflow-x-auto px-4 py-1" role="group" aria-label="Kategori">
-          {categories.map((c) => {
-            const info = EVENT_CATEGORY_INFO[c];
-            return (
-              <FilterChip key={c} active={cat === c} onClick={() => setCat((v) => (v === c ? null : c))} icon={info.icon}>
-                {info.label}
-              </FilterChip>
-            );
-          })}
+          {categories.map((c) => (
+            <FilterChip key={c.key} active={cat === c.key} onClick={() => setCat((v) => (v === c.key ? null : c.key))} icon={vocabIcon(c.icon, Ticket)}>
+              {c.label}
+            </FilterChip>
+          ))}
         </div>
       ) : null}
 

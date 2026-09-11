@@ -2,14 +2,15 @@ import { BedDouble, ChevronRight, Ruler, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/core/format";
 import type { Room } from "../lib/vertical-queries";
-import { roomAmenityList } from "../lib/verticals";
+import { roomAmenityList, type AmenityDef } from "../lib/verticals";
 
 /**
  * Hotel room card: swipeable photos, capacity / bed / size, features and nightly price. Server-safe.
  * `interactive` adds a "Detayları gör" hint (the parent opens the room sheet on tap).
+ * `features`: room features of public.amenities (vocabularies.ts); the built-in list when omitted.
  */
-export function RoomCard({ room, name, interactive }: { room: Room; name: string; interactive?: boolean }) {
-  const features = roomAmenityList(room.amenities);
+export function RoomCard({ room, name, interactive, features: list }: { room: Room; name: string; interactive?: boolean; features?: readonly AmenityDef[] }) {
+  const features = roomAmenityList(room.amenities, list);
   return (
     <article className={cn("overflow-hidden rounded-3xl bg-card", !room.is_available && "opacity-70")}>
       {room.photos.length ? (

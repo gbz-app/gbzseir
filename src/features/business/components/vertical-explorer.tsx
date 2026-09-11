@@ -16,7 +16,7 @@ import type { MapPoint } from "@/features/nearby/map/types";
 import { useApproxLocation } from "@/lib/location/use-approx-location";
 import { openStatusAt, parseWorkingHours, type OpenStatus } from "../lib/hours";
 import type { VerticalCard } from "../lib/vertical-queries";
-import { VERTICAL_INFO, VERTICAL_SUBCATEGORIES, subcategoryMatcher, type Vertical } from "../lib/verticals";
+import { VERTICAL_INFO, VERTICAL_SUBCATEGORIES, subcategoryMatcher, type Vertical, type VerticalSubcategory } from "../lib/verticals";
 import { VenueCard, VenuePhotoFallback } from "./venue-card";
 
 type Row = { item: VerticalCard; distance: number | null; open: OpenStatus | null };
@@ -26,10 +26,23 @@ const NOUN: Partial<Record<Vertical, string>> = { hizmet: "firma", otel: "otel",
 /** Verticals listed as a two-column grid of compact cards. */
 const COMPACT: readonly Vertical[] = ["saglik"];
 
+const NO_SUBCATEGORIES: readonly VerticalSubcategory[] = [];
+
 /** /kesfet/[tur]: search, sub-category chips, photo cards (compact grid for Sağlık) and a map view of one vertical. */
-export function VerticalExplorer({ vertical, items, applicationsOpen }: { vertical: Vertical; items: VerticalCard[]; applicationsOpen: boolean }) {
+export function VerticalExplorer({
+  vertical,
+  items,
+  applicationsOpen,
+  subcategories: chips,
+}: {
+  vertical: Vertical;
+  items: VerticalCard[];
+  applicationsOpen: boolean;
+  /** Admin-managed chips of the vertical (vocabularies.ts); the built-in list when omitted. */
+  subcategories?: readonly VerticalSubcategory[];
+}) {
   const info = VERTICAL_INFO[vertical];
-  const subcategories = VERTICAL_SUBCATEGORIES[vertical] ?? [];
+  const subcategories = chips ?? VERTICAL_SUBCATEGORIES[vertical] ?? NO_SUBCATEGORIES;
   const loc = useApproxLocation();
   const now = useNow();
   const [q, setQ] = React.useState("");
@@ -51,14 +64,14 @@ export function VerticalExplorer({ vertical, items, applicationsOpen }: { vertic
   const needle = slugifyTr(q);
   const sub = subcategories.find((s) => s.key === subKey) ?? null;
   const filtered = React.useMemo(() => {
-    const active = VERTICAL_SUBCATEGORIES[vertical]?.find((s) => s.key === subKey);
+    const active = subcategories.find((s) => s.key === subKey);
     const matches = active ? subcategoryMatcher(active) : null;
     return rows.filter(
       (r) =>
         (!needle || slugifyTr(`${r.item.name} ${r.item.category_label ?? ""} ${r.item.neighbourhood_name ?? ""}`).includes(needle)) &&
         (!matches || matches(`${r.item.category_label ?? ""} ${r.item.name} ${r.item.description ?? ""}`)),
     );
-  }, [rows, needle, vertical, subKey]);
+  }, [rows, needle, subcategories, subKey]);
 
   const clearAll = () => {
     setQ("");

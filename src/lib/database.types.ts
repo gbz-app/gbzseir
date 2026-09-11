@@ -17,6 +17,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      amenities: {
+        Row: {
+          active: boolean
+          created_at: string
+          icon: string | null
+          id: string
+          key: string
+          label: string
+          scope: string
+          sort: number
+          updated_at: string
+          verticals: string[]
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          key: string
+          label: string
+          scope: string
+          sort?: number
+          updated_at?: string
+          verticals?: string[]
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          key?: string
+          label?: string
+          scope?: string
+          sort?: number
+          updated_at?: string
+          verticals?: string[]
+        }
+        Relationships: []
+      }
       analytics_page_views: {
         Row: {
           created_at: string
@@ -872,6 +911,60 @@ export type Database = {
           },
         ]
       }
+      data_sync_runs: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          dataset: string
+          dry_run: boolean
+          finished_at: string | null
+          id: string
+          message: string | null
+          status: string
+          summary: Json
+          triggered_by: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          dataset: string
+          dry_run?: boolean
+          finished_at?: string | null
+          id?: string
+          message?: string | null
+          status: string
+          summary?: Json
+          triggered_by: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          dataset?: string
+          dry_run?: boolean
+          finished_at?: string | null
+          id?: string
+          message?: string | null
+          status?: string
+          summary?: Json
+          triggered_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_sync_runs_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_sync_runs_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demo_otp: {
         Row: {
           code: string
@@ -949,6 +1042,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      event_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          icon: string | null
+          id: string
+          key: string
+          label: string
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          key: string
+          label: string
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          key?: string
+          label?: string
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       events: {
         Row: {
@@ -1036,6 +1162,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_category_fkey"
+            columns: ["category"]
+            isOneToOne: false
+            referencedRelation: "event_categories"
+            referencedColumns: ["key"]
           },
           {
             foreignKeyName: "events_created_by_fkey"
@@ -1854,11 +1987,13 @@ export type Database = {
           hidden: boolean
           id: string
           kind: string
+          last_seen_at: string | null
           lat: number | null
           license: string | null
           lng: number | null
           location: unknown
           locked: boolean
+          missing_since: string | null
           name: string
           neighbourhood_id: string | null
           phone: string | null
@@ -1875,11 +2010,13 @@ export type Database = {
           hidden?: boolean
           id?: string
           kind: string
+          last_seen_at?: string | null
           lat?: number | null
           license?: string | null
           lng?: number | null
           location: unknown
           locked?: boolean
+          missing_since?: string | null
           name: string
           neighbourhood_id?: string | null
           phone?: string | null
@@ -1896,11 +2033,13 @@ export type Database = {
           hidden?: boolean
           id?: string
           kind?: string
+          last_seen_at?: string | null
           lat?: number | null
           license?: string | null
           lng?: number | null
           location?: unknown
           locked?: boolean
+          missing_since?: string | null
           name?: string
           neighbourhood_id?: string | null
           phone?: string | null
@@ -2513,6 +2652,45 @@ export type Database = {
           },
         ]
       }
+      vertical_subcategories: {
+        Row: {
+          active: boolean
+          created_at: string
+          exclude: string[]
+          id: string
+          key: string
+          keywords: string[]
+          label: string
+          sort: number
+          updated_at: string
+          vertical: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          exclude?: string[]
+          id?: string
+          key: string
+          keywords: string[]
+          label: string
+          sort?: number
+          updated_at?: string
+          vertical: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          exclude?: string[]
+          id?: string
+          key?: string
+          keywords?: string[]
+          label?: string
+          sort?: number
+          updated_at?: string
+          vertical?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       my_leads: {
@@ -2624,11 +2802,29 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: Json
       }
+      admin_news_sources: {
+        Args: never
+        Returns: {
+          active: boolean
+          fail_count: number
+          failing_since: string
+          feed_url: string
+          id: string
+          item_count: number
+          last_error: string
+          last_fetched_at: string
+          name: string
+          permission_note: string
+          site_url: string
+        }[]
+      }
       admin_online_now: { Args: never; Returns: Json }
+      admin_poi_sync_now: { Args: { p_dry_run?: boolean }; Returns: Json }
       admin_publish_flow: {
         Args: { p_category_id: string; p_schema: Json }
         Returns: Json
       }
+      admin_refresh_news_now: { Args: never; Returns: Json }
       admin_request_candidates: {
         Args: { p_request_id: string }
         Returns: {
@@ -2662,6 +2858,10 @@ export type Database = {
       }
       admin_set_duty: {
         Args: { p_day: string; p_poi_ids: string[] }
+        Returns: Json
+      }
+      admin_set_user_status: {
+        Args: { p_reason?: string; p_status: string; p_user_id: string }
         Returns: Json
       }
       admin_user_overview: { Args: { p_user: string }; Returns: Json }
@@ -2842,6 +3042,17 @@ export type Database = {
       }
       owns_business: { Args: { p_business_id: string }; Returns: boolean }
       owns_listing: { Args: { p_listing_id: string }; Returns: boolean }
+      poi_sync_apply: {
+        Args: {
+          p_dry_run?: boolean
+          p_errors?: Json
+          p_groups?: Json
+          p_rows: Json
+          p_run_id?: string
+          p_trigger?: string
+        }
+        Returns: Json
+      }
       renew_listing: { Args: { p_listing_id: string }; Returns: Json }
       reply_review: {
         Args: { p_reply: string; p_review_id: string }

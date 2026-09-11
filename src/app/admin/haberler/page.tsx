@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { CircleAlert, CircleCheck, ExternalLink, FileCheck, FileQuestionMark, Pencil, Plus, Timer } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { AdminPageHeader } from "@/components/admin/admin-page";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +16,8 @@ type Source = NewsSourceValue & {
   last_error: string | null;
   fail_count: number;
   failing_since: string | null;
-  news_items: Array<{ count: number }> | null;
+  /** Archived headlines of the source. */
+  item_count: number;
 };
 type Item = { id: string; title: string; url: string; published_at: string | null; news_sources: { name: string } | null };
 
@@ -56,11 +56,8 @@ export default async function AdminNewsPage() {
   await requireAdmin();
   const supabase = await createClient();
   const [sourcesRes, itemsRes] = await Promise.all([
-    // Service role: permission_note is not readable through the API (column grants).
-    createAdminClient()
-      .from("news_sources")
-      .select("id,name,site_url,feed_url,active,last_fetched_at,last_error,fail_count,failing_since,permission_note,news_items(count)")
-      .order("name"),
+    // permission_note is not readable through the API (column grants): admin-only RPC with the admin's session.
+    supabase.rpc("admin_news_sources"),
     supabase.from("news_items").select("id,title,url,published_at,news_sources(name)").order("published_at", { ascending: false }).limit(25),
   ]);
   const sources: Source[] = sourcesRes.data ?? [];
@@ -135,7 +132,7 @@ export default async function AdminNewsPage() {
                   </p>
                   <p className="truncate text-xs text-muted-foreground">{s.feed_url}</p>
                   <p className="text-xs text-muted-foreground">
-                    {s.last_fetched_at ? `Son çekim ${formatRelativeTime(s.last_fetched_at)}` : "Henüz çekilmedi"} · {formatNumber(s.news_items?.[0]?.count ?? 0)} başlık arşivde
+                    {s.last_fetched_at ? `Son çekim ${formatRelativeTime(s.last_fetched_at)}` : "Henüz çekilmedi"} · {formatNumber(s.item_count ?? 0)} başlık arşivde
                   </p>
                   {s.last_error ? (
                     <p className="mt-0.5 text-xs text-destructive">

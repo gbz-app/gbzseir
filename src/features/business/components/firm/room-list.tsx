@@ -8,7 +8,7 @@ import { CallButton } from "@/components/shared/call-button";
 import { PRIMARY_CTA } from "@/components/shared/detail-hero";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import type { Room } from "../../lib/vertical-queries";
-import { roomAmenityList } from "../../lib/verticals";
+import { roomAmenityList, type AmenityDef } from "../../lib/verticals";
 import { RoomCard } from "../room-card";
 
 export type RoomListProps = {
@@ -16,10 +16,12 @@ export type RoomListProps = {
   businessId: string;
   businessName: string;
   phone: string | null;
+  /** Room features of public.amenities (vocabularies.ts); the built-in list when omitted. */
+  amenities?: readonly AmenityDef[];
 };
 
 /** Hotel rooms; tapping a room opens a bottom sheet with all photos, details and "Rezervasyon için ara". */
-export function RoomList({ rooms, businessId, businessName, phone }: RoomListProps) {
+export function RoomList({ rooms, businessId, businessName, phone, amenities }: RoomListProps) {
   const [open, setOpen] = React.useState(false);
   // Kept while the sheet animates closed.
   const [room, setRoom] = React.useState<Room | null>(null);
@@ -48,7 +50,7 @@ export function RoomList({ rooms, businessId, businessName, phone }: RoomListPro
               }}
               className="rounded-3xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              <RoomCard room={r} name={businessName} interactive />
+              <RoomCard room={r} name={businessName} interactive features={amenities} />
             </div>
           </li>
         ))}
@@ -56,15 +58,27 @@ export function RoomList({ rooms, businessId, businessName, phone }: RoomListPro
 
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent className="mx-auto max-w-2xl border-0 bg-background data-[vaul-drawer-direction=bottom]:max-h-[92dvh] data-[vaul-drawer-direction=bottom]:rounded-t-[1.75rem]">
-          {room ? <RoomDetail key={room.id} room={room} businessId={businessId} businessName={businessName} phone={phone} /> : null}
+          {room ? <RoomDetail key={room.id} room={room} businessId={businessId} businessName={businessName} phone={phone} amenities={amenities} /> : null}
         </DrawerContent>
       </Drawer>
     </>
   );
 }
 
-function RoomDetail({ room, businessId, businessName, phone }: { room: Room; businessId: string; businessName: string; phone: string | null }) {
-  const features = roomAmenityList(room.amenities);
+function RoomDetail({
+  room,
+  businessId,
+  businessName,
+  phone,
+  amenities,
+}: {
+  room: Room;
+  businessId: string;
+  businessName: string;
+  phone: string | null;
+  amenities?: readonly AmenityDef[];
+}) {
+  const features = roomAmenityList(room.amenities, amenities);
   const facts = [
     { icon: Users, label: "Kapasite", value: `${room.capacity} kişi` },
     room.bed_info ? { icon: BedDouble, label: "Yatak", value: room.bed_info } : null,

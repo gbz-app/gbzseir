@@ -1,8 +1,11 @@
-// Seed ATMs (poi.kind = 'atm') for Gebze from OpenStreetMap (amenity=atm, ODbL) via Overpass.
-// Neighbourhood = polygon containing the point (fallback: nearest centre). Idempotent: upsert on (source, source_ref).
-// Usage: node --env-file=.env.local scripts/db/seed-atm.mjs
-import { overpass, sql, lit, trSlug } from "./lib.mjs";
+// Seed / re-sync ATMs (poi.kind = 'atm') for Gebze from OpenStreetMap (amenity=atm, ODbL) via Overpass.
+// Written through public.poi_sync_apply (upsert on (source, source_ref), neighbourhood = polygon containing the point,
+// fallback nearest centre; the stored phone is kept). ATMs OSM no longer lists are hidden (never deleted, locked rows
+// untouched). Same rules as the monthly sync (src/features/nearby/server/poi-sync.ts).
+// Usage: node --env-file=.env.local scripts/db/seed-atm.mjs [--dry-run]   (--dry-run: print the counts, write nothing)
+import { overpass, poiSyncApply, sql, trSlug } from "./lib.mjs";
 
+const DRY_RUN = process.argv.includes("--dry-run");
 const OSM_LICENSE = "ODbL - © OpenStreetMap katkıcıları";
 const AREA = `area["name"="Gebze"]["boundary"="administrative"]["admin_level"="6"]->.g;`;
 
@@ -15,6 +18,7 @@ function atmName(t) {
 }
 
 const osm = await overpass(`[out:json][timeout:120];${AREA}(nwr(area.g)["amenity"="atm"];);out center tags;`);
+if (typeof osm.remark === "string" && /error/i.test(osm.remark)) throw new Error(`Overpass: ${osm.remark}`);
 const rows = [];
 for (const e of osm.elements || []) {
   const t = e.tags || {};
@@ -22,12 +26,18 @@ for (const e of osm.elements || []) {
   const lon = e.lon ?? e.center?.lon;
   if (typeof lat !== "number" || typeof lon !== "number") continue;
   const street = [t["addr:street"], t["addr:housenumber"]].filter(Boolean).join(" ");
+  // No "phone" key: OSM ATMs have no phone, the stored one stays.
   rows.push({
+    kind: "atm",
     name: atmName(t),
     address: street || null,
     x: lon,
     y: lat,
+    srid: 4326,
+    details: {},
+    source: "osm",
     source_ref: `${e.type}/${e.id}`,
+    license: OSM_LICENSE,
   });
 }
 console.log(`OSM ATMs: ${rows.length}`);
@@ -50,26 +60,5 @@ for (const r of rows) {
   r.slug = s;
 }
 
-let n = 0;
-for (let i = 0; i < rows.length; i += 80) {
-  const values = rows
-    .slice(i, i + 80)
-    .map((r) => `('atm', ${lit(r.name)}, ${lit(r.slug)}, ${lit(r.address)}, ${r.x}, ${r.y}, 'osm', ${lit(r.source_ref)}, ${lit(OSM_LICENSE)})`)
-    .join(",\n");
-  const out = await sql(`
-with v(kind, name, slug, address, x, y, source, source_ref, license) as (values ${values}),
-p as (select v.*, extensions.st_setsrid(extensions.st_makepoint(x, y), 4326) as g from v)
-insert into public.poi (kind, name, slug, address, phone, location, neighbourhood_id, details, source, source_ref, license)
-select p.kind, p.name, p.slug, p.address, null, p.g::extensions.geography,
-  coalesce(
-    (select b.neighbourhood_id from private.neighbourhood_boundaries b where extensions.st_contains(b.boundary, p.g) limit 1),
-    (select nb.id from public.neighbourhoods nb order by nb.center operator(extensions.<->) p.g::extensions.geography limit 1)),
-  '{}'::jsonb, p.source, p.source_ref, p.license
-from p
-on conflict (source, source_ref) do update set
-  kind = excluded.kind, name = excluded.name, address = excluded.address,
-  location = excluded.location, neighbourhood_id = excluded.neighbourhood_id, license = excluded.license
-returning id`);
-  n += out.length;
-}
-console.log(`upserted ${n} ATMs`);
+// An empty answer is not a complete list: nothing is hidden then.
+await poiSyncApply(rows, rows.length ? [{ source: "osm", kind: "atm" }] : [], { dryRun: DRY_RUN });

@@ -16,6 +16,7 @@ export const PUBLIC_CACHE_TAGS = [
   "poi",
   "nearby",
   "duty",
+  "vocabularies",
 ] as const;
 export type PublicCacheTag = (typeof PUBLIC_CACHE_TAGS)[number];
 

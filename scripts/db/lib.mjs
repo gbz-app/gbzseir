@@ -96,6 +96,28 @@ export async function adminFetch(path, { method = "GET", body, headers = {} } = 
   return { status: res.status, ok: res.ok, body: json };
 }
 
+/**
+ * One POI pull -> public.poi_sync_apply (2026091352_poi_last_seen.sql): upserts the rows (+ last_seen_at) and hides the
+ * rows of each complete group ([{source, kind}]) that the pull no longer lists; never deletes, never hides locked rows.
+ * Rows without a "phone" key keep their stored phone. dryRun runs the same statements and rolls them back. Prints and
+ * returns the summary; a real run is logged in data_sync_runs (/admin/veri).
+ */
+export async function poiSyncApply(rows, groups, { dryRun = false } = {}) {
+  const out = await sql(`select public.poi_sync_apply(${jsonLit(rows)}, ${jsonLit(groups)}, 'script', ${dryRun ? "true" : "false"}) as r`, dryRun ? 5 : 2);
+  let r = out?.[0]?.r ?? {};
+  if (typeof r === "string") r = JSON.parse(r);
+  console.log(dryRun ? "DRY RUN - nothing written:" : `sync ${r.status} (run ${r.run_id}):`);
+  for (const g of r.groups ?? []) {
+    const miss = g.complete
+      ? `  missing ${g.missing} -> hidden ${g.hidden}${g.locked ? `, ${g.locked} locked kept` : ""}${g.guarded ? " (GUARD: pull looks truncated, nothing hidden)" : ""}`
+      : "";
+    console.log(`  ${`${g.source}/${g.kind}`.padEnd(14)} fetched ${g.fetched}  added ${g.added}  updated ${g.updated}  unchanged ${g.unchanged}  restored ${g.restored}${miss}`);
+  }
+  const t = r.totals ?? {};
+  console.log(`  total: added ${t.added}, updated ${t.updated}, hidden ${t.hidden}, restored ${t.restored}`);
+  return r;
+}
+
 /** Turkish slug (mirrors public.tr_slug). */
 export function trSlug(s) {
   const map = { İ: "i", I: "i", ı: "i", Ğ: "g", ğ: "g", Ü: "u", ü: "u", Ş: "s", ş: "s", Ö: "o", ö: "o", Ç: "c", ç: "c", Â: "a", â: "a", Î: "i", î: "i", Û: "u", û: "u" };

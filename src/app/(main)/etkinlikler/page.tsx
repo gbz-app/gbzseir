@@ -4,6 +4,7 @@ import { getAppSettings } from "@/lib/app-settings";
 import { JsonLd } from "@/components/seo/json-ld";
 import { APP_NAME, CITY, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
+import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { EventsExplorer } from "@/features/events/components/events-explorer";
 import { listUpcomingEvents } from "@/features/events/queries";
 
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default async function EventsPage() {
-  const [events, settings] = await Promise.all([listUpcomingEvents().catch(() => null), getAppSettings()]);
+  const [events, settings, vocab] = await Promise.all([listUpcomingEvents().catch(() => null), getAppSettings(), getVocabularies()]);
   if (!events) {
     return (
       <div className="px-4 py-10">
@@ -43,7 +44,7 @@ export default async function EventsPage() {
           }}
         />
       ) : null}
-      <EventsExplorer events={events} applicationsOpen={settings.businessApplications} />
+      <EventsExplorer events={events} applicationsOpen={settings.businessApplications} categories={vocab.eventCategories} />
     </>
   );
 }

@@ -9,13 +9,14 @@ import { mediaPathFromUrl } from "@/features/business/components/editor/image-pi
 import { defaultHours, hasAnyHours, parseWorkingHours } from "@/features/business/lib/hours";
 import { getOwnerBusiness } from "@/features/business/lib/owner-queries";
 import { resolveVertical } from "@/features/business/lib/verticals";
+import { getVocabularies } from "@/features/business/lib/vocabularies";
 
 export const metadata: Metadata = { title: "İşletme sayfamı düzenle", robots: { index: false } };
 
 /** H4 - İşletme sayfasını düzenle: tür, bilgiler, fiyat/yıldız, olanaklar, iletişim, konum, saatler, hizmetler. */
 export default async function BusinessEditPage() {
   const { user } = await requireProfile(routes.business.edit());
-  const b = await getOwnerBusiness();
+  const [b, vocab] = await Promise.all([getOwnerBusiness(), getVocabularies()]);
   if (!b) redirect(routes.business.intro());
   if (b.status !== "approved") redirect(routes.business.root());
 
@@ -26,6 +27,7 @@ export default async function BusinessEditPage() {
     <>
       <PageHeader title="İşletme sayfamı düzenle" subtitle={b.name} backHref={routes.business.root()} hideBottomNav />
       <BusinessEditForm
+        amenities={vocab.amenities}
         initial={{
           id: b.id,
           slug: b.slug,

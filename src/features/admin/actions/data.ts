@@ -5,7 +5,7 @@ import { z } from "zod";
 import { routes } from "@/core/routes";
 import { APP_SETTINGS_TAG } from "@/lib/app-settings";
 import { revalidatePublic } from "@/lib/revalidate-public";
-import { createAdminClient, type AdminSupabase } from "@/lib/supabase/admin";
+import type { ServerSupabase } from "@/lib/supabase/server";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { DEMO_SCOPE_VALUES } from "../lib/labels";
@@ -18,8 +18,8 @@ const DEMO_MEDIA_ROOT = "demo";
 const PAGE = 100;
 
 /** Every file under `root` in the media bucket (folders are walked, list results are paged). */
-async function listMediaFiles(admin: AdminSupabase, root: string): Promise<string[]> {
-  const storage = admin.storage.from("media");
+async function listMediaFiles(supabase: ServerSupabase, root: string): Promise<string[]> {
+  const storage = supabase.storage.from("media");
   const files: string[] = [];
   const queue: string[] = [root];
   let guard = 0;
@@ -42,16 +42,18 @@ async function listMediaFiles(admin: AdminSupabase, root: string): Promise<strin
   return files;
 }
 
-/** Removes the demo photos (service role; admins have no storage delete right outside media/admin). Never throws. */
-async function removeDemoMedia(): Promise<{ removed: number; failed: number }> {
+/**
+ * Removes the demo photos with the admin's own session (storage policies "media admin demo read" / "media admin demo
+ * delete", 2026091360_admin_without_service_key.sql; the admin site has no service role). Never throws.
+ */
+async function removeDemoMedia(supabase: ServerSupabase): Promise<{ removed: number; failed: number }> {
   try {
-    const admin = createAdminClient();
-    const paths = await listMediaFiles(admin, DEMO_MEDIA_ROOT);
+    const paths = await listMediaFiles(supabase, DEMO_MEDIA_ROOT);
     let removed = 0;
     let failed = 0;
     for (let i = 0; i < paths.length; i += PAGE) {
       const chunk = paths.slice(i, i + PAGE);
-      const { data, error } = await admin.storage.from("media").remove(chunk);
+      const { data, error } = await supabase.storage.from("media").remove(chunk);
       if (error) failed += chunk.length;
       else removed += data?.length ?? 0;
     }
@@ -81,7 +83,7 @@ export async function clearDemoDataAction(input: z.input<typeof schema>): Promis
     const total = Object.values(out).reduce((a, b) => a + b, 0);
     let message = `${total} örnek kayıt silindi.`;
     if (scopes.has("businesses")) {
-      const media = await removeDemoMedia();
+      const media = await removeDemoMedia(supabase);
       out.media = media.removed;
       if (media.failed) message += " Örnek fotoğrafların bir kısmı silinemedi; 'Örnek işletmeler' seçeneğiyle tekrar deneyebilirsin.";
       else if (media.removed) message += ` ${media.removed} örnek fotoğraf silindi.`;

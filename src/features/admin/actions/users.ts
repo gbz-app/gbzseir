@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePublic } from "@/lib/revalidate-public";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
@@ -13,24 +12,6 @@ function revalidateUser(userId: string) {
   revalidatePath(routes.admin.user(userId));
   revalidatePath(routes.admin.users());
   revalidatePath(routes.admin.root());
-}
-
-/** Supabase Auth ban for "Engelli" (about 100 years); "none" lifts it. */
-const AUTH_BAN_DURATION = "876000h";
-
-/**
- * Blocks or re-allows sign-in in Supabase Auth (service role). A session that is already open keeps working until
- * its access token expires (up to 1 hour); the database blocks a banned user's writes meanwhile.
- */
-async function setAuthBan(userId: string, banned: boolean): Promise<boolean> {
-  try {
-    const { error } = await createAdminClient().auth.admin.updateUserById(userId, { ban_duration: banned ? AUTH_BAN_DURATION : "none" });
-    if (error) console.error("[admin auth ban]", error.status, error.message);
-    return !error;
-  } catch (e) {
-    console.error("[admin auth ban]", e);
-    return false;
-  }
 }
 
 /** The database hides a banned user's businesses, listings, events and reviews; expire the cached public pages. */
@@ -53,38 +34,34 @@ async function revalidateUserContent() {
   });
 }
 
-const statusSchema = z.object({ userId: zId, status: z.enum(["active", "restricted", "banned"]) });
+const statusSchema = z.object({
+  userId: zId,
+  status: z.enum(["active", "restricted", "banned"]),
+  // Kept in the audit log with the sign-in change (e.g. the report that led to the ban).
+  reason: z.string().trim().max(300).optional(),
+});
 
 /**
- * Aktif / Kısıtlı / Engelli. Admins cannot change themselves or other admins here. The change is audited by trigger.
- * Engelli also blocks sign-in (Supabase Auth ban) and hides the user's public content until the ban is lifted.
+ * Aktif / Kısıtlı / Engelli through admin_set_user_status: one transaction with the admin's session (no service role)
+ * changes the profile status, the sign-in ban (auth.users.banned_until) and, on a ban, closes the user's sessions.
+ * Admins cannot change themselves or other admins (checked again by the RPC). The change is audited by trigger.
+ * Engelli also hides the user's public content until the ban is lifted.
  */
 export async function setUserStatusAction(input: z.input<typeof statusSchema>): Promise<ActionResult<null>> {
   return withAdmin(async ({ supabase, userId: me }) => {
     const parsed = statusSchema.safeParse(input);
     if (!parsed.success) return fail(firstIssue(parsed.error));
-    const { userId, status } = parsed.data;
+    const { userId, status, reason } = parsed.data;
     if (userId === me) return fail("Kendi hesabının durumunu değiştiremezsin.", "self");
-    const { data: target, error: tErr } = await supabase.from("profiles").select("role,status").eq("id", userId).maybeSingle();
-    if (tErr) return dbFail(tErr);
-    if (!target) return fail("Kullanıcı bulunamadı.", "not_found");
-    if (target.role === "admin") return fail("Yönetici hesaplarının durumu buradan değiştirilemez.", "admin_target");
-
-    // Sign-in is changed first, so a failure leaves the account as it was and the admin can simply retry.
-    const banChange = status === "banned" || target.status === "banned";
-    if (banChange && !(await setAuthBan(userId, status === "banned"))) {
-      return fail(
-        status === "banned" ? "Giriş engeli uygulanamadı; hesap değişmedi. Tekrar dene." : "Giriş engeli kaldırılamadı; hesap değişmedi. Tekrar dene.",
-        "auth_ban",
-      );
-    }
-    const { data: updated, error } = await supabase.from("profiles").update({ status }).eq("id", userId).select("id").maybeSingle();
-    if (error || !updated) {
-      if (banChange) await setAuthBan(userId, target.status === "banned");
-      return error ? dbFail(error) : fail("Kullanıcı bulunamadı.", "not_found");
-    }
+    // Errors come back as Turkish text with a hint: self, not_found, admin_target, invalid_status.
+    const { data, error } = await supabase.rpc("admin_set_user_status", {
+      p_user_id: userId,
+      p_status: status,
+      ...(reason ? { p_reason: reason } : {}),
+    });
+    if (error) return dbFail(error);
     revalidateUser(userId);
-    if (banChange) await revalidateUserContent();
+    if ((data as { ban_changed?: boolean } | null)?.ban_changed) await revalidateUserContent();
     return ok(null, status === "active" ? "Hesap yeniden aktif." : status === "restricted" ? "Hesap kısıtlandı." : "Hesap engellendi.");
   });
 }

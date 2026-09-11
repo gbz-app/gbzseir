@@ -8,6 +8,7 @@ import { RoomsManager } from "@/features/business/components/rooms-manager";
 import { getOtherOwnedBusinesses, getOwnerBusiness } from "@/features/business/lib/owner-queries";
 import { getBusinessRooms } from "@/features/business/lib/vertical-queries";
 import { hasRooms, resolveVertical } from "@/features/business/lib/verticals";
+import { getVocabularies } from "@/features/business/lib/vocabularies";
 
 export const metadata: Metadata = { title: "Odalar", robots: { index: false } };
 
@@ -24,7 +25,7 @@ export default async function OwnerRoomsPage() {
       <PageHeader title="Odalar" subtitle={b.name} backHref={routes.business.root()} />
       <div className="px-4 pt-4 pb-10">
         {hasRooms(vertical) ? (
-          <RoomsManager businessId={b.id} initial={await getBusinessRooms(b.id).catch(() => [])} />
+          <RoomsManager businessId={b.id} initial={await getBusinessRooms(b.id).catch(() => [])} amenities={(await getVocabularies()).roomAmenities} />
         ) : (
           <WrongVerticalNote
             text="Oda yönetimi otel işletmeleri içindir. İşletme türünü Otel yaparsan bu bölüm açılır."

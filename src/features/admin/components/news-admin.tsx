@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { FlaskConical, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -141,12 +142,44 @@ export function NewsActiveSwitch({ value }: { value: NewsSourceValue }) {
   );
 }
 
-/** Fetches every active feed now (the same work as the 20-minute job). */
+/** The public app fetches the feeds within seconds of the click (up to about 15 s when a feed is slow). */
+const RELOAD_AFTER_MS = [6_000, 18_000];
+
+/**
+ * Queues a fetch of every active feed now (the same work as the 20-minute job, done by the public app) and reloads
+ * the list twice while it runs.
+ */
 export function RefreshNewsButton() {
+  const router = useRouter();
   const { pending, run } = useAdminAction();
+  const [waiting, setWaiting] = React.useState(false);
+  // One array for the component's lifetime (mutated, never replaced), so the cleanup sees every timer.
+  const timers = React.useRef<number[]>([]);
+  React.useEffect(() => {
+    const list = timers.current;
+    return () => list.forEach((t) => window.clearTimeout(t));
+  }, []);
+  const busy = pending || waiting;
+
+  const start = () =>
+    run(() => refreshNewsAction(), {
+      onSuccess: ({ queued }) => {
+        if (!queued) return;
+        setWaiting(true);
+        RELOAD_AFTER_MS.forEach((ms, i) => {
+          timers.current.push(
+            window.setTimeout(() => {
+              router.refresh();
+              if (i === RELOAD_AFTER_MS.length - 1) setWaiting(false);
+            }, ms),
+          );
+        });
+      },
+    });
+
   return (
-    <Button variant="outline" disabled={pending} onClick={() => run(() => refreshNewsAction(), { refresh: true })}>
-      <RefreshCw className={pending ? "animate-spin" : undefined} /> {pending ? "Çekiliyor" : "Şimdi çek"}
+    <Button variant="outline" disabled={busy} onClick={start}>
+      <RefreshCw className={busy ? "animate-spin" : undefined} /> {busy ? "Çekiliyor" : "Şimdi çek"}
     </Button>
   );
 }
