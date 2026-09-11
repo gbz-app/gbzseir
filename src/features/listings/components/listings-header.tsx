@@ -17,7 +17,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChipFilter } from "@/components/shared/chip-filter";
 import { SEARCH_MAX, SORT_OPTIONS, type SortKey } from "../constants";
-import { countActiveFilters, emptyQuery, listingsHref, listingsQueryToRecord, type ListingsQuery } from "../filters";
+import {
+  attributeFilterFields,
+  countActiveFilters,
+  emptyQuery,
+  listingsHref,
+  listingsQueryToRecord,
+  pickAttrFilters,
+  type ListingsQuery,
+} from "../filters";
 import type { ListingCategory, NeighbourhoodRef } from "../types";
 import { FilterSheet } from "./filter-sheet";
 import { useListingsNav } from "./listings-nav";
@@ -50,7 +58,8 @@ export function ListingsHeader({ query, categories, neighbourhood, total }: List
 
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const [sheetKey, setSheetKey] = React.useState(0);
-  const filterCount = countActiveFilters(query);
+  // Only attribute filters the category really has (hand-edited or outdated links).
+  const filterCount = countActiveFilters({ ...query, attrs: pickAttrFilters(query.attrs, attributeFilterFields(categories, query.kategori)) });
 
   const tops = categories.filter((c) => !c.parent_id);
   const selected = query.kategori ? categories.find((c) => c.slug === query.kategori) : undefined;
@@ -181,7 +190,7 @@ export function ListingsHeader({ query, categories, neighbourhood, total }: List
           size="sm"
           options={chipOptions}
           value={query.kategori ?? ""}
-          onChange={(v) => navigate({ ...query, kategori: v || null })}
+          onChange={(v) => navigate({ ...query, kategori: v || null, attrs: {} })}
         />
       ) : null}
 

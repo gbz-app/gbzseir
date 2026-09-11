@@ -893,6 +893,63 @@ export type Database = {
         }
         Relationships: []
       }
+      duty_import_runs: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          duty_day: string | null
+          fetched: number
+          id: string
+          matched: number
+          message: string | null
+          source: string
+          status: string
+          unmatched: Json
+          written: number
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          duty_day?: string | null
+          fetched?: number
+          id?: string
+          matched?: number
+          message?: string | null
+          source: string
+          status: string
+          unmatched?: Json
+          written?: number
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          duty_day?: string | null
+          fetched?: number
+          id?: string
+          matched?: number
+          message?: string | null
+          source?: string
+          status?: string
+          unmatched?: Json
+          written?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duty_import_runs_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "duty_import_runs_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           address: string | null
@@ -1604,6 +1661,7 @@ export type Database = {
       }
       news_items: {
         Row: {
+          category: string | null
           created_at: string
           guid: string
           id: string
@@ -1615,6 +1673,7 @@ export type Database = {
           url: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           guid: string
           id?: string
@@ -1626,6 +1685,7 @@ export type Database = {
           url: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           guid?: string
           id?: string
@@ -1650,31 +1710,40 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          fail_count: number
+          failing_since: string | null
           feed_url: string
           id: string
           last_error: string | null
           last_fetched_at: string | null
           name: string
+          permission_note: string | null
           site_url: string
         }
         Insert: {
           active?: boolean
           created_at?: string
+          fail_count?: number
+          failing_since?: string | null
           feed_url: string
           id?: string
           last_error?: string | null
           last_fetched_at?: string | null
           name: string
+          permission_note?: string | null
           site_url: string
         }
         Update: {
           active?: boolean
           created_at?: string
+          fail_count?: number
+          failing_since?: string | null
           feed_url?: string
           id?: string
           last_error?: string | null
           last_fetched_at?: string | null
           name?: string
+          permission_note?: string | null
           site_url?: string
         }
         Relationships: []
@@ -1685,6 +1754,9 @@ export type Database = {
           created_at: string
           id: string
           link: string | null
+          push_attempted_at: string | null
+          push_attempts: number
+          push_error: string | null
           push_sent_at: string | null
           read_at: string | null
           title: string
@@ -1696,6 +1768,9 @@ export type Database = {
           created_at?: string
           id?: string
           link?: string | null
+          push_attempted_at?: string | null
+          push_attempts?: number
+          push_error?: string | null
           push_sent_at?: string | null
           read_at?: string | null
           title: string
@@ -1707,6 +1782,9 @@ export type Database = {
           created_at?: string
           id?: string
           link?: string | null
+          push_attempted_at?: string | null
+          push_attempts?: number
+          push_error?: string | null
           push_sent_at?: string | null
           read_at?: string | null
           title?: string
@@ -2234,6 +2312,7 @@ export type Database = {
           note: string | null
           photos: string[]
           public_code: string
+          stalled_at: string | null
           status: string
           updated_at: string
           when_date: string | null
@@ -2258,6 +2337,7 @@ export type Database = {
           note?: string | null
           photos?: string[]
           public_code: string
+          stalled_at?: string | null
           status?: string
           updated_at?: string
           when_date?: string | null
@@ -2282,6 +2362,7 @@ export type Database = {
           note?: string | null
           photos?: string[]
           public_code?: string
+          stalled_at?: string | null
           status?: string
           updated_at?: string
           when_date?: string | null
@@ -2579,6 +2660,10 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_set_duty: {
+        Args: { p_day: string; p_poi_ids: string[] }
+        Returns: Json
+      }
       admin_user_overview: { Args: { p_user: string }; Returns: Json }
       apply_business: {
         Args: {
@@ -2603,6 +2688,18 @@ export type Database = {
       }
       business_is_public: { Args: { p_business_id: string }; Returns: boolean }
       business_panel_stats: { Args: { p_business_id?: string }; Returns: Json }
+      claim_push_notifications: {
+        Args: { p_limit?: number }
+        Returns: {
+          body: string
+          id: string
+          link: string
+          push_attempts: number
+          title: string
+          type: string
+          user_id: string
+        }[]
+      }
       close_request: {
         Args: { p_code: string; p_hired_business_id?: string }
         Returns: Json
@@ -2619,6 +2716,18 @@ export type Database = {
           p_business_ids?: string[]
           p_request_id: string
           p_wave?: number
+        }
+        Returns: Json
+      }
+      duty_import_record: {
+        Args: {
+          p_day: string
+          p_fetched?: number
+          p_message?: string
+          p_poi_ids?: string[]
+          p_source: string
+          p_status: string
+          p_unmatched?: Json
         }
         Returns: Json
       }
@@ -2727,6 +2836,10 @@ export type Database = {
           slug: string
         }[]
       }
+      news_record_fetch: {
+        Args: { p_fetched_at: string; p_results: Json }
+        Returns: number
+      }
       owns_business: { Args: { p_business_id: string }; Returns: boolean }
       owns_listing: { Args: { p_listing_id: string }; Returns: boolean }
       renew_listing: { Args: { p_listing_id: string }; Returns: Json }
@@ -2738,6 +2851,7 @@ export type Database = {
       roll_demo_duty: { Args: never; Returns: number }
       search_listings: {
         Args: {
+          p_attrs?: Json
           p_category_id?: string
           p_max_price?: number
           p_min_price?: number
@@ -2787,6 +2901,13 @@ export type Database = {
         }
       }
       send_sms_hook: { Args: { event: Json }; Returns: Json }
+      service_provider_counts: {
+        Args: never
+        Returns: {
+          category_id: string
+          provider_count: number
+        }[]
+      }
       set_business_photos: {
         Args: { p_business_id: string; p_photos: Json }
         Returns: number

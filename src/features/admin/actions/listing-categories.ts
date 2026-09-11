@@ -15,9 +15,12 @@ const field = z
     label: z.string().trim().min(1, "Alan adı yaz.").max(60, "Alan adı en fazla 60 karakter olabilir."),
     type: z.enum(["text", "number", "select", "boolean"]),
     required: z.boolean().optional(),
+    filterable: z.boolean().optional(),
     options: z.array(option).max(40, "En fazla 40 seçenek olabilir.").optional(),
   })
-  .refine((f) => f.type !== "select" || (f.options?.length ?? 0) >= 2, { message: "Seçimli alanda en az 2 seçenek olmalı." });
+  .refine((f) => f.type !== "select" || (f.options?.length ?? 0) >= 2, { message: "Seçimli alanda en az 2 seçenek olmalı." })
+  // Listings store the option value, and filter links use it.
+  .refine((f) => new Set((f.options ?? []).map((o) => o.value)).size === (f.options?.length ?? 0), { message: "Seçenekler birbirinden farklı olmalı." });
 
 const schema = z
   .object({
@@ -67,6 +70,8 @@ export async function saveListingCategoryAction(input: z.input<typeof schema>): 
         label: a.label,
         type: a.type,
         ...(a.required ? { required: true } : {}),
+        // Free text is not filterable (select = equality, number = range, boolean = "yes").
+        ...(a.filterable && a.type !== "text" ? { filterable: true } : {}),
         ...(a.type === "select" ? { options: a.options ?? [] } : {}),
       })),
     };

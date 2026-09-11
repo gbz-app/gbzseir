@@ -3,8 +3,16 @@
 import * as React from "react";
 import { CITY } from "@/config/site";
 import { distanceMeters, type LatLng } from "@/core/geo";
+import { useAuth } from "@/lib/auth/auth-provider";
 import { useNeighbourhoods } from "@/lib/neighbourhoods";
-import { setApproxCoords, setDefaultNeighbourhood, useLocationPrefs, type ChosenNeighbourhood } from "./store";
+import {
+  isProfileSeedDone,
+  seedNeighbourhoodFromProfile,
+  setApproxCoords,
+  setDefaultNeighbourhood,
+  useLocationPrefs,
+  type ChosenNeighbourhood,
+} from "./store";
 
 export type ApproxLocationStatus = "idle" | "locating" | "granted" | "denied" | "unavailable" | "error";
 
@@ -36,7 +44,8 @@ const MAX_NEAREST_M = 6000;
  */
 export function useApproxLocation(): ApproxLocation {
   const prefs = useLocationPrefs();
-  const { neighbourhoods } = useNeighbourhoods();
+  const { user, profile } = useAuth();
+  const { neighbourhoods, loading: listLoading, error: listError } = useNeighbourhoods();
   const [status, setStatus] = React.useState<ApproxLocationStatus>("idle");
   const [error, setError] = React.useState<string | null>(null);
 
@@ -103,6 +112,20 @@ export function useApproxLocation(): ApproxLocation {
       setDefaultNeighbourhood(nearest, { keepMode: true });
     }
   }, [nearest, prefs.mode, prefs.neighbourhood?.id]);
+
+  // Signed in with no local choice: use the neighbourhood saved in the profile (once per value on this device).
+  React.useEffect(() => {
+    if (!user || !profile || profile.id !== user.id) return;
+    const id = profile.neighbourhood_id != null ? String(profile.neighbourhood_id) : null;
+    if (isProfileSeedDone(user.id, id)) return;
+    if (!id) {
+      seedNeighbourhoodFromProfile(user.id, null, null);
+      return;
+    }
+    if (listLoading || listError) return; // wait for the list (name + centroid)
+    const n = neighbourhoods.find((x) => String(x.id) === id);
+    seedNeighbourhoodFromProfile(user.id, id, n ? { id, name: n.name, district: n.district ?? null, lat: n.lat ?? null, lng: n.lng ?? null } : null);
+  }, [user, profile, neighbourhoods, listLoading, listError]);
 
   const neighbourhood = prefs.mode === "gps" ? (nearest ?? prefs.neighbourhood) : prefs.neighbourhood;
   let point: LatLng = CITY.center;

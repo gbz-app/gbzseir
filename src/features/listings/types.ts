@@ -13,6 +13,8 @@ export type AttributeField = {
   type: AttributeFieldType;
   options?: AttributeOption[];
   required?: boolean;
+  /** Shown as a filter on /ilanlar (select, number, boolean). */
+  filterable?: boolean;
 };
 export type AttributeValue = string | number | boolean;
 export type AttributeValues = Record<string, AttributeValue>;
@@ -167,7 +169,7 @@ export function parseAttributeSchema(json: Json | unknown): AttributeField[] {
           return value && optLabel ? [{ value, label: optLabel }] : [];
         })
       : undefined;
-    out.push({ key, label, type, options, required: r.required === true });
+    out.push({ key, label, type, options, required: r.required === true, filterable: r.filterable === true });
   }
   return out;
 }

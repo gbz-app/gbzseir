@@ -6,6 +6,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { RelativeTime } from "@/components/shared/relative-time";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { requireAuth } from "@/lib/auth/server";
+import { TABLES } from "@/lib/db-contract";
+import { PushOptIn } from "@/features/profile/components/push-opt-in";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
@@ -78,7 +80,7 @@ const EMPTY: Record<TabKey, { title: string; description: string }> = {
 
 /** H4: incoming leads of the caller's approved service business (Yeni · İlgilendiklerim · Kapanan). */
 export default async function BusinessLeadsPage({ searchParams }: Props) {
-  await requireAuth(routes.business.leads());
+  const user = await requireAuth(routes.business.leads());
   const gate = await getServiceBusiness();
   if (!gate.ok) {
     const copy = SERVICE_GATE_COPY[gate.reason];
@@ -91,12 +93,10 @@ export default async function BusinessLeadsPage({ searchParams }: Props) {
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("my_leads")
-    .select("*")
-    .eq("business_id", gate.business.id)
-    .order("created_at", { ascending: false })
-    .limit(200);
+  const [{ data, error }, { count: pushSubs }] = await Promise.all([
+    supabase.from("my_leads").select("*").eq("business_id", gate.business.id).order("created_at", { ascending: false }).limit(200),
+    supabase.from(TABLES.pushSubscriptions).select("id", { count: "exact", head: true }).eq("user_id", user.id),
+  ]);
   if (error) throw new Error(error.message);
   const leads = (data ?? []) as unknown as MyLeadRow[];
 
@@ -125,6 +125,14 @@ export default async function BusinessLeadsPage({ searchParams }: Props) {
     <>
       <PageHeader title="Gelen talepler" subtitle={gate.business.name} backHref={routes.business.root()} />
       <div className="px-4 pt-4 pb-nav">
+        {pushSubs === 0 ? (
+          <PushOptIn
+            title="Yeni talepleri anında gör"
+            text="Bölgene yeni bir talep gelince telefonuna bildirim gelsin. Her talebe sınırlı sayıda firma ilgilenebilir, erken davranan kazanır."
+            dismissKey="business"
+            className="mb-4"
+          />
+        ) : null}
         <Tabs defaultValue={defaultTab} className="gap-4">
           <TabsList className="grid h-11 w-full grid-cols-3 group-data-horizontal/tabs:h-11">
             {tabs.map((t) => (

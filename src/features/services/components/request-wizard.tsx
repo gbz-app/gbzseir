@@ -76,6 +76,8 @@ type RequestWizardProps = {
   schema: FlowSchema;
   /** Service picker payload; shown as step 1 when the request was started from /hizmetler (?sec=1). */
   picker?: ServicePickerData;
+  /** Shown above the first question (after the picker), e.g. "no firm yet" for this service. */
+  notice?: React.ReactNode;
 };
 
 /**
@@ -91,7 +93,7 @@ export function RequestWizard(props: RequestWizardProps) {
   );
 }
 
-function RequestWizardInner({ category, schema, picker }: RequestWizardProps) {
+function RequestWizardInner({ category, schema, picker, notice }: RequestWizardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -137,7 +139,7 @@ function RequestWizardInner({ category, schema, picker }: RequestWizardProps) {
 
   const hasUser = !!user;
   const steps = React.useMemo<WizardStep<Draft>[]>(
-    () => [
+    () => withNotice(notice, picked && picker ? 1 : 0, [
       ...(picked && picker
         ? [
             {
@@ -190,8 +192,8 @@ function RequestWizardInner({ category, schema, picker }: RequestWizardProps) {
         hideFooter: () => !hasUser,
         render: (ctx) => <ContactStep ctx={ctx} category={category} loginNext={requestHref(ctx.count)} />,
       },
-    ],
-    [picked, picker, flowSteps, schema, category, hasUser, requestHref],
+    ]),
+    [notice, picked, picker, flowSteps, schema, category, hasUser, requestHref],
   );
 
   const onComplete = React.useCallback(
@@ -268,6 +270,23 @@ function RequestWizardInner({ category, schema, picker }: RequestWizardProps) {
       />
     </PhotosContext.Provider>
   );
+}
+
+/** Puts `notice` above the content of the visible step at `atIndex` (the first question). */
+function withNotice(notice: React.ReactNode, atIndex: number, steps: WizardStep<Draft>[]): WizardStep<Draft>[] {
+  if (!notice) return steps;
+  return steps.map((s) => ({
+    ...s,
+    render: (ctx: Ctx) =>
+      ctx.index === atIndex ? (
+        <>
+          <div className="mb-5">{notice}</div>
+          {s.render(ctx)}
+        </>
+      ) : (
+        s.render(ctx)
+      ),
+  }));
 }
 
 function invalidAnswersMessage(schema: FlowSchema, ids: string[]): string {

@@ -13,7 +13,9 @@ import { Label } from "@/components/ui/label";
 import { ImageUploader, type UploadedImage } from "@/components/shared/image-uploader";
 import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
 import { useAuth } from "@/lib/auth/auth-provider";
+import { applyProfileNeighbourhood } from "@/lib/location/store";
 import { createClient } from "@/lib/supabase/client";
+import type { Neighbourhood } from "@/lib/types";
 
 const NAME_RE = /^[\p{L}][\p{L}\s'.-]*$/u;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -41,6 +43,7 @@ export function ProfileEditForm({ initial }: { initial: ProfileEditInitial }) {
   const [lastName, setLastName] = React.useState(last0);
   const [email, setEmail] = React.useState(initial.email ?? "");
   const [neighbourhoodId, setNeighbourhoodId] = React.useState<string | null>(initial.neighbourhoodId);
+  const [picked, setPicked] = React.useState<Neighbourhood | null>(null);
   const [avatar, setAvatar] = React.useState<UploadedImage[]>(() =>
     initial.avatarUrl ? [{ url: initial.avatarUrl, thumbUrl: initial.avatarUrl, path: "", thumbPath: "" }] : [],
   );
@@ -78,6 +81,13 @@ export function ProfileEditForm({ initial }: { initial: ProfileEditInitial }) {
       setError("Profil kaydedilemedi. Lütfen tekrar dene.");
       return;
     }
+    // Mirror a changed neighbourhood in the top-bar choice (untouched field: the local choice stays).
+    if (!neighbourhoodId || picked) {
+      applyProfileNeighbourhood(
+        initial.neighbourhoodId,
+        neighbourhoodId && picked ? { id: neighbourhoodId, name: picked.name, district: picked.district, lat: picked.lat, lng: picked.lng } : null,
+      );
+    }
     await refreshProfile();
     toast.success("Profilin güncellendi");
     router.push(routes.profile.root());
@@ -101,7 +111,16 @@ export function ProfileEditForm({ initial }: { initial: ProfileEditInitial }) {
       </div>
       <div className="flex flex-col gap-2">
         <Label>Mahalle</Label>
-        <NeighbourhoodPicker value={neighbourhoodId} onChange={(n) => setNeighbourhoodId(n ? String(n.id) : null)} allowClear showUseLocation />
+        <NeighbourhoodPicker
+          value={neighbourhoodId}
+          onChange={(n) => {
+            setNeighbourhoodId(n ? String(n.id) : null);
+            setPicked(n);
+          }}
+          persistDefault={false}
+          allowClear
+          showUseLocation
+        />
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="eposta">E-posta (isteğe bağlı)</Label>

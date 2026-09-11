@@ -13,6 +13,8 @@ export const CARD_SELECT =
 
 export type ListingsPage = { items: ListingCardData[]; hasMore: boolean; total: number | null; error: string | null };
 
+type SearchArgs = Database["public"]["Functions"]["search_listings"]["Args"];
+
 type FilterableQuery = {
   eq(column: string, value: string): FilterableQuery;
   contains(column: string, value: string[]): FilterableQuery;
@@ -30,13 +32,15 @@ export async function fetchListingsPage(
 ): Promise<ListingsPage> {
   const size = opts.pageSize ?? LISTINGS_PAGE_SIZE;
   const from = Math.max(0, page) * size;
-  const args: Database["public"]["Functions"]["search_listings"]["Args"] = { p_type: p.type, p_sort: p.sort };
+  const args: SearchArgs = { p_type: p.type, p_sort: p.sort };
   if (p.q) args.p_q = p.q;
   if (p.categoryId) args.p_category_id = p.categoryId;
   if (p.neighbourhoodId) args.p_neighbourhood_id = p.neighbourhoodId;
   if (p.minPrice != null) args.p_min_price = p.minPrice;
   if (p.maxPrice != null) args.p_max_price = p.maxPrice;
   if (p.workType) args.p_work_type = p.workType;
+  // Category attribute filters (checked against the category's filterable fields in the RPC).
+  if (p.categoryId && p.attrs) args.p_attrs = p.attrs;
 
   let query = client
     .rpc("search_listings", args, opts.withCount ? { count: "exact" } : undefined)

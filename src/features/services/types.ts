@@ -23,6 +23,8 @@ export type ServiceCategory = {
   popular: boolean;
   max_providers: number;
   auto_dispatch: boolean;
+  /** Approved firms that get its requests (a sub also counts its parent's firms); null = unknown. */
+  provider_count: number | null;
 };
 
 /** Top-level category with its active sub-categories. */
@@ -42,6 +44,8 @@ export type ServicePickerItem = {
   icon: string | null;
   parentSlug: string;
   popular: boolean;
+  /** No approved firm yet: shown with a "Yakında" badge (requests are still allowed). */
+  comingSoon: boolean;
   /** Synonyms, parent words and description (any case/accents) for the search. */
   terms: string[];
 };
@@ -95,6 +99,8 @@ export type CustomerRequestView = {
     max_providers: number;
     sent_count: number;
     hired_business_id: string | null;
+    /** Set when a next wave found no new firm (the team takes over); cleared when a later wave sends it on. */
+    stalled_at?: string | null;
     created_at: string;
     closed_at: string | null;
   };

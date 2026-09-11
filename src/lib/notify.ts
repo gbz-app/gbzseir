@@ -10,7 +10,12 @@ import { TABLES } from "@/lib/db-contract";
  */
 
 export type NotifyInput = {
-  /** Machine type, e.g. 'lead_new', 'listing_approved', 'business_approved'. */
+  /**
+   * Machine type, e.g. 'lead_new', 'listing_approved', 'business_approved'. Service request types written by the DB
+   * (texts in the SQL functions, pushed by /api/notifications/push): lead_new, lead_reopened (a slot opened again),
+   * request_created, request_expired (14 days, in-app only at night), and the admin-only request_review,
+   * request_no_match, request_stalled (next wave found no firm; /admin links are never pushed).
+   */
   type: string;
   title: string;
   body: string;

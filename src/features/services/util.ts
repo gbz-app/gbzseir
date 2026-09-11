@@ -26,6 +26,7 @@ export function servicePickerData(catalog: ServiceCatalog): ServicePickerData {
       icon: s.icon,
       parentSlug: s.parent.slug,
       popular: s.popular,
+      comingSoon: s.provider_count === 0,
       terms: [...s.synonyms, s.parent.name, ...s.parent.synonyms, s.description ?? ""].filter(Boolean),
     })),
   };

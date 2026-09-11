@@ -4,6 +4,7 @@ import { CircleCheck, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { Button } from "@/components/ui/button";
+import { PushOptIn } from "@/features/profile/components/push-opt-in";
 
 export const metadata: Metadata = { title: "İlanın Alındı", robots: { index: false } };
 
@@ -38,6 +39,14 @@ export default async function PostDonePage({ searchParams }: Props) {
             : "İlanını herkes görebilir. Alıcılar seni doğrudan arayacak."
           : "Ekibimiz ilanını kısa süre içinde inceleyecek. Onaylanınca bildirim alacaksın."}
       </p>
+      {live ? null : (
+        <PushOptIn
+          title="Onaylanınca haber verelim"
+          text="Bildirimleri açarsan ilanın onaylanır onaylanmaz telefonuna bildirim gelir."
+          dismissKey="listing"
+          className="mt-6 w-full max-w-sm text-left"
+        />
+      )}
       <div className="mt-8 flex w-full max-w-xs flex-col gap-2.5">
         {viewHref ? (
           <Button asChild size="lg">

@@ -14,7 +14,15 @@ import { deleteListingCategoryAction, saveListingCategoryAction } from "../actio
 import { ConfirmDialog } from "./confirm-dialog";
 import { useAdminAction } from "./use-admin-action";
 
-export type AttrField = { key: string; label: string; type: "text" | "number" | "select" | "boolean"; required?: boolean; options?: Array<{ value: string; label: string }> };
+export type AttrField = {
+  key: string;
+  label: string;
+  type: "text" | "number" | "select" | "boolean";
+  required?: boolean;
+  /** Filter on /ilanlar (not for free text). */
+  filterable?: boolean;
+  options?: Array<{ value: string; label: string }>;
+};
 export type ListingCategoryValue = {
   id: string;
   type: "classified" | "job";
@@ -34,6 +42,25 @@ const keyOf = (label: string) => slugifyTr(label).replace(/-/g, "_").replace(/^[
 type DraftField = AttrField & { optionsText: string; uid: string };
 
 const toDraft = (f: AttrField, i: number): DraftField => ({ ...f, optionsText: (f.options ?? []).map((o) => o.label).join("\n"), uid: `${f.key}-${i}` });
+
+/**
+ * Options from the textarea. A kept label keeps its stored value (listings and filter links use it); a new label gets
+ * a slug value (digits allowed: "64 GB" -> "64_gb"), made unique within the field.
+ */
+function optionsOf(text: string, prev: AttrField["options"]): NonNullable<AttrField["options"]> {
+  const labels = [...new Set(text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean))];
+  const known = new Map((prev ?? []).map((o) => [o.label, o.value]));
+  const used = new Set(labels.flatMap((l) => known.get(l) ?? []));
+  return labels.map((label) => {
+    const kept = known.get(label);
+    if (kept) return { value: kept, label };
+    const base = slugifyTr(label).replace(/-/g, "_").slice(0, 40) || "secenek";
+    let value = base;
+    for (let i = 2; used.has(value); i++) value = `${base.slice(0, 36)}_${i}`;
+    used.add(value);
+    return { value, label };
+  });
+}
 
 /** Add / edit a listing category with its attribute (özellik / filtre) fields. */
 export function ListingCategoryEditor({
@@ -78,14 +105,8 @@ export function ListingCategoryEditor({
       label: f.label,
       type: f.type,
       required: f.required || undefined,
-      options:
-        f.type === "select"
-          ? f.optionsText
-              .split(/\r?\n/)
-              .map((l) => l.trim())
-              .filter(Boolean)
-              .map((label) => ({ value: keyOf(label), label }))
-          : undefined,
+      filterable: (f.filterable && f.type !== "text") || undefined,
+      options: f.type === "select" ? optionsOf(f.optionsText, f.options) : undefined,
     }));
     void run(
       () =>
@@ -110,7 +131,10 @@ export function ListingCategoryEditor({
       <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{category ? `${category.name} düzenle` : "Yeni kategori"}</DialogTitle>
-          <DialogDescription>Özellik alanları ilan verirken sorulur ve ilan listesinde filtre olarak kullanılır. Alt kategori boşsa ana kategorinin alanlarını kullanır.</DialogDescription>
+          <DialogDescription>
+            Özellik alanları ilan verirken sorulur. &quot;Listede filtre&quot; açık olan seçim, sayı ve evet / hayır alanları ilan listesinde bu kategori seçilince filtre olur. Alt kategori
+            boşsa ana kategorinin alanlarını kullanır.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-4">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -250,6 +274,11 @@ export function ListingCategoryEditor({
                     <label className="inline-flex items-center gap-2">
                       <Switch checked={!!f.required} onCheckedChange={(c) => update(f.uid, { required: c })} /> Zorunlu
                     </label>
+                    {f.type !== "text" ? (
+                      <label className="inline-flex items-center gap-2">
+                        <Switch checked={!!f.filterable} onCheckedChange={(c) => update(f.uid, { filterable: c })} /> Listede filtre
+                      </label>
+                    ) : null}
                     <span>Anahtar: {f.key || keyOf(f.label) || "-"}</span>
                   </div>
                 </li>

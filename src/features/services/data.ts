@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { getAppSettings } from "@/lib/app-settings";
 import { parseFlowSchema, type FlowSchema } from "@/core/flow";
 import type { ServiceCatalog, ServiceCategory, ServiceParent } from "./types";
 
@@ -28,7 +29,19 @@ function publicClient(): SupabaseClient<Database> {
 
 const CATEGORY_COLUMNS = "id,parent_id,name,slug,icon,description,synonyms,sort,popular,max_providers,auto_dispatch";
 
-function toCategory(row: Record<string, unknown>): ServiceCategory {
+/**
+ * category_id -> approved firms (public.service_provider_counts, GET so it goes through the data cache).
+ * null when unavailable: no "Yakında" badges rather than a broken catalog.
+ */
+async function getProviderCounts(): Promise<Map<string, number> | null> {
+  const { data, error } = await publicClient().rpc("service_provider_counts", undefined, { get: true });
+  if (error || !Array.isArray(data)) return null;
+  return new Map(data.map((r) => [String(r.category_id), Number(r.provider_count) || 0]));
+}
+
+/** `defaultMax`: app_settings max_providers_default, for categories without their own limit (null). */
+function toCategory(row: Record<string, unknown>, defaultMax: number, providers: Map<string, number> | null): ServiceCategory {
+  const max = row.max_providers === null || row.max_providers === undefined ? defaultMax : Number(row.max_providers) || defaultMax;
   return {
     id: String(row.id),
     parent_id: (row.parent_id as string | null) ?? null,
@@ -39,20 +52,21 @@ function toCategory(row: Record<string, unknown>): ServiceCategory {
     synonyms: Array.isArray(row.synonyms) ? (row.synonyms as string[]) : [],
     sort: Number(row.sort ?? 0),
     popular: !!row.popular,
-    max_providers: Number(row.max_providers ?? 5) || 5,
+    max_providers: Math.min(Math.max(max, 1), 10),
     auto_dispatch: !!row.auto_dispatch,
+    provider_count: providers ? (providers.get(String(row.id)) ?? 0) : null,
   };
 }
 
 /** Whole active catalog (10 parents + subs). Throws on a network/DB error (error.tsx shows a retry). */
 export const getServiceCatalog = cache(async (): Promise<ServiceCatalog> => {
-  const { data, error } = await publicClient()
-    .from("service_categories")
-    .select(CATEGORY_COLUMNS)
-    .eq("active", true)
-    .order("sort", { ascending: true });
+  const [{ data, error }, settings, providers] = await Promise.all([
+    publicClient().from("service_categories").select(CATEGORY_COLUMNS).eq("active", true).order("sort", { ascending: true }),
+    getAppSettings(),
+    getProviderCounts().catch(() => null),
+  ]);
   if (error) throw new Error(`service_categories: ${error.message}`);
-  const rows = (data ?? []).map((r) => toCategory(r as Record<string, unknown>));
+  const rows = (data ?? []).map((r) => toCategory(r as Record<string, unknown>, settings.maxProvidersDefault, providers));
   const parents: ServiceParent[] = rows.filter((r) => !r.parent_id).map((p) => ({ ...p, children: [] }));
   const byId = new Map(parents.map((p) => [p.id, p]));
   const subs: ServiceCatalog["subs"] = [];

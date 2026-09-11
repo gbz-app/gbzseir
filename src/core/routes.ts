@@ -192,6 +192,8 @@ export const routes = {
     newsArticles: () => "/admin/haber-yazilari",
     announcements: () => "/admin/duyurular",
     places: () => "/admin/yerler",
+    /** Nöbet listesi: ?gun=YYYY-MM-DD (duty day, default the current one) */
+    duty: (query?: QueryRecord) => withQuery("/admin/nobet", query),
     data: () => "/admin/veri",
     /** İşlem kaydı (audit_log): ?tur, kim, kullanici, hedef, q, bas, bit, sayfa */
     audit: (query?: QueryRecord) => withQuery("/admin/denetim", query),

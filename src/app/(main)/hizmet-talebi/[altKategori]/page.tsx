@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { Info } from "lucide-react";
 import { routes } from "@/core/routes";
 import { findCategory, getPublishedFlow, getServiceCatalog } from "@/features/services/data";
 import { servicePickerData } from "@/features/services/util";
@@ -47,6 +48,17 @@ export default async function ServiceRequestPage({ params }: Props) {
         autoDispatch: sub.auto_dispatch,
       }}
       schema={flow?.schema ?? { steps: [] }}
+      notice={
+        sub.provider_count === 0 ? (
+          // No approved firm yet: warn on the first question; the request is still allowed (the team looks for a firm).
+          <div role="note" className="flex items-start gap-2.5 rounded-2xl bg-info-soft px-3.5 py-2.5 text-sm leading-relaxed">
+            <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
+            <p className="min-w-0">
+              <span className="font-semibold">Bu hizmette henüz firma yok.</span> Talebini alıp sana uygun firma bulmaya çalışacağız.
+            </p>
+          </div>
+        ) : undefined
+      }
     />
   );
 }

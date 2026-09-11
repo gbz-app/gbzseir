@@ -5,10 +5,12 @@ import { ChevronRight, ClipboardList } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionHeader } from "@/components/shared/section-header";
 import { JsonLd } from "@/components/seo/json-ld";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { findCategory, getFirmsForCategories, getServiceCatalog } from "@/features/services/data";
+import { COMING_SOON_LABEL } from "@/features/services/labels";
 import { FirmCard, HowItWorks } from "@/features/services/components/bits";
 import { ServiceIconBubble } from "@/features/services/components/service-icon";
 
@@ -91,6 +93,7 @@ export default async function ServiceCategoryPage({ params }: Props) {
                       <span className="block font-bold">{s.name}</span>
                       {s.description ? <span className="block text-xs leading-snug text-muted-foreground">{s.description}</span> : null}
                     </span>
+                    {s.provider_count === 0 ? <Badge variant="secondary">{COMING_SOON_LABEL}</Badge> : null}
                     <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
                   </Link>
                 </li>

@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { BottomSheet } from "@/components/shared/bottom-sheet";
 import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
 import { CONDITIONS, EXPERIENCE_LEVELS, JOB_LOCATIONS, WORK_TYPES } from "../constants";
-import { emptyQuery, type ListingsQuery } from "../filters";
+import { attributeFilterFields, emptyQuery, pickAttrFilters, type ListingsQuery } from "../filters";
 import { digitsOnly, groupDigits } from "../format";
 import type { ListingCategory, NeighbourhoodRef } from "../types";
 import { ChoiceChips } from "./choice-chips";
@@ -33,6 +33,9 @@ function Section({ id, title, children }: { id: string; title: string; children:
   );
 }
 
+/** Typed decimal for a number filter (kept as text while editing; normalised on apply). */
+const numberText = (v: string) => v.replace(/[^\d.,]/g, "").slice(0, 16) || null;
+
 /** E2: filter bottom sheet. Mount with a new `key` every time it opens so the draft starts from the URL state. */
 export function FilterSheet({ open, onOpenChange, query, categories, neighbourhood, onApply }: FilterSheetProps) {
   const [draft, setDraft] = React.useState<ListingsQuery>(query);
@@ -44,12 +47,24 @@ export function FilterSheet({ open, onOpenChange, query, categories, neighbourho
   const activeTop = selected ? (selected.parent_id ? (categories.find((c) => c.id === selected.parent_id) ?? null) : selected) : null;
   const children = activeTop ? categories.filter((c) => c.parent_id === activeTop.id) : [];
 
+  // Filter fields of the chosen category (admin: "Listede filtre").
+  const attrFields = isJob ? [] : attributeFilterFields(categories, draft.kategori);
+  const flagFields = attrFields.filter((f) => f.type === "boolean");
+  const valueFields = attrFields.filter((f) => f.type !== "boolean");
+
   const patch = (p: Partial<ListingsQuery>) => setDraft((d) => ({ ...d, ...p }));
+  const setAttr = (key: string, value: string | null) =>
+    setDraft((d) => {
+      const attrs = { ...d.attrs };
+      if (value) attrs[key] = value;
+      else delete attrs[key];
+      return { ...d, attrs };
+    });
 
   const apply = () => {
     let { min, max } = draft;
     if (min != null && max != null && min > max) [min, max] = [max, min];
-    onApply({ ...draft, min, max, mahalle: nb?.slug || null });
+    onApply({ ...draft, min, max, mahalle: nb?.slug || null, attrs: pickAttrFilters(draft.attrs, attrFields) });
     onOpenChange(false);
   };
 
@@ -146,6 +161,51 @@ export function FilterSheet({ open, onOpenChange, query, categories, neighbourho
                 onChange={(v) => patch({ durum: v || null })}
               />
             </Section>
+            {valueFields.map((f) => {
+              const id = `filtre-a-${f.key}`;
+              return f.type === "select" ? (
+                <Section key={f.key} id={id} title={f.label}>
+                  <ChoiceChips
+                    size="sm"
+                    ariaLabelledBy={id}
+                    options={[{ value: "", label: "Tümü" }, ...(f.options ?? [])]}
+                    value={draft.attrs[f.key] ?? ""}
+                    onChange={(v) => setAttr(f.key, v || null)}
+                  />
+                </Section>
+              ) : (
+                <Section key={f.key} id={id} title={f.label}>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      inputMode="decimal"
+                      aria-label={`${f.label}, en az`}
+                      placeholder="En az"
+                      value={draft.attrs[`${f.key}_min`] ?? ""}
+                      onChange={(e) => setAttr(`${f.key}_min`, numberText(e.target.value))}
+                    />
+                    <Input
+                      inputMode="decimal"
+                      aria-label={`${f.label}, en çok`}
+                      placeholder="En çok"
+                      value={draft.attrs[`${f.key}_max`] ?? ""}
+                      onChange={(e) => setAttr(`${f.key}_max`, numberText(e.target.value))}
+                    />
+                  </div>
+                </Section>
+              );
+            })}
+            {flagFields.length ? (
+              <Section id="filtre-ozellikler" title="Özellikler">
+                <div className="flex flex-col gap-2">
+                  {flagFields.map((f) => (
+                    <label key={f.key} className="flex min-h-14 cursor-pointer items-center justify-between gap-4 rounded-2xl bg-muted/60 px-4 py-3">
+                      <span className="text-[15px] font-semibold">{f.label}</span>
+                      <Switch checked={draft.attrs[f.key] === "1"} onCheckedChange={(c) => setAttr(f.key, c ? "1" : null)} aria-label={f.label} />
+                    </label>
+                  ))}
+                </div>
+              </Section>
+            ) : null}
           </>
         ) : (
           <>

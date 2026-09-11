@@ -2,6 +2,7 @@
  * /ilanlar URL filtreleri (paylaşılabilir). Saf TS: sunucu sayfası ve istemci bileşenleri aynı ayrıştırıcıyı kullanır.
  *
  * ?tab=ikinci-el|is-ilanlari &q= &kategori=<slug> &min= &max= &mahalle=<slug> &durum= &sirala=yeni|fiyat-artan|fiyat-azalan
+ *   2. el, kategori seçiliyken: &a_<key>=<seçenek> (seçim) | &a_<key>=1 (evet/hayır) | &a_<key>_min= &a_<key>_max= (sayı)
  *   iş: &calisma=<work type> &konum=<JOB_LOCATIONS.key> &deneyim= &servis=1
  */
 import { routes, type ListingsTab, type QueryRecord } from "@/core/routes";
@@ -18,6 +19,10 @@ import {
   type RpcSort,
   type SortKey,
 } from "./constants";
+import type { AttributeField, ListingCategory } from "./types";
+
+/** Category attribute filters, keyed without the "a_" prefix: key (select / boolean), key_min / key_max (number). */
+export type AttrFilters = Record<string, string>;
 
 export type ListingsQuery = {
   tab: ListingsTab;
@@ -30,6 +35,8 @@ export type ListingsQuery = {
   mahalle: string | null;
   /** 2. el condition (attributes.durum). */
   durum: string | null;
+  /** 2. el category attribute filters (only with a category; checked against its schema in search_listings). */
+  attrs: AttrFilters;
   sirala: SortKey;
   /** Job work type. */
   calisma: string | null;
@@ -40,6 +47,12 @@ export type ListingsQuery = {
 };
 
 export type RawSearchParams = Record<string, string | string[] | undefined> | URLSearchParams;
+
+const ATTR_PARAM = /^a_([a-z][a-z0-9_]{0,47})$/;
+/** Option value (admin: [a-z0-9_]), "1" or a number ("6.5" / "6,5"). */
+const ATTR_VALUE = /^(?:[a-z0-9_]{1,40}|-?\d{1,15}(?:[.,]\d{1,6})?)$/;
+/** 20 fields per category, a number field has two params. */
+const ATTR_MAX = 40;
 
 function first(raw: RawSearchParams, key: string): string | null {
   const v = raw instanceof URLSearchParams ? raw.get(key) : raw[key];
@@ -53,7 +66,29 @@ function intParam(v: string | null): number | null {
   return n <= PRICE_MAX ? n : null;
 }
 
+/** Decimal from the URL / filter sheet ("6,5" -> 6.5); null when invalid. */
+export function attrNumber(v: string | null | undefined): number | null {
+  const s = v?.trim();
+  if (!s || !/^-?\d{1,15}(?:[.,]\d{1,6})?$/.test(s)) return null;
+  const n = Number(s.replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
 const has = (list: Array<{ value: string }>, v: string | null) => (v && list.some((o) => o.value === v) ? v : null);
+
+function parseAttrs(raw: RawSearchParams): AttrFilters {
+  const keys = raw instanceof URLSearchParams ? [...new Set(raw.keys())] : Object.keys(raw);
+  const out: AttrFilters = {};
+  let n = 0;
+  for (const param of keys.sort()) {
+    const key = ATTR_PARAM.exec(param)?.[1];
+    const value = key ? first(raw, param) : null;
+    if (!key || !value || !ATTR_VALUE.test(value)) continue;
+    out[key] = value;
+    if (++n >= ATTR_MAX) break;
+  }
+  return out;
+}
 
 export function emptyQuery(tab: ListingsTab = "ikinci-el"): ListingsQuery {
   return {
@@ -64,6 +99,7 @@ export function emptyQuery(tab: ListingsTab = "ikinci-el"): ListingsQuery {
     max: null,
     mahalle: null,
     durum: null,
+    attrs: {},
     sirala: "yeni",
     calisma: null,
     konum: null,
@@ -85,6 +121,8 @@ export function parseListingsQuery(raw: RawSearchParams): ListingsQuery {
     q.max = intParam(first(raw, "max"));
     if (q.min != null && q.max != null && q.min > q.max) [q.min, q.max] = [q.max, q.min];
     q.durum = has(CONDITIONS, first(raw, "durum"));
+    // Attribute filters belong to a category.
+    if (q.kategori) q.attrs = parseAttrs(raw);
     const sort = first(raw, "sirala");
     q.sirala = SORT_OPTIONS.some((s) => s.value === sort) ? (sort as SortKey) : "yeni";
   } else {
@@ -101,7 +139,9 @@ export function parseListingsQuery(raw: RawSearchParams): ListingsQuery {
 export function listingsQueryToRecord(q: ListingsQuery): QueryRecord {
   const base: QueryRecord = { q: q.q || undefined, kategori: q.kategori, mahalle: q.mahalle };
   if (q.tab === "ikinci-el") {
-    return { ...base, min: q.min, max: q.max, durum: q.durum, sirala: q.sirala === "yeni" ? undefined : q.sirala };
+    const attrs: QueryRecord = {};
+    if (q.kategori) for (const k of Object.keys(q.attrs).sort()) attrs[`a_${k}`] = q.attrs[k];
+    return { ...base, min: q.min, max: q.max, durum: q.durum, ...attrs, sirala: q.sirala === "yeni" ? undefined : q.sirala };
   }
   return { ...base, calisma: q.calisma, konum: q.konum, deneyim: q.deneyim, servis: q.servis ? 1 : undefined };
 }
@@ -118,6 +158,8 @@ export function countActiveFilters(q: ListingsQuery): number {
   if (q.tab === "ikinci-el") {
     if (q.min != null || q.max != null) n++;
     if (q.durum) n++;
+    // A number range (key_min + key_max) is one filter.
+    if (q.kategori) n += new Set(Object.keys(q.attrs).map((k) => k.replace(/_(?:min|max)$/, ""))).size;
   } else {
     if (q.calisma) n++;
     if (q.konum) n++;
@@ -136,6 +178,38 @@ export function queryKey(q: ListingsQuery): string {
   return listingsHref(q);
 }
 
+/**
+ * Filter fields of a category: its "filterable" select / number / boolean fields (a sub category without fields uses
+ * its parent's, like the post wizard). "durum" is left out: it has its own filter.
+ */
+export function attributeFilterFields(categories: ListingCategory[], slug: string | null): AttributeField[] {
+  const category = slug ? categories.find((c) => c.slug === slug) : undefined;
+  if (!category) return [];
+  const parent = category.parent_id ? categories.find((c) => c.id === category.parent_id) : undefined;
+  const schema = category.attributes_schema.length ? category.attributes_schema : (parent?.attributes_schema ?? []);
+  return schema.filter((f) => f.filterable && f.type !== "text" && f.key !== "durum");
+}
+
+/** Keeps the values that fit `fields` (unknown keys / options dropped, numbers normalised, ranges ordered). */
+export function pickAttrFilters(attrs: AttrFilters, fields: AttributeField[]): AttrFilters {
+  const out: AttrFilters = {};
+  for (const f of fields) {
+    if (f.type === "select") {
+      const v = attrs[f.key];
+      if (v && f.options?.some((o) => o.value === v)) out[f.key] = v;
+    } else if (f.type === "boolean") {
+      if (attrs[f.key] === "1") out[f.key] = "1";
+    } else if (f.type === "number") {
+      let lo = attrNumber(attrs[`${f.key}_min`]);
+      let hi = attrNumber(attrs[`${f.key}_max`]);
+      if (lo != null && hi != null && lo > hi) [lo, hi] = [hi, lo];
+      if (lo != null) out[`${f.key}_min`] = String(lo);
+      if (hi != null) out[`${f.key}_max`] = String(hi);
+    }
+  }
+  return out;
+}
+
 /** Fully resolved arguments for search_listings (+ PostgREST filters). */
 export type ResolvedSearch = {
   type: ListingType;
@@ -145,6 +219,8 @@ export type ResolvedSearch = {
   minPrice: number | null;
   maxPrice: number | null;
   condition: string | null;
+  /** p_attrs: interpreted by search_listings through the category's filterable fields. */
+  attrs: AttrFilters | null;
   sort: RpcSort;
   workType: string | null;
   locationLabel: string | null;
@@ -157,14 +233,16 @@ export function resolveSearch(
   lookups: { categoryIdBySlug: (slug: string) => string | null; neighbourhoodIdBySlug: (slug: string) => string | null },
 ): ResolvedSearch {
   const type = TAB_TYPE[q.tab];
+  const categoryId = q.kategori ? lookups.categoryIdBySlug(q.kategori) : null;
   return {
     type,
     q: q.q.trim() || null,
-    categoryId: q.kategori ? lookups.categoryIdBySlug(q.kategori) : null,
+    categoryId,
     neighbourhoodId: q.mahalle ? lookups.neighbourhoodIdBySlug(q.mahalle) : null,
     minPrice: type === "classified" ? q.min : null,
     maxPrice: type === "classified" ? q.max : null,
     condition: type === "classified" ? q.durum : null,
+    attrs: type === "classified" && categoryId && Object.keys(q.attrs).length ? q.attrs : null,
     sort: type === "classified" ? (SORT_OPTIONS.find((s) => s.value === q.sirala)?.rpc ?? "newest") : "newest",
     workType: type === "job" ? q.calisma : null,
     locationLabel: type === "job" ? (JOB_LOCATIONS.find((l) => l.key === q.konum)?.label ?? null) : null,

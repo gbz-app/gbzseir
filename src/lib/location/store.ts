@@ -3,7 +3,7 @@
 import * as React from "react";
 import { STORAGE_KEYS } from "@/config/site";
 import { roundLatLng, isValidLatLng, type LatLng } from "@/core/geo";
-import { readJSON, removeItem, writeJSON } from "@/lib/storage";
+import { readJSON, readString, removeItem, writeJSON, writeString } from "@/lib/storage";
 
 /** Rounded (~100 m) coordinates kept on the device only. */
 export type StoredCoords = LatLng & { ts: number };
@@ -108,6 +108,47 @@ export function setDefaultNeighbourhood(n: ChosenNeighbourhood | null, opts: { k
 /** Default neighbourhood id (for forms that pre-fill Mahalle). */
 export function getDefaultNeighbourhood(): ChosenNeighbourhood | null {
   return getLocationPrefs().neighbourhood;
+}
+
+/** "<userId>:<profile neighbourhood id>" last considered on this device (kept by clearLocationPrefs). */
+const SEEDED_FOR_KEY = `${STORAGE_KEYS.neighbourhood}.seededFor`;
+let seededFor: string | null = null;
+
+function seedMark(userId: string, neighbourhoodId: string | null): string {
+  return `${userId}:${neighbourhoodId ?? ""}`;
+}
+
+/** True once this profile neighbourhood was considered for this account on this device. */
+export function isProfileSeedDone(userId: string, neighbourhoodId: string | null): boolean {
+  const mark = seedMark(userId, neighbourhoodId);
+  return seededFor === mark || readString(SEEDED_FOR_KEY) === mark;
+}
+
+/**
+ * Seed the neighbourhood from the account (profiles.neighbourhood_id) when there is no local choice.
+ * Once per account and profile value on this device: never overwrites a local choice, a later local clear stays cleared.
+ */
+export function seedNeighbourhoodFromProfile(userId: string, neighbourhoodId: string | null, n: ChosenNeighbourhood | null): void {
+  if (isProfileSeedDone(userId, neighbourhoodId)) return;
+  seededFor = seedMark(userId, neighbourhoodId);
+  writeString(SEEDED_FOR_KEY, seededFor);
+  const prev = getLocationPrefs();
+  if (n && String(n.id) === neighbourhoodId && !prev.neighbourhood && !prev.mode) setDefaultNeighbourhood(n);
+}
+
+/**
+ * Profile edit saved a new neighbourhood: mirror it in the local choice.
+ * A removed one is forgotten here only when it is also the local choice.
+ */
+export function applyProfileNeighbourhood(prevId: string | null, next: ChosenNeighbourhood | null): void {
+  const nextId = next ? String(next.id) : null;
+  if (nextId === prevId) return;
+  const local = getLocationPrefs().neighbourhood;
+  if (next) {
+    if (local?.id !== nextId) setDefaultNeighbourhood(next); // GPS mode may already track it
+  } else if (local && local.id === prevId) {
+    setDefaultNeighbourhood(null);
+  }
 }
 
 /** Forget location + neighbourhood (settings > "Konum verilerimi sil"). */

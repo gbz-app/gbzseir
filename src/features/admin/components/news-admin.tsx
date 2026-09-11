@@ -7,11 +7,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { deleteNewsSourceAction, refreshNewsAction, saveNewsSourceAction, testNewsFeedAction } from "../actions/news";
 import { ConfirmDialog } from "./confirm-dialog";
 import { useAdminAction } from "./use-admin-action";
 
-export type NewsSourceValue = { id: string; name: string; site_url: string; feed_url: string; active: boolean };
+export type NewsSourceValue = { id: string; name: string; site_url: string; feed_url: string; active: boolean; permission_note: string | null };
 
 export function NewsSourceDialog({ value, trigger }: { value?: NewsSourceValue; trigger: React.ReactElement }) {
   const { pending, run } = useAdminAction();
@@ -20,8 +21,9 @@ export function NewsSourceDialog({ value, trigger }: { value?: NewsSourceValue; 
   const [site, setSite] = React.useState(value?.site_url ?? "https://");
   const [feed, setFeed] = React.useState(value?.feed_url ?? "https://");
   const [active, setActive] = React.useState(value?.active ?? true);
+  const [note, setNote] = React.useState(value?.permission_note ?? "");
   const [test, setTest] = React.useState<string[] | null>(null);
-  const ids = { name: React.useId(), site: React.useId(), feed: React.useId() };
+  const ids = { name: React.useId(), site: React.useId(), feed: React.useId(), note: React.useId() };
 
   return (
     <Dialog open={open} onOpenChange={(o) => !pending && setOpen(o)}>
@@ -35,7 +37,10 @@ export function NewsSourceDialog({ value, trigger }: { value?: NewsSourceValue; 
           className="grid gap-3"
           onSubmit={(e) => {
             e.preventDefault();
-            void run(() => saveNewsSourceAction({ id: value?.id, name, siteUrl: site, feedUrl: feed, active }), { onSuccess: () => setOpen(false), refresh: true });
+            void run(() => saveNewsSourceAction({ id: value?.id, name, siteUrl: site, feedUrl: feed, active, permissionNote: note }), {
+              onSuccess: () => setOpen(false),
+              refresh: true,
+            });
           }}
         >
           <div>
@@ -72,6 +77,23 @@ export function NewsSourceDialog({ value, trigger }: { value?: NewsSourceValue; 
                 ))}
               </ul>
             ) : null}
+          </div>
+          <div>
+            <Label htmlFor={ids.note} className="mb-1 block text-xs font-semibold">
+              Kullanım izni notu
+            </Label>
+            <Textarea
+              id={ids.note}
+              value={note}
+              maxLength={500}
+              rows={3}
+              placeholder="Ör. 12.09.2026'da e-postayla izin alındı."
+              aria-describedby={`${ids.note}-help`}
+              onChange={(e) => setNote(e.target.value)}
+            />
+            <p id={`${ids.note}-help`} className="mt-1 text-xs text-muted-foreground">
+              Yayıncıdan alınan izni not et. Yalnızca yöneticiler görür.
+            </p>
           </div>
           <label className="flex items-center justify-between rounded-xl bg-muted/50 p-3 text-sm">
             <span className="font-semibold">Aktif</span>
@@ -119,11 +141,12 @@ export function NewsActiveSwitch({ value }: { value: NewsSourceValue }) {
   );
 }
 
+/** Fetches every active feed now (the same work as the 20-minute job). */
 export function RefreshNewsButton() {
   const { pending, run } = useAdminAction();
   return (
-    <Button variant="outline" disabled={pending} onClick={() => run(() => refreshNewsAction())}>
-      <RefreshCw className={pending ? "animate-spin" : undefined} /> Önbelleği yenile
+    <Button variant="outline" disabled={pending} onClick={() => run(() => refreshNewsAction(), { refresh: true })}>
+      <RefreshCw className={pending ? "animate-spin" : undefined} /> {pending ? "Çekiliyor" : "Şimdi çek"}
     </Button>
   );
 }

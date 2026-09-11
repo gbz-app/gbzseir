@@ -36,19 +36,23 @@ function statusText(v: CustomerRequestView, hiredName: string | null): string {
       return "Talebin inceleniyor. Ekibimiz kısa süre içinde uygun firmalara iletecek; firmalar ilgilendikçe bildirim alacaksın.";
     case "open":
       if (r.accepted_count > 0) return `${r.accepted_count} firma ilgilendi. En fazla ${r.max_providers} firma ilgilenebilir; yeni firmalar ilgilendikçe bildirim alırsın.`;
+      if (r.stalled_at)
+        return "Talebinle henüz ilgilenen bir firma olmadı ve şu an başka uygun firma yok. Ekibimiz sana uygun firma bulmaya çalışıyor; bir firma ilgilendiğinde bildirim alacaksın.";
       return r.sent_count > 0
-        ? `Talebin ${r.sent_count} uygun firmaya iletildi. Firmalar ilgilendikçe burada göreceksin ve bildirim alacaksın.`
+        ? `Talebin ${r.sent_count} uygun firmaya iletildi. Firmalar ilgilendikçe burada göreceksin ve bildirim alacaksın. Birkaç saat içinde ilgilenen olmazsa talebini varsa başka uygun firmalara da ileteceğiz.`
         : "Uygun firmalar aranıyor. Firmalar ilgilendikçe bildirim alacaksın.";
     case "filled":
       return `${r.max_providers} firma ilgilendi, talebin doldu. Bir firmayı listeden çıkarırsan yerine başka bir firma ilgilenebilir.`;
     case "no_match":
-      return "Şu an bölgende uygun firma bulamadık. Ekibimiz talebini inceliyor ve uygun firmalara iletecek.";
+      return "Şu an bu hizmette uygun firma bulamadık. Ekibimiz talebini takip ediyor; uygun bir firma bulunca talebini ona ileteceğiz ve firma ilgilendiğinde bildirim alacaksın.";
     case "closed_hired":
       return hiredName ? `Talebini kapattın: ${hiredName} ile anlaştın.` : "Talebini kapattın.";
     case "closed_cancelled":
       return "Talebini kapattın. Yeni bir ihtiyacın olursa tekrar talep oluşturabilirsin.";
     case "expired":
-      return "Talebin 14 gün içinde kapatılmadığı için süresi doldu.";
+      return r.accepted_count > 0
+        ? "Talebin 14 gün dolduğu için kapandı. İlgilenen firmaları aşağıda görmeye ve aramaya devam edebilirsin."
+        : "Talebin 14 gün içinde sonuçlanmadığı için kapandı. İstersen aynı hizmet için yeniden talep oluşturabilirsin.";
     default:
       return "";
   }
@@ -85,7 +89,7 @@ export default async function RequestDetailPage({ params }: Props) {
 
   const r = view.request;
   const providers = view.providers ?? [];
-  const status = requestStatusMeta(r.status, r.accepted_count);
+  const status = requestStatusMeta(r.status, r.accepted_count, !!r.stalled_at);
   const open = isRequestOpen(r.status);
   const canRemove = r.status === "open" || r.status === "filled";
   const hired = providers.find((p) => p.business.id === r.hired_business_id) ?? null;
@@ -222,6 +226,10 @@ export default async function RequestDetailPage({ params }: Props) {
 
         {open ? (
           <CloseRequestSheet code={r.public_code} providers={providers.map((p) => ({ businessId: p.business.id, name: p.business.name }))} />
+        ) : r.status === "expired" ? (
+          <Button asChild variant="outline" size="lg">
+            <Link href={routes.services.request(r.category.slug)}>Yeniden talep oluştur</Link>
+          </Button>
         ) : (
           <Button asChild variant="outline" size="lg">
             <Link href={routes.services.root()}>Yeni talep oluştur</Link>

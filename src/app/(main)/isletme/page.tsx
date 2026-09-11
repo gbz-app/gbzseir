@@ -41,6 +41,8 @@ import { BusinessSwitcher } from "@/features/business/components/business-switch
 import { getOwnerBusiness, getOwnerBusinessList } from "@/features/business/lib/owner-queries";
 import { hasMenu, hasRooms, resolveVertical } from "@/features/business/lib/verticals";
 import { getAppSettings } from "@/lib/app-settings";
+import { TABLES } from "@/lib/db-contract";
+import { PushOptIn } from "@/features/profile/components/push-opt-in";
 
 export const metadata: Metadata = { title: "İşletme Paneli", robots: { index: false } };
 
@@ -129,7 +131,7 @@ function StatusCard({ icon: Icon, tone, title, text, action }: { icon: LucideIco
 
 /** H3 - İşletme paneli ("Genel bakış" bento dashboard). */
 export default async function BusinessPanelPage() {
-  await requireProfile(routes.business.root());
+  const { user } = await requireProfile(routes.business.root());
   const b = await getOwnerBusiness();
   if (!b) redirect(routes.business.intro());
   const [owned, settings] = await Promise.all([getOwnerBusinessList(), getAppSettings()]);
@@ -192,7 +194,10 @@ export default async function BusinessPanelPage() {
   }
 
   const supabase = await createClient();
-  const { data } = await supabase.rpc("business_panel_stats", { p_business_id: b.id });
+  const [{ data }, { count: pushSubs }] = await Promise.all([
+    supabase.rpc("business_panel_stats", { p_business_id: b.id }),
+    supabase.from(TABLES.pushSubscriptions).select("id", { count: "exact", head: true }).eq("user_id", user.id),
+  ]);
   const stats = (data ?? {}) as Stats;
   const isService = b.kinds.includes("service");
   const isEmployer = b.kinds.includes("employer");
@@ -236,6 +241,18 @@ export default async function BusinessPanelPage() {
 
       <div className="grid grid-cols-2 gap-3 px-4 pt-4 pb-8">
         <BusinessSwitcher businesses={owned} activeId={b.id} canAdd={canAdd} className="col-span-2" />
+        {pushSubs === 0 ? (
+          <PushOptIn
+            title={isService ? "Yeni talepleri anında gör" : "Yeni yorumları kaçırma"}
+            text={
+              isService
+                ? "Bölgene yeni bir talep gelince telefonuna bildirim gelsin. Her talebe sınırlı sayıda firma ilgilenebilir, erken davranan kazanır."
+                : "İşletmene yorum yazılınca ve önemli bir gelişme olunca telefonuna bildirim gelsin."
+            }
+            dismissKey="business"
+            className="col-span-2 rounded-3xl"
+          />
+        ) : null}
         {isService ? (
           <StatTile
             href={routes.business.leads()}

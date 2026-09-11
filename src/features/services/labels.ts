@@ -29,13 +29,17 @@ export function whenLabel(type: WhenType | string | null | undefined, date?: str
   }
 }
 
-/** Status of a request as the customer sees it. */
-export function requestStatusMeta(status: RequestStatus | string, acceptedCount = 0): { label: string; tone: Tone } {
+/** Short label on service badges when no approved firm serves it yet. */
+export const COMING_SOON_LABEL = "Yakında";
+
+/** Status of a request as the customer sees it. `stalled`: no firm left to send it to (stalled_at). */
+export function requestStatusMeta(status: RequestStatus | string, acceptedCount = 0, stalled = false): { label: string; tone: Tone } {
   switch (status) {
     case "admin_review":
       return { label: "İnceleniyor", tone: "warning" };
     case "open":
-      return acceptedCount > 0 ? { label: `${acceptedCount} firma ilgilendi`, tone: "success" } : { label: "Firmalar bekleniyor", tone: "info" };
+      if (acceptedCount > 0) return { label: `${acceptedCount} firma ilgilendi`, tone: "success" };
+      return stalled ? { label: "Firma aranıyor", tone: "warning" } : { label: "Firmalar bekleniyor", tone: "info" };
     case "filled":
       return { label: "Doldu", tone: "success" };
     case "no_match":

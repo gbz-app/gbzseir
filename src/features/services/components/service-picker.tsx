@@ -4,9 +4,11 @@ import * as React from "react";
 import Link from "next/link";
 import { Check, ChevronRight, Search, SearchX, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { trNormalize } from "@/core/tr";
+import { COMING_SOON_LABEL } from "../labels";
 import type { ServicePickerData, ServicePickerItem } from "../types";
 import { ServiceIconBubble } from "./service-icon";
 
@@ -125,6 +127,7 @@ export function ServicePicker({ data, hrefFor, selectedSlug, onSelectedClick }: 
                       <span className="block truncate font-semibold">{r.name}</span>
                       <span className="block truncate text-xs text-muted-foreground">{groupNames.get(r.parentSlug)}</span>
                     </span>
+                    {r.comingSoon ? <SoonBadge /> : null}
                   </ServiceLink>
                 </li>
               ))}
@@ -167,7 +170,10 @@ export function ServicePicker({ data, hrefFor, selectedSlug, onSelectedClick }: 
                   <li key={s.slug}>
                     <ServiceLink {...linkProps(s.slug)} tile className="h-full min-h-18 rounded-3xl p-3">
                       <ServiceIconBubble name={s.icon} size="sm" className={s.slug === selectedSlug ? "bg-card" : undefined} />
-                      <span className="min-w-0 flex-1 text-sm leading-snug font-bold text-balance">{s.name}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm leading-snug font-bold text-balance">{s.name}</span>
+                        {s.comingSoon ? <SoonBadge className="mt-1" /> : null}
+                      </span>
                     </ServiceLink>
                   </li>
                 ))}
@@ -195,6 +201,7 @@ export function ServicePicker({ data, hrefFor, selectedSlug, onSelectedClick }: 
                         <li key={s.slug}>
                           <ServiceLink {...linkProps(s.slug)} className="-mx-2 min-h-12 rounded-xl px-2 !no-underline">
                             <span className="min-w-0 flex-1 text-[15px] font-medium text-foreground">{s.name}</span>
+                            {s.comingSoon ? <SoonBadge /> : null}
                           </ServiceLink>
                         </li>
                       ))}
@@ -207,6 +214,15 @@ export function ServicePicker({ data, hrefFor, selectedSlug, onSelectedClick }: 
         </>
       )}
     </div>
+  );
+}
+
+/** No approved firm serves it yet; the request can still be sent (the team looks for a firm). */
+function SoonBadge({ className }: { className?: string }) {
+  return (
+    <Badge variant="secondary" className={className}>
+      {COMING_SOON_LABEL}
+    </Badge>
   );
 }
 
