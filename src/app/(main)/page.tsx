@@ -1,8 +1,9 @@
 import { Suspense } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
-import { Briefcase, Bus, ChevronRight, Cross, ExternalLink, Map as MapIcon, MoonStar, Store, Tag, type LucideIcon } from "lucide-react";
+import { Briefcase, Bus, CarTaxiFront, ChevronRight, Cross, ExternalLink, Map as MapIcon, MoonStar, Store, Tag, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
@@ -25,7 +26,7 @@ const CARD = "rounded-3xl bg-card shadow-soft ring-1 ring-foreground/[0.05]";
 /** Horizontal scroller (full-bleed inside the page padding, no visible scrollbar). */
 const RAIL = "no-scrollbar -mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pt-1 pb-3";
 
-type Tile = { href: string; label: string; text: string; icon: LucideIcon; tone: string };
+type Tile = { href: string; label: string; text: string; icon: LucideIcon; tone: string; image?: string };
 
 const vertical = (v: Vertical, label?: string): Tile => {
   const info = VERTICAL_INFO[v];
@@ -33,6 +34,14 @@ const vertical = (v: Vertical, label?: string): Tile => {
 };
 
 const MAIN_CARDS: Tile[] = [
+  {
+    href: routes.search("taksi"),
+    label: "Taksi",
+    text: "Taksi durakları ve taksiler",
+    icon: CarTaxiFront,
+    tone: "bg-amber-100 text-amber-700",
+    image: "/images/home/taksi.webp",
+  },
   vertical("yemek"),
   vertical("restoran"),
   vertical("kafe"),
@@ -224,19 +233,27 @@ export default async function HomePage() {
         </ul>
       </section>
 
-      <section aria-label="Kategoriler">
-        <ul className="grid grid-cols-4 gap-2">
+      <section aria-labelledby="kategoriler">
+        <h2 id="kategoriler" className="text-lg font-semibold">
+          Kategoriler
+        </h2>
+        <ul className="mt-3 grid grid-cols-3 gap-x-3 gap-y-4">
           {MAIN_CARDS.map((m) => (
             <li key={m.label}>
-              <Link
-                href={m.href}
-                aria-label={`${m.label}: ${m.text}`}
-                className={cn(CARD, "flex h-full flex-col items-center gap-1.5 rounded-2xl px-1 py-3 text-center outline-none transition-transform active:scale-[0.97] focus-visible:ring-3 focus-visible:ring-ring/50")}
-              >
-                <span className={cn("flex size-10 items-center justify-center rounded-xl", m.tone)}>
-                  <m.icon className="size-5" strokeWidth={1.75} aria-hidden />
+              <Link href={m.href} aria-label={`${m.label}: ${m.text}`} className="group block outline-none">
+                <span
+                  className={cn(
+                    "relative flex aspect-square items-center justify-center overflow-hidden rounded-3xl transition-transform group-active:scale-[0.97] group-focus-visible:ring-3 group-focus-visible:ring-ring/50",
+                    m.image ? "bg-card" : m.tone,
+                  )}
+                >
+                  {m.image ? (
+                    <Image src={m.image} alt="" fill sizes="(max-width: 672px) 33vw, 220px" className="object-cover" />
+                  ) : (
+                    <m.icon className="size-10" strokeWidth={1.5} aria-hidden />
+                  )}
                 </span>
-                <span className="w-full truncate text-[13px] font-semibold">{m.label}</span>
+                <span className="mt-2 block truncate text-center text-[13px] font-semibold">{m.label}</span>
               </Link>
             </li>
           ))}
