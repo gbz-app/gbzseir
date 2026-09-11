@@ -25,6 +25,7 @@ import { VERTICAL_INFO, parseVertical } from "@/features/business/lib/verticals"
 import { AdminCard, EmptyCard, StatTile } from "@/features/admin/components/admin-ui";
 import { ColumnChart, HBarList, dayLabel, formatDuration } from "@/features/admin/components/charts";
 import { LiveRefresher } from "@/features/admin/components/live-refresher";
+import { AdminNotices } from "@/features/admin/components/admin-notices";
 import { INSTALL_LABELS, STORE_LABELS, pathLabel, type DashboardData } from "@/features/admin/lib/analytics-types";
 
 export const metadata: Metadata = { title: "Genel bakış" };
@@ -119,24 +120,7 @@ export default async function AdminDashboardPage() {
         </AdminCard>
 
         <AdminCard title="Yönetim bildirimleri" description="Yeni işletmeler, eşleşmeyen talepler ve onay bekleyen işler">
-          {notices?.length ? (
-            <ul className="divide-y">
-              {notices.map((n) => (
-                <li key={n.id}>
-                  <Link href={n.link ?? routes.admin.root()} className="flex items-start gap-3 py-2.5 outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50">
-                    <span className={n.read_at ? "mt-1.5 size-2 shrink-0 rounded-full bg-transparent" : "mt-1.5 size-2 shrink-0 rounded-full bg-primary"} aria-hidden />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold">{n.title}</span>
-                      {n.body ? <span className="block truncate text-sm text-muted-foreground">{n.body}</span> : null}
-                    </span>
-                    <span className="shrink-0 text-xs text-muted-foreground">{formatRelativeTime(n.created_at)}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">Yeni bildirim yok.</p>
-          )}
+          <AdminNotices initial={notices ?? []} />
         </AdminCard>
 
         <div className="grid gap-4 lg:grid-cols-2">

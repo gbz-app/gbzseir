@@ -25,8 +25,8 @@ function dayLabel(date: string): string {
 
 const round = (v: number) => Math.round(v);
 
-/** Header weather pill (icon + temperature) that opens the 5-day forecast sheet. */
-export function WeatherButton() {
+/** Header weather pill (icon + temperature) that opens the 5-day forecast sheet. `className` overrides the look. */
+export function WeatherButton({ className }: { className?: string }) {
   const [open, setOpen] = React.useState(false);
   const { data, error, loading, reload } = useJson<Forecast>("/api/hava", 30 * 60_000);
   const info = data ? describeWeather(data.now.code, data.now.isDay) : null;
@@ -38,7 +38,7 @@ export function WeatherButton() {
         <button
           type="button"
           aria-label={data ? `Hava durumu: ${round(data.now.temperature)} derece, ${info?.label}` : "Hava durumu"}
-          className={cn(ROUND_ICON_BUTTON, data && "w-auto gap-1 px-3")}
+          className={cn(ROUND_ICON_BUTTON, data && "w-auto gap-1 px-3", className)}
         >
           <Icon className="size-5" strokeWidth={1.75} />
           {data ? <span className="text-sm font-semibold tabular-nums">{round(data.now.temperature)}°</span> : null}

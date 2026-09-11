@@ -32,7 +32,15 @@ export function safeNextPath(next: string | null | undefined, fallback = "/"): s
   const fb = IS_ADMIN_SITE ? "/admin" : fallback;
   if (!next || typeof next !== "string") return fb;
   const n = next.trim();
-  if (!n.startsWith("/") || n.startsWith("//") || n.startsWith("/\\")) return fb;
+  // Browsers drop tabs/newlines and treat "\" as "/" ("/\t/evil.example" -> "//evil.example"): reject them outright.
+  if (/[\u0000-\u0020\\]/.test(n)) return fb;
+  if (!n.startsWith("/") || n.startsWith("//")) return fb;
+  // Final guard: the value must resolve to this origin.
+  try {
+    if (new URL(n, "http://same.invalid").host !== "same.invalid") return fb;
+  } catch {
+    return fb;
+  }
   if (/^\/giris(?:[/?#]|$)/.test(n)) return fb;
   if (IS_ADMIN_SITE && !/^\/admin(?:[/?#]|$)/.test(n)) return fb;
   return n;

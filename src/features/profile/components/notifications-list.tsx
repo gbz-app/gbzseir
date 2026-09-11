@@ -60,7 +60,7 @@ export function NotificationsList({ items }: { items: NotificationItem[] }) {
 
   const markAll = async () => {
     setMarkingAll(true);
-    const { error } = await createClient().rpc("mark_notifications_read", {});
+    const { error } = await createClient().rpc("mark_notifications_read", { p_ids: items.filter(isUnread).map((i) => i.id) });
     setMarkingAll(false);
     if (error) {
       toast.error("Bildirimler güncellenemedi.");

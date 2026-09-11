@@ -28,7 +28,7 @@ export function HomeSearch() {
         aria-label="Ara"
         enterKeyHint="search"
         maxLength={80}
-        className="h-13 w-full rounded-full bg-card pr-4 pl-12 text-base shadow-soft ring-1 ring-foreground/[0.06] outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="h-13 w-full rounded-full bg-card pr-4 pl-12 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       />
     </form>
   );

@@ -1,85 +1,49 @@
 import { Suspense } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
-import { tr } from "date-fns/locale";
-import { Briefcase, Bus, CarTaxiFront, ChevronRight, Cross, ExternalLink, Map as MapIcon, MoonStar, Store, Tag, type LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Briefcase, Bus, ChevronRight, Cross, Map as MapIcon, MoonStar, Store, Tag, type LucideIcon } from "lucide-react";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JsonLd } from "@/components/seo/json-ld";
-import { FeaturedBusinessesRail } from "@/features/business/home-widgets";
 import { VERTICAL_INFO, type Vertical } from "@/features/business/lib/verticals";
-import { getNews } from "@/features/content/news/get-news";
-import type { NewsItem } from "@/features/content/news/parse";
 import { HomeHero } from "@/features/home/components/home-hero";
+import { HomePlaces } from "@/features/home/components/home-places";
 import { HomeSearch } from "@/features/home/components/home-search";
-import { PlaceCard } from "@/features/nearby/components/place-card";
+import { HomeSlider } from "@/features/home/components/home-slider";
+import { ImageTile } from "@/features/home/components/image-tile";
 import { buildDutyView } from "@/features/nearby/lib/duty-view";
 import { getDutyData, getPlaces, renderNow } from "@/features/nearby/server/queries";
 
 export const revalidate = 300;
 
-/** Card surface used across the home page. */
-const CARD = "rounded-3xl bg-card shadow-soft ring-1 ring-foreground/[0.05]";
-/** Horizontal scroller (full-bleed inside the page padding, no visible scrollbar). */
-const RAIL = "no-scrollbar -mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pt-1 pb-3";
+type Tile = { href: string; label: string; sub?: string; image?: string; icon?: LucideIcon; tone?: string; imageClassName?: string };
 
-type Tile = { href: string; label: string; text: string; icon: LucideIcon; tone: string; image?: string };
+const vertical = (v: Vertical, label?: string): Tile => ({
+  href: v === "etkinlik" ? routes.events.root() : routes.businesses.vertical(v),
+  label: label ?? VERTICAL_INFO[v].label,
+  icon: VERTICAL_INFO[v].icon,
+  tone: VERTICAL_INFO[v].tone,
+});
 
-const vertical = (v: Vertical, label?: string): Tile => {
-  const info = VERTICAL_INFO[v];
-  return { href: routes.businesses.vertical(v), label: label ?? info.label, text: info.subtitle, icon: info.icon, tone: info.tone };
-};
-
-const MAIN_CARDS: Tile[] = [
-  {
-    href: routes.search("taksi"),
-    label: "Taksi",
-    text: "Taksi durakları ve taksiler",
-    icon: CarTaxiFront,
-    tone: "bg-amber-100 text-amber-700",
-    image: "/images/home/taksi.webp",
-  },
+/** Kategoriler: picture cards with the name underneath (3 columns). */
+const CATEGORIES: Tile[] = [
+  { href: routes.search("taksi"), label: "Taksi", image: "/images/home/taksi.webp", imageClassName: "bg-card" },
   vertical("yemek"),
   vertical("restoran"),
   vertical("kafe"),
   vertical("otel"),
   vertical("hizmet", "Hizmetler"),
-  {
-    href: routes.events.root(),
-    label: "Etkinlik",
-    text: VERTICAL_INFO.etkinlik.subtitle,
-    icon: VERTICAL_INFO.etkinlik.icon,
-    tone: VERTICAL_INFO.etkinlik.tone,
-  },
-  {
-    href: routes.listings.root("ikinci-el"),
-    label: "İkinci El",
-    text: "Al, sat, doğrudan ara",
-    icon: Tag,
-    tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300",
-  },
-  {
-    href: routes.listings.root("is-ilanlari"),
-    label: "İş İlanı",
-    text: "Gebze ve OSB'ler",
-    icon: Briefcase,
-    tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
-  },
+  vertical("etkinlik"),
+  { href: routes.listings.root("ikinci-el"), label: "İkinci El", icon: Tag, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" },
+  { href: routes.listings.root("is-ilanlari"), label: "İş İlanı", icon: Briefcase, tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300" },
 ];
 
-function ago(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "" : formatDistanceToNow(d, { addSuffix: true, locale: tr });
-}
-
-function SectionHeader({ title, href }: { title: string; href?: string }) {
+function SectionHeader({ id, title, href }: { id?: string; title: string; href?: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <h2 className="text-lg font-semibold">{title}</h2>
+      <h2 id={id} className="text-lg font-semibold">
+        {title}
+      </h2>
       {href ? (
         <Link href={href} className="inline-flex min-h-11 items-center gap-0.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
           Tümü <ChevronRight className="size-4" aria-hidden />
@@ -89,69 +53,18 @@ function SectionHeader({ title, href }: { title: string; href?: string }) {
   );
 }
 
-function RailSkeleton() {
-  return (
-    <div className="flex gap-3 overflow-hidden">
-      <Skeleton className="h-44 w-64 shrink-0 rounded-3xl" />
-      <Skeleton className="h-44 w-64 shrink-0 rounded-3xl" />
-    </div>
-  );
-}
-
-async function NewsCards() {
-  const items: NewsItem[] = await getNews()
-    .then((r) => r.items)
-    .catch(() => []);
-  const top = items.slice(0, 8);
-  if (!top.length) return null;
-  return (
-    <section>
-      <SectionHeader title="Gebze Gündemi" href={routes.content.news()} />
-      <ul className={RAIL}>
-        {top.map((n) => (
-          <li key={n.id} className="w-[17rem] shrink-0 snap-start">
-            <a
-              href={n.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(CARD, "flex h-full flex-col p-4 outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50")}
-            >
-              <span className="inline-flex w-fit max-w-full truncate rounded-full bg-brand-soft px-2.5 py-1 text-xs font-semibold text-primary">{n.sourceName}</span>
-              <span className="mt-3 line-clamp-3 text-[15px] leading-snug font-semibold">{n.title}</span>
-              {n.summary ? <span className="mt-1.5 line-clamp-2 text-sm leading-snug text-muted-foreground">{n.summary}</span> : null}
-              <span className="mt-auto flex items-center justify-between gap-2 pt-3 text-xs text-muted-foreground">
-                <span className="truncate">{ago(n.publishedAt)}</span>
-                <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-primary">
-                  Kaynağa git <ExternalLink className="size-3.5" aria-hidden />
-                </span>
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-async function PlacesCards() {
+async function PlacesSection() {
   const places = await getPlaces().catch(() => []);
-  const top = places.slice(0, 8);
-  if (!top.length) return null;
+  if (!places.length) return null;
   return (
-    <section>
-      <SectionHeader title="Gezilecek Yerler" href={routes.nearby.places()} />
-      <ul className={RAIL}>
-        {top.map((p) => (
-          <li key={p.id} className="w-[16rem] shrink-0 snap-start">
-            <PlaceCard place={p} />
-          </li>
-        ))}
-      </ul>
+    <section aria-labelledby="gezilecek">
+      <SectionHeader id="gezilecek" title="Gezilecek Yerler" href={routes.nearby.places()} />
+      <HomePlaces places={places.slice(0, 20)} />
     </section>
   );
 }
 
-/** C1 - Ana sayfa: başlık, arama, Şehir Rehberi, ana kartlar, Gebze Gündemi, Gezilecek Yerler. */
+/** C1 - Ana sayfa: başlık, arama, slider, Şehir Rehberi, Kategoriler, Gezilecek Yerler. */
 export default async function HomePage() {
   const duty = await getDutyData().catch(() => null);
   const dutyCount = duty ? buildDutyView(duty.rows, renderNow()).current.length : 0;
@@ -160,32 +73,14 @@ export default async function HomePage() {
     {
       href: routes.nearby.dutyPharmacies(),
       label: "Nöbetçi Eczane",
-      text: dutyCount ? `Şu an ${dutyCount} eczane açık` : "Bugün kim nöbette?",
+      sub: dutyCount ? `Şu an ${dutyCount} açık` : "Bugün kim nöbette?",
       icon: Cross,
       tone: "bg-highlight-soft text-highlight-foreground dark:text-highlight",
     },
-    {
-      href: routes.nearby.root("cami"),
-      label: "Camiler",
-      text: "Namaz vakitleri",
-      icon: MoonStar,
-      tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
-    },
-    {
-      href: routes.nearby.root("durak"),
-      label: "Duraklar",
-      text: "Duraklar ve hatlar",
-      icon: Bus,
-      tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300",
-    },
-    { href: routes.nearby.root(), label: "Harita", text: "Yakınındakiler", icon: MapIcon, tone: "bg-brand-soft text-primary" },
-    {
-      href: routes.businesses.root(),
-      label: "Firmalar",
-      text: "Onaylı işletmeler",
-      icon: Store,
-      tone: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300",
-    },
+    { href: routes.nearby.root("cami"), label: "Cami", sub: "Namaz vakitleri", icon: MoonStar, tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300" },
+    { href: routes.nearby.root("durak"), label: "Durak", sub: "Duraklar ve hatlar", icon: Bus, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" },
+    { href: routes.nearby.root(), label: "Harita", sub: "Yakınındakiler", icon: MapIcon, tone: "bg-brand-soft text-primary" },
+    { href: routes.businesses.root(), label: "Firmalar", sub: "Onaylı işletmeler", icon: Store, tone: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300" },
   ];
 
   return (
@@ -209,67 +104,41 @@ export default async function HomePage() {
       <div className="flex flex-col gap-4">
         <HomeHero />
         <HomeSearch />
+        <HomeSlider />
       </div>
 
-      <section>
-        <SectionHeader title="Şehir Rehberi" href={routes.nearby.root()} />
-        <ul className={RAIL}>
+      <section aria-labelledby="sehir-rehberi" className="-mt-2">
+        <SectionHeader id="sehir-rehberi" title="Şehir Rehberi" href={routes.nearby.root()} />
+        <ul className="no-scrollbar -mx-4 mt-2 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-1">
           {guide.map((g) => (
-            <li key={g.label} className="shrink-0 snap-start">
-              <Link
-                href={g.href}
-                className={cn(CARD, "flex w-[12.5rem] items-center gap-2.5 p-2.5 outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50")}
-              >
-                <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-2xl", g.tone)}>
-                  <g.icon className="size-6" strokeWidth={1.75} aria-hidden />
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-semibold">{g.label}</span>
-                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">{g.text}</span>
-                </span>
-              </Link>
+            <li key={g.label} className="w-[7.75rem] shrink-0 snap-start">
+              <ImageTile href={g.href} label={g.label} sub={g.sub} icon={g.icon} tone={g.tone} sizes="124px" />
             </li>
           ))}
         </ul>
       </section>
 
       <section aria-labelledby="kategoriler">
-        <h2 id="kategoriler" className="text-lg font-semibold">
-          Kategoriler
-        </h2>
-        <ul className="mt-3 grid grid-cols-3 gap-x-3 gap-y-4">
-          {MAIN_CARDS.map((m) => (
-            <li key={m.label}>
-              <Link href={m.href} aria-label={`${m.label}: ${m.text}`} className="group block outline-none">
-                <span
-                  className={cn(
-                    "relative flex aspect-square items-center justify-center overflow-hidden rounded-3xl transition-transform group-active:scale-[0.97] group-focus-visible:ring-3 group-focus-visible:ring-ring/50",
-                    m.image ? "bg-card" : m.tone,
-                  )}
-                >
-                  {m.image ? (
-                    <Image src={m.image} alt="" fill sizes="(max-width: 672px) 33vw, 220px" className="object-cover" />
-                  ) : (
-                    <m.icon className="size-10" strokeWidth={1.5} aria-hidden />
-                  )}
-                </span>
-                <span className="mt-2 block truncate text-center text-[13px] font-semibold">{m.label}</span>
-              </Link>
+        <SectionHeader id="kategoriler" title="Kategoriler" />
+        <ul className="mt-2 grid grid-cols-3 gap-x-3 gap-y-4">
+          {CATEGORIES.map((c) => (
+            <li key={c.label}>
+              <ImageTile
+                href={c.href}
+                label={c.label}
+                image={c.image}
+                icon={c.icon}
+                tone={c.tone}
+                imageClassName={c.imageClassName}
+                sizes="(max-width: 672px) 33vw, 220px"
+              />
             </li>
           ))}
         </ul>
       </section>
 
-      <Suspense fallback={<RailSkeleton />}>
-        <NewsCards />
-      </Suspense>
-
-      <Suspense fallback={<RailSkeleton />}>
-        <PlacesCards />
-      </Suspense>
-
-      <Suspense fallback={<Skeleton className="h-40 w-full rounded-3xl" />}>
-        <FeaturedBusinessesRail />
+      <Suspense fallback={<Skeleton className="h-[26rem] w-full rounded-3xl" />}>
+        <PlacesSection />
       </Suspense>
     </div>
   );

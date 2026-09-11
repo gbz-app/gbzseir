@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Search, UserRound } from "lucide-react";
@@ -10,19 +11,45 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LocationChip } from "@/components/shared/location-chip";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useUnreadNotifications } from "@/lib/notifications/use-unread-notifications";
-import { MarketsButton } from "@/features/markets/components/markets-sheet";
 import { WeatherButton } from "@/features/weather/components/weather-sheet";
 import { TOPBAR_PATHS } from "./nav-config";
 import { useScrolled } from "./nav-visibility";
 
 const ROUND_BUTTON =
   "relative flex size-11 shrink-0 items-center justify-center rounded-full bg-card text-foreground shadow-soft ring-1 ring-foreground/[0.06] transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50";
+/** Home header buttons: plain white circles, no border or shadow. */
+const BARE_BUTTON =
+  "relative flex size-11 shrink-0 items-center justify-center rounded-full bg-card text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50";
 
-function NotificationBell() {
+/** Istanbul-time greeting: Günaydın (05-12), İyi günler (12-18), İyi akşamlar (18-22), İyi geceler. */
+function greetingFor(date: Date): string {
+  const hour = Number(new Intl.DateTimeFormat("tr-TR", { hour: "numeric", hourCycle: "h23", timeZone: "Europe/Istanbul" }).format(date));
+  if (hour >= 5 && hour < 12) return "Günaydın";
+  if (hour >= 12 && hour < 18) return "İyi günler";
+  if (hour >= 18 && hour < 22) return "İyi akşamlar";
+  return "İyi geceler";
+}
+
+/** Greeting that is correct after hydration (the home page HTML is cached) and follows the clock. */
+function useGreeting(): string {
+  const [greeting, setGreeting] = React.useState(() => greetingFor(new Date()));
+  React.useEffect(() => {
+    const update = () => setGreeting(greetingFor(new Date()));
+    const first = window.setTimeout(update, 0);
+    const timer = window.setInterval(update, 60_000);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(timer);
+    };
+  }, []);
+  return greeting;
+}
+
+function NotificationBell({ className = ROUND_BUTTON }: { className?: string }) {
   const { count } = useUnreadNotifications();
   const label = count > 0 ? `Bildirimler, ${count} okunmamış` : "Bildirimler";
   return (
-    <Link href={routes.profile.notifications()} aria-label={label} className={ROUND_BUTTON}>
+    <Link href={routes.profile.notifications()} aria-label={label} className={className}>
       <Bell className="size-5" strokeWidth={1.75} />
       {count > 0 ? <span className="absolute top-2.5 right-2.5 size-2.5 rounded-full bg-primary ring-2 ring-card" aria-hidden /> : null}
     </Link>
@@ -41,41 +68,56 @@ function UserAvatar({ className }: { className?: string }) {
   );
 }
 
+/** Home avatar: the profile photo, or a plain white circle (no initials, no border). */
+function HomeAvatar() {
+  const { profile } = useAuth();
+  return (
+    <Avatar className="size-11">
+      {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt="" /> : null}
+      <AvatarFallback className="bg-card text-foreground/25">
+        <UserRound className="size-5" strokeWidth={1.75} aria-hidden />
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
 /**
- * Top bar of the tab roots. Home: avatar + "Merhaba / Ad" on the left, notifications on the right.
- * Other tab roots: avatar, bell and search on the left, location pill on the right. Other pages use <PageHeader/>.
+ * Top bar of the tab roots. Home: avatar + time-based greeting / name on the left, weather and notifications on the
+ * right; it scrolls away with the page. Other tab roots: avatar, bell and search on the left, location pill on the
+ * right (sticky). Other pages use <PageHeader/>.
  */
 export function TopBar() {
   const pathname = usePathname();
   const { user, profile } = useAuth();
   const scrolled = useScrolled(4);
+  const greeting = useGreeting();
   if (!TOPBAR_PATHS.includes(pathname)) return null;
 
-  const headerClass = cn("sticky top-0 z-40 pt-safe transition-[background-color,box-shadow] duration-200", scrolled && "bg-background/80 shadow-soft backdrop-blur-md");
   const profileHref = user ? routes.profile.root() : routes.auth.login(pathname);
 
   if (pathname === "/") {
     return (
-      <header className={headerClass}>
+      <header className="pt-safe">
         <div className="flex h-(--topbar-h) items-center gap-3 px-4">
           <Link
             href={profileHref}
             aria-label={user ? "Profilim" : "Giriş yap"}
             className="flex min-w-0 items-center gap-3 rounded-full pr-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
-            <UserAvatar />
+            <HomeAvatar />
             <span className="min-w-0">
-              <span className="block text-xs text-muted-foreground">Merhaba</span>
-              <span className="block truncate text-[15px] font-semibold">{user ? profile?.full_name || "Hoş geldin" : "Giriş yap"}</span>
+              <span className="block text-sm text-muted-foreground" suppressHydrationWarning>
+                {greeting}
+              </span>
+              <span className="block truncate text-[17px] leading-tight font-semibold">{user ? profile?.full_name || "Hoş geldin" : "Giriş yap"}</span>
             </span>
           </Link>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <WeatherButton />
-            <MarketsButton />
+            <WeatherButton className="shadow-none ring-0" />
             {user ? (
-              <NotificationBell />
+              <NotificationBell className={BARE_BUTTON} />
             ) : (
-              <Link href={profileHref} aria-label="Bildirimler için giriş yap" className={ROUND_BUTTON}>
+              <Link href={profileHref} aria-label="Bildirimler için giriş yap" className={BARE_BUTTON}>
                 <Bell className="size-5" strokeWidth={1.75} />
               </Link>
             )}
@@ -85,6 +127,7 @@ export function TopBar() {
     );
   }
 
+  const headerClass = cn("sticky top-0 z-40 pt-safe transition-[background-color,box-shadow] duration-200", scrolled && "bg-background/80 shadow-soft backdrop-blur-md");
   return (
     <header className={headerClass}>
       <div className="flex h-(--topbar-h) items-center gap-2 px-4">
