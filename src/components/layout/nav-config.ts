@@ -32,7 +32,7 @@ export const BOTTOM_NAV_HIDDEN_PREFIXES = ["/ilan-ver", "/hizmet-talebi", "/isle
  * and /gezilecek-yerler keep the nav. Deciding it during render means neither the loading skeleton nor the page paints
  * a frame with the nav (HideBottomNav only hides it after the first paint).
  */
-export const BOTTOM_NAV_HIDDEN_DETAIL_PREFIXES = ["/firma/", "/etkinlik/", "/ilan/", "/is-ilani/", "/eczane/", "/cami/", "/durak/", "/gezilecek-yerler/", "/menu/", "/kurum/"];
+export const BOTTOM_NAV_HIDDEN_DETAIL_PREFIXES = ["/firma/", "/etkinlik/", "/ilan/", "/is-ilani/", "/eczane/", "/cami/", "/durak/", "/gezilecek-yerler/", "/menu/", "/kurum/", "/doktor/"];
 
 /** True when the route itself hides the bottom nav (no HideBottomNav needed). */
 export function isBottomNavHiddenRoute(pathname: string): boolean {

@@ -5,7 +5,7 @@ import { APP_DESCRIPTION, APP_FULL_NAME, APP_NAME, BRAND_COLORS, SITE_URL } from
 import { IS_ADMIN_SITE } from "@/config/app-mode";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { AppProviders } from "@/components/providers/app-providers";
-import { LandscapeLock } from "@/components/layout/landscape-lock";
+import { OrientationGuard } from "@/components/pwa/orientation-guard";
 import { NoZoom } from "@/components/layout/no-zoom";
 import { OnboardingPreScript } from "@/features/onboarding/onboarding-pre-script";
 
@@ -68,7 +68,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-dvh bg-background font-sans text-foreground">
         <AppProviders>{children}</AppProviders>
         {/* App-only behaviour; the admin site is used on desktop too. */}
-        {IS_ADMIN_SITE ? null : <LandscapeLock />}
+        {IS_ADMIN_SITE ? null : <OrientationGuard />}
         {IS_ADMIN_SITE ? null : <NoZoom />}
       </body>
     </html>

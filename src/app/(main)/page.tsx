@@ -8,6 +8,7 @@ import { TopBar } from "@/components/layout/top-bar";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { VERTICAL_INFO, type Vertical } from "@/features/business/lib/verticals";
+import { HomeCinemaSection } from "@/features/cinema/components/home-cinema-section";
 import { listPublishedArticles } from "@/features/content/articles/queries";
 import { getNews } from "@/features/content/news/get-news";
 import { EventsRail } from "@/features/events/components/events-rail";
@@ -169,6 +170,10 @@ export default function HomePage() {
 
       <Suspense fallback={null}>
         <EventsSection />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <HomeCinemaSection />
       </Suspense>
 
       <Suspense fallback={<Skeleton className="h-[26rem] w-full rounded-3xl" />}>

@@ -126,7 +126,7 @@ export function NeighbourhoodPicker({
           aria-haspopup="dialog"
           onClick={() => setOpen(true)}
           className={cn(
-            "flex h-11 w-full items-center gap-2 rounded-xl border border-input bg-card px-3.5 text-left text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 data-[invalid=true]:border-destructive data-[invalid=true]:ring-3 data-[invalid=true]:ring-destructive/20 dark:bg-input/30",
+            "flex h-11 w-full items-center gap-2 rounded-card border border-input bg-card px-3.5 text-left text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 data-[invalid=true]:border-destructive data-[invalid=true]:ring-3 data-[invalid=true]:ring-destructive/20 dark:bg-input/30",
             className,
           )}
         >

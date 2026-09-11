@@ -136,6 +136,14 @@ export const routes = {
     menu: (slug: string) => `/menu/${enc(slug)}`,
   },
 
+  /** Doctors of sağlık clinics (public.business_staff). */
+  doctors: {
+    /** Every doctor: the "Doktorlar" segment of Keşfet > Sağlık (kept in the URL hash). */
+    list: () => "/kesfet/saglik#doktorlar",
+    /** Profile page of one doctor (business_staff.slug). */
+    detail: (slug: string) => `/doktor/${enc(slug)}`,
+  },
+
   events: {
     root: (query?: QueryRecord) => withQuery("/etkinlikler", query),
     detail: (slug: string) => `/etkinlik/${enc(slug)}`,
@@ -145,6 +153,13 @@ export const routes = {
     past: () => "/etkinlikler/gecmis",
     /** .ics file of a published event (route handler) */
     calendar: (slug: string) => `/etkinlik/${enc(slug)}/takvim`,
+  },
+
+  /** Vizyondaki filmler: Gebze Center AVM sineması (src/features/cinema). */
+  cinema: {
+    root: () => "/sinema",
+    /** Film page (cinema_films.slug) */
+    film: (slug: string) => `/sinema/${enc(slug)}`,
   },
 
   profile: {
@@ -273,4 +288,5 @@ export const PUBLIC_STATIC_ROUTES: Array<{ path: string; priority: number; chang
   { path: "/kesfet/otel", priority: 0.7, changeFrequency: "daily" },
   { path: "/kesfet/hizmet", priority: 0.6, changeFrequency: "daily" },
   { path: "/etkinlikler", priority: 0.7, changeFrequency: "daily" },
+  { path: "/sinema", priority: 0.6, changeFrequency: "daily" },
 ];

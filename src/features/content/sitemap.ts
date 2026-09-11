@@ -3,7 +3,7 @@ import { SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { LEGAL_PATHS, LEGAL_SLUGS } from "@/features/legal/meta";
 import { getPublishedLegalText } from "@/features/legal/queries";
-import { getNews } from "./news/get-news";
+import { listPublishedArticles } from "./articles/queries";
 
 /**
  * Sitemap entries of the content module (news, announcements, help, sources, legal pages). Registered in
@@ -13,8 +13,9 @@ export async function sitemapEntries(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   let newsModified = now;
   try {
-    const { items } = await getNews();
-    if (items[0]?.publishedAt) newsModified = new Date(items[0].publishedAt);
+    // /haberler lists only our own stories: its date is the newest published one.
+    const [latest] = await listPublishedArticles(1);
+    if (latest) newsModified = new Date(latest.publishedAt);
   } catch {
     // keep "now"
   }

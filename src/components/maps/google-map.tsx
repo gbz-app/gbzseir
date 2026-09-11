@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { googleMapsAvailable, loadGoogleMaps, onGoogleMapsAuthFailure, type GMap, type GMapsEventListener } from "@/lib/maps/google";
 import { MAP_UNAVAILABLE_TITLE, MapNotice } from "./map-states";
+import { mapStyles } from "./map-styles";
 import { createPinLayer, type PinLayer } from "./pin-layer";
 import type { FlyRequest, MapPadding, MapPoint } from "./types";
 import { clampPadding, fitCamera, paddedCenter } from "./viewport";
@@ -60,9 +61,10 @@ export function useGoogleMapsAvailable(): boolean {
 }
 
 /**
- * Interactive Google map with the app's pins. Creating it is a billed map load: render it only after the user asked
- * for a map (a "Harita" pill, "Haritada göster"), never on page load. Without a key, or when Google refuses it, shows
- * the calm "Harita şu an kullanılamıyor" state; a failed load offers "Tekrar dene".
+ * Interactive Google map with the app's pins; Google's own places are hidden (map-styles.ts). Creating it is a billed
+ * map load: map-first screens (Yakınımda, the guide category maps) render it on page load, everything else only after
+ * the user asked for a map (detail pages' "Haritada göster"). Without a key, or when Google refuses it, shows the calm
+ * "Harita şu an kullanılamıyor" state; a failed load offers "Tekrar dene".
  */
 export function GoogleMap(props: GoogleMapProps) {
   const available = useGoogleMapsAvailable();
@@ -151,6 +153,8 @@ function MapCanvas({
           keyboardShortcuts: true,
           colorScheme: dark ? (ColorScheme?.DARK ?? "DARK") : (ColorScheme?.LIGHT ?? "LIGHT"),
           backgroundColor: dark ? MAP_BG.dark : MAP_BG.light,
+          // Only our pins: Google's own places (businesses too) and transit icons are hidden (map-styles.ts).
+          styles: mapStyles(dark),
         });
         layer = createPinLayer(OverlayView, LatLng);
         layer.setMap(map);

@@ -7,7 +7,7 @@ import { routes } from "@/core/routes";
 import { GUIDE_SECTIONS } from "@/features/guide/lib/constants";
 import { getGuideCounts, getInstitutionCategories } from "@/features/guide/lib/queries";
 import { buildChipDefs, loadGuideList } from "@/features/guide/components/entries";
-import { GuideListBrowser, GuideListBrowserFromUrl, type GuideListBrowserProps } from "@/features/guide/components/guide-list-browser";
+import { GuideListBrowserFromUrl, GuideListFallback, type GuideListBrowserProps } from "@/features/guide/components/guide-list-browser";
 import { GUIDE_EXTRA_LIST_SLUGS, resolveGuideList, type GuideListConfig } from "@/features/guide/components/list-config";
 import type { GuideCounts } from "@/features/guide/lib/types";
 
@@ -58,7 +58,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** /rehber/[kategori]: one guide list (section, combined list or institution category) with filters and a map. */
+/**
+ * /rehber/[kategori]: one guide list (section, combined list or institution category) as a map-first view: the map with
+ * the category's pins and the draggable list sheet (like /yakinimda). No top bar; the back button floats on the map.
+ */
 export default async function GuideListPage({ params }: Props) {
   const { slug, cfg } = await resolve(params);
   if (!cfg) notFound();
@@ -105,8 +108,11 @@ export default async function GuideListPage({ params }: Props) {
   return (
     <>
       <JsonLd data={jsonLd} />
-      {/* The server paints the list with the path's filters; the URL's ?alt= / ?q= ... are applied on the client. */}
-      <Suspense fallback={<GuideListBrowser {...props} />}>
+      <h1 className="sr-only">{cfg.presetLabel ?? cfg.title}</h1>
+      {/* Keeps the map below the status bar / notch (the page has no top bar). */}
+      <div aria-hidden className="pt-safe" />
+      {/* The server paints the first rows with the path's filters; the URL's ?alt= / ?q= ... are applied on the client. */}
+      <Suspense fallback={<GuideListFallback {...props} />}>
         <GuideListBrowserFromUrl {...props} />
       </Suspense>
     </>

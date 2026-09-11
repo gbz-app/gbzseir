@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { EllipsisVertical, Flag, ListChecks, Pencil, PhoneOff } from "lucide-react";
+import { EllipsisVertical, Flag, ListChecks, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPhoneTR } from "@/core/format";
 import { Button } from "@/components/ui/button";
@@ -91,16 +91,6 @@ export function ReportFooter({ listingId, ownerId }: { listingId: string; ownerI
   );
 }
 
-/** Shown instead of the phone button on sample (is_demo) listings: their numbers are not real. */
-function DemoNoCall() {
-  return (
-    <p className="flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-muted px-4 text-[15px] font-semibold text-muted-foreground">
-      <PhoneOff className="size-5 shrink-0" aria-hidden />
-      <span className="truncate">Örnek kayıt - aranamaz</span>
-    </p>
-  );
-}
-
 /** Small label + value on the left of the bar (price, phone number). */
 function BarInfo({ label, value }: { label: string; value: string }) {
   return (
@@ -166,7 +156,10 @@ export function ClassifiedActionBar({
     <DetailActions>
       {phone ? <BarInfo label="Satıcının numarası" value={formatPhoneTR(phone)} /> : <BarInfo label="Fiyat" value={priceText} />}
       {isDemo ? (
-        <DemoNoCall />
+        // Sample ads are not callable: no phone button at all, just a way on.
+        <Button asChild size="lg" className={CTA}>
+          <Link href={similarHref}>Benzer ilanlar</Link>
+        </Button>
       ) : phone ? (
         <CallButton phone={phone} subjectType="listing" subjectId={listingId} label="Ara" variant="default" size="lg" className={CTA} />
       ) : (
@@ -204,16 +197,8 @@ export function JobActionBar({
   const { user } = useAuth();
   if (user && user.id === ownerId) return <OwnerBar editHref={editHref} manageHref={manageHref} />;
   const heart = <FavoriteButton targetType="listing" targetId={listingId} variant="ghost" className={ROUND_FAVORITE} />;
-  // Sample ads get no phone from the page (it is kept out of the payload), but still show the "aranamaz" pill.
-  if (state === "live" && isDemo) {
-    return (
-      <DetailActions>
-        {heart}
-        <DemoNoCall />
-      </DetailActions>
-    );
-  }
-  if (state !== "live" || !phone) {
+  // Sample ads are not callable (their phone is kept out of the payload): the same bar as a closed ad, no phone button.
+  if (state !== "live" || !phone || isDemo) {
     return (
       <DetailActions>
         {heart}

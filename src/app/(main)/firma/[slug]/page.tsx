@@ -12,7 +12,6 @@ import {
   MapPin,
   MessageSquareReply,
   Phone,
-  PhoneOff,
   QrCode,
   ShieldCheck,
   Sparkles,
@@ -22,7 +21,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DemoBadge, VerifiedBadge } from "@/components/shared/badges";
+import { VerifiedBadge } from "@/components/shared/badges";
 import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
 import { DetailActions, DetailHero, DetailSheet, PRIMARY_CTA, SECONDARY_CTA } from "@/components/shared/detail-hero";
@@ -184,16 +183,6 @@ function Tile({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-/** Demo firms' numbers are placeholders: this replaces every call button. */
-function DemoNoCall({ className }: { className: string }) {
-  return (
-    <p className={className}>
-      <PhoneOff className="size-5 shrink-0" aria-hidden />
-      <span className="truncate">Örnek kayıt - aranamaz</span>
-    </p>
-  );
-}
-
 const TILE_LINK = "rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 const CARD_ROW = "flex min-h-14 items-center gap-3 px-4 py-3 text-[15px] outline-none hover:bg-muted/40 focus-visible:bg-muted/60";
 
@@ -311,8 +300,10 @@ export default async function FirmPage({ params }: Props) {
   const backHref = LISTABLE_VERTICALS.includes(vertical) ? routes.businesses.vertical(vertical) : routes.businesses.root();
   const areaLine = `${b.neighbourhood_name ? `${b.neighbourhood_name} Mah., ` : ""}${CITY.name}`;
   const instagram = instagramLink(b.instagram);
-  // Sample firm: badge, no call buttons and no LocalBusiness/review JSON-LD.
+  // Sample firm: shown like a real one, but its number is a placeholder: no call buttons at all (only directions)
+  // and no LocalBusiness/review JSON-LD.
   const isDemo = b.is_demo;
+  const callPhone = isDemo ? null : b.phone;
 
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -423,14 +414,12 @@ export default async function FirmPage({ params }: Props) {
         </Section>
       ) : null}
 
-      {b.phone || b.website || instagram ? (
+      {callPhone || b.website || instagram ? (
         <Section title="İletişim" icon={Phone}>
           <div className="divide-y overflow-hidden rounded-3xl bg-card">
-            {b.phone && isDemo ? (
-              <DemoNoCall className="flex h-14 items-center gap-3 px-4 text-[15px] font-medium text-muted-foreground" />
-            ) : b.phone ? (
+            {callPhone ? (
               <CallButton
-                phone={b.phone}
+                phone={callPhone}
                 subjectType="business"
                 subjectId={b.id}
                 showNumber
@@ -515,7 +504,7 @@ export default async function FirmPage({ params }: Props) {
       <PanelTitle>Odalar</PanelTitle>
       <RoomList rooms={rooms} businessId={b.id} businessName={b.name} phone={isDemo ? null : b.phone} amenities={vocab.roomAmenities} />
       <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-        {isDemo ? "Örnek kayıt: odalar ve fiyatlar gerçek değil, rezervasyon yapılamaz." : "Fiyatlar işletme tarafından girilir; müsaitlik ve rezervasyon için oteli ara."}
+        {isDemo ? "Fiyatlar işletme tarafından girilir." : "Fiyatlar işletme tarafından girilir; müsaitlik ve rezervasyon için oteli ara."}
       </p>
     </div>
   ) : null;
@@ -526,7 +515,7 @@ export default async function FirmPage({ params }: Props) {
       <PanelTitle>Doktorlar</PanelTitle>
       <DoctorGrid doctors={doctors} branches={doctorBranches} businessId={b.id} businessName={b.name} phone={isDemo ? null : b.phone} isDemo={isDemo} />
       <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-        {isDemo ? "Örnek kayıt: doktorlar gerçek değil, aranamaz." : "Bilgiler klinik tarafından girilir. Randevu için kliniği ara."}
+        {isDemo ? "Bilgiler klinik tarafından girilir." : "Bilgiler klinik tarafından girilir. Randevu için kliniği ara."}
       </p>
     </div>
   ) : null;
@@ -538,7 +527,7 @@ export default async function FirmPage({ params }: Props) {
         <Section title="Hizmetler ve fiyatlar" icon={Wrench}>
           <ServiceList services={services} />
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            {isDemo ? "Örnek kayıt: fiyatlar gerçek değil." : "Fiyatlar firma tarafından girilir; kesin fiyat için firmayı ara."}
+            {isDemo ? "Fiyatlar firma tarafından girilir." : "Fiyatlar firma tarafından girilir; kesin fiyat için firmayı ara."}
           </p>
         </Section>
       ) : null}
@@ -694,7 +683,6 @@ export default async function FirmPage({ params }: Props) {
                 {areaLine}
               </span>
               {verified ? <VerifiedBadge /> : null}
-              {isDemo ? <DemoBadge /> : null}
               {b.star_rating ? (
                 <span className="inline-flex items-center gap-0.5 font-medium text-foreground" aria-label={`${b.star_rating} yıldızlı otel`}>
                   {Array.from({ length: b.star_rating }, (_, i) => (
@@ -746,26 +734,27 @@ export default async function FirmPage({ params }: Props) {
         </article>
       </DetailSheet>
 
-      <DetailActions>
-        {b.phone && isDemo ? (
-          <DemoNoCall className="flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-muted px-4 text-[15px] font-semibold text-muted-foreground" />
-        ) : b.phone ? (
-          <CallButton phone={b.phone} subjectType="business" subjectId={b.id} label="Ara" variant="default" size="lg" className={PRIMARY_CTA} />
-        ) : null}
-        {hasLocation ? (
-          <DirectionsButton
-            lat={b.lat!}
-            lng={b.lng!}
-            name={b.name}
-            iconOnly={!!b.phone}
-            variant="secondary"
-            size="lg"
-            subjectType="business"
-            subjectId={b.id}
-            className={b.phone ? SECONDARY_CTA : PRIMARY_CTA}
-          />
-        ) : null}
-      </DetailActions>
+      {/* Sample firms have no call button: directions becomes the big CTA. Nothing to show = no empty dock band. */}
+      {callPhone || hasLocation ? (
+        <DetailActions>
+          {callPhone ? (
+            <CallButton phone={callPhone} subjectType="business" subjectId={b.id} label="Ara" variant="default" size="lg" className={PRIMARY_CTA} />
+          ) : null}
+          {hasLocation ? (
+            <DirectionsButton
+              lat={b.lat!}
+              lng={b.lng!}
+              name={b.name}
+              iconOnly={!!callPhone}
+              variant="secondary"
+              size="lg"
+              subjectType="business"
+              subjectId={b.id}
+              className={callPhone ? SECONDARY_CTA : PRIMARY_CTA}
+            />
+          ) : null}
+        </DetailActions>
+      ) : null}
     </>
   );
 }

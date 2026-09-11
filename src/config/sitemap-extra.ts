@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { PUBLIC_STATIC_ROUTES } from "@/core/routes";
 import { sitemapEntries as businessSitemapEntries } from "@/features/business/sitemap";
+import { doctorSitemapEntries } from "@/features/business/components/doctors/sitemap";
 import { articleSitemapEntries } from "@/features/content/articles/sitemap";
 import { sitemapEntries as contentSitemapEntries } from "@/features/content/sitemap";
 import { eventSitemapEntries } from "@/features/events/sitemap";
@@ -26,6 +27,7 @@ const SOURCES: SitemapExtraSource[] = [
   contentSitemapEntries,
   serviceSitemapEntries,
   businessSitemapEntries,
+  doctorSitemapEntries,
   poiSitemapEntries,
   eventSitemapEntries,
   articleSitemapEntries,

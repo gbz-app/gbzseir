@@ -102,6 +102,8 @@ export function branchLabel(key: string, list?: readonly DoctorBranch[]): string
 
 export type Doctor = {
   id: string;
+  /** Profile page slug (/doktor/<slug>, business_staff.slug); null only when the column was not selected. */
+  slug: string | null;
   business_id: string;
   name: string;
   title: DoctorTitle;
@@ -113,21 +115,27 @@ export type Doctor = {
   hours_note: string | null;
   sort: number;
   is_active: boolean;
-  /** Sample (seed) row: labelled "Örnek". */
+  /** Sample (seed) row: not indexed; its clinic is not callable. */
   is_demo: boolean;
 };
 
 /** A doctor with the clinic they work at (Keşfet > Sağlık > Doktorlar). */
 export type DirectoryDoctor = Doctor & { clinic: { slug: string; name: string; neighbourhood_name: string | null; is_demo: boolean } };
 
-export const DOCTOR_COLUMNS = "id,business_id,name,title,branch,photo_url,bio,days,hours_note,sort,is_active,is_demo";
+export const DOCTOR_COLUMNS = "id,slug,business_id,name,title,branch,photo_url,bio,days,hours_note,sort,is_active,is_demo";
 
-export type RawDoctor = Omit<Doctor, "title" | "days" | "is_demo"> & { title: string; days: string[] | null; is_demo: boolean | null };
+export type RawDoctor = Omit<Doctor, "slug" | "title" | "days" | "is_demo"> & {
+  slug?: string | null;
+  title: string;
+  days: string[] | null;
+  is_demo: boolean | null;
+};
 
 export function toDoctor(r: RawDoctor): Doctor {
   const days = new Set(r.days ?? []);
   return {
     id: r.id,
+    slug: r.slug || null,
     business_id: r.business_id,
     name: r.name,
     title: parseDoctorTitle(r.title),

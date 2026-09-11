@@ -74,6 +74,17 @@ export type ArticleSummary = {
 
 export type Article = ArticleSummary & { body: string; updatedAt: string };
 
+/** Reading time in whole minutes (about 200 words a minute, at least 1). Markup characters are ignored. */
+export function readingMinutes(...texts: Array<string | null | undefined>): number {
+  const words = texts
+    .join(" ")
+    .replace(/!?\[([^\]]*)\]\([^)\s]+\)/g, "$1")
+    .replace(/[#>*_`-]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
 /** Body paragraphs: blank lines split paragraphs, single line breaks stay inside one. */
 export function articleParagraphs(body: string): string[] {
   return body

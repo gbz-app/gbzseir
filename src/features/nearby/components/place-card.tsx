@@ -68,7 +68,7 @@ export function PlaceVisual({
     <div className={cn("relative flex items-center justify-center overflow-hidden bg-gradient-to-br", meta.gradient, className)} aria-hidden>
       <span className="absolute -top-10 -left-10 size-36 rounded-full bg-white/10" />
       <span className="absolute -right-8 -bottom-12 size-44 rounded-full bg-black/10" />
-      <Icon className={cn("relative size-16 text-white/90 drop-shadow-sm", iconClassName)} strokeWidth={1.5} />
+      <Icon className={cn("relative size-16 text-white/90", iconClassName)} strokeWidth={1.5} />
     </div>
   );
 }
@@ -79,7 +79,7 @@ export function PlaceCard({ place, categories, priority }: { place: PlaceSummary
   return (
     <Link
       href={routes.nearby.place(place.slug)}
-      className="group block overflow-hidden rounded-3xl bg-card shadow-card ring-1 ring-foreground/[0.06] outline-none transition-transform active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="group block overflow-hidden rounded-3xl bg-card outline-none transition-transform active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <div className="relative">
         <PlaceVisual
@@ -90,7 +90,7 @@ export function PlaceCard({ place, categories, priority }: { place: PlaceSummary
           priority={priority}
           className="aspect-[16/10]"
         />
-        <span className="absolute top-3 left-3 inline-flex h-7 items-center gap-1 rounded-full bg-white/90 px-2.5 text-xs font-bold text-foreground shadow-sm dark:bg-black/60 dark:text-white">
+        <span className="absolute top-3 left-3 inline-flex h-7 items-center gap-1 rounded-full bg-white/90 px-2.5 text-xs font-bold text-foreground dark:bg-black/60 dark:text-white">
           <meta.icon className="size-3.5" aria-hidden />
           {meta.label}
         </span>

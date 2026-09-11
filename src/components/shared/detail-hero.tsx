@@ -30,7 +30,7 @@ export type DetailHeroProps = {
 
 /**
  * Full-bleed swipeable photo header of detail pages (firm, event) with back / share / favorite buttons on top.
- * The page content follows in a sheet that overlaps the bottom edge (`-mt-8 rounded-t-[2rem]`). Hides the bottom nav.
+ * The page content follows in a sheet that overlaps the bottom edge (`-mt-8 rounded-t-card`). Hides the bottom nav.
  */
 export function DetailHero({ images, alt, backHref = "/", shareTitle, shareText, favorite, fallbackIcon, className }: DetailHeroProps) {
   const router = useRouter();
@@ -94,7 +94,7 @@ export function DetailHero({ images, alt, backHref = "/", shareTitle, shareText,
 
 /** White sheet that overlaps the hero. */
 export function DetailSheet({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("relative z-10 -mt-8 rounded-t-[2rem] bg-background px-5 pt-6", className)}>{children}</div>;
+  return <div className={cn("relative z-10 -mt-8 rounded-t-card bg-background px-5 pt-6", className)}>{children}</div>;
 }
 
 /** Fixed bottom action area of detail pages (primary black CTA + secondary buttons) in the shared BottomDock. */

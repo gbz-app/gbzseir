@@ -152,12 +152,11 @@ export function resolveGuideList(slug: string, defs: readonly InstitutionCategor
 }
 
 /** Path of a list with a chip value ("aile_sagligi_merkezi" -> "?alt=aile-sagligi-merkezi"). */
-export function guideListHref(cfg: Pick<GuideListConfig, "slug" | "chipParam">, query: { chip?: string | null; own?: Ownership | null; q?: string; map?: boolean }): string {
+export function guideListHref(cfg: Pick<GuideListConfig, "slug" | "chipParam">, query: { chip?: string | null; own?: Ownership | null; q?: string }): string {
   return routes.guide.category(cfg.slug, {
     [cfg.chipParam]: query.chip ? query.chip.replace(/_/g, "-") : undefined,
     sahiplik: query.own ?? undefined,
     q: query.q?.trim() || undefined,
-    gorunum: query.map ? "harita" : undefined,
   });
 }
 

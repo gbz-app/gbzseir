@@ -13,7 +13,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { DemoBadge } from "@/components/shared/badges";
 import { FilterChip } from "@/components/shared/explore-header";
 import { FormScreen } from "@/components/shared/form-screen";
 import { refreshMyBusinessPages } from "../../actions";
@@ -136,10 +135,7 @@ export function DoctorsManager({
               >
                 <DoctorAvatar doctor={d} className="size-14" textClassName="text-base" />
                 <span className="min-w-0 flex-1">
-                  <span className="flex min-w-0 items-center gap-1.5">
-                    <span className="truncate font-semibold">{doctorDisplayName(d)}</span>
-                    {d.is_demo ? <DemoBadge label="Örnek" className="h-5 shrink-0 px-1.5 text-[11px]" /> : null}
-                  </span>
+                  <span className="block truncate font-semibold">{doctorDisplayName(d)}</span>
                   <span className="block truncate text-sm text-muted-foreground">{branchLabel(d.branch, branches)}</span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {formatDoctorDays(d.days) ?? "Gün seçilmedi"}
@@ -185,7 +181,7 @@ export function DoctorsManager({
         </Link>
       ) : null}
       <p className="px-1 text-xs leading-relaxed text-muted-foreground">
-        Doktor kartında telefon yok: hastalar &quot;Randevu için ara&quot; dediğinde işletmenin numarası aranır.
+        Her doktorun kendi sayfası var. Doktorun telefonu görünmez: hastalar &quot;Kliniği ara&quot;ya bastığında işletmenin numarası aranır.
       </p>
 
       {editing ? (
@@ -330,7 +326,7 @@ function DoctorForm({
           {branchOptions.some((b) => b.key === DEFAULT_DOCTOR_BRANCH) ? null : <option value={DEFAULT_DOCTOR_BRANCH}>Diğer</option>}
         </select>
       </Field>
-      <Field label="Çalıştığı günler" optional hint="Kartta ve doktorun ayrıntısında görünür.">
+      <Field label="Çalıştığı günler" optional hint="Kartta ve doktorun sayfasında görünür.">
         <div className="flex flex-wrap gap-2" role="group" aria-label="Çalıştığı günler">
           {DAY_KEYS.map((d) => (
             <FilterChip key={d} active={days.includes(d)} onClick={() => toggleDay(d)}>

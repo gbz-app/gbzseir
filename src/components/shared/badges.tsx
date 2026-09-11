@@ -1,5 +1,6 @@
 import { BadgeCheck, Briefcase, Cross, FlaskConical, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { IS_ADMIN_SITE } from "@/config/app-mode";
 import { Badge } from "@/components/ui/badge";
 
 type BadgeProps = { className?: string; label?: string };
@@ -24,8 +25,12 @@ export function VerifiedBadge({ className, label = "Onaylı" }: BadgeProps) {
   );
 }
 
-/** Dashed "Örnek veri" badge for demo/prototype data. */
+/**
+ * Sample-data marker. The public app shows sample rows like real ones (owner: no "Örnek" labels anywhere), so it
+ * renders nothing there. Only the admin site still marks them, so demo rows can be found and cleaned up.
+ */
 export function DemoBadge({ className, label = "Örnek veri" }: BadgeProps) {
+  if (!IS_ADMIN_SITE) return null;
   return (
     <Badge variant="demo" className={cn("h-6 px-2.5", className)}>
       <FlaskConical aria-hidden />

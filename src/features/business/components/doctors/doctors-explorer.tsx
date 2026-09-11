@@ -1,14 +1,13 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Search, Stethoscope, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { slugifyTr } from "@/core/tr";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/shared/explore-header";
-import { DOCTOR_CARD, DoctorCardBody } from "./doctor-card";
+import { DoctorCard } from "./doctor-card";
 import { DOCTOR_BRANCHES, branchIcon, branchLabel, findBranch, type DirectoryDoctor, type DoctorBranch } from "./doctor-meta";
 
 // ---------------------------------------------------------------------------
@@ -74,7 +73,7 @@ export function ExploreSegments({ value, onChange, counts }: { value: ExploreSeg
 }
 
 // ---------------------------------------------------------------------------
-// Doctors list: search, branch chips (horizontal rail), two-column cards linking to the clinic's Doktorlar tab.
+// Doctors list: search, branch chips (horizontal rail), two-column cards linking to each doctor's profile page.
 // ---------------------------------------------------------------------------
 export function DoctorsExplorer({ doctors, branches = DOCTOR_BRANCHES }: { doctors: DirectoryDoctor[]; branches?: readonly DoctorBranch[] }) {
   const [q, setQ] = React.useState("");
@@ -167,9 +166,12 @@ export function DoctorsExplorer({ doctors, branches = DOCTOR_BRANCHES }: { docto
             <ul className="grid grid-cols-2 gap-3">
               {filtered.map((d) => (
                 <li key={d.id}>
-                  <Link href={`${routes.businesses.detail(d.clinic.slug)}${DOCTORS_HASH}`} className={DOCTOR_CARD}>
-                    <DoctorCardBody doctor={d} branches={branches} clinicName={d.clinic.name} />
-                  </Link>
+                  <DoctorCard
+                    doctor={d}
+                    branches={branches}
+                    href={d.slug ? routes.doctors.detail(d.slug) : `${routes.businesses.detail(d.clinic.slug)}${DOCTORS_HASH}`}
+                    meta={d.clinic.name}
+                  />
                 </li>
               ))}
             </ul>

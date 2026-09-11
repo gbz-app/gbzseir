@@ -57,7 +57,7 @@ export function BottomSheet({
       {trigger ? <DrawerTrigger asChild>{trigger}</DrawerTrigger> : null}
       <DrawerContent
         className={cn(
-          "mx-auto w-full max-w-2xl rounded-t-3xl data-[vaul-drawer-direction=bottom]:rounded-t-3xl",
+          "mx-auto w-full max-w-2xl rounded-t-card data-[vaul-drawer-direction=bottom]:rounded-t-card",
           fullHeight
             ? "h-[92dvh] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
             : "data-[vaul-drawer-direction=bottom]:max-h-[88dvh]",

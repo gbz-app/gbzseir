@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { formatPrice } from "@/core/format";
 import { formatDistance } from "@/core/geo";
 import { routes } from "@/core/routes";
-import { DemoBadge } from "@/components/shared/badges";
 import { FavoriteButton } from "@/components/shared/favorite-button";
 import { describeOpenStatus, isVacationStatus, type OpenStatus } from "../lib/hours";
 import type { VerticalCard } from "../lib/vertical-queries";
@@ -87,7 +86,7 @@ export function VenueCard(props: VenueCardProps) {
     <article className="relative">
       <Link
         href={routes.businesses.detail(item.slug)}
-        className="group block overflow-hidden rounded-[1.75rem] bg-muted shadow-soft ring-1 ring-foreground/[0.05] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="group block overflow-hidden rounded-media bg-muted outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <div className="relative aspect-[5/4] max-h-[20.8rem] w-full">
           {item.photo_url ? (
@@ -104,12 +103,9 @@ export function VenueCard(props: VenueCardProps) {
           )}
           <span className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-black/30 to-transparent" aria-hidden />
 
-          <div className="absolute inset-x-2.5 bottom-2.5 flex items-center gap-3 rounded-[1.35rem] bg-card/95 py-3 pr-3 pl-4 shadow-soft backdrop-blur-md">
+          <div className="absolute inset-x-2.5 bottom-2.5 flex items-center gap-3 rounded-card bg-card/95 py-3 pr-3 pl-4 shadow-soft backdrop-blur-md">
             <div className="min-w-0 flex-1">
-              <div className="flex min-w-0 items-center gap-1.5">
-                <h3 className="min-w-0 truncate text-base leading-snug font-semibold">{item.name}</h3>
-                {item.is_demo ? <DemoBadge label="Örnek" className="h-5 shrink-0 px-1.5 text-[11px]" /> : null}
-              </div>
+              <h3 className="min-w-0 truncate text-base leading-snug font-semibold">{item.name}</h3>
               {where ? (
                 <p className="mt-0.5 flex items-center gap-1 text-[13px] text-muted-foreground">
                   <MapPin className="size-3.5 shrink-0" aria-hidden />
@@ -151,9 +147,9 @@ function CompactVenueCard({ item, distance, open, eager }: VenueCardProps) {
     <article className="relative h-full">
       <Link
         href={routes.businesses.detail(item.slug)}
-        className="group flex h-full flex-col rounded-3xl bg-card p-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="group flex h-full flex-col rounded-card bg-card p-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
-        <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-[1.1rem] bg-muted">
+        <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-chip bg-muted">
           {item.photo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -166,7 +162,6 @@ function CompactVenueCard({ item, distance, open, eager }: VenueCardProps) {
           ) : (
             <VenuePhotoFallback vertical={item.vertical} iconClassName="size-10" />
           )}
-          {item.is_demo ? <DemoBadge label="Örnek" className="absolute bottom-2 left-2 h-5 px-1.5 text-[11px]" /> : null}
         </div>
         <div className="flex min-w-0 flex-1 flex-col px-1.5 pt-2 pb-1">
           <h3 className="line-clamp-2 text-[15px] leading-snug font-semibold">{item.name}</h3>

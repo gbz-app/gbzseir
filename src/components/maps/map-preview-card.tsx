@@ -60,7 +60,7 @@ export function MapPreviewCard({ lat, lng, kind, name, address, className }: Map
           </>
         ) : (
           <MapPattern className="absolute inset-0 flex items-center justify-center">
-            <span className="inline-block -translate-y-1/2 drop-shadow-[0_2px_2px_rgb(0_0_0/0.28)]" aria-hidden dangerouslySetInnerHTML={pin} />
+            <span className="inline-block drop-shadow-[0_2px_2px_rgb(0_0_0/0.28)]" aria-hidden dangerouslySetInnerHTML={pin} />
           </MapPattern>
         )}
       </div>

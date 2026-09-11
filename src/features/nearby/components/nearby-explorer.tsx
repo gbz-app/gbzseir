@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ChevronRight, Loader2, LocateFixed, Map as MapIcon, Search, SearchX, X } from "lucide-react";
+import { ChevronRight, Loader2, LocateFixed, Search, SearchX, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { isDutyActive } from "@/core/duty";
@@ -18,7 +18,6 @@ import { ErrorState } from "@/components/shared/error-state";
 import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
 import { ListSkeleton } from "@/components/shared/skeletons";
 import { GoogleMap } from "@/components/maps/google-map";
-import { MAP_OPEN_BUTTON, MapPattern } from "@/components/maps/map-states";
 import type { FlyRequest, MapPadding, MapPoint } from "@/components/maps/types";
 import { useApproxLocation } from "@/lib/location/use-approx-location";
 import { useOnboardingActive } from "@/features/onboarding";
@@ -159,8 +158,6 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
 
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [fly, setFly] = React.useState<FlyRequest | null>(null);
-  // The Google map is a billed load: created only after a tap ("Haritayı göster", a card's map button, "Konumuma git").
-  const [mapOn, setMapOn] = React.useState(false);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const listRef = React.useRef<HTMLDivElement>(null);
   const chipsRef = React.useRef<HTMLDivElement>(null);
@@ -192,7 +189,6 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
   };
 
   const showOnMap = (item: NearbyItem) => {
-    setMapOn(true);
     setSelectedId(item.id);
     setSnap("peek");
     setFly({ lat: item.lat, lng: item.lng, zoom: 16, nonce: Date.now() });
@@ -201,8 +197,6 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
 
   const locate = async () => {
     if (loc.coords) {
-      // "Konumuma git": the user asked for the map.
-      setMapOn(true);
       setFly({ ...loc.coords, zoom: 15, nonce: Date.now() });
       return;
     }
@@ -232,41 +226,26 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
 
   return (
     <div ref={areaRef} className={NEARBY_AREA_CLASS}>
+      {/* Map-first screen: the map loads with the page (no "Haritayı göster" step). */}
       <div className="absolute inset-0">
-        {mapOn ? (
-          <GoogleMap
-            points={points}
-            user={loc.coords}
-            center={loc.point}
-            zoom={loc.pointSource === "city" ? 12 : 14}
-            selectedId={selectedId}
-            onSelect={onMarkerSelect}
-            fitKey={fitKey}
-            fitCount={showDistance ? 8 : undefined}
-            padding={padding}
-            flyTo={fly}
-            gestures="greedy"
-            showZoomButtons
-            controlsTop={CHIPS_SPACE}
-            className="h-full w-full"
-            ariaLabel={`${meta.title} haritası`}
-          />
-        ) : (
-          <MapPattern className="h-full w-full" />
-        )}
+        <GoogleMap
+          points={points}
+          user={loc.coords}
+          center={loc.point}
+          zoom={loc.pointSource === "city" ? 12 : 14}
+          selectedId={selectedId}
+          onSelect={onMarkerSelect}
+          fitKey={fitKey}
+          fitCount={showDistance ? 8 : undefined}
+          padding={padding}
+          flyTo={fly}
+          gestures="greedy"
+          showZoomButtons
+          controlsTop={CHIPS_SPACE}
+          className="h-full w-full"
+          ariaLabel={`${meta.title} haritası`}
+        />
       </div>
-
-      {!mapOn && areaH > 0 && snap !== "full" ? (
-        <div
-          className="pointer-events-none absolute inset-x-0 z-10 flex items-center justify-center"
-          style={{ top: CHIPS_SPACE, height: Math.max(56, areaH - visibleSheet - CHIPS_SPACE) }}
-        >
-          <button type="button" onClick={() => setMapOn(true)} className={MAP_OPEN_BUTTON}>
-            <MapIcon className="size-5" aria-hidden />
-            Haritayı göster
-          </button>
-        </div>
-      ) : null}
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-background/95 via-background/70 to-transparent px-4 pt-2.5 pb-5">
         <div ref={chipsRef} className="pointer-events-auto">
@@ -290,7 +269,7 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
                 onClick={locate}
                 disabled={loc.status === "locating"}
                 aria-label={loc.coords ? "Konumuma git" : "Konumumu bul"}
-                className="pointer-events-auto ml-auto flex size-12 items-center justify-center rounded-full bg-background text-primary shadow-card ring-1 ring-foreground/[0.08] transition-transform outline-none active:scale-95 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-80"
+                className="pointer-events-auto ml-auto flex size-12 items-center justify-center rounded-full bg-card text-primary transition-transform outline-none active:scale-95 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-80 motion-reduce:transition-none"
               >
                 {loc.status === "locating" ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <LocateFixed className="size-5" aria-hidden />}
               </button>

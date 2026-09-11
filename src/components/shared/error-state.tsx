@@ -31,7 +31,7 @@ export function ErrorState({
   const Icon = offline ? CloudOff : TriangleAlert;
   return (
     <div role="alert" className={cn("flex flex-col items-center text-center", compact ? "gap-2 px-4 py-6" : "gap-3 px-6 py-12", className)}>
-      <div className={cn("flex items-center justify-center rounded-3xl bg-destructive/10 text-destructive", compact ? "size-14" : "size-20")}>
+      <div className={cn("flex items-center justify-center rounded-card bg-destructive/10 text-destructive", compact ? "size-14" : "size-20")}>
         <Icon className={compact ? "size-7" : "size-9"} strokeWidth={1.8} aria-hidden />
       </div>
       <h2 className={cn("font-bold", compact ? "text-base" : "text-xl")}>

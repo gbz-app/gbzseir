@@ -92,7 +92,7 @@ const ROW_WIDTHS = ["w-3/5", "w-4/5", "w-1/2", "w-2/3"];
 /** White card with icon + text rows (contact, hours, address). */
 function RowsCard({ rows = 3, className }: { rows?: number; className?: string }) {
   return (
-    <div className={cn("overflow-hidden rounded-3xl bg-card", className)}>
+    <div className={cn("overflow-hidden rounded-card bg-card", className)}>
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="flex min-h-14 items-center gap-3 px-4 py-3">
           <Bone className="size-5 shrink-0 rounded-md" />
@@ -142,7 +142,7 @@ function FirmSheet() {
             ))}
           </div>
           <div className="flex flex-col gap-4 pt-5">
-            <div className="rounded-3xl bg-card p-4">
+            <div className="rounded-card bg-card p-4">
               <TextBlock />
             </div>
             <RowsCard />
@@ -196,7 +196,7 @@ function ClassifiedSheet() {
       <StatTiles />
       <div>
         <Bone className="h-5 w-28" />
-        <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-4 rounded-3xl bg-card p-4">
+        <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-4 rounded-card bg-card p-4">
           {[0, 1, 2, 3].map((i) => (
             <div key={i}>
               <Bone className="h-3 w-14" />
@@ -215,8 +215,8 @@ function JobSheet() {
     <DetailSheet className="flex flex-col gap-7 pb-36">
       <div>
         {/* Logo notch on the sheet edge (JobLogoNotch). */}
-        <div className="relative -mt-[4.25rem] w-fit rounded-[1.6rem] bg-background p-1.5">
-          <div className="size-20 rounded-[1.25rem] bg-card" />
+        <div className="relative -mt-[4.25rem] w-fit rounded-media bg-background p-1.5">
+          <div className="size-20 rounded-card bg-card" />
         </div>
         <Bone className="mt-4 h-4 w-24" />
         <Bone className="mt-2.5 h-8 w-4/5" />
@@ -305,8 +305,8 @@ export function HeaderDetailSkeleton({
     <>
       <PageHeader title={title} backHref={backHref} hideBottomNav />
       <div className={cn("flex flex-col gap-5 px-4 pt-4", className)} aria-busy="true">
-        {photo ? <Bone className="aspect-[4/3] w-full rounded-3xl sm:aspect-[16/10]" /> : null}
-        <div className="rounded-3xl bg-card p-4">
+        {photo ? <Bone className="aspect-[4/3] w-full rounded-card sm:aspect-[16/10]" /> : null}
+        <div className="rounded-card bg-card p-4">
           <div className="flex items-start gap-3.5">
             <Bone className="size-14 shrink-0 rounded-2xl" />
             <div className="min-w-0 flex-1">

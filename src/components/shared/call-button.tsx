@@ -29,6 +29,8 @@ export type CallButtonProps = {
   className?: string;
   /** Called after the call was started (mobile) or the number was shown (desktop). */
   onCall?: () => void;
+  /** Sample (is_demo) record: its number is a placeholder, so no call button is rendered at all. */
+  demo?: boolean;
 };
 
 /**
@@ -47,8 +49,10 @@ export function CallButton({
   fullWidth,
   className,
   onCall,
+  demo,
 }: CallButtonProps) {
   const [desktopOpen, setDesktopOpen] = React.useState(false);
+  if (demo) return null;
   const formatted = formatPhoneTR(phone);
   const href = telHref(phone);
 

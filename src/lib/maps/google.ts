@@ -3,7 +3,8 @@
  * src/components/maps (map, OverlayView pins) and the location picker helpers (Places Autocomplete (new Places API)
  * and reverse geocoding). The key is NEXT_PUBLIC_GOOGLE_MAPS_KEY (referrer-restricted); without it (or when Google
  * refuses it) callers show a calm "Harita şu an kullanılamıyor" state. There is no Map ID, so no AdvancedMarkerElement:
- * pins are DOM elements in an OverlayView. Every `new Map()` is a billed map load: create maps only after a user tap.
+ * pins are DOM elements in an OverlayView. Every `new Map()` is a billed map load: only map-first screens (Yakınımda,
+ * the guide category maps) create one on page load; detail pages wait for a "Haritada göster" tap.
  * Only the API surface used here is typed (no @types/google.maps dependency).
  */
 import { CITY } from "@/config/site";
@@ -27,6 +28,13 @@ export interface GMapsEventListener {
   remove(): void;
 }
 
+/** One rule of MapOptions.styles (JSON styling; raster maps without a Map ID). */
+export type GMapTypeStyle = {
+  featureType?: string;
+  elementType?: string;
+  stylers: Array<Record<string, string | number>>;
+};
+
 export type GMapOptions = {
   center: GLatLngLiteral;
   zoom: number;
@@ -43,6 +51,8 @@ export type GMapOptions = {
   colorScheme?: string;
   /** Color of the map div while tiles load. */
   backgroundColor?: string;
+  /** JSON styles (ignored only with a Map ID or on vector maps; this app uses neither). */
+  styles?: GMapTypeStyle[];
 };
 
 export interface GMap {

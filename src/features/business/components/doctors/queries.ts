@@ -39,8 +39,8 @@ export async function getOwnerDoctors(businessId: string): Promise<Doctor[]> {
   return ((data ?? []) as unknown as RawDoctor[]).map(toDoctor);
 }
 
-/** Card columns of the Keşfet list: no bio or hours note (the card does not show them; the clinic page does). */
-const DIRECTORY_COLUMNS = "id,business_id,name,title,branch,photo_url,days,sort,is_active,is_demo";
+/** Card columns of the Keşfet list: no bio or hours note (the card does not show them; the profile page does). */
+const DIRECTORY_COLUMNS = "id,slug,business_id,name,title,branch,photo_url,days,sort,is_active,is_demo";
 
 type RawDirectoryDoctor = Omit<RawDoctor, "bio" | "hours_note"> & {
   businesses: { slug: string; name: string; is_demo: boolean | null; neighbourhoods: { name: string } | null } | null;
@@ -69,4 +69,78 @@ export const listSaglikDoctors = cache(async (): Promise<DirectoryDoctor[]> => {
       },
     }))
     .sort((a, b) => Number(a.is_demo) - Number(b.is_demo) || trCompare(a.name, b.name));
+});
+
+/** Profile page data (/doktor/<slug>): the doctor and the clinic they work at. Serializable. */
+export type DoctorProfile = Doctor & {
+  slug: string;
+  clinic: {
+    id: string;
+    slug: string;
+    name: string;
+    logo_url: string | null;
+    /** Clinic phone (doctors have none); sample clinics' numbers are placeholders and never shown. */
+    phone: string | null;
+    address: string | null;
+    lat: number | null;
+    lng: number | null;
+    /** public.districts id (config/districts.ts). */
+    district_id: string | null;
+    verified: boolean;
+    is_demo: boolean;
+  };
+};
+
+type RawProfile = RawDoctor & {
+  businesses: {
+    id: string;
+    slug: string;
+    name: string;
+    logo_url: string | null;
+    phone: string | null;
+    address: string | null;
+    lat: number | null;
+    lng: number | null;
+    district_id: string | null;
+    verification_level: number | null;
+    is_demo: boolean | null;
+  } | null;
+};
+
+const PROFILE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/**
+ * Active doctor of an approved clinic by profile slug; null = not found (anon client: RLS also hides hidden doctors and
+ * clinics that are not public, e.g. a banned owner's). ISR friendly.
+ */
+export const getDoctorBySlug = cache(async (slug: string): Promise<DoctorProfile | null> => {
+  if (!slug || slug.length > 100 || !PROFILE_SLUG.test(slug)) return null;
+  const { data, error } = await createPublicClient()
+    .from("business_staff")
+    .select(`${DOCTOR_COLUMNS},businesses!inner(id,slug,name,logo_url,phone,address,lat,lng,district_id,verification_level,is_demo)`)
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .eq("businesses.status", "approved")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const raw = data as unknown as RawProfile | null;
+  const b = raw?.businesses;
+  if (!raw || !b) return null;
+  return {
+    ...toDoctor(raw),
+    slug,
+    clinic: {
+      id: b.id,
+      slug: b.slug,
+      name: b.name,
+      logo_url: b.logo_url,
+      phone: b.phone,
+      address: b.address,
+      lat: b.lat,
+      lng: b.lng,
+      district_id: b.district_id,
+      verified: (b.verification_level ?? 0) >= 1,
+      is_demo: b.is_demo === true,
+    },
+  };
 });

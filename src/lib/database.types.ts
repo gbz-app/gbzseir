@@ -705,6 +705,7 @@ export type Database = {
           is_demo: boolean
           name: string
           photo_url: string | null
+          slug: string
           sort: number
           title: string
           updated_at: string
@@ -722,6 +723,7 @@ export type Database = {
           is_demo?: boolean
           name: string
           photo_url?: string | null
+          slug?: string
           sort?: number
           title?: string
           updated_at?: string
@@ -739,6 +741,7 @@ export type Database = {
           is_demo?: boolean
           name?: string
           photo_url?: string | null
+          slug?: string
           sort?: number
           title?: string
           updated_at?: string
@@ -902,6 +905,155 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cinema_films: {
+        Row: {
+          actors: string[]
+          age_rating: string | null
+          created_at: string
+          directors: string[]
+          duration_min: number | null
+          genres: string[]
+          id: string
+          last_seen_at: string
+          original_title: string | null
+          poster_url: string | null
+          release_date: string | null
+          slug: string
+          source: string
+          source_key: string
+          source_url: string | null
+          synopsis: string | null
+          title: string
+          trailer_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          actors?: string[]
+          age_rating?: string | null
+          created_at?: string
+          directors?: string[]
+          duration_min?: number | null
+          genres?: string[]
+          id?: string
+          last_seen_at?: string
+          original_title?: string | null
+          poster_url?: string | null
+          release_date?: string | null
+          slug: string
+          source?: string
+          source_key: string
+          source_url?: string | null
+          synopsis?: string | null
+          title: string
+          trailer_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actors?: string[]
+          age_rating?: string | null
+          created_at?: string
+          directors?: string[]
+          duration_min?: number | null
+          genres?: string[]
+          id?: string
+          last_seen_at?: string
+          original_title?: string | null
+          poster_url?: string | null
+          release_date?: string | null
+          slug?: string
+          source?: string
+          source_key?: string
+          source_url?: string | null
+          synopsis?: string | null
+          title?: string
+          trailer_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cinema_import_runs: {
+        Row: {
+          dates: string[]
+          error: string | null
+          films: number
+          id: number
+          ok: boolean
+          ran_at: string
+          removed: number
+          showtimes: number
+          source: string
+          warnings: Json
+        }
+        Insert: {
+          dates?: string[]
+          error?: string | null
+          films?: number
+          id?: number
+          ok: boolean
+          ran_at?: string
+          removed?: number
+          showtimes?: number
+          source: string
+          warnings?: Json
+        }
+        Update: {
+          dates?: string[]
+          error?: string | null
+          films?: number
+          id?: number
+          ok?: boolean
+          ran_at?: string
+          removed?: number
+          showtimes?: number
+          source?: string
+          warnings?: Json
+        }
+        Relationships: []
+      }
+      cinema_showtimes: {
+        Row: {
+          created_at: string
+          film_id: string
+          format: string | null
+          hall: string | null
+          id: number
+          language: string | null
+          source_key: string
+          starts_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          film_id: string
+          format?: string | null
+          hall?: string | null
+          id?: number
+          language?: string | null
+          source_key: string
+          starts_at: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          film_id?: string
+          format?: string | null
+          hall?: string | null
+          id?: number
+          language?: string | null
+          source_key?: string
+          starts_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cinema_showtimes_film_id_fkey"
+            columns: ["film_id"]
+            isOneToOne: false
+            referencedRelation: "cinema_films"
             referencedColumns: ["id"]
           },
         ]
@@ -3182,6 +3334,102 @@ export type Database = {
           },
         ]
       }
+      transit_route_stops: {
+        Row: {
+          created_at: string
+          distance_m: number | null
+          method: string
+          poi_id: string | null
+          route_id: string
+          stop_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          distance_m?: number | null
+          method?: string
+          poi_id?: string | null
+          route_id: string
+          stop_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          distance_m?: number | null
+          method?: string
+          poi_id?: string | null
+          route_id?: string
+          stop_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transit_route_stops_poi_id_fkey"
+            columns: ["poi_id"]
+            isOneToOne: false
+            referencedRelation: "poi"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transit_route_stops_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "transit_routes"
+            referencedColumns: ["route_id"]
+          },
+        ]
+      }
+      transit_routes: {
+        Row: {
+          active: boolean
+          agency_id: string | null
+          agency_name: string | null
+          color: string | null
+          created_at: string
+          description: string | null
+          license: string | null
+          long_name: string | null
+          route_id: string
+          route_type: number
+          short_name: string
+          source: string
+          text_color: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          agency_id?: string | null
+          agency_name?: string | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          license?: string | null
+          long_name?: string | null
+          route_id: string
+          route_type?: number
+          short_name: string
+          source?: string
+          text_color?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          agency_id?: string | null
+          agency_name?: string | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          license?: string | null
+          long_name?: string | null
+          route_id?: string
+          route_type?: number
+          short_name?: string
+          source?: string
+          text_color?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       vertical_subcategories: {
         Row: {
           active: boolean
@@ -3478,6 +3726,7 @@ export type Database = {
       }
       business_is_public: { Args: { p_business_id: string }; Returns: boolean }
       business_panel_stats: { Args: { p_business_id?: string }; Returns: Json }
+      cinema_import: { Args: { p_payload: Json }; Returns: Json }
       claim_push_notifications: {
         Args: { p_limit?: number }
         Returns: {

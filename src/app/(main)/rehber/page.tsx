@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  Banknote,
+  Building2,
   Castle,
   ChevronRight,
   Drama,
-  EvCharger,
-  Fuel,
+  Flower2,
   GraduationCap,
   Hospital,
   Landmark,
+  Mail,
+  Scale,
   School,
+  ShoppingBasket,
+  Siren,
   Stamp,
   TrainFront,
   Trees,
@@ -21,14 +24,11 @@ import { cn } from "@/lib/utils";
 import { JsonLd } from "@/components/seo/json-ld";
 import { CITY, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
-import { GUIDE_HUBS, GUIDE_SECTIONS } from "@/features/guide/lib/constants";
 import { getEmergencyNumbers, getGuideCounts, getInstitutionCategories } from "@/features/guide/lib/queries";
 import { EmergencyList } from "@/features/guide/components/emergency-list";
 import { GuideHubSearch, HubBackButton } from "@/features/guide/components/guide-hub";
 import { SCHOOL_CATEGORIES } from "@/features/guide/components/list-config";
-import { KindIcon } from "@/features/nearby/components/kind-icon";
-import { OSM_COPYRIGHT_URL } from "@/features/nearby/config";
-import type { MarkerKind } from "@/features/nearby/types";
+import { KIND_META, OSM_COPYRIGHT_URL } from "@/features/nearby/config";
 
 export const revalidate = 3600;
 
@@ -38,157 +38,158 @@ export const metadata: Metadata = {
   alternates: { canonical: routes.guide.root() },
 };
 
-type Tile = { href: string; label: string; icon: LucideIcon; tone: string; count: number };
+/** Icon chip tones (light + dark) of the rows without a pin kind of their own. */
+const TONE = {
+  indigo: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  red: "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-300",
+  slate: "bg-slate-200 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300",
+  rose: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300",
+  sky: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+  violet: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+  yellow: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
+  amber: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  fuchsia: "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300",
+  lime: "bg-lime-100 text-lime-700 dark:bg-lime-500/15 dark:text-lime-300",
+  green: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300",
+  blue: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+} as const;
+
+/** One list row; `count` null = no count (links to the /yakinimda map). */
+type Row = { href: string; label: string; icon: LucideIcon; tone: string; count: number | null };
+type Group = { id: string; title: string; rows: Row[] };
+
+const SECTION_TITLE = "px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase";
 
 const sum = (map: Record<string, number>, keys: readonly string[]) => keys.reduce((n, k) => n + (map[k] ?? 0), 0);
 
-function CategoryTile({ tile, showCount }: { tile: Tile; showCount: boolean }) {
+function GuideRow({ row, showCount }: { row: Row; showCount: boolean }) {
   return (
     <Link
-      href={tile.href}
-      className="flex min-h-[7.25rem] flex-col justify-between gap-3 rounded-3xl bg-card p-3 outline-none transition-transform focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.98]"
+      href={row.href}
+      className="flex min-h-14 items-center gap-3 rounded-2xl px-2.5 py-2 outline-none transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 active:bg-muted/60"
     >
-      <span className={cn("flex size-11 items-center justify-center rounded-2xl", tile.tone)}>
-        <tile.icon className="size-[22px]" strokeWidth={1.9} aria-hidden />
+      <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", row.tone)} aria-hidden>
+        <row.icon className="size-5" strokeWidth={1.9} />
       </span>
-      <span>
-        <span className="block text-[13px] leading-tight font-semibold text-balance">{tile.label}</span>
-        {showCount ? <span className="mt-0.5 block text-xs text-muted-foreground tabular-nums">{tile.count} kayıt</span> : null}
-      </span>
+      <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{row.label}</span>
+      {showCount && row.count !== null ? <span className="shrink-0 text-sm font-medium text-muted-foreground tabular-nums">{row.count}</span> : null}
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
     </Link>
   );
 }
 
-const MAP_LINKS: Array<{ href: string; label: string; kind: MarkerKind }> = [
-  { href: routes.nearby.dutyPharmacies(), label: "Nöbetçi eczane", kind: "duty" },
-  { href: routes.nearby.root("cami"), label: "Camiler", kind: "mosque" },
-  { href: routes.nearby.root("durak"), label: "Duraklar", kind: "bus_stop" },
-  { href: routes.nearby.root("taksi"), label: "Taksi", kind: "taxi" },
-];
-
-/** Şehir Rehberi hub: search, category tiles, map shortcuts, every section, emergency numbers and credits. */
+/** Şehir Rehberi hub: search, a minimalist grouped list of categories (each opens its map view), emergency numbers, credits. */
 export default async function GuideHubPage() {
   const [counts, emergency, institutionDefs] = await Promise.all([getGuideCounts(), getEmergencyNumbers(), getInstitutionCategories()]);
   const inst = counts.byInstitutionCategory;
   const place = counts.byPlaceCategory;
   const kind = counts.byKind;
+  const section = counts.bySection;
+  const showCounts = counts.ok;
 
   const listCounts: Record<string, number> = {
     ...inst,
-    ...counts.bySection,
+    ...section,
     kurumlar: kind.institution ?? 0,
     okullar: sum(inst, SCHOOL_CATEGORIES),
     "muzeler-ve-kultur": sum(place, ["muze", "kultur"]),
     "parklar-ve-doga": sum(place, ["park", "tabiat_parki", "doga", "sahil"]),
   };
 
-  const tiles: Tile[] = [
-    { href: routes.guide.category("kurumlar"), label: "Resmî kurumlar", icon: Landmark, tone: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300", count: listCounts.kurumlar },
-    { href: routes.guide.category("okullar"), label: "Okullar", icon: School, tone: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300", count: listCounts.okullar },
-    { href: routes.guide.category("saglik"), label: "Sağlık kurumları", icon: Hospital, tone: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300", count: counts.bySection.saglik ?? 0 },
-    { href: routes.guide.category("universite"), label: "Üniversiteler", icon: GraduationCap, tone: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300", count: inst.universite ?? 0 },
-    { href: routes.guide.category("noter"), label: "Noterler", icon: Stamp, tone: "bg-slate-200 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300", count: inst.noter ?? 0 },
-    { href: routes.guide.category("atm"), label: "ATM ve bankalar", icon: Banknote, tone: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300", count: (kind.atm ?? 0) + (kind.bank ?? 0) },
-    { href: routes.guide.category("akaryakit"), label: "Akaryakıt", icon: Fuel, tone: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300", count: kind.fuel ?? 0 },
-    { href: routes.guide.category("sarj"), label: "Şarj istasyonları", icon: EvCharger, tone: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300", count: kind.ev_charge ?? 0 },
-    { href: routes.guide.category("tarihi"), label: "Tarihi yerler", icon: Castle, tone: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300", count: place.tarihi ?? 0 },
-    { href: routes.guide.category("muzeler-ve-kultur"), label: "Müzeler ve kültür", icon: Drama, tone: "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300", count: listCounts["muzeler-ve-kultur"] },
-    { href: routes.guide.category("parklar-ve-doga"), label: "Parklar ve doğa", icon: Trees, tone: "bg-lime-100 text-lime-700 dark:bg-lime-500/15 dark:text-lime-300", count: listCounts["parklar-ve-doga"] },
-    { href: routes.guide.category("spor"), label: "Spor tesisleri", icon: Trophy, tone: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300", count: place.spor ?? 0 },
-    { href: routes.guide.category("ulasim"), label: "Ulaşım", icon: TrainFront, tone: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300", count: place.ulasim ?? 0 },
+  const cat = (slug: string) => routes.guide.category(slug);
+  const groups: Group[] = [
+    {
+      id: "rehber-kurumlar",
+      title: "Resmî kurumlar",
+      rows: [
+        { href: cat("kurumlar"), label: "Tüm resmî kurumlar", icon: Building2, tone: KIND_META.institution.tone, count: listCounts.kurumlar },
+        { href: cat("kamu"), label: "Belediye ve kamu", icon: Landmark, tone: TONE.indigo, count: section.kamu ?? 0 },
+        { href: cat("guvenlik"), label: "Emniyet, jandarma, itfaiye", icon: Siren, tone: TONE.red, count: section.guvenlik ?? 0 },
+        { href: cat("adalet"), label: "Adliye ve icra", icon: Scale, tone: TONE.slate, count: section.adalet ?? 0 },
+        { href: cat("noter"), label: "Noterler", icon: Stamp, tone: TONE.slate, count: inst.noter ?? 0 },
+        { href: cat("saglik"), label: "Hastaneler ve sağlık", icon: Hospital, tone: TONE.rose, count: section.saglik ?? 0 },
+        { href: cat("okullar"), label: "Okullar", icon: School, tone: TONE.sky, count: listCounts.okullar },
+        { href: cat("universite"), label: "Üniversiteler", icon: GraduationCap, tone: TONE.violet, count: inst.universite ?? 0 },
+        { href: cat("ptt"), label: "PTT şubeleri", icon: Mail, tone: TONE.yellow, count: section.ptt ?? 0 },
+      ],
+    },
+    {
+      id: "rehber-gunluk",
+      title: "Günlük ihtiyaçlar",
+      rows: [
+        { href: cat("atm"), label: "ATM", icon: KIND_META.atm.icon, tone: KIND_META.atm.tone, count: kind.atm ?? 0 },
+        { href: cat("banka"), label: "Banka şubeleri", icon: KIND_META.bank.icon, tone: KIND_META.bank.tone, count: kind.bank ?? 0 },
+        { href: cat("akaryakit"), label: "Akaryakıt istasyonları", icon: KIND_META.fuel.icon, tone: KIND_META.fuel.tone, count: kind.fuel ?? 0 },
+        { href: cat("sarj"), label: "Şarj istasyonları", icon: KIND_META.ev_charge.icon, tone: KIND_META.ev_charge.tone, count: kind.ev_charge ?? 0 },
+      ],
+    },
+    {
+      id: "rehber-harita",
+      title: "Haritada bul",
+      rows: [
+        { href: routes.nearby.dutyPharmacies(), label: "Nöbetçi eczane", icon: KIND_META.duty.icon, tone: KIND_META.duty.tone, count: null },
+        { href: routes.nearby.root("cami"), label: "Camiler", icon: KIND_META.mosque.icon, tone: KIND_META.mosque.tone, count: null },
+        { href: routes.nearby.root("durak"), label: "Duraklar", icon: KIND_META.bus_stop.icon, tone: KIND_META.bus_stop.tone, count: null },
+        { href: routes.nearby.root("taksi"), label: "Taksi durakları", icon: KIND_META.taxi.icon, tone: KIND_META.taxi.tone, count: null },
+      ],
+    },
+    {
+      id: "rehber-gezi",
+      title: "Gezi ve kültür",
+      rows: [
+        { href: cat("tarihi"), label: "Tarihi yerler", icon: Castle, tone: TONE.amber, count: place.tarihi ?? 0 },
+        { href: cat("muzeler-ve-kultur"), label: "Müzeler ve kültür", icon: Drama, tone: TONE.fuchsia, count: listCounts["muzeler-ve-kultur"] },
+        { href: cat("parklar-ve-doga"), label: "Parklar ve doğa", icon: Trees, tone: TONE.lime, count: listCounts["parklar-ve-doga"] },
+        { href: cat("spor"), label: "Spor tesisleri", icon: Trophy, tone: TONE.yellow, count: place.spor ?? 0 },
+        { href: cat("pazar"), label: "Pazar yerleri", icon: ShoppingBasket, tone: TONE.green, count: place.pazar ?? 0 },
+        { href: cat("mezarlik"), label: "Mezarlıklar", icon: Flower2, tone: TONE.slate, count: place.mezarlik ?? 0 },
+        { href: cat("ulasim"), label: "Tren, otogar ve iskele", icon: TrainFront, tone: TONE.blue, count: place.ulasim ?? 0 },
+      ],
+    },
   ];
-  const showCounts = counts.ok;
+  // With working counts, empty categories stay out of the list.
+  const shown = groups.map((g) => ({ ...g, rows: g.rows.filter((r) => r.count === null || !showCounts || r.count > 0) })).filter((g) => g.rows.length > 0);
 
+  const listed = shown.flatMap((g) => g.rows.filter((r) => r.count !== null));
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: `${CITY.name} Şehir Rehberi`,
-    itemListElement: tiles.map((t, i) => ({ "@type": "ListItem", position: i + 1, name: t.label, url: `${SITE_URL}${t.href}` })),
+    itemListElement: listed.map((r, i) => ({ "@type": "ListItem", position: i + 1, name: r.label, url: `${SITE_URL}${r.href}` })),
   };
 
   return (
     <>
       <JsonLd data={jsonLd} />
-      <div className="flex flex-col gap-6 px-4 pt-safe pb-10">
+      <div className="flex flex-col gap-5 px-4 pt-safe pb-10">
         <header>
           <div className="flex h-(--topbar-h) items-center">
             <HubBackButton />
           </div>
           <h1 className="mt-1 text-[2rem] leading-tight font-bold tracking-tight">Şehir Rehberi</h1>
-          <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">
-            {CITY.name}&apos;de resmî kurumlar, okullar, sağlık, ATM, akaryakıt ve gezilecek yerler tek yerde.
-          </p>
+          <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">Kurum, okul, ATM ve gezilecek yerler tek listede. Birine dokun, haritada gör.</p>
         </header>
 
         <GuideHubSearch counts={listCounts} institutionDefs={institutionDefs}>
-          <div className="flex flex-col gap-8">
-            <section aria-labelledby="rehber-kategoriler">
-              <h2 id="rehber-kategoriler" className="sr-only">
-                Kategoriler
-              </h2>
-              <ul className="grid grid-cols-3 gap-2.5">
-                {tiles.map((t) => (
-                  <li key={t.href}>
-                    <CategoryTile tile={t} showCount={showCounts} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section aria-labelledby="rehber-harita">
-              <h2 id="rehber-harita" className="mb-3 text-lg font-semibold">
-                Haritada bul
-              </h2>
-              <ul className="grid grid-cols-2 gap-2.5">
-                {MAP_LINKS.map((m) => (
-                  <li key={m.href}>
-                    <Link
-                      href={m.href}
-                      className="flex min-h-16 items-center gap-3 rounded-3xl bg-card p-3 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:bg-muted/60"
-                    >
-                      <KindIcon kind={m.kind} size="sm" />
-                      <span className="min-w-0 flex-1 text-[15px] leading-tight font-semibold">{m.label}</span>
-                      <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section aria-labelledby="rehber-tumu">
-              <h2 id="rehber-tumu" className="mb-3 text-lg font-semibold">
-                Tüm kategoriler
-              </h2>
-              <div className="flex flex-col gap-4">
-                {GUIDE_HUBS.map((hub) => {
-                  const sections = GUIDE_SECTIONS.filter((s) => s.hub === hub.key && (!showCounts || (counts.bySection[s.slug] ?? 0) > 0));
-                  if (!sections.length) return null;
-                  return (
-                    <div key={hub.key}>
-                      <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{hub.title}</p>
-                      <ul className="flex flex-wrap gap-2">
-                        {sections.map((s) => (
-                          <li key={s.slug}>
-                            <Link
-                              href={routes.guide.category(s.slug)}
-                              className="inline-flex h-10 items-center gap-2 rounded-full bg-card px-3.5 text-sm font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:bg-muted/60"
-                            >
-                              <s.icon className="size-4 text-primary" aria-hidden />
-                              {s.label}
-                              {showCounts ? <span className="text-xs font-medium text-muted-foreground tabular-nums">{counts.bySection[s.slug] ?? 0}</span> : null}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
+          <div className="flex flex-col gap-6">
+            {shown.map((g) => (
+              <section key={g.id} aria-labelledby={g.id}>
+                <h2 id={g.id} className={cn(SECTION_TITLE, "mb-2")}>
+                  {g.title}
+                </h2>
+                <ul className="flex flex-col rounded-3xl bg-card p-1.5">
+                  {g.rows.map((r) => (
+                    <li key={r.href}>
+                      <GuideRow row={r} showCount={showCounts} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
 
             <section aria-labelledby="rehber-acil">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 id="rehber-acil" className="text-lg font-semibold">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h2 id="rehber-acil" className={SECTION_TITLE}>
                   Acil numaralar
                 </h2>
                 <Link href={routes.content.emergency()} className="text-sm font-semibold text-primary underline-offset-2 hover:underline">

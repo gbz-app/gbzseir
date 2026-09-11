@@ -2,148 +2,134 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { BookOpen, ChevronRight, Landmark } from "lucide-react";
+import { BookOpen, ChevronRight, Landmark, MapPin } from "lucide-react";
 import { routes } from "@/core/routes";
-import { trNormalize } from "@/core/tr";
-import { ChipFilter, type ChipOption } from "@/components/shared/chip-filter";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { orderByDefs } from "@/features/business/lib/category-visuals";
+import { EventChip } from "@/features/events/components/chip";
 import { PLACE_CATEGORY_DEFS, placeCategoryMeta, type PlaceCategoryDef } from "@/features/nearby/config";
-import { DistanceLabel } from "@/features/nearby/components/distance-label";
 import { PlaceVisual } from "@/features/nearby/components/place-card";
 import type { PlaceSummary } from "@/features/nearby/types";
-import { placeIconName, placeTypeLabel, type GuideEntry } from "./list-config";
-import { GuideCard } from "./guide-card";
+import { placeTypeLabel } from "./list-config";
 import { GuidePhoto } from "./guide-photo";
 
 const ALL = "tumu";
+const PAGE_SIZE = 24;
+const TILE_MEDIA = "aspect-[4/3] w-full rounded-[1.15rem]";
 
-function toEntry(p: PlaceSummary, categories: readonly PlaceCategoryDef[]): GuideEntry {
-  const type = placeTypeLabel(p.details.category, p.details.subkind, categories);
-  const hood = p.neighbourhoodName ? `${p.neighbourhoodName} Mah.` : null;
-  return {
-    id: p.id,
-    kind: "place",
-    name: p.name,
-    href: routes.nearby.place(p.slug),
-    type,
-    sub: [type, hood].filter(Boolean).join(" · "),
-    cat: placeCategoryMeta(p.details.category, categories).value,
-    group: null,
-    subkind: p.details.subkind,
-    own: null,
-    bank: null,
-    brand: null,
-    op: null,
-    lat: p.lat,
-    lng: p.lng,
-    verified: false,
-    photo: p.details.photos[0]?.url ?? null,
-    icon: placeIconName(p.details.category, categories),
-    q: trNormalize([p.name, type, p.neighbourhoodName].filter(Boolean).join(" ")),
-  };
-}
-
-/** Large white card of a curated place (photo or category art, badge, distance, short text). No shadow or ring. */
-function FeaturedPlaceCard({ place, categories, priority }: { place: PlaceSummary; categories: readonly PlaceCategoryDef[]; priority?: boolean }) {
-  const meta = placeCategoryMeta(place.details.category, categories);
+/** Photo card of a place: photo (or category art), category, name and district. White surface, no shadow or ring. */
+function PlaceTile({
+  place,
+  categories,
+  district,
+  priority,
+}: {
+  place: PlaceSummary;
+  categories: readonly PlaceCategoryDef[];
+  district: string | undefined;
+  priority?: boolean;
+}) {
   const photo = place.details.photos[0];
   const type = placeTypeLabel(place.details.category, place.details.subkind, categories);
+  const where = district ?? (place.neighbourhoodName ? `${place.neighbourhoodName} Mah.` : null);
   return (
     <Link
       href={routes.nearby.place(place.slug)}
-      className="group block overflow-hidden rounded-3xl bg-card outline-none transition-transform focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]"
+      className="group flex h-full flex-col rounded-3xl bg-card p-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
-      <div className="relative">
-        {photo ? (
-          <GuidePhoto src={photo.url} alt={photo.alt ?? place.name} sizes="(max-width: 672px) 100vw, 672px" priority={priority} className="aspect-[16/10] w-full" />
-        ) : (
-          <PlaceVisual category={place.details.category} categories={categories} name={place.name} className="aspect-[16/10]" />
-        )}
-        <span className="absolute top-3 left-3 inline-flex h-7 items-center gap-1 rounded-full bg-white/90 px-2.5 text-xs font-bold text-foreground dark:bg-black/60 dark:text-white">
-          <meta.icon className="size-3.5" aria-hidden />
-          {type}
-        </span>
-        <DistanceLabel
-          lat={place.lat}
-          lng={place.lng}
-          withIcon
-          className="absolute top-3 right-3 h-7 rounded-full bg-black/55 px-2.5 text-xs font-bold text-white backdrop-blur"
-        />
-        {photo?.author ? (
-          <span className="absolute right-2 bottom-2 max-w-[70%] truncate rounded bg-black/50 px-1.5 py-0.5 text-[10px] text-white">
-            {photo.author}
-            {photo.licence ? ` · ${photo.licence}` : ""}
+      {photo ? (
+        // alt="": the place name is already the link text.
+        <GuidePhoto src={photo.url} alt="" sizes="(max-width: 672px) 50vw, 224px" priority={priority} className={TILE_MEDIA} />
+      ) : (
+        <PlaceVisual category={place.details.category} categories={categories} name={place.name} className={TILE_MEDIA} iconClassName="size-10" />
+      )}
+      <span className="flex flex-1 flex-col px-2 pt-2.5 pb-2">
+        <span className="truncate text-xs font-medium text-primary">{type}</span>
+        <span className="mt-0.5 line-clamp-2 text-[15px] leading-snug font-semibold underline-offset-2 group-hover:underline">{place.name}</span>
+        {where ? (
+          <span className="mt-auto flex min-w-0 items-center gap-1 pt-1.5 text-xs text-muted-foreground">
+            <MapPin className="size-3.5 shrink-0" aria-hidden />
+            <span className="truncate">{where}</span>
           </span>
         ) : null}
-      </div>
-      <div className="p-4">
-        <h3 className="text-lg leading-snug font-bold group-hover:underline">{place.name}</h3>
-        {place.neighbourhoodName ? <p className="mt-0.5 text-sm text-muted-foreground">{place.neighbourhoodName} Mah.</p> : null}
-        {place.details.description ? <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-foreground/85">{place.details.description}</p> : null}
-      </div>
+      </span>
     </Link>
   );
 }
 
-/** D6 /gezilecek-yerler: category chips (admin order), big cards for curated places, white row cards for the rest. */
-export function GuidePlacesBrowser({ places, categories = PLACE_CATEGORY_DEFS }: { places: PlaceSummary[]; categories?: readonly PlaceCategoryDef[] }) {
+/** D6 /gezilecek-yerler: category chips (admin order) and a two-column grid of photo cards (curated places first). */
+export function GuidePlacesBrowser({
+  places,
+  categories = PLACE_CATEGORY_DEFS,
+  districtNames = {},
+}: {
+  places: PlaceSummary[];
+  categories?: readonly PlaceCategoryDef[];
+  /** Place id -> district name (poi.district_id). */
+  districtNames?: Readonly<Record<string, string>>;
+}) {
   const [cat, setCat] = React.useState<string>(ALL);
+  const [limit, setLimit] = React.useState(PAGE_SIZE);
   const keyOf = React.useCallback((p: PlaceSummary) => placeCategoryMeta(p.details.category, categories).value, [categories]);
 
-  const options = React.useMemo<ChipOption[]>(() => {
-    const counts = new Map<string, number>();
-    for (const p of places) counts.set(keyOf(p), (counts.get(keyOf(p)) ?? 0) + 1);
-    return [
-      { value: ALL, label: "Tümü", count: places.length },
-      ...orderByDefs(counts.keys(), categories).map((key) => {
-        const meta = placeCategoryMeta(key, categories);
-        return { value: key, label: meta.label, icon: meta.icon, count: counts.get(key) };
-      }),
-    ];
-  }, [places, categories, keyOf]);
+  const chips = React.useMemo(
+    () => orderByDefs(new Set(places.map(keyOf)), categories).map((key) => ({ value: key, label: placeCategoryMeta(key, categories).label })),
+    [places, categories, keyOf],
+  );
 
   const filtered = cat === ALL ? places : places.filter((p) => keyOf(p) === cat);
-  const featured = filtered.filter((p) => p.details.curated);
-  const others = filtered.filter((p) => !p.details.curated);
+  const shown = filtered.slice(0, limit);
+  const pick = (value: string) => {
+    setCat(value);
+    setLimit(PAGE_SIZE);
+  };
 
   return (
     <>
-      <PageHeader title="Gezilecek Yerler" subtitle="Gebze'nin tarihi ve doğal güzellikleri" backHref={routes.home()}>
-        <ChipFilter options={options} value={cat} onChange={(v) => v && setCat(v)} ariaLabel="Kategori" size="sm" />
-      </PageHeader>
-      <div className="flex flex-col gap-6 px-4 pt-4 pb-6">
-        {filtered.length === 0 ? <EmptyState icon={Landmark} title="Bu kategoride yer yok" description="Başka bir kategori seçmeyi dene." /> : null}
-
-        {featured.length > 0 ? (
-          <section aria-labelledby="one-cikanlar">
-            <h2 id="one-cikanlar" className="sr-only">
-              Öne çıkan yerler
-            </h2>
-            <ul className="grid gap-4 sm:grid-cols-2">
-              {featured.map((p, i) => (
-                <li key={p.id}>
-                  <FeaturedPlaceCard place={p} categories={categories} priority={i === 0} />
-                </li>
-              ))}
-            </ul>
-          </section>
+      <PageHeader title="Gezilecek Yerler" subtitle="Tarihi yapılar, parklar ve doğal güzellikler" backHref={routes.home()}>
+        {chips.length > 1 ? (
+          <div role="group" aria-label="Kategori" className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-0.5">
+            <EventChip active={cat === ALL} onClick={() => pick(ALL)} className="h-9 px-3.5">
+              Tümü
+            </EventChip>
+            {chips.map((c) => (
+              <EventChip key={c.value} active={cat === c.value} onClick={() => pick(cat === c.value ? ALL : c.value)} className="h-9 px-3.5">
+                {c.label}
+              </EventChip>
+            ))}
+          </div>
         ) : null}
+      </PageHeader>
 
-        {others.length > 0 ? (
-          <section aria-labelledby="diger-yerler">
-            <h2 id="diger-yerler" className="mb-2.5 text-lg font-bold">
-              {featured.length > 0 ? "Diğer yerler" : "Yerler"}
-            </h2>
-            <ul className="flex flex-col gap-2.5">
-              {others.map((p) => (
-                <li key={p.id}>
-                  <GuideCard entry={toEntry(p, categories)} />
-                </li>
-              ))}
-            </ul>
-          </section>
+      <div className="flex flex-col gap-5 px-4 pt-2 pb-8">
+        {filtered.length === 0 ? (
+          <div className="rounded-3xl bg-card">
+            <EmptyState
+              icon={Landmark}
+              title={places.length ? "Bu kategoride yer yok" : "Henüz yer yok"}
+              description={places.length ? "Başka bir kategori seçmeyi dene." : "Gezilecek yerler yakında burada."}
+            />
+          </div>
+        ) : (
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {shown.map((p, i) => (
+              <li key={p.id}>
+                <PlaceTile place={p} categories={categories} district={districtNames[p.id]} priority={i < 2} />
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {filtered.length > limit ? (
+          <button
+            type="button"
+            onClick={() => setLimit((l) => l + PAGE_SIZE)}
+            className="inline-flex h-11 items-center justify-center gap-1.5 self-center rounded-full bg-card px-5 text-sm font-semibold transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            Daha fazla göster
+            <span className="font-medium text-muted-foreground">({filtered.length - limit})</span>
+          </button>
         ) : null}
 
         <Link

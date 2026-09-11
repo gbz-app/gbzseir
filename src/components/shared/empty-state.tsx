@@ -45,7 +45,7 @@ export function EmptyState({
   return (
     <div className={cn("flex flex-col items-center text-center", compact ? "gap-2 px-4 py-6" : "gap-3 px-6 py-12", className)}>
       {illustration ?? (
-        <div className={cn("flex items-center justify-center rounded-3xl", compact ? "size-14" : "size-20", toneClass[tone])}>
+        <div className={cn("flex items-center justify-center rounded-card", compact ? "size-14" : "size-20", toneClass[tone])}>
           <Icon className={compact ? "size-7" : "size-9"} strokeWidth={1.8} aria-hidden />
         </div>
       )}

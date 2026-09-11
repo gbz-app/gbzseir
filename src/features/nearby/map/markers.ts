@@ -1,5 +1,5 @@
 /**
- * DOM builders for map markers: colored teardrop pins with lucide glyphs (ISC-licensed path data)
+ * DOM builders for map markers: colored round pins with lucide glyphs (ISC-licensed path data)
  * and the user's pulsing location dot. Plain DOM because they live in a Google Maps OverlayView
  * (src/components/maps/pin-layer.ts), not in React. Styles: src/components/maps/maps.css.
  */
@@ -32,14 +32,17 @@ const GLYPHS: Record<MarkerKind, string> = {
   bank: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="m7.9 7.9 2.7 2.7"/><path d="m13.4 10.6 2.7-2.7"/><path d="m7.9 16.1 2.7-2.7"/><path d="m13.4 13.4 2.7 2.7"/><circle cx="12" cy="12" r="2"/>',
 };
 
-/** 34x44 pin SVG (tip at the bottom center). */
+/**
+ * 40x40 round pin SVG, centred on the point: the kind's colour with a 2px white border and its glyph. About 20% larger
+ * than the former teardrop head (38px across instead of 32px, glyph 21.6px instead of 18px).
+ */
 export function pinSvg(kind: MarkerKind): string {
   const meta = KIND_META[kind];
   const strokeWidth = kind === "duty" || kind === "pharmacy" ? 3.4 : 2.3;
   return (
-    '<svg width="34" height="44" viewBox="0 0 34 44" aria-hidden="true" focusable="false">' +
-    `<path d="M17 43c-.7 0-1.3-.3-1.7-.9C10.9 36.6 2 26 2 17a15 15 0 0 1 30 0c0 9-8.9 19.6-13.3 25.1-.4.6-1 .9-1.7.9Z" fill="${meta.pin}" stroke="#fff" stroke-width="2"/>` +
-    `<g transform="translate(8 8) scale(0.75)" fill="none" stroke="${meta.glyph}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">${GLYPHS[kind]}</g>` +
+    '<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" focusable="false">' +
+    `<circle cx="20" cy="20" r="18" fill="${meta.pin}" stroke="#fff" stroke-width="2"/>` +
+    `<g transform="translate(9.2 9.2) scale(0.9)" fill="none" stroke="${meta.glyph}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">${GLYPHS[kind]}</g>` +
     "</svg>"
   );
 }

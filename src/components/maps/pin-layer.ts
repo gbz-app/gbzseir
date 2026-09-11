@@ -1,5 +1,5 @@
 /**
- * All pins of a Google map in ONE OverlayView (works without a Map ID, unlike AdvancedMarkerElement): the teardrop
+ * All pins of a Google map in ONE OverlayView (works without a Map ID, unlike AdvancedMarkerElement): the round
  * pins and the pulsing location dot from src/features/nearby/map/markers.ts, as DOM elements in the
  * overlayMouseTarget pane. Pins are <button>s with an aria-label when the map is selectable, so taps and keyboard
  * focus work like before. draw() only runs when the projection changes (zoom / resize); panning moves the pane.

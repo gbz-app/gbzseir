@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CalendarDays, CalendarPlus, ChevronRight, History, Map as MapIcon, Search, Ticket, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, ChevronRight, History, Map as MapIcon, Search, X } from "lucide-react";
 import { routes } from "@/core/routes";
 import { slugifyTr } from "@/core/tr";
 import { Button } from "@/components/ui/button";
 import { ExploreHeader, useNow } from "@/components/shared/explore-header";
-import { EVENT_CATEGORIES, vocabIcon, type EventCategory, type EventCategoryDef } from "@/features/business/lib/verticals";
+import { EVENT_CATEGORIES, type EventCategory, type EventCategoryDef } from "@/features/business/lib/verticals";
 import { eventDayWindow, eventInWindow, type EventWhen } from "../format";
 import type { EventItem } from "../queries";
 import { EventCard } from "./event-card";
@@ -35,6 +35,9 @@ function CreatePill() {
     </Link>
   );
 }
+
+/** Calm filter chip: same height in both rails, no icons. */
+const CHIP = "h-9 px-3.5";
 
 /** /etkinlikler in the /kesfet style: search, category and date chips, one-column photo cards and a map view. */
 export function EventsExplorer({
@@ -90,7 +93,7 @@ export function EventsExplorer({
   const mappable = filtered.filter((e) => e.lat != null && e.lng != null);
 
   return (
-    <div className="flex flex-col gap-4 px-4 pb-32">
+    <div className="flex flex-col gap-5 px-4 pb-32">
       <ExploreHeader title="Etkinlikler" subtitle="Konser, tiyatro, atölye ve festivaller" right={<CreatePill />} />
 
       <label className="relative block">
@@ -119,11 +122,11 @@ export function EventsExplorer({
       <div className="flex flex-col gap-2">
         {categories.length > 0 ? (
           <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-0.5" role="group" aria-label="Kategori">
-            <EventChip active={!cat} onClick={() => setCat(null)}>
+            <EventChip active={!cat} onClick={() => setCat(null)} className={CHIP}>
               Tümü
             </EventChip>
             {categories.map((c) => (
-              <EventChip key={c.key} active={cat === c.key} onClick={() => setCat((v) => (v === c.key ? null : c.key))} icon={vocabIcon(c.icon, Ticket)}>
+              <EventChip key={c.key} active={cat === c.key} onClick={() => setCat((v) => (v === c.key ? null : c.key))} className={CHIP}>
                 {c.label}
               </EventChip>
             ))}
@@ -131,11 +134,11 @@ export function EventsExplorer({
         ) : null}
         <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-0.5" role="group" aria-label="Tarih ve ücret">
           {WHEN_CHIPS.map((w) => (
-            <EventChip key={w.key} active={when === w.key} onClick={() => setWhen((v) => (v === w.key ? null : w.key))} className="h-9 px-3.5 font-medium">
+            <EventChip key={w.key} active={when === w.key} onClick={() => setWhen((v) => (v === w.key ? null : w.key))} className={CHIP}>
               {w.label}
             </EventChip>
           ))}
-          <EventChip active={freeOnly} onClick={() => setFreeOnly((v) => !v)} className="h-9 px-3.5 font-medium">
+          <EventChip active={freeOnly} onClick={() => setFreeOnly((v) => !v)} className={CHIP}>
             Ücretsiz
           </EventChip>
         </div>

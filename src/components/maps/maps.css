@@ -34,7 +34,8 @@
   background-color: #1f2826;
 }
 
-/* Pins: positioned by the overlay (translate3d to the point); the root's bottom centre is the pin tip. */
+/* Pins: positioned by the overlay (translate3d to the point); round pins are centred on the point. The 44px box is the
+   hit target around the 38px circle. */
 .gz-pin-layer {
   position: absolute;
   top: 0;
@@ -43,10 +44,10 @@
 
 .gz-marker {
   position: absolute;
-  top: -48px;
+  top: -22px;
   left: -22px;
   width: 44px;
-  height: 48px;
+  height: 44px;
 }
 .gz-marker.is-selected {
   z-index: 3;
@@ -54,16 +55,17 @@
 
 .gz-pin {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   width: 44px;
-  height: 48px;
+  height: 44px;
   padding: 0;
   margin: 0;
   border: 0;
+  border-radius: 9999px;
   background: transparent;
   cursor: pointer;
-  transform-origin: 50% 100%;
+  transform-origin: 50% 50%;
   transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1);
   filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.28));
   -webkit-tap-highlight-color: transparent;
@@ -73,8 +75,7 @@
 }
 .gz-pin:focus-visible {
   outline: 3px solid oklch(0.6 0.118 184.704 / 0.7);
-  outline-offset: 1px;
-  border-radius: 14px;
+  outline-offset: 0;
 }
 .gz-pin-static {
   cursor: default;
