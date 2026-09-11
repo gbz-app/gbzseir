@@ -5,19 +5,22 @@ import { z } from "zod";
 import { routes } from "@/core/routes";
 import { slugifyTr } from "@/core/tr";
 import { revalidatePublic } from "@/lib/revalidate-public";
+import { CATEGORY_KEY_RE } from "@/features/business/lib/category-visuals";
 import { dbFail, withAdmin, type AdminContext } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { firstIssue, zId } from "../lib/zod";
 
-const CATEGORIES = ["gundem", "siyaset", "belediye", "spor", "etkinlik", "duyuru"] as const;
 const SLUG_MAX = 120;
 const SLUG_ERROR = "Haber adresi oluşturulamadı. Tekrar dene.";
+/** news_articles.category references news_categories (2026091363); a foreign key error means the category is gone. */
+const CATEGORY_GONE = "Bu kategori artık yok. Sayfayı yenileyip başka bir kategori seç.";
 
 const schema = z
   .object({
     id: zId.optional(),
     title: z.string().trim().min(5, "Başlık en az 5 karakter olmalı.").max(160, "Başlık en fazla 160 karakter olabilir."),
-    category: z.enum(CATEGORIES, { message: "Kategori seç." }),
+    // A news_categories key (admin-managed); the foreign key checks that it exists.
+    category: z.string().regex(CATEGORY_KEY_RE, "Kategori seç."),
     summary: z.string().trim().max(300, "Özet en fazla 300 karakter olabilir.").optional(),
     body: z.string().trim().max(20000, "Haber metni en fazla 20.000 karakter olabilir."),
     coverUrl: z
@@ -101,7 +104,7 @@ export async function saveNewsArticleAction(input: z.input<typeof schema>): Prom
         .from("news_articles")
         .update({ ...fields, slug, published_at: current.published_at ?? (v.published ? now : null), updated_at: now })
         .eq("id", v.id);
-      if (error) return dbFail(error);
+      if (error) return error.code === "23503" ? fail(CATEGORY_GONE) : dbFail(error);
       await revalidateArticles([slug, current.slug]);
       const message = current.status === status ? "Haber güncellendi." : v.published ? "Haber yayınlandı." : "Haber yayından kaldırıldı.";
       return ok({ id: v.id, slug }, message);
@@ -114,7 +117,7 @@ export async function saveNewsArticleAction(input: z.input<typeof schema>): Prom
       .insert({ ...fields, slug, published_at: v.published ? now : null, author_id: userId })
       .select("id")
       .single();
-    if (error) return dbFail(error, "Haber eklenemedi.");
+    if (error) return error.code === "23503" ? fail(CATEGORY_GONE) : dbFail(error, "Haber eklenemedi.");
     await revalidateArticles([slug]);
     return ok({ id: data.id, slug }, v.published ? "Haber yayınlandı." : "Taslak kaydedildi.");
   });

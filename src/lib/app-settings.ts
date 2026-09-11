@@ -25,6 +25,8 @@ export type AppSettings = {
   listingActiveCap: number;
   /** Request accept limit for service categories without their own. */
   maxProvidersDefault: number;
+  /** Hours before an open request no firm accepted goes to the next firms (1-72). */
+  requestRedispatchHours: number;
   analyticsRetentionDays: number;
   auditRetentionDays: number;
   dutyDataMode: string;
@@ -41,6 +43,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   listingDailyCap: 10,
   listingActiveCap: 50,
   maxProvidersDefault: 5,
+  requestRedispatchHours: 6,
   analyticsRetentionDays: 180,
   auditRetentionDays: 730,
   dutyDataMode: "demo",
@@ -82,6 +85,7 @@ export const getAppSettings = cache(async (): Promise<AppSettings> => {
       listingDailyCap: num(m.get("listing_daily_cap"), d.listingDailyCap),
       listingActiveCap: num(m.get("listing_active_cap"), d.listingActiveCap),
       maxProvidersDefault: num(m.get("max_providers_default"), d.maxProvidersDefault),
+      requestRedispatchHours: num(m.get("request_redispatch_hours"), d.requestRedispatchHours),
       analyticsRetentionDays: num(m.get("analytics_retention_days"), d.analyticsRetentionDays),
       auditRetentionDays: num(m.get("audit_retention_days"), d.auditRetentionDays),
       dutyDataMode: str(m.get("duty_data_mode"), d.dutyDataMode),

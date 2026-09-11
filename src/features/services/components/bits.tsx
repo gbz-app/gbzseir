@@ -117,7 +117,7 @@ export function HowItWorks({ className }: { className?: string }) {
   );
 }
 
-/** Request photos (public URLs in the media bucket); each opens the full image. */
+/** Request photos: /api/talep-foto URLs (private bucket, the route redirects to a short-lived signed URL); each opens the full image. */
 export function PhotoGrid({ photos, className }: { photos: string[]; className?: string }) {
   if (!photos.length) return null;
   return (

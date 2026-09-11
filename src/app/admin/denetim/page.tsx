@@ -11,10 +11,15 @@ import {
   MapPinned,
   Megaphone,
   Newspaper,
+  Pill,
+  RefreshCw,
   Scale,
   ScrollText,
   Settings,
+  Shapes,
+  ShieldAlert,
   Smartphone,
+  Sparkles,
   Star,
   Store,
   Tag,
@@ -47,8 +52,15 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 /** Action groups (?tur=) -> audit_log.action prefixes. */
 const GROUPS = {
   ayarlar: { label: "Ayarlar", prefixes: ["settings."], icon: Settings },
-  kategoriler: { label: "Kategoriler", prefixes: ["service_category.", "listing_category.", "flow."], icon: FolderTree },
-  icerik: { label: "Haber, duyuru, yer", prefixes: ["news_article.", "announcement.", "place.", "legal_text."], icon: Newspaper },
+  // + Keşfet alt kategorileri, olanaklar, etkinlik kategorileri (2026091351_vocabularies.sql).
+  kategoriler: {
+    label: "Kategoriler",
+    prefixes: ["service_category.", "listing_category.", "flow.", "subcategory.", "amenity.", "event_category."],
+    icon: FolderTree,
+  },
+  icerik: { label: "Haber, duyuru, yer", prefixes: ["news_article.", "announcement.", "place."], icon: Newspaper },
+  yasal: { label: "Yasal metinler", prefixes: ["legal_text."], icon: Scale },
+  nobet: { label: "Nöbetçi eczane", prefixes: ["duty."], icon: Pill },
   sikayet: { label: "Şikayetler", prefixes: ["report."], icon: Flag },
   destek: { label: "Destek", prefixes: ["support."], icon: LifeBuoy },
   isletme: { label: "İşletmeler", prefixes: ["business."], icon: Store },
@@ -56,7 +68,8 @@ const GROUPS = {
   etkinlik: { label: "Etkinlikler", prefixes: ["event."], icon: Ticket },
   yorum: { label: "Yorumlar", prefixes: ["review."], icon: Star },
   hesap: { label: "Hesaplar", prefixes: ["profile."], icon: UserRound },
-  giris: { label: "Girişler", prefixes: ["auth."], icon: LogIn },
+  // profile.signin: sign-in blocked / unblocked by an admin.
+  giris: { label: "Girişler", prefixes: ["auth.", "profile.signin"], icon: LogIn },
   muhasebe: { label: "Muhasebe", prefixes: ["finance."], icon: Wallet },
   magaza: { label: "Mağaza verisi", prefixes: ["store_stat."], icon: Smartphone },
 } satisfies Record<string, { label: string; prefixes: string[]; icon: LucideIcon }>;
@@ -66,9 +79,13 @@ const TURS: TurFilter[] = ["tumu", ...(Object.keys(GROUPS) as GroupKey[])];
 
 /** Finer icons inside a group. */
 const ACTION_ICONS: Array<[string, LucideIcon]> = [
+  ["profile.signin", ShieldAlert],
+  ["place.sync", RefreshCw],
   ["place.", MapPinned],
   ["announcement.", Megaphone],
-  ["legal_text.", Scale],
+  ["subcategory.", Shapes],
+  ["amenity.", Sparkles],
+  ["event_category.", Ticket],
 ];
 
 function iconFor(action: string): LucideIcon {
@@ -97,6 +114,10 @@ const ENTITY_LABELS: Record<string, string> = {
   place: "Yer",
   legal_text: "Yasal metin",
   store_stat: "Mağaza verisi",
+  duty: "Nöbet listesi",
+  subcategory: "Keşfet alt kategorisi",
+  amenity: "Olanak",
+  event_category: "Etkinlik kategorisi",
 };
 
 const DETAIL_LABELS: Record<string, string> = {
@@ -192,7 +213,7 @@ export default async function AdminAuditPage({ searchParams }: Props) {
     <>
       <AdminPageHeader
         title="İşlem kaydı"
-        description="Yöneticilerin, sistemin ve kullanıcıların yaptığı değişiklikler: ayarlar, kategoriler, şikayet ve destek kararları, içerik, muhasebe, hesap hareketleri. En yenisi üstte."
+        description="Yöneticilerin, sistemin ve kullanıcıların yaptığı değişiklikler: ayarlar, kategoriler, şikayet ve destek kararları, içerik, yasal metinler, nöbet listesi, muhasebe, hesap hareketleri. En yenisi üstte."
       />
 
       <div className="grid gap-3">

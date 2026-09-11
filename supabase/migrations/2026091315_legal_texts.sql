@@ -140,6 +140,8 @@ create trigger profiles_kvkk_version before insert or update of kvkk_accepted_at
 -- 5) Seed: v0.1 drafts written for Gebzem, published so the pages are not empty, marked pending legal review.
 --    Bracketed fields ([Şirket unvanı], [Adres], ...) are filled in by the owner; the approved text is published as a new version.
 --    Bodies are dollar-quoted, so the surrounding line breaks are trimmed here (published rows cannot be updated later).
+--    The kvkk/gizlilik hosting sentences below are the corrected (Tokyo) wording for fresh installs; databases seeded with the
+--    earlier EU wording keep that frozen 0.1 and get the fix as 0.2 (2026091362).
 insert into public.legal_texts (slug, version, title, body_md, pending_review, published_at)
 select s.slug, s.version, s.title, btrim(s.body_md, E'\n'), s.pending_review, s.published_at
 from (values
@@ -193,10 +195,10 @@ Kampanya ve duyuru iletileri ise yalnızca açık rızana (m.5/1) ve 6563 sayıl
 
 - İşletmeler: hizmet talebi gönderdiğinde talebin (kategori, cevaplar, mahalle, tarih, not ve fotoğraflar) talebine uygun işletmelere, talepte belirtilen sayıda (varsayılan en fazla 5) iletilir. Talebi kabul etmeden önce işletmeler adını yalnızca kısaltılmış olarak görür. Talebini kabul eden işletme ad soyadını, adres notunu ve "Numaram gizli kalsın" seçeneğini işaretlemediysen telefon numaranı görür.
 - Diğer kullanıcılar: ilanların herkese açık yayımlanır; bir kullanıcı ilanında "Numarayı göster"e dokunduğunda telefon numaran ve kısaltılmış adın gösterilir. İşletmeler hakkındaki yorumların, puanın ve kısaltılmış adınla işletme sayfasında görünür.
-- Hizmet sağlayıcılarımız (veri işleyenler): Supabase (veritabanı, kimlik doğrulama ve dosya depolama; Avrupa Birliği'ndeki veri merkezleri), Vercel (uygulamanın barındırılması ve dünya genelindeki sunucular üzerinden sunulması), doğrulama kodu SMS'lerini gönderen [SMS sağlayıcısı], anlık bildirimleri cihazına ileten tarayıcı bildirim servisleri (Google, Apple, Mozilla, Microsoft) ve harita görüntülerini sunan OpenFreeMap. Harita görüntülenirken IP adresin ve tarayıcı bilgin harita sunucusuna iletilir.
+- Hizmet sağlayıcılarımız (veri işleyenler): Supabase (veritabanı, kimlik doğrulama ve dosya depolama; Japonya'nın Tokyo bölgesindeki veri merkezleri), Vercel (uygulamanın barındırılması ve dünya genelindeki sunucular üzerinden sunulması; sunucu işlemleri Japonya'nın Tokyo bölgesindeki veri merkezlerinde çalışır), doğrulama kodu SMS'lerini gönderen [SMS sağlayıcısı], anlık bildirimleri cihazına ileten tarayıcı bildirim servisleri (Google, Apple, Mozilla, Microsoft) ve harita görüntülerini sunan OpenFreeMap. Harita görüntülenirken IP adresin ve tarayıcı bilgin harita sunucusuna iletilir.
 - Yetkili kamu kurum ve kuruluşları ile yargı mercileri: kanunen yetkili oldukları hallerde ve talep etmeleri üzerine.
 
-Yurt dışına aktarım: Supabase ve Vercel sunucuları Türkiye dışındadır. Bu aktarımlar KVKK 9. maddesi kapsamında, Kişisel Verileri Koruma Kurulu'na bildirilen standart sözleşmelere dayanır. [Hukuki inceleme: standart sözleşmelerin imzalanması ve Kurul'a bildirimi]
+Yurt dışına aktarım: Supabase ve Vercel sunucuları Türkiye dışındadır. Kişisel verilerin Japonya'nın Tokyo bölgesindeki veri merkezlerinde saklanır ve işlenir; uygulama ayrıca Vercel'in dünya genelindeki sunucuları üzerinden sunulur. Bu aktarımlar KVKK 9. maddesi kapsamında, Kişisel Verileri Koruma Kurulu'na bildirilen standart sözleşmelere dayanır. [Hukuki inceleme: standart sözleşmelerin imzalanması ve Kurul'a bildirimi]
 
 ## 6. Toplama yöntemi
 
@@ -395,7 +397,7 @@ Bu politika, Gebzem'in hangi bilgileri neden topladığını, neleri toplamadı�
 
 ## Verilerin nerede ve nasıl korunur?
 
-Veriler Supabase'in Avrupa Birliği'ndeki veri merkezlerinde saklanır; uygulama Vercel altyapısı üzerinden sunulur. Bağlantılar şifrelidir (HTTPS). Veritabanında satır düzeyinde erişim kuralları uygulanır; her kullanıcı yalnızca görmeye yetkili olduğu kayıtlara erişebilir. İşletme belgeleri herkese kapalı, ayrı bir alanda tutulur.
+Veriler Türkiye dışında, Japonya'nın Tokyo bölgesindeki Supabase veri merkezlerinde saklanır; uygulamanın sunucu işlemleri de aynı bölgedeki Vercel altyapısında çalışır ve uygulama Vercel'in dünya genelindeki sunucuları üzerinden sunulur. Bağlantılar şifrelidir (HTTPS). Veritabanında satır düzeyinde erişim kuralları uygulanır; her kullanıcı yalnızca görmeye yetkili olduğu kayıtlara erişebilir. İşletme belgeleri herkese kapalı, ayrı bir alanda tutulur.
 
 ## Ne kadar süre saklarız?
 

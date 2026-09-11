@@ -10,13 +10,18 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { FilterChip } from "@/components/shared/explore-header";
-import { BUSINESS_VERTICALS, DEFAULT_EVENT_CATEGORY, VERTICAL_INFO, VOCAB_ICON_NAMES, subcategoryMatcher, vocabIcon, type Vertical } from "@/features/business/lib/verticals";
+import { CATEGORY_ICON_NAMES, categoryIcon } from "@/features/business/lib/category-visuals";
+import { BUSINESS_VERTICALS, VERTICAL_INFO, VOCAB_ICON_NAMES, subcategoryMatcher, type Vertical } from "@/features/business/lib/verticals";
 import {
   deleteAmenityAction,
   deleteEventCategoryAction,
+  deleteNewsCategoryAction,
+  deletePlaceCategoryAction,
   deleteSubcategoryAction,
   saveAmenityAction,
   saveEventCategoryAction,
+  saveNewsCategoryAction,
+  savePlaceCategoryAction,
   saveSubcategoryAction,
 } from "../actions/vocabularies";
 import type { ActionResult } from "../lib/action-result";
@@ -26,7 +31,9 @@ import { useAdminAction } from "./use-admin-action";
 export type SubcategoryValue = { id: string; vertical: Vertical; key: string; label: string; keywords: string[]; exclude: string[]; sort: number; active: boolean };
 export type AmenityScope = "business" | "room";
 export type AmenityValue = { id: string; scope: AmenityScope; key: string; label: string; icon: string | null; verticals: Vertical[]; sort: number; active: boolean };
-export type EventCategoryValue = { id: string; key: string; label: string; icon: string | null; sort: number; active: boolean };
+/** event_categories, news_categories and place_categories share this shape. */
+export type CategoryKind = "event" | "news" | "place";
+export type CategoryValue = { id: string; key: string; label: string; icon: string | null; sort: number; active: boolean };
 
 /** Terms from a textarea: one per line (commas also split). */
 const termsOf = (text: string) =>
@@ -35,9 +42,9 @@ const termsOf = (text: string) =>
     .map((t) => t.trim())
     .filter(Boolean);
 
-/** Lucide icon of a vocabulary row (decorative). */
+/** Lucide icon of a vocabulary row (decorative). categoryIcon knows every name the editors offer. */
 export function VocabIconView({ name, className }: { name: string | null | undefined; className?: string }) {
-  return React.createElement(vocabIcon(name), { className, "aria-hidden": true });
+  return React.createElement(categoryIcon(name), { className, "aria-hidden": true });
 }
 
 function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
@@ -78,12 +85,12 @@ function ActiveSwitch({ checked, onChange, text }: { checked: boolean; onChange:
   );
 }
 
-function IconPicker({ value, onChange }: { value: string; onChange: (name: string) => void }) {
+function IconPicker({ names = VOCAB_ICON_NAMES, value, onChange }: { names?: readonly string[]; value: string; onChange: (name: string) => void }) {
   return (
     <div>
       <p className="mb-1 text-xs font-semibold">Simge</p>
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Simge">
-        {VOCAB_ICON_NAMES.map((n) => (
+        {names.map((n) => (
           <button
             key={n}
             type="button"
@@ -338,8 +345,56 @@ export function AmenityEditor({ scope, item, trigger }: { scope: AmenityScope; i
   );
 }
 
-/** Add / edit an event category. */
-export function EventCategoryEditor({ item, trigger }: { item?: EventCategoryValue; trigger: React.ReactElement }) {
+type CategorySaveInput = { id?: string; label: string; icon: string | null; sort: number; active: boolean };
+
+const CATEGORY_KINDS: Record<
+  CategoryKind,
+  {
+    newTitle: string;
+    description: string;
+    placeholder: string;
+    activeText: string;
+    deleteText: string;
+    icons: readonly string[];
+    save: (input: CategorySaveInput) => Promise<ActionResult<null>>;
+    remove: (input: { id: string }) => Promise<ActionResult<null>>;
+  }
+> = {
+  event: {
+    newTitle: "Yeni etkinlik kategorisi",
+    description: "Etkinlik eklerken seçilir; etkinlik kartında ve Etkinlikler sayfasındaki kategori filtresinde görünür.",
+    placeholder: "ör. Stand-up",
+    activeText: "Kapalıysa yeni etkinliklerde seçilemez; eski etkinliklerde görünmeye devam eder.",
+    deleteText: "Bu kategoride etkinlik varsa silinmez; pasife alabilirsin.",
+    icons: VOCAB_ICON_NAMES,
+    save: saveEventCategoryAction,
+    remove: deleteEventCategoryAction,
+  },
+  news: {
+    newTitle: "Yeni haber kategorisi",
+    description: "Haber eklerken seçilir; haber kartlarında ve Haberler sayfasındaki filtrede görünür. Fotoğrafı olmayan haberin kapağında simgesi durur.",
+    placeholder: "ör. Ekonomi",
+    activeText: "Kapalıysa haber eklerken seçilemez; eski haberlerde ve kaynak haberlerinde görünmeye devam eder.",
+    deleteText: "Bu kategoride haber varsa silinmez; pasife alabilirsin.",
+    icons: CATEGORY_ICON_NAMES,
+    save: saveNewsCategoryAction,
+    remove: deleteNewsCategoryAction,
+  },
+  place: {
+    newTitle: "Yeni yer kategorisi",
+    description: "Gezilecek yer eklerken seçilir; yer kartlarında ve Gezilecek Yerler sayfasındaki filtrede görünür. Fotoğrafı olmayan yerin kapağında simgesi durur.",
+    placeholder: "ör. Plaj",
+    activeText: "Kapalıysa yer eklerken seçilemez; mevcut yerlerde görünmeye devam eder.",
+    deleteText: "Bu kategoride yer varsa silinmez; pasife alabilirsin.",
+    icons: CATEGORY_ICON_NAMES,
+    save: savePlaceCategoryAction,
+    remove: deletePlaceCategoryAction,
+  },
+};
+
+/** Add / edit an event, news or place category. `deletable` is false for the keys the database always keeps. */
+export function CategoryEditor({ kind, item, deletable = true, trigger }: { kind: CategoryKind; item?: CategoryValue; deletable?: boolean; trigger: React.ReactElement }) {
+  const cfg = CATEGORY_KINDS[kind];
   const { pending, run } = useAdminAction();
   const [open, setOpen] = React.useState(false);
   const [label, setLabel] = React.useState(item?.label ?? "");
@@ -348,7 +403,7 @@ export function EventCategoryEditor({ item, trigger }: { item?: EventCategoryVal
   const [active, setActive] = React.useState(item?.active ?? true);
 
   const submit = () =>
-    void run(() => saveEventCategoryAction({ id: item?.id, label, icon: icon || null, sort: Number(sort), active }), {
+    void run(() => cfg.save({ id: item?.id, label, icon: icon || null, sort: Number(sort), active }), {
       refresh: true,
       onSuccess: () => {
         setOpen(false);
@@ -361,27 +416,27 @@ export function EventCategoryEditor({ item, trigger }: { item?: EventCategoryVal
 
   return (
     <EditorShell
-      title={item ? `${item.label} düzenle` : "Yeni etkinlik kategorisi"}
-      description="Etkinlik eklerken seçilir; etkinlik kartında ve Etkinlikler sayfasındaki kategori filtresinde görünür."
+      title={item ? `${item.label} düzenle` : cfg.newTitle}
+      description={cfg.description}
       trigger={trigger}
       open={open}
       onOpenChange={setOpen}
       pending={pending}
       onSubmit={submit}
       footerStart={
-        item && item.key !== DEFAULT_EVENT_CATEGORY ? (
+        item && deletable ? (
           <DeleteButton
             title="Kategori silinsin mi?"
-            description={`"${item.label}" silinir. Bu kategoride etkinlik varsa silinmez; pasife alabilirsin.`}
-            action={() => deleteEventCategoryAction({ id: item.id })}
+            description={`"${item.label}" silinir. ${cfg.deleteText}`}
+            action={() => cfg.remove({ id: item.id })}
             onDone={() => setOpen(false)}
           />
         ) : null
       }
     >
-      <LabelAndSort label={label} onLabel={setLabel} sort={sort} onSort={setSort} max={40} placeholder="ör. Stand-up" />
-      <IconPicker value={icon} onChange={setIcon} />
-      <ActiveSwitch checked={active} onChange={setActive} text="Kapalıysa yeni etkinliklerde seçilemez; eski etkinliklerde görünmeye devam eder." />
+      <LabelAndSort label={label} onLabel={setLabel} sort={sort} onSort={setSort} max={40} placeholder={cfg.placeholder} />
+      <IconPicker names={cfg.icons} value={icon} onChange={setIcon} />
+      <ActiveSwitch checked={active} onChange={setActive} text={cfg.activeText} />
       {item ? <p className="text-xs text-muted-foreground">Anahtar: {item.key}</p> : null}
     </EditorShell>
   );

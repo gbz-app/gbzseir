@@ -6,6 +6,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { formatDateTime } from "@/core/format";
+import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { ArticleCard, ArticleRow } from "@/features/content/articles/article-ui";
 import { listPublishedArticles } from "@/features/content/articles/queries";
 import { getNews } from "@/features/content/news/get-news";
@@ -23,7 +24,7 @@ export const metadata = contentMetadata({ title: TITLE, description: DESCRIPTION
 
 /** I1 "Gebze Gündemi": our own articles first (in-app pages), then headlines from local RSS feeds (open the source site). */
 export default async function NewsPage() {
-  const [news, articles] = await Promise.all([getNews(), listPublishedArticles(30).catch(() => [])]);
+  const [news, articles, { newsCategories: categories }] = await Promise.all([getNews(), listPublishedArticles(30).catch(() => []), getVocabularies()]);
   const { items } = news;
   const [lead, ...more] = articles;
   const listed = [
@@ -40,12 +41,12 @@ export default async function NewsPage() {
             <h2 id="gebzem-haberleri" className="text-lg font-semibold">
               Gebzem haberleri
             </h2>
-            <ArticleCard article={lead} />
+            <ArticleCard article={lead} categories={categories} />
             {more.length ? (
               <ul className="flex flex-col gap-1 rounded-3xl bg-card p-2">
                 {more.map((a) => (
                   <li key={a.id}>
-                    <ArticleRow article={a} />
+                    <ArticleRow article={a} categories={categories} />
                   </li>
                 ))}
               </ul>
@@ -73,7 +74,7 @@ export default async function NewsPage() {
           ) : null}
 
           {items.length ? (
-            <NewsFeed items={items} />
+            <NewsFeed items={items} categories={categories} />
           ) : (
             <EmptyState
               icon={Newspaper}

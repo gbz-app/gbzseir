@@ -175,11 +175,14 @@ export const PLACE_CATEGORIES: Record<string, string> = {
   diger: "Diğer",
 };
 
+/** Short poi kind labels; the /admin/yerler editor uses POI_KIND_META (./poi-kinds.ts). */
 export const POI_KINDS: Record<string, string> = {
   pharmacy: "Eczane",
   mosque: "Cami",
   bus_stop: "Durak",
   place: "Gezilecek yer",
+  taxi: "Taksi durağı",
+  atm: "ATM",
 };
 
 export const POI_SOURCES: Record<string, string> = {

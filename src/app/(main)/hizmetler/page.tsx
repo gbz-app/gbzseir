@@ -11,7 +11,7 @@ export const revalidate = 600;
 export const metadata: Metadata = {
   title: "Hizmetler",
   description:
-    "Gebze'de ev temizliği, boya badana, nakliyat, kombi bakımı, tesisat ve daha fazlası için ücretsiz talep oluştur; en fazla 5 onaylı firma seninle ilgilensin.",
+    "Gebze'de ev temizliği, boya badana, nakliyat, kombi bakımı, tesisat ve daha fazlası için ücretsiz talep oluştur; uygun onaylı firmalar seninle ilgilensin.",
   alternates: { canonical: routes.services.root() },
 };
 

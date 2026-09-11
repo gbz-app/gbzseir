@@ -5,11 +5,14 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 /**
- * First-party, cookie-less usage analytics (KVKK-friendly: pathname only, no query strings, no IP, no fingerprint).
+ * First-party, cookie-less usage analytics (KVKK-friendly: pathname only, no query strings, no fingerprint). The RPCs
+ * never store the raw IP: per-IP throttling uses a daily-salted IP hash, and throttled calls return silently
+ * (2026091305_analytics_throttle.sql).
  * - A session id lives in localStorage and rotates after 30 minutes of inactivity.
  * - Every route change -> track_page_view; a heartbeat every minute while visible -> "online now" + duration.
  * - PWA installs: the `appinstalled` event (Android/desktop) and the first standalone launch (iOS).
- * Admin pages are never tracked (also filtered in the RPC).
+ * Admin pages are never tracked (also filtered in the RPC). Page views of /firma/<slug> and /menu/<slug> also feed the
+ * business panel counters (business_panel_stats, the owner's own sessions left out).
  */
 
 const SESSION_KEY = "gebzem.analytics.session";

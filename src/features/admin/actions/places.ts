@@ -7,6 +7,7 @@ import { routes } from "@/core/routes";
 import { slugifyTr } from "@/core/tr";
 import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
 import { revalidatePublic, type PublicCacheTag } from "@/lib/revalidate-public";
+import { CATEGORY_KEY_RE } from "@/features/business/lib/category-visuals";
 import type { PoiKind } from "@/features/nearby/types";
 import { dbFail, withAdmin, type AdminContext } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
@@ -21,7 +22,8 @@ const photo = z.object({
 
 /** Gezilecek yer texts and photos, stored in poi.details (kind 'place' only). */
 const placeFields = z.object({
-  category: z.enum(["tarihi", "park", "doga", "muze", "avm", "diger"]),
+  // A place_categories key (admin-managed); the poi_place_category trigger checks that it exists (2026091363).
+  category: z.string().regex(CATEGORY_KEY_RE, "Kategori seç."),
   description: z.string().trim().max(2000, "Açıklama en fazla 2000 karakter olabilir.").optional(),
   hours: z.string().trim().max(200).optional(),
   fee: z.string().trim().max(100).optional(),

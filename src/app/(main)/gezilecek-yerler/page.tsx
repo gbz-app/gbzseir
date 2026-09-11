@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { routes } from "@/core/routes";
 import { CITY } from "@/config/site";
+import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { PlacesBrowser } from "@/features/nearby/components/places-browser";
 import { getPlaces } from "@/features/nearby/server/queries";
 
@@ -12,8 +13,8 @@ export const metadata: Metadata = {
   alternates: { canonical: routes.nearby.places() },
 };
 
-/** D6 - Gezilecek yerler. */
+/** D6 - Gezilecek yerler (category chips in the admin order of place_categories). */
 export default async function PlacesPage() {
-  const places = await getPlaces();
-  return <PlacesBrowser places={places} />;
+  const [places, vocab] = await Promise.all([getPlaces(), getVocabularies()]);
+  return <PlacesBrowser places={places} categories={vocab.placeCategories} />;
 }

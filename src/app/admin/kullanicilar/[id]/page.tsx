@@ -56,6 +56,8 @@ type Overview = {
     created_at: string;
     updated_at: string;
     kvkk_accepted_at: string | null;
+    /** legal_texts version (kvkk) accepted at kvkk_accepted_at; null for older acceptances. */
+    kvkk_version: string | null;
     neighbourhood: string | null;
     last_sign_in_at: string | null;
   };
@@ -70,6 +72,8 @@ type Overview = {
 
 const ACTION_ICONS: Array<[string, LucideIcon]> = [
   ["auth.login", LogIn],
+  // Sign-in blocked / unblocked (admin_set_user_status).
+  ["profile.signin", ShieldAlert],
   ["profile.avatar", ImageIcon],
   ["profile.phone", Phone],
   ["profile.status", ShieldAlert],
@@ -132,7 +136,9 @@ export default async function AdminUserPage({ params }: Props) {
                 <InfoRow label="Mahalle">{p.neighbourhood ?? "-"}</InfoRow>
                 <InfoRow label="Son giriş">{p.last_sign_in_at ? formatDateTime(p.last_sign_in_at) : "-"}</InfoRow>
                 <InfoRow label="Son görülme">{o.usage.last_seen_at ? formatRelativeTime(o.usage.last_seen_at) : "Uygulamada görülmedi"}</InfoRow>
-                <InfoRow label="KVKK onayı">{p.kvkk_accepted_at ? formatDateTime(p.kvkk_accepted_at) : "Yok"}</InfoRow>
+                <InfoRow label="KVKK onayı">
+                  {p.kvkk_accepted_at ? `${formatDateTime(p.kvkk_accepted_at)}${p.kvkk_version ? ` · sürüm ${p.kvkk_version}` : ""}` : "Yok"}
+                </InfoRow>
                 <InfoRow label="Ticari ileti">{p.marketing_consent ? "İzin verdi" : "İzin yok"}</InfoRow>
               </InfoList>
             </div>
@@ -186,7 +192,7 @@ export default async function AdminUserPage({ params }: Props) {
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <AdminCard title="Hesap hareketleri" description="Giriş, profil fotoğrafı, ad, telefon, durum değişiklikleri ve içerik işlemleri">
+        <AdminCard title="Hesap hareketleri" description="Giriş, giriş engeli, profil fotoğrafı, ad, telefon, durum değişiklikleri ve içerik işlemleri">
           {o.audit.length ? (
             <ol className="relative flex flex-col gap-4 border-l pl-5">
               {o.audit.map((a, i) => {

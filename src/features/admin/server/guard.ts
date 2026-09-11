@@ -2,6 +2,7 @@ import "server-only";
 import { createClient, type ServerSupabase } from "@/lib/supabase/server";
 import { getCurrentUser, getProfile } from "@/lib/auth/server";
 import { IS_ADMIN_SITE } from "@/config/app-mode";
+import { trackPublicRefresh } from "@/lib/revalidate-public";
 import { fail, type ActionResult } from "../lib/action-result";
 
 /**
@@ -21,7 +22,16 @@ export async function getAdminContext(): Promise<AdminContext | null> {
   return { supabase: await createClient(), userId: user.id };
 }
 
-/** Run an admin action: auth check, then the body; unexpected errors become a Turkish message. */
+/**
+ * Saved, but revalidatePublic() could not reach the public app: its pages refresh on their normal schedule (up to 1 h).
+ * Follows the success toast, so it does not repeat "Kaydedildi" (also fits deletes).
+ */
+const PUBLIC_REFRESH_WARNING = "Uygulama hemen yenilenemedi; değişiklik uygulamada bir saate kadar geç görünebilir.";
+
+/**
+ * Run an admin action: auth check, then the body; unexpected errors become a Turkish message. A public refresh that
+ * failed inside the body adds a warning to the success result.
+ */
 export async function withAdmin<T>(fn: (ctx: AdminContext) => Promise<ActionResult<T>>): Promise<ActionResult<T>> {
   let ctx: AdminContext | null = null;
   try {
@@ -30,8 +40,10 @@ export async function withAdmin<T>(fn: (ctx: AdminContext) => Promise<ActionResu
     return fail("Oturum doğrulanamadı. Sayfayı yenileyip tekrar dene.", "session");
   }
   if (!ctx) return fail("Bu işlem için yönetici yetkisi gerekiyor.", "forbidden");
+  const admin = ctx;
   try {
-    return await fn(ctx);
+    const { result, refreshFailed } = await trackPublicRefresh(() => fn(admin));
+    return refreshFailed && result.ok ? { ...result, warning: PUBLIC_REFRESH_WARNING } : result;
   } catch (e) {
     console.error("[admin action]", e);
     return fail("Beklenmeyen bir hata oluştu. Tekrar dene.", "unexpected");

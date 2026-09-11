@@ -9,10 +9,10 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { APP_NAME, SITE_URL } from "@/config/site";
 import { formatDate, formatTime, truncate } from "@/core/format";
 import { routes } from "@/core/routes";
+import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { ArticleCover } from "@/features/content/articles/article-ui";
-import { articleParagraphs } from "@/features/content/articles/meta";
+import { articleParagraphs, newsCategoryLabel } from "@/features/content/articles/meta";
 import { getPublishedArticle, listPublishedArticleSlugs } from "@/features/content/articles/queries";
-import { NEWS_CATEGORY_LABELS } from "@/features/content/news/parse";
 
 export const revalidate = 300;
 
@@ -33,7 +33,7 @@ function normalizeSlug(raw: string): string {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const a = await getPublishedArticle(normalizeSlug((await params).slug)).catch(() => null);
+  const [a, { newsCategories }] = await Promise.all([getPublishedArticle(normalizeSlug((await params).slug)).catch(() => null), getVocabularies()]);
   if (!a) return { title: "Haber bulunamadı", robots: { index: false } };
   const path = routes.content.newsArticle(a.slug);
   const description = truncate(a.summary || a.body.replace(/\s+/g, " ") || `${a.title} | ${APP_NAME} haberleri`, 160);
@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: path,
       publishedTime: a.publishedAt,
       modifiedTime: a.updatedAt,
-      section: NEWS_CATEGORY_LABELS[a.category],
+      section: newsCategoryLabel(a.category, newsCategories),
       images: [image],
     },
     twitter: { card: "summary_large_image", title: a.title, description, images: [image.url] },
@@ -60,11 +60,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /** Our own news story: cover (or category visual), category, date, summary and body paragraphs. */
 export default async function NewsArticlePage({ params }: Props) {
-  const a = await getPublishedArticle(normalizeSlug((await params).slug));
+  const [a, { newsCategories }] = await Promise.all([getPublishedArticle(normalizeSlug((await params).slug)), getVocabularies()]);
   if (!a) notFound();
 
   const url = `${SITE_URL}${routes.content.newsArticle(a.slug)}`;
-  const label = NEWS_CATEGORY_LABELS[a.category];
+  const label = newsCategoryLabel(a.category, newsCategories);
   const paragraphs = articleParagraphs(a.body);
 
   return (
@@ -94,7 +94,7 @@ export default async function NewsArticlePage({ params }: Props) {
       />
 
       <article className="flex flex-col gap-5 px-4 pt-4 pb-nav">
-        <ArticleCover category={a.category} coverUrl={a.coverUrl} alt={a.title} eager className="aspect-[16/10] w-full rounded-3xl" iconClassName="size-16" />
+        <ArticleCover category={a.category} categories={newsCategories} coverUrl={a.coverUrl} alt={a.title} eager className="aspect-[16/10] w-full rounded-3xl" iconClassName="size-16" />
 
         <header>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">

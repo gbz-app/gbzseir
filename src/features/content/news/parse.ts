@@ -8,19 +8,24 @@ import { trNormalize } from "@/core/tr";
 
 export const NEWS_SUMMARY_MAX = 280;
 
-export type NewsCategory = "gundem" | "siyaset" | "belediye" | "spor" | "etkinlik" | "duyuru";
+/** Built-in categories: inferCategory below only produces these. Seed and fallback of public.news_categories. */
+export type BuiltinNewsCategory = "gundem" | "siyaset" | "belediye" | "spor" | "etkinlik" | "duyuru";
 
-export const NEWS_CATEGORY_LABELS: Record<NewsCategory, string> = {
+/** A news_categories key (admin-managed, 2026091363); RSS headlines always carry a built-in one. */
+export type NewsCategory = string;
+
+/** Built-in labels (fallback; the admin's labels come from getVocabularies().newsCategories). */
+export const NEWS_CATEGORY_LABELS: Readonly<Partial<Record<NewsCategory, string>>> = {
   gundem: "Gündem",
   siyaset: "Siyaset",
   belediye: "Belediye",
   spor: "Spor",
   etkinlik: "Etkinlik",
   duyuru: "Duyurular",
-};
+} satisfies Record<BuiltinNewsCategory, string>;
 
-/** Display order of the category chips. */
-export const NEWS_CATEGORY_ORDER: NewsCategory[] = ["gundem", "siyaset", "belediye", "spor", "etkinlik", "duyuru"];
+/** Built-in order of the category chips (fallback of the admin order). */
+export const NEWS_CATEGORY_ORDER: BuiltinNewsCategory[] = ["gundem", "siyaset", "belediye", "spor", "etkinlik", "duyuru"];
 
 export type NewsSourceRef = {
   id: string;
@@ -254,7 +259,7 @@ function hasStem(words: string[], stems: string[]): boolean {
 }
 
 /** Infer a light category from the title and the feed's own category label. */
-export function inferCategory(title: string, feedCategory: string, sourceName: string): NewsCategory {
+export function inferCategory(title: string, feedCategory: string, sourceName: string): BuiltinNewsCategory {
   const norm = titleKey(`${title} ${feedCategory}`);
   const words = norm.split(" ");
   const cat = titleKey(feedCategory);

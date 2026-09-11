@@ -6,24 +6,29 @@ import { routes } from "@/core/routes";
 import { ChipFilter, type ChipOption } from "@/components/shared/chip-filter";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
-import { PLACE_CATEGORIES } from "../config";
-import type { PlaceCategory, PlaceSummary } from "../types";
+import { orderByDefs } from "@/features/business/lib/category-visuals";
+import { PLACE_CATEGORY_DEFS, placeCategoryMeta, type PlaceCategoryDef } from "../config";
+import type { PlaceSummary } from "../types";
 import { PlaceCard, PlaceRow } from "./place-card";
 
-type CategoryFilter = PlaceCategory | "tumu";
+/** "tumu" or a place category key. */
+type CategoryFilter = string;
 
-/** D6: header with category chips, large cards for curated places, compact rows for the rest. */
-export function PlacesBrowser({ places }: { places: PlaceSummary[] }) {
+/** D6: header with category chips (admin order, labels, icons), large cards for curated places, compact rows for the rest. */
+export function PlacesBrowser({ places, categories = PLACE_CATEGORY_DEFS }: { places: PlaceSummary[]; categories?: readonly PlaceCategoryDef[] }) {
   const [cat, setCat] = React.useState<CategoryFilter>("tumu");
 
   const options = React.useMemo<ChipOption<CategoryFilter>[]>(() => {
-    const counts = new Map<PlaceCategory, number>();
+    const counts = new Map<string, number>();
     for (const p of places) counts.set(p.details.category, (counts.get(p.details.category) ?? 0) + 1);
     return [
       { value: "tumu", label: "Tümü", count: places.length },
-      ...PLACE_CATEGORIES.filter((c) => counts.get(c.value)).map((c) => ({ value: c.value, label: c.label, icon: c.icon, count: counts.get(c.value) })),
+      ...orderByDefs(counts.keys(), categories).map((key) => {
+        const meta = placeCategoryMeta(key, categories);
+        return { value: key, label: meta.label, icon: meta.icon, count: counts.get(key) };
+      }),
     ];
-  }, [places]);
+  }, [places, categories]);
 
   const filtered = cat === "tumu" ? places : places.filter((p) => p.details.category === cat);
   const featured = filtered.filter((p) => p.details.curated);

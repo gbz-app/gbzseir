@@ -42,6 +42,7 @@ export default async function AdminSettingsPage() {
             listingDailyCap: n("listing_daily_cap", DEFAULT_SETTINGS.listingDailyCap),
             listingActiveCap: n("listing_active_cap", DEFAULT_SETTINGS.listingActiveCap),
             maxProvidersDefault: n("max_providers_default", DEFAULT_SETTINGS.maxProvidersDefault),
+            requestRedispatchHours: n("request_redispatch_hours", DEFAULT_SETTINGS.requestRedispatchHours),
             analyticsRetentionDays: n("analytics_retention_days", DEFAULT_SETTINGS.analyticsRetentionDays),
             auditRetentionDays: n("audit_retention_days", DEFAULT_SETTINGS.auditRetentionDays),
             dutyDataMode: duty === "off" || duty === "live" ? duty : "demo",

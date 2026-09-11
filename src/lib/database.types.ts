@@ -1790,7 +1790,47 @@ export type Database = {
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "news_articles_category_fkey"
+            columns: ["category"]
+            isOneToOne: false
+            referencedRelation: "news_categories"
+            referencedColumns: ["key"]
+          },
         ]
+      }
+      news_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          icon: string | null
+          id: string
+          key: string
+          label: string
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          key: string
+          label: string
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          key?: string
+          label?: string
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       news_items: {
         Row: {
@@ -1978,6 +2018,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      place_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          icon: string | null
+          id: string
+          key: string
+          label: string
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          key: string
+          label: string
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          key?: string
+          label?: string
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       poi: {
         Row: {

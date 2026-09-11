@@ -1,10 +1,9 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
+import { LEGAL_PATHS, LEGAL_SLUGS } from "@/features/legal/meta";
+import { getPublishedLegalText } from "@/features/legal/queries";
 import { getNews } from "./news/get-news";
-
-/** Last update of the draft legal texts (/yasal/*). */
-const LEGAL_UPDATED_AT = "2026-09-10";
 
 /**
  * Sitemap entries of the content module (news, announcements, help, sources, legal pages).
@@ -19,17 +18,18 @@ export async function sitemapEntries(): Promise<MetadataRoute.Sitemap> {
   } catch {
     // keep "now"
   }
-  const legalModified = new Date(LEGAL_UPDATED_AT);
+  // Live version of each legal text (legal_texts.published_at); no date when none is published or the lookup failed.
+  const legal = await Promise.all(LEGAL_SLUGS.map(async (slug) => ({ slug, text: await getPublishedLegalText(slug).catch(() => null) })));
   const url = (path: string) => `${SITE_URL}${path}`;
 
   return [
     { url: url(routes.content.news()), lastModified: newsModified, changeFrequency: "hourly", priority: 0.6 },
     { url: url(routes.content.announcements()), lastModified: now, changeFrequency: "daily", priority: 0.5 },
-    { url: url(routes.content.help()), lastModified: legalModified, changeFrequency: "monthly", priority: 0.3 },
-    { url: url(routes.content.sources()), lastModified: legalModified, changeFrequency: "monthly", priority: 0.3 },
-    ...[routes.legal.kvkk(), routes.legal.explicitConsent(), routes.legal.privacy(), routes.legal.terms(), routes.legal.cookies()].map((path) => ({
-      url: url(path),
-      lastModified: legalModified,
+    { url: url(routes.content.help()), changeFrequency: "monthly", priority: 0.3 },
+    { url: url(routes.content.sources()), changeFrequency: "monthly", priority: 0.3 },
+    ...legal.map(({ slug, text }) => ({
+      url: url(LEGAL_PATHS[slug]),
+      ...(text ? { lastModified: new Date(text.publishedAt) } : {}),
       changeFrequency: "yearly" as const,
       priority: 0.2,
     })),

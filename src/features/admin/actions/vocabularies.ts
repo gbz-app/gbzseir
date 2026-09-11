@@ -5,6 +5,7 @@ import { z } from "zod";
 import { routes } from "@/core/routes";
 import { slugifyTr } from "@/core/tr";
 import { revalidatePublic, type PublicPath } from "@/lib/revalidate-public";
+import { CATEGORY_ICON_NAMES } from "@/features/business/lib/category-visuals";
 import { DEFAULT_EVENT_CATEGORY, LISTABLE_VERTICALS, VERTICALS, VOCAB_ICON_NAMES, type Vertical } from "@/features/business/lib/verticals";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
@@ -54,6 +55,14 @@ const eventCategorySchema = z.object({
   icon,
   sort,
   active: z.boolean(),
+});
+
+/** News and place categories: same fields, a wider icon set (CATEGORY_ICON_NAMES). */
+const simpleCategorySchema = eventCategorySchema.extend({
+  icon: z
+    .string()
+    .refine((n) => CATEGORY_ICON_NAMES.includes(n), "Simge geçersiz.")
+    .nullable(),
 });
 
 /** A new key from the label, unique among `taken`: kebab-case for chips, snake_case for amenities and event categories. */
@@ -206,4 +215,85 @@ export async function deleteEventCategoryAction(input: { id: string }): Promise<
     await revalidateEventCategories();
     return ok(null, "Kategori silindi.");
   });
+}
+
+// ---------------------------------------------------------------------------
+// News categories (news_articles.category) and place categories (poi.details->>'category' of places), 2026091363
+// ---------------------------------------------------------------------------
+
+/** Filter values of the public chips ("Tümü"), never used as a key. */
+const RESERVED_KEYS = ["tumu", "all"];
+
+const SIMPLE_CATEGORIES = {
+  news: {
+    table: "news_categories",
+    revalidate: async () => {
+      revalidatePath(routes.admin.newsArticles());
+      await revalidateVocabularies([routes.home(), routes.content.news()]);
+    },
+  },
+  place: {
+    table: "place_categories",
+    revalidate: async () => {
+      revalidatePath(routes.admin.places());
+      await revalidateVocabularies([routes.home(), routes.nearby.places()]);
+    },
+  },
+} as const;
+
+type SimpleCategoryKind = keyof typeof SIMPLE_CATEGORIES;
+
+/** Add / edit a news or place category. The key of an existing one never changes (stories and places reference it). */
+async function saveSimpleCategory(kind: SimpleCategoryKind, input: z.input<typeof simpleCategorySchema>): Promise<ActionResult<null>> {
+  return withAdmin(async ({ supabase }) => {
+    const parsed = simpleCategorySchema.safeParse(input);
+    if (!parsed.success) return fail(firstIssue(parsed.error));
+    const v = parsed.data;
+    const { table, revalidate } = SIMPLE_CATEGORIES[kind];
+    const row = { label: v.label, icon: v.icon, sort: v.sort, active: v.active };
+    if (v.id) {
+      const { data, error } = await supabase.from(table).update(row).eq("id", v.id).select("id").maybeSingle();
+      if (error) return dbFail(error, "Kategori kaydedilemedi.");
+      if (!data) return fail("Kategori bulunamadı.", "not_found");
+      await revalidate();
+      return ok(null, "Kategori güncellendi.");
+    }
+    const taken = await takenKeys(supabase.from(table).select("key").limit(2000));
+    if (!taken) return fail("Kategori kaydedilemedi. Tekrar dene.");
+    for (const k of RESERVED_KEYS) taken.add(k);
+    const { error } = await supabase.from(table).insert({ ...row, key: newKey(v.label, taken, "snake", "kategori") });
+    if (error) return dbFail(error, "Kategori eklenemedi.");
+    await revalidate();
+    return ok(null, "Kategori eklendi.");
+  });
+}
+
+/** Delete an unused category. vocabulary_guard refuses a used one (with the count) and the built-in RSS keys / "diger". */
+async function deleteSimpleCategory(kind: SimpleCategoryKind, input: { id: string }): Promise<ActionResult<null>> {
+  return withAdmin(async ({ supabase }) => {
+    const id = zId.safeParse(input.id);
+    if (!id.success) return fail("Geçersiz kategori.");
+    const { table, revalidate } = SIMPLE_CATEGORIES[kind];
+    const { data, error } = await supabase.from(table).delete().eq("id", id.data).select("id").maybeSingle();
+    if (error) return dbFail(error, "Kategori silinemedi.");
+    if (!data) return fail("Kategori bulunamadı.", "not_found");
+    await revalidate();
+    return ok(null, "Kategori silindi.");
+  });
+}
+
+export async function saveNewsCategoryAction(input: z.input<typeof simpleCategorySchema>): Promise<ActionResult<null>> {
+  return saveSimpleCategory("news", input);
+}
+
+export async function deleteNewsCategoryAction(input: { id: string }): Promise<ActionResult<null>> {
+  return deleteSimpleCategory("news", input);
+}
+
+export async function savePlaceCategoryAction(input: z.input<typeof simpleCategorySchema>): Promise<ActionResult<null>> {
+  return saveSimpleCategory("place", input);
+}
+
+export async function deletePlaceCategoryAction(input: { id: string }): Promise<ActionResult<null>> {
+  return deleteSimpleCategory("place", input);
 }

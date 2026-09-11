@@ -21,6 +21,8 @@ export type SettingsValues = {
   listingDailyCap: number;
   listingActiveCap: number;
   maxProvidersDefault: number;
+  /** app_settings.request_redispatch_hours (1-72). */
+  requestRedispatchHours: number;
   analyticsRetentionDays: number;
   auditRetentionDays: number;
   /** app_settings.duty_data_mode. */
@@ -132,6 +134,13 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
           help="Kendi kabul limiti olmayan hizmet kategorilerinde geçerlidir; limiti girilmiş kategoriler kendi değerini kullanır. Yeni talepler için uygulanır."
         >
           <Input id="st-prov" type="number" min={1} max={10} value={v.maxProvidersDefault} onChange={(e) => set("maxProvidersDefault", Number(e.target.value))} />
+        </Row>
+        <Row
+          id="st-redispatch"
+          label="Yanıtsız talebi yeniden gönderme (saat)"
+          help="Hiçbir firmanın kabul etmediği açık talep, son gönderimden bu kadar saat sonra başka firmalara da gönderilir. Gece 22:00-08:00 arası gönderilmez, sabahı bekler."
+        >
+          <Input id="st-redispatch" type="number" min={1} max={72} value={v.requestRedispatchHours} onChange={(e) => set("requestRedispatchHours", Number(e.target.value))} />
         </Row>
       </Section>
 

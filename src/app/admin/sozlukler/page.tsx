@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ExternalLink, Pencil, Plus, TriangleAlert } from "lucide-react";
 import { publicUrl } from "@/config/app-mode";
 import { requireAdmin } from "@/lib/auth/server";
+import type { Json } from "@/lib/database.types";
 import { createClient, type ServerSupabase } from "@/lib/supabase/server";
 import { AdminPageHeader } from "@/components/admin/admin-page";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -10,24 +11,32 @@ import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/core/format";
 import { routes } from "@/core/routes";
 import { BUSINESS_VERTICALS, DEFAULT_EVENT_CATEGORY, LISTABLE_VERTICALS, VERTICAL_INFO, parseVertical, subcategoryMatcher, type Vertical } from "@/features/business/lib/verticals";
+import { NEWS_CATEGORY_ORDER } from "@/features/content/news/parse";
 import { AdminCard, EmptyCard, FilterTabs } from "@/features/admin/components/admin-ui";
 import {
   AmenityEditor,
-  EventCategoryEditor,
+  CategoryEditor,
   SubcategoryEditor,
   VocabIconView,
   type AmenityScope,
   type AmenityValue,
-  type EventCategoryValue,
+  type CategoryKind,
+  type CategoryValue,
   type SubcategoryValue,
 } from "@/features/admin/components/vocabulary-editor";
 import { oneOf } from "@/features/admin/lib/params";
 
 export const metadata: Metadata = { title: "Kategori sözlükleri" };
 
-const TABS = ["chipler", "olanaklar", "etkinlik"] as const;
+const TABS = ["chipler", "olanaklar", "etkinlik", "haber", "yer"] as const;
 type Tab = (typeof TABS)[number];
-const TAB_LABELS: Record<Tab, string> = { chipler: "Keşfet chipleri", olanaklar: "Olanaklar", etkinlik: "Etkinlik kategorileri" };
+const TAB_LABELS: Record<Tab, string> = {
+  chipler: "Keşfet chipleri",
+  olanaklar: "Olanaklar",
+  etkinlik: "Etkinlik kategorileri",
+  haber: "Haber kategorileri",
+  yer: "Yer kategorileri",
+};
 const SCOPES = ["isletme", "oda"] as const;
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -46,7 +55,7 @@ const editButton = (label: string) => (
   </Button>
 );
 
-/** Kategori sözlükleri: keşfet chipleri, işletme olanakları, oda özellikleri ve etkinlik kategorileri. */
+/** Kategori sözlükleri: keşfet chipleri, işletme olanakları, oda özellikleri; etkinlik, haber ve yer kategorileri. */
 export default async function AdminVocabulariesPage({ searchParams }: Props) {
   await requireAdmin();
   const sp = await searchParams;
@@ -57,7 +66,7 @@ export default async function AdminVocabulariesPage({ searchParams }: Props) {
     <>
       <AdminPageHeader
         title="Kategori sözlükleri"
-        description="Keşfet listelerindeki alt kategori chiplerini, işletme ve oda olanaklarını ve etkinlik kategorilerini düzenle. Değişiklik uygulamada birkaç saniyede görünür; yeni sürüm gerekmez."
+        description="Keşfet listelerindeki alt kategori chiplerini, işletme ve oda olanaklarını; etkinlik, haber ve gezilecek yer kategorilerini düzenle. Değişiklik uygulamada birkaç saniyede görünür; yeni sürüm gerekmez."
       />
       <FilterTabs ariaLabel="Sözlük" items={TABS.map((t) => ({ label: TAB_LABELS[t], active: t === tab, href: routes.admin.vocabularies({ sekme: t === "chipler" ? undefined : t }) }))} />
       <div className="mt-5 grid gap-4">
@@ -65,6 +74,10 @@ export default async function AdminVocabulariesPage({ searchParams }: Props) {
           <ChipsSection supabase={supabase} vertical={oneOf<Vertical>(sp.tur, LISTABLE_VERTICALS, "yemek")} />
         ) : tab === "olanaklar" ? (
           <AmenitiesSection supabase={supabase} scope={oneOf(sp.kapsam, SCOPES, "isletme") === "oda" ? "room" : "business"} />
+        ) : tab === "haber" ? (
+          <NewsCategoriesSection supabase={supabase} />
+        ) : tab === "yer" ? (
+          <PlaceCategoriesSection supabase={supabase} />
         ) : (
           <EventCategoriesSection supabase={supabase} />
         )}
@@ -238,22 +251,42 @@ async function AmenitiesSection({ supabase, scope }: { supabase: ServerSupabase;
   );
 }
 
-async function EventCategoriesSection({ supabase }: { supabase: ServerSupabase }) {
-  const [list, events] = await Promise.all([
-    supabase.from("event_categories").select("id,key,label,icon,sort,active").order("sort").order("label"),
-    supabase.from("events").select("category").limit(10000),
-  ]);
-  if (list.error) return <LoadError />;
+/** How many times each key is used (null keys are skipped). */
+function countKeys(keys: Iterable<string | null>): Map<string, number> {
   const used = new Map<string, number>();
-  for (const e of events.data ?? []) used.set(e.category, (used.get(e.category) ?? 0) + 1);
-  const rows: EventCategoryValue[] = (list.data ?? []).map((r) => ({ id: r.id, key: r.key, label: r.label, icon: r.icon, sort: r.sort, active: r.active }));
+  for (const k of keys) if (k) used.set(k, (used.get(k) ?? 0) + 1);
+  return used;
+}
 
+const toCategoryRows = (data: readonly CategoryValue[] | null): CategoryValue[] =>
+  (data ?? []).map((r) => ({ id: r.id, key: r.key, label: r.label, icon: r.icon, sort: r.sort, active: r.active }));
+
+/** Event / news / place category list: icon, label, badges, order and usage, each row with its editor. */
+function CategoryCard({
+  kind,
+  title,
+  description,
+  rows,
+  used,
+  noun,
+  fixed,
+}: {
+  kind: CategoryKind;
+  title: string;
+  description: string;
+  rows: CategoryValue[];
+  used: Map<string, number>;
+  noun: string;
+  /** Keys the database never deletes, shown with `badge`. */
+  fixed: { keys: readonly string[]; badge: string };
+}) {
   return (
     <AdminCard
-      title="Etkinlik kategorileri"
-      description="Etkinlik eklerken seçilir; etkinlik kartında ve Etkinlikler sayfasındaki filtrede görünür. Kullanılan kategori silinmez, pasife alınır."
+      title={title}
+      description={description}
       actions={
-        <EventCategoryEditor
+        <CategoryEditor
+          kind={kind}
           trigger={
             <Button size="sm">
               <Plus /> Kategori ekle
@@ -262,26 +295,93 @@ async function EventCategoriesSection({ supabase }: { supabase: ServerSupabase }
         />
       }
     >
-      <ul className="divide-y">
-        {rows.map((c) => (
-          <li key={c.id} className="flex items-start gap-3 py-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted">
-              <VocabIconView name={c.icon} className="size-4" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="flex flex-wrap items-center gap-1.5">
-                <span className="font-semibold">{c.label}</span>
-                {c.key === DEFAULT_EVENT_CATEGORY ? <Badge variant="outline">Varsayılan</Badge> : null}
-                {c.active ? null : <Badge variant="secondary">Pasif</Badge>}
-              </span>
-              <span className="block text-xs text-muted-foreground">
-                sıra {c.sort} · {formatNumber(used.get(c.key) ?? 0)} etkinlik
-              </span>
-            </span>
-            <EventCategoryEditor item={c} trigger={editButton(c.label)} />
-          </li>
-        ))}
-      </ul>
+      {rows.length ? (
+        <ul className="divide-y">
+          {rows.map((c) => {
+            const locked = fixed.keys.includes(c.key);
+            return (
+              <li key={c.id} className="flex items-start gap-3 py-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted">
+                  <VocabIconView name={c.icon} className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-semibold">{c.label}</span>
+                    {locked ? <Badge variant="outline">{fixed.badge}</Badge> : null}
+                    {c.active ? null : <Badge variant="secondary">Pasif</Badge>}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    sıra {c.sort} · {formatNumber(used.get(c.key) ?? 0)} {noun}
+                  </span>
+                </span>
+                <CategoryEditor kind={kind} item={c} deletable={!locked} trigger={editButton(c.label)} />
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">Henüz kayıt yok.</p>
+      )}
     </AdminCard>
+  );
+}
+
+async function EventCategoriesSection({ supabase }: { supabase: ServerSupabase }) {
+  const [list, events] = await Promise.all([
+    supabase.from("event_categories").select("id,key,label,icon,sort,active").order("sort").order("label"),
+    supabase.from("events").select("category").limit(10000),
+  ]);
+  if (list.error) return <LoadError />;
+  return (
+    <CategoryCard
+      kind="event"
+      title="Etkinlik kategorileri"
+      description="Etkinlik eklerken seçilir; etkinlik kartında ve Etkinlikler sayfasındaki filtrede görünür. Kullanılan kategori silinmez, pasife alınır."
+      rows={toCategoryRows(list.data)}
+      used={countKeys((events.data ?? []).map((e) => e.category))}
+      noun="etkinlik"
+      fixed={{ keys: [DEFAULT_EVENT_CATEGORY], badge: "Varsayılan" }}
+    />
+  );
+}
+
+async function NewsCategoriesSection({ supabase }: { supabase: ServerSupabase }) {
+  const [list, articles] = await Promise.all([
+    supabase.from("news_categories").select("id,key,label,icon,sort,active").order("sort").order("label"),
+    supabase.from("news_articles").select("category").limit(10000),
+  ]);
+  if (list.error) return <LoadError />;
+  return (
+    <CategoryCard
+      kind="news"
+      title="Haber kategorileri"
+      description="Haber eklerken seçilir; haber kartlarında ve Haberler sayfasındaki filtrede görünür. Yerleşik kategoriler kaynak haberlerini (RSS) de etiketler; silinmez, pasife alınabilir."
+      rows={toCategoryRows(list.data)}
+      used={countKeys((articles.data ?? []).map((a) => a.category))}
+      noun="haber"
+      fixed={{ keys: NEWS_CATEGORY_ORDER, badge: "Yerleşik" }}
+    />
+  );
+}
+
+/** details.category of a place row, when it is set. */
+const detailsCategory = (d: Json) => (d && typeof d === "object" && !Array.isArray(d) && typeof d.category === "string" ? d.category : null);
+
+async function PlaceCategoriesSection({ supabase }: { supabase: ServerSupabase }) {
+  const [list, places] = await Promise.all([
+    supabase.from("place_categories").select("id,key,label,icon,sort,active").order("sort").order("label"),
+    supabase.from("poi").select("details").eq("kind", "place").limit(5000),
+  ]);
+  if (list.error) return <LoadError />;
+  return (
+    <CategoryCard
+      kind="place"
+      title="Yer kategorileri"
+      description="Gezilecek yer eklerken seçilir; yer kartlarında ve Gezilecek Yerler sayfasındaki filtrede görünür. Kullanılan kategori silinmez, pasife alınır; Diğer, bilinmeyen kategorilerin yerine geçer."
+      rows={toCategoryRows(list.data)}
+      used={countKeys((places.data ?? []).map((p) => detailsCategory(p.details)))}
+      noun="yer"
+      fixed={{ keys: ["diger"], badge: "Varsayılan" }}
+    />
   );
 }

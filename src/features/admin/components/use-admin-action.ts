@@ -30,6 +30,8 @@ export function useAdminAction() {
             const res = await action();
             if (res.ok) {
               if (opts.success !== false) toast.success(opts.success ?? res.message ?? "Kaydedildi");
+              // Saved, but e.g. the public app could not be refreshed: always shown, also with success: false.
+              if (res.warning) toast.warning(res.warning, { duration: 8000 });
               opts.onSuccess?.(res.data);
               if (opts.refresh) router.refresh();
             } else {

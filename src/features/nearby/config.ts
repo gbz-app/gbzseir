@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { routes, withQuery } from "@/core/routes";
+import { categoryIcon, gradientFor, type CategoryDef } from "@/features/business/lib/category-visuals";
 import type { MarkerKind, NearbyFilter, PlaceCategory, PoiKind } from "./types";
 
 /** Kocaeli Eczacı Odası: official source for real duty lists. */
@@ -138,13 +139,15 @@ export function markerKindForPoi(kind: PoiKind): MarkerKind {
 }
 
 export type PlaceCategoryMeta = {
-  value: PlaceCategory;
+  /** A place_categories key (admin-managed, 2026091363). */
+  value: string;
   label: string;
   icon: LucideIcon;
   /** Tailwind gradient classes for photo placeholders. */
   gradient: string;
 };
 
+/** Built-in categories (seed of public.place_categories); "diger" is the fallback and stays last. */
 export const PLACE_CATEGORIES: PlaceCategoryMeta[] = [
   { value: "tarihi", label: "Tarihi", icon: Castle, gradient: "from-amber-500 via-orange-500 to-rose-600" },
   { value: "park", label: "Park", icon: Trees, gradient: "from-lime-500 via-emerald-500 to-teal-600" },
@@ -154,8 +157,43 @@ export const PLACE_CATEGORIES: PlaceCategoryMeta[] = [
   { value: "diger", label: "Diğer", icon: Sparkles, gradient: "from-sky-500 via-blue-500 to-indigo-600" },
 ];
 
-export function placeCategoryMeta(c: PlaceCategory | string | null | undefined): PlaceCategoryMeta {
-  return PLACE_CATEGORIES.find((x) => x.value === c) ?? PLACE_CATEGORIES[PLACE_CATEGORIES.length - 1];
+const PLACE_ICON_NAMES: Record<PlaceCategory, string> = {
+  tarihi: "castle",
+  park: "trees",
+  doga: "mountain",
+  muze: "landmark",
+  avm: "shopping-bag",
+  diger: "sparkles",
+};
+
+/** A row of public.place_categories (getVocabularies().placeCategories) or its built-in fallback. */
+export type PlaceCategoryDef = CategoryDef;
+
+/** Seed / fallback of public.place_categories (same order, labels and icons as the migration). */
+export const PLACE_CATEGORY_DEFS: readonly PlaceCategoryDef[] = PLACE_CATEGORIES.map((c) => ({
+  key: c.value,
+  label: c.label,
+  icon: PLACE_ICON_NAMES[c.value as PlaceCategory] ?? null,
+  active: true,
+}));
+
+const PLACE_FALLBACK = PLACE_CATEGORIES[PLACE_CATEGORIES.length - 1];
+const PLACE_GRADIENTS = PLACE_CATEGORIES.map((c) => c.gradient);
+
+/**
+ * Label, icon and gradient of a place category. With `categories` (getVocabularies().placeCategories) the admin's label
+ * and icon win and admin-added keys resolve too; keys nobody knows show as "Diğer".
+ */
+export function placeCategoryMeta(c: PlaceCategory | string | null | undefined, categories: readonly PlaceCategoryDef[] = PLACE_CATEGORY_DEFS): PlaceCategoryMeta {
+  const key = c && (categories.some((x) => x.key === c) || PLACE_CATEGORIES.some((x) => x.value === c)) ? c : PLACE_FALLBACK.value;
+  const builtin = PLACE_CATEGORIES.find((x) => x.value === key);
+  const def = categories.find((x) => x.key === key);
+  return {
+    value: key,
+    label: def?.label ?? builtin?.label ?? key,
+    icon: categoryIcon(def?.icon, builtin?.icon ?? PLACE_FALLBACK.icon),
+    gradient: builtin?.gradient ?? gradientFor(key, PLACE_GRADIENTS),
+  };
 }
 
 /** Canonical detail URL of a poi (slug based; the pages also accept the uuid). */

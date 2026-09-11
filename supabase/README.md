@@ -1,7 +1,9 @@
 # Gebzem veritabanı (Supabase)
 
-Project ref `fboythglcjofakbskstg` (Tokyo). All schema lives in `supabase/migrations/` and is applied through the
+Project ref `fboythglcjofakbskstg` in ap-northeast-1 (Tokyo); the Vercel functions run in hnd1 (Tokyo), so keep
+`vercel.json` regions as they are. All schema lives in `supabase/migrations/` and is applied through the
 Supabase Management API SQL endpoint (no local Docker / CLI needed). The scripts use Node 24's built-in `fetch`.
+The API contract for the app is in `docs/contracts/db-contract.md`.
 
 ## Prerequisites
 
@@ -26,13 +28,20 @@ PowerShell, from the repo root:
 | `20260910000006_cron.sql` | pg_cron: `expire_listings()` daily 00:05 UTC, `roll_demo_duty()` daily 05:31 UTC (08:31 TR) |
 | `20260910000007_trigger_enforcement_fix.sql` | protection triggers become SECURITY INVOKER wrappers around SECURITY DEFINER implementations, so direct API writes (role `authenticated`/`anon`) are enforced while RPCs/cron/seeds (role `postgres`) are trusted |
 | `20260910000008_search_path_hygiene.sql` | pins `search_path` on the remaining helper/trigger functions (advisor lint) |
+| `2026091100`…`2026091299` | feature modules (services push, business panel, admin core, support, analytics, news articles, ...); each file starts with a comment describing it |
+| `2026091300`…`2026091304` | place corrections via `submit_contact_message` ('bilgi_duzeltme', guest throttle), `submit_report` + `report_notes`, `marketing_consent_at`, account delete privacy + audit retention, security pack (admin RPCs closed to anon, `apply_business` switch, listing caps, slim `public_profiles`) |
+| `2026091305`…`2026091315` | analytics throttle (daily-salted IP hash), atomic replace RPCs, ban enforcement, TR-only SMS hook, private request photos, listing purge, versioned `legal_texts` |
+| `2026091320`…`2026091335` | duty mode gate, demo cleanup v2, admin audit, `max_providers` fallback, service category admin, finance receipts, POI admin (`hidden`, `locked`) |
+| `2026091340`…`2026091345` | request redispatch + `stalled_at`, push retry, global search events/news, news cron, duty import, listing attribute filters (`search_listings` `p_attrs`) |
+| `2026091350`…`2026091360` | panel page views, vocabularies (`vertical_subcategories`, `amenities`, `event_categories`), POI re-sync (`last_seen_at`, `data_sync_runs`), admin site without the service role key |
 
 Remaining Supabase advisor findings are intentional: `public_profiles` and `my_leads` are owner-privileged views
 (they expose only safe columns / only the caller's own leads; invoker views would be emptied by the base tables' RLS),
 the SECURITY DEFINER RPCs are the API surface, `demo_otp` deliberately has no policies, and leaked-password protection
 does not apply (phone OTP only).
 
-Every file is re-runnable (`if not exists`, `create or replace`, upserts, policies dropped and re-created).
+Every file is re-runnable (`if not exists`, `create or replace`, upserts, policies dropped and re-created). When a
+migration redefines a function, it starts from the latest live body (`select pg_get_functiondef('schema.fn'::regproc)`).
 
 ```powershell
 node --env-file=.env.local scripts/db/sql.mjs --all                                  # apply all, in order
@@ -42,6 +51,25 @@ node --env-file=.env.local scripts/db/gen-types.mjs                             
 ```
 
 Regenerate the types after every schema change.
+
+## Scheduled jobs (pg_cron, UTC)
+
+The pg_net jobs POST to the public app (`https://gbzsehir.vercel.app`) with the Vault secret
+`gebzem_push_webhook_secret`, which must equal `CRON_SECRET` on Vercel (see `2026091130_services_push_and_leads.sql`
+for creating / rotating it). Without the secret they are no-ops.
+
+| Job | Schedule | Does |
+|---|---|---|
+| `gebzem-expire-listings` | 00:05 | `expire_listings()` |
+| `gebzem-roll-demo-duty` | 05:31 | `roll_demo_duty()`, only while `duty_data_mode = 'demo'` |
+| `gebzem-analytics-retention` / `gebzem-audit-retention` | 03:17 / 03:23 | purge by `analytics_retention_days` / `audit_retention_days` |
+| `gebzem-purge-listings` | 03:41 | `/api/cron/purge-listings`: listings deleted 30+ days ago and their photos |
+| `gebzem-push-retry` | every 10 min | `/api/notifications/push` when an unsent notification can be retried |
+| `gebzem-request-redispatch` | :13 and :43 | SQL: 14-day expiry, next waves outside 22:00-08:00 Istanbul |
+| `gebzem-refresh-news` | every 20 min | `/api/cron/news` |
+| `gebzem-duty-import` / `-recheck` | 05:35 / 06:10, 09:10, 15:10 | `/api/cron/duty` |
+| `gebzem-duty-stale-check` | 06:15 | admin notice when `duty_data_mode = 'live'` and no real row is on duty |
+| `gebzem-poi-sync` | 01:23 on the 2nd | `/api/cron/poi-sync` (KBB / OSM re-sync) |
 
 ## Seed scripts (idempotent, run in this order)
 
@@ -56,14 +84,16 @@ node --env-file=.env.local scripts/db/sql.mjs -e "select public.roll_demo_duty()
 Data sources and licences (the /kaynaklar page should credit them):
 - Kocaeli Büyükşehir Belediyesi Açık Veri (CC BY 4.0): Eczaneler, Camiler, Tarihi Yapılar ve Müzeler (`ilce_id` 1338 = Gebze;
   pharmacies/mosques are EPSG:5254 and are transformed in PostGIS).
-- © OpenStreetMap katkıcıları (ODbL): neighbourhood boundaries, bus stops + route refs, parks, marina/ferry.
+- © OpenStreetMap katkıcıları (ODbL): neighbourhood boundaries, bus stops + route refs, parks, marina/ferry, taxi, ATM.
 - Place descriptions (`poi.details.description`, `curated: true`) are our own text.
-- Nöbetçi eczane data is **demo** (`pharmacy_duty.source = 'demo'`, note "Örnek veri - gerçek nöbet listesi değildir").
+- Nöbetçi eczane: `app_settings.duty_data_mode` decides what is shown: `demo` (random sample list, `source = 'demo'`,
+  labelled "Örnek veri"), `off` (no list, the app links to the Eczacı Odası), `live` (manual list from /admin/nobet and
+  importer rows; demo rows hidden and the demo roll stops).
 
 ## Demo accounts
 
-All demo rows carry `is_demo = true` (profiles, businesses, listings, reviews, announcements). Login is phone + SMS OTP;
-in demo mode the OTP of normal/demo accounts is shown by the login screen (`rpc get_demo_otp`).
+All demo rows carry `is_demo = true` (profiles, businesses, listings, reviews, announcements, events, finance, news
+articles). Login is phone + SMS OTP; in demo mode the OTP of normal/demo accounts is shown by the login screen (`rpc get_demo_otp`).
 
 | Phone | Role |
 |---|---|
@@ -81,25 +111,39 @@ in demo mode the OTP of normal/demo accounts is shown by the login screen (`rpc 
 `Ev Temizliği` has `auto_dispatch = true` (for testing); every other category starts in concierge mode
 (admin runs `dispatch_request`, "Eşleştir ve gönder").
 
-Remove all demo data before launch: `node --env-file=.env.local scripts/db/remove-demo.mjs --yes`.
+Remove all demo data before launch: Admin > Veri (`admin_clear_demo_data`, with the `demo_admin` scope once a real
+admin exists; it also removes the `media/demo/` photos and stops the demo duty roll), or
+`node --env-file=.env.local scripts/db/remove-demo.mjs --yes`.
 
 ## Auth configuration
 
 `scripts/db/auth-setup.mjs` patches the auth config: phone provider on, email signups off, 6-digit OTP valid for 300 s,
 `site_url` = https://gbzsehir.vercel.app, redirect allow list (localhost, production, Vercel previews), the admin test
 OTP (valid until 2027-06-30), and the **Send SMS hook as a Postgres function**:
-`pg-functions://postgres/public/send_sms_hook`. The hook stores the code in `public.demo_otp` (no RLS access; codes older than 1 day are deleted)
+`pg-functions://postgres/public/send_sms_hook`. The hook accepts only Turkish mobile numbers (+905XXXXXXXXX, login and
+phone change) and stores the code in `public.demo_otp` (no RLS access; codes older than 1 day are deleted)
 instead of sending an SMS. Inspect the config with `node --env-file=.env.local scripts/db/auth-config.mjs get sms`.
 
 ### Switching off demo OTP (when a real SMS provider such as Netgsm or İleti Merkezi is added)
+
+`app_settings.otp_demo_mode` is the ONE switch: `get_demo_otp` and the "Prototip modu" banner (read by the pages
+through `getAppSettings()`, 60 s cache) both follow it. There is no env var for it any more (`NEXT_PUBLIC_OTP_DEMO_MODE`
+was removed).
 
 1. Deploy an HTTP Send-SMS hook (e.g. a Next.js route `/api/hooks/send-sms` verifying the `standardwebhooks`
    signature with `SEND_SMS_HOOK_SECRET`) that calls the provider's OTP API in under 2 s.
 2. Point Auth at it: `hook_send_sms_uri = https://<domain>/api/hooks/send-sms`, `hook_send_sms_secrets = v1,whsec_...`
    (PATCH `/v1/projects/{ref}/config/auth`), or disable the hook and configure a built-in provider.
-3. `update public.app_settings set value = 'false' where key = 'otp_demo_mode';` so `get_demo_otp` returns null,
-   and set `NEXT_PUBLIC_OTP_DEMO_MODE=false` / `OTP_DEMO_MODE=false` in Vercel so the "Prototip modu" banner disappears.
+3. `update public.app_settings set value = 'false' where key = 'otp_demo_mode';`
 4. Optionally `truncate public.demo_otp;` and remove the admin test OTP (`sms_test_otp = ""`).
+
+## Account delete
+
+`/profil/hesap-sil`: the user re-verifies the SMS code, then the server action `deleteMyAccount` calls
+`delete_my_account()` with the user's session (profile, listings, favorites, notifications, events and the other
+owned rows go; audit details keep only masked phones and lose names / from-to values), removes every file under
+`<uid>/` in `media` and `private-docs` with the service role, and expires the public pages. Audit rows older than
+`audit_retention_days` are purged nightly.
 
 ## Verification
 

@@ -14,6 +14,9 @@ type Row = {
   description: string | null;
   counterparty: string | null;
   payment_method: string;
+  /** Uploaded receipt / invoice in private-docs. */
+  document_path: string | null;
+  /** Legacy free-text link. */
   document_url: string | null;
   finance_categories: { name: string } | null;
   businesses: { name: string } | null;
@@ -38,14 +41,14 @@ export async function GET(req: Request) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("finance_entries")
-    .select("occurred_on,kind,amount,vat_rate,description,counterparty,payment_method,document_url,finance_categories(name),businesses(name)")
+    .select("occurred_on,kind,amount,vat_rate,description,counterparty,payment_method,document_path,document_url,finance_categories(name),businesses(name)")
     .gte("occurred_on", from)
     .lte("occurred_on", to)
     .order("occurred_on")
     .limit(20000);
   if (error) return new NextResponse("Veriler alınamadı", { status: 500 });
 
-  const header = ["Tarih", "Tür", "Kategori", "Açıklama", "Karşı taraf", "İşletme", "Ödeme", "Tutar (KDV dahil)", "KDV %", "KDV tutarı", "KDV hariç", "Belge"];
+  const header = ["Tarih", "Tür", "Kategori", "Açıklama", "Karşı taraf", "İşletme", "Ödeme", "Tutar (KDV dahil)", "KDV %", "KDV tutarı", "KDV hariç", "Fiş/fatura", "Belge bağlantısı"];
   const lines = ((data ?? []) as unknown as Row[]).map((r) => {
     const amount = Number(r.amount);
     const rate = Number(r.vat_rate);
@@ -63,6 +66,7 @@ export async function GET(req: Request) {
       num(rate),
       num(sign * vat),
       num(sign * (amount - vat)),
+      r.document_path ? "Var" : "Yok",
       r.document_url ?? "",
     ]
       .map(cell)

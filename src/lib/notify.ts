@@ -1,10 +1,13 @@
 import "server-only";
-import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TABLES } from "@/lib/db-contract";
+import { istanbulParts } from "@/core/time";
 
 /**
- * Server-side notifications: in-app row (notifications table) + Web Push to every subscription of the user.
+ * Server-side notifications (public app only: needs the service role). Inserts one unsent notifications row and leaves
+ * delivery to the single push path every notification uses: the notifications_push_webhook trigger calls
+ * /api/notifications/push, which claims the row (claim_push_notifications) and sends the Web Push; the pg_cron job
+ * gebzem-push-retry retries failed or missed sends (max 3 attempts within 6 hours, 2026091341_push_retry.sql).
  * Push payloads contain ONLY title/body/link (push services are outside Turkey: no phone numbers, addresses,
  * coordinates or names in title/body beyond what the user must see).
  */
@@ -21,77 +24,44 @@ export type NotifyInput = {
   body: string;
   /** Internal path built with core/routes (opened on click). */
   link?: string | null;
+  /**
+   * true: between 22:00 and 08:00 Istanbul the notice is in-app only (push_sent_at set, so the sender skips it), the
+   * same rule as private.is_quiet_hours() for the DB's night notices. Default: pushed at any hour.
+   */
+  quietAtNight?: boolean;
 };
 
-export type NotifyResult = { notificationId: string | null; pushed: number; removed: number; failed: number };
+export type NotifyResult = { notificationId: string | null };
 
-let vapidReady: boolean | null = null;
-function ensureVapid(): boolean {
-  if (vapidReady !== null) return vapidReady;
-  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const priv = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT || "mailto:info@aksedigital.com";
-  if (!pub || !priv) {
-    vapidReady = false;
-    return false;
-  }
-  webpush.setVapidDetails(subject, pub, priv);
-  vapidReady = true;
-  return true;
+/** 22:00-08:00 Europe/Istanbul (same as private.is_quiet_hours()). */
+export function isQuietHours(at: Date = new Date()): boolean {
+  const hour = istanbulParts(at).hour;
+  return hour < 8 || hour >= 22;
 }
 
-type SubRow = { id?: string; endpoint: string; p256dh: string; auth: string };
-
-/** Send a push to all subscriptions of a user; removes gone (404/410) subscriptions. */
-export async function sendPushToUser(userId: string, payload: { title: string; body: string; link?: string | null; tag?: string }) {
-  const result = { pushed: 0, removed: 0, failed: 0 };
-  if (!ensureVapid()) return result;
-  const admin = createAdminClient();
-  const { data, error } = await admin.from(TABLES.pushSubscriptions).select("id, endpoint, p256dh, auth").eq("user_id", userId);
-  if (error || !data?.length) return result;
-  const body = JSON.stringify({ title: payload.title, body: payload.body, link: payload.link ?? "/", tag: payload.tag });
-  await Promise.all(
-    (data as SubRow[]).map(async (s) => {
-      try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body, {
-          TTL: 60 * 60 * 24,
-          urgency: "normal",
-        });
-        result.pushed++;
-      } catch (e) {
-        const status = (e as { statusCode?: number }).statusCode;
-        if (status === 404 || status === 410) {
-          await admin.from(TABLES.pushSubscriptions).delete().eq("endpoint", s.endpoint);
-          result.removed++;
-        } else {
-          result.failed++;
-        }
-      }
-    }),
-  );
-  return result;
-}
-
-/** Create an in-app notification and push it to the user's devices. Never throws. */
+/** Create an in-app notification; the DB trigger pushes it to the user's devices. Never throws. */
 export async function notifyUser(userId: string, input: NotifyInput): Promise<NotifyResult> {
-  let notificationId: string | null = null;
   try {
-    const admin = createAdminClient();
-    const { data } = await admin
+    const { data, error } = await createAdminClient()
       .from(TABLES.notifications)
-      // push_sent_at is set because this function pushes itself below; otherwise the notifications_push_webhook
-      // trigger (-> /api/notifications/push) would send the same notification a second time.
-      .insert({ user_id: userId, type: input.type, title: input.title, body: input.body, link: input.link ?? null, push_sent_at: new Date().toISOString() })
+      .insert({
+        user_id: userId,
+        type: input.type,
+        title: input.title,
+        body: input.body,
+        link: input.link ?? null,
+        // null = the trigger / retry job delivers it; a timestamp = in-app only.
+        push_sent_at: input.quietAtNight && isQuietHours() ? new Date().toISOString() : null,
+      })
       .select("id")
       .single();
-    notificationId = (data as { id?: string } | null)?.id ?? null;
-  } catch {
-    /* keep going: push is best effort too */
-  }
-  try {
-    const push = await sendPushToUser(userId, { title: input.title, body: input.body, link: input.link, tag: input.type });
-    return { notificationId, ...push };
-  } catch {
-    return { notificationId, pushed: 0, removed: 0, failed: 1 };
+    if (error) {
+      console.error("[notify] insert failed", error.code, error.message);
+      return { notificationId: null };
+    }
+    return { notificationId: data?.id ?? null };
+  } catch (e) {
+    console.error("[notify] insert failed", e);
+    return { notificationId: null };
   }
 }

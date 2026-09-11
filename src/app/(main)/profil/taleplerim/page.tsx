@@ -23,6 +23,8 @@ type Row = {
   status: RequestStatus;
   accepted_count: number;
   max_providers: number;
+  /** Set when a next wave found no new firm (same "Firma aranıyor" state as /talep/[code]). */
+  stalled_at: string | null;
   created_at: string;
   categoryName: string;
   categoryIcon: string | null;
@@ -34,7 +36,7 @@ function one<T>(v: T | T[] | null | undefined): T | null {
 }
 
 function RequestCard({ row }: { row: Row }) {
-  const status = requestStatusMeta(row.status, row.accepted_count);
+  const status = requestStatusMeta(row.status, row.accepted_count, !!row.stalled_at);
   const open = isRequestOpen(row.status);
   return (
     <Link
@@ -67,7 +69,7 @@ export default async function MyRequestsPage() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("service_requests")
-    .select("id,public_code,status,accepted_count,max_providers,created_at,service_categories(name,icon),neighbourhoods(name)")
+    .select("id,public_code,status,accepted_count,max_providers,stalled_at,created_at,service_categories(name,icon),neighbourhoods(name)")
     .eq("customer_id", user.id)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -82,6 +84,7 @@ export default async function MyRequestsPage() {
       status: r.status as RequestStatus,
       accepted_count: r.accepted_count,
       max_providers: r.max_providers,
+      stalled_at: r.stalled_at,
       created_at: r.created_at,
       categoryName: cat?.name ?? "Hizmet talebi",
       categoryIcon: cat?.icon ?? null,

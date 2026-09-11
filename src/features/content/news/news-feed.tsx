@@ -4,7 +4,9 @@ import * as React from "react";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipFilter, type ChipOption } from "@/components/shared/chip-filter";
-import { NEWS_CATEGORY_LABELS, NEWS_CATEGORY_ORDER, type NewsCategory, type NewsItem } from "./parse";
+import { orderByDefs } from "@/features/business/lib/category-visuals";
+import { NEWS_CATEGORIES, newsCategoryLabel, type NewsCategoryDef } from "../articles/meta";
+import type { NewsCategory, NewsItem } from "./parse";
 import { HeadlineCard, NewsRow } from "./news-ui";
 
 const PAGE_SIZE = 25;
@@ -17,8 +19,8 @@ function pickHeadline(items: NewsItem[]): NewsItem | undefined {
   return head.find((i) => i.local && i.summary) ?? head.find((i) => i.summary) ?? items[0];
 }
 
-/** I1 list: category chips, a big first card and the remaining headlines (paged on the client). */
-export function NewsFeed({ items }: { items: NewsItem[] }) {
+/** I1 list: category chips (admin order and labels), a big first card and the remaining headlines (paged on the client). */
+export function NewsFeed({ items, categories = NEWS_CATEGORIES }: { items: NewsItem[]; categories?: readonly NewsCategoryDef[] }) {
   const [filter, setFilter] = React.useState<Filter>("all");
   const [limit, setLimit] = React.useState(PAGE_SIZE);
 
@@ -27,9 +29,9 @@ export function NewsFeed({ items }: { items: NewsItem[] }) {
     for (const item of items) counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
     return [
       { value: "all", label: "Tümü", count: items.length },
-      ...NEWS_CATEGORY_ORDER.filter((c) => (counts.get(c) ?? 0) > 0).map((c) => ({ value: c, label: NEWS_CATEGORY_LABELS[c], count: counts.get(c) })),
+      ...orderByDefs(counts.keys(), categories).map((c) => ({ value: c, label: newsCategoryLabel(c, categories), count: counts.get(c) })),
     ];
-  }, [items]);
+  }, [items, categories]);
 
   const filtered = filter === "all" ? items : items.filter((i) => i.category === filter);
   const headline = pickHeadline(filtered);

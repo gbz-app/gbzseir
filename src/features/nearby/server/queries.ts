@@ -178,11 +178,3 @@ export async function getNearbyPois(opts: {
   if (error || !data) return [];
   return (data as PoiRow[]).filter((r) => r.id !== opts.excludeId).slice(0, limit);
 }
-
-/** Slugs for the sitemap. */
-export async function getPoiSlugs(kind: PoiKind): Promise<Array<{ slug: string; updated_at: string }>> {
-  const supabase = createPublicClient(3600, ["nearby", "poi"]);
-  const { data, error } = await supabase.from("poi").select("slug,updated_at").eq("kind", kind).limit(2000);
-  if (error) return [];
-  return data ?? [];
-}
