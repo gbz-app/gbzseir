@@ -1,4 +1,4 @@
-import { Home, MapPin, Tag, Wrench, UserRound, type LucideIcon } from "lucide-react";
+import { Bell, Compass, Home, Search, UserRound, type LucideIcon } from "lucide-react";
 import { routes } from "@/core/routes";
 
 export type MainTab = {
@@ -9,21 +9,17 @@ export type MainTab = {
   match: string[];
 };
 
+/** Bottom nav: Anasayfa, Keşfet (city map), Arama, Bildirim, Profil. The most specific match wins. */
 export const MAIN_TABS: MainTab[] = [
-  { href: routes.home(), label: "Ana Sayfa", icon: Home, match: ["/"] },
+  { href: routes.home(), label: "Anasayfa", icon: Home, match: ["/"] },
   {
     href: routes.nearby.root(),
-    label: "Yakınımda",
-    icon: MapPin,
+    label: "Keşfet",
+    icon: Compass,
     match: ["/yakinimda", "/nobetci-eczane", "/eczane", "/cami", "/durak", "/gezilecek-yerler"],
   },
-  { href: routes.listings.root(), label: "İlanlar", icon: Tag, match: ["/ilanlar", "/ilan", "/is-ilani", "/ilan-ver"] },
-  {
-    href: routes.services.root(),
-    label: "Hizmetler",
-    icon: Wrench,
-    match: ["/hizmetler", "/hizmet-talebi", "/talep", "/firmalar", "/firma"],
-  },
+  { href: routes.search(), label: "Arama", icon: Search, match: ["/ara"] },
+  { href: routes.profile.notifications(), label: "Bildirim", icon: Bell, match: ["/profil/bildirimler"] },
   { href: routes.profile.root(), label: "Profil", icon: UserRound, match: ["/profil", "/isletme"] },
 ];
 
