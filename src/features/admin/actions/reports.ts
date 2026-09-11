@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
+import { revalidatePublic } from "@/lib/revalidate-public";
 import { dbFail, withAdmin, type AdminContext } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { firstIssue, zId } from "../lib/zod";
@@ -72,9 +73,10 @@ export async function removeReportedContentAction(input: z.input<typeof removeSc
         const { data, error } = await supabase.from("listings").update({ status: "deleted" }).eq("id", targetId).select("id").maybeSingle();
         if (error) return dbFail(error);
         if (!data) return fail("İlan artık yok.", "not_found");
-        revalidatePath(routes.listings.classified(targetId));
-        revalidatePath(routes.listings.job(targetId));
-        revalidatePath(routes.listings.root());
+        await revalidatePublic({
+          tags: ["listings"],
+          paths: [routes.listings.classified(targetId), routes.listings.job(targetId), routes.listings.root()],
+        });
         message = "İlan kaldırıldı.";
         break;
       }
@@ -82,8 +84,16 @@ export async function removeReportedContentAction(input: z.input<typeof removeSc
         const { data, error } = await supabase.from("businesses").update({ status: "suspended" }).eq("id", targetId).select("slug").maybeSingle();
         if (error) return dbFail(error);
         if (!data) return fail("İşletme artık yok.", "not_found");
-        revalidatePath(routes.businesses.detail(data.slug));
-        revalidatePath(routes.businesses.root());
+        await revalidatePublic({
+          tags: ["businesses"],
+          paths: [
+            routes.businesses.detail(data.slug),
+            routes.businesses.menu(data.slug),
+            routes.businesses.root(),
+            { path: "/kesfet/[tur]", type: "page" },
+            routes.home(),
+          ],
+        });
         message = "İşletme askıya alındı.";
         break;
       }
@@ -92,6 +102,9 @@ export async function removeReportedContentAction(input: z.input<typeof removeSc
         if (error) return dbFail(error);
         if (!data) return fail("Yorum artık yok.", "not_found");
         await recomputeRating(supabase, data.business_id);
+        // The public firm page shows the review list and the rating.
+        const { data: biz } = await supabase.from("businesses").select("slug").eq("id", data.business_id).maybeSingle();
+        if (biz?.slug) await revalidatePublic({ tags: ["businesses"], paths: [routes.businesses.detail(biz.slug)] });
         message = "Yorum silindi; puan yeniden hesaplandı.";
         break;
       }

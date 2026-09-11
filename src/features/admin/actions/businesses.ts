@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
+import { revalidatePublic } from "@/lib/revalidate-public";
 import { dbFail, withAdmin, type AdminContext } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { firstIssue, zId } from "../lib/zod";
@@ -10,9 +11,17 @@ import { firstIssue, zId } from "../lib/zod";
 async function revalidateBusiness(supabase: AdminContext["supabase"], id: string) {
   revalidatePath(routes.admin.businesses());
   revalidatePath(routes.admin.root());
-  revalidatePath(routes.businesses.root());
   const { data } = await supabase.from("businesses").select("slug").eq("id", id).maybeSingle();
-  if (data?.slug) revalidatePath(routes.businesses.detail(data.slug));
+  // Public app is a separate deployment: ask it to expire its business pages (never throws).
+  await revalidatePublic({
+    tags: ["businesses"],
+    paths: [
+      routes.businesses.root(),
+      ...(data?.slug ? [routes.businesses.detail(data.slug), routes.businesses.menu(data.slug)] : []),
+      { path: "/kesfet/[tur]", type: "page" },
+      routes.home(),
+    ],
+  });
 }
 
 const reviewSchema = z.object({

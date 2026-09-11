@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
+import { revalidatePublic } from "@/lib/revalidate-public";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { firstIssue, zId } from "../lib/zod";
@@ -32,12 +33,12 @@ const schema = z
   })
   .refine((c) => new Set(c.attributes.map((a) => a.key)).size === c.attributes.length, { message: "Alan anahtarları birbirinden farklı olmalı." });
 
-function revalidateCategories() {
+async function revalidateCategories() {
   revalidatePath(routes.admin.listingCategories());
-  revalidatePath(routes.listings.root());
-  revalidatePath(routes.listings.post());
-  revalidatePath(routes.listings.postClassified());
-  revalidatePath(routes.listings.postJob());
+  await revalidatePublic({
+    tags: ["listing-categories"],
+    paths: [routes.listings.root(), routes.listings.post(), routes.listings.postClassified(), routes.listings.postJob()],
+  });
 }
 
 /** İlan kategorisi ekle / güncelle (özellik ve filtre alanları dahil). */
@@ -71,7 +72,7 @@ export async function saveListingCategoryAction(input: z.input<typeof schema>): 
     };
     const { error } = v.id ? await supabase.from("listing_categories").update(row).eq("id", v.id) : await supabase.from("listing_categories").insert(row);
     if (error) return dbFail(error, "Kategori kaydedilemedi.");
-    revalidateCategories();
+    await revalidateCategories();
     return ok(null, v.id ? "Kategori güncellendi." : "Kategori eklendi.");
   });
 }
@@ -84,7 +85,7 @@ export async function deleteListingCategoryAction(input: { id: string }): Promis
     if (count) return fail(`Bu kategoride ${count} ilan var. Silmek yerine 'Yasaklı' yapabilir ya da ilanları taşıyabilirsin.`, "in_use");
     const { error } = await supabase.from("listing_categories").delete().eq("id", id.data);
     if (error) return dbFail(error, "Kategori silinemedi.");
-    revalidateCategories();
+    await revalidateCategories();
     return ok(null, "Kategori silindi.");
   });
 }

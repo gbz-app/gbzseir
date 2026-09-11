@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
+import { revalidatePublic } from "@/lib/revalidate-public";
 import { parseFlowSchema, type FlowStep } from "@/core/flow";
 import { dbFail, withAdmin, type AdminContext } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
@@ -12,16 +13,17 @@ import { cleanFlowSchema, validateFlowDraft } from "../lib/flow-draft";
 async function revalidateCategory(supabase: AdminContext["supabase"], id: string) {
   revalidatePath(routes.admin.serviceCategories());
   revalidatePath(routes.admin.serviceCategory(id));
-  revalidatePath(routes.services.root());
+  const paths: string[] = [routes.services.root()];
   const { data } = await supabase.from("service_categories").select("slug,parent_id").eq("id", id).maybeSingle();
   if (data?.slug) {
-    revalidatePath(routes.services.category(data.slug));
-    revalidatePath(routes.services.request(data.slug));
+    paths.push(routes.services.category(data.slug), routes.services.request(data.slug));
   }
   if (data?.parent_id) {
     const { data: parent } = await supabase.from("service_categories").select("slug").eq("id", data.parent_id).maybeSingle();
-    if (parent?.slug) revalidatePath(routes.services.category(parent.slug));
+    if (parent?.slug) paths.push(routes.services.category(parent.slug));
   }
+  // Public pages live on another deployment (own cache) when the admin runs as a separate site.
+  await revalidatePublic({ tags: ["services"], paths });
 }
 
 const patchSchema = z

@@ -3,16 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
+import { revalidatePublic } from "@/lib/revalidate-public";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { firstIssue, zId } from "../lib/zod";
 
-function revalidateListing(id: string) {
+async function revalidateListing(id: string) {
   revalidatePath(routes.admin.listings());
   revalidatePath(routes.admin.root());
-  revalidatePath(routes.listings.root());
-  revalidatePath(routes.listings.classified(id));
-  revalidatePath(routes.listings.job(id));
+  await revalidatePublic({
+    tags: ["listings"],
+    paths: [routes.listings.root(), routes.listings.classified(id), routes.listings.job(id)],
+  });
 }
 
 const reviewSchema = z.object({
@@ -36,7 +38,7 @@ export async function reviewListingAction(input: z.input<typeof reviewSchema>): 
     if (error) return dbFail(error);
     const res = data as { ok?: boolean; status?: string } | null;
     if (!res?.ok) return fail("İlan bulunamadı ya da silinmiş.", "not_found");
-    revalidateListing(listingId);
+    await revalidateListing(listingId);
     return ok({ status: res.status ?? "" }, approve ? "İlan onaylandı ve yayına alındı." : "İlan reddedildi; ilan sahibine bildirildi.");
   });
 }
@@ -54,7 +56,7 @@ export async function removeListingAction(input: { listingId: string }): Promise
       .maybeSingle();
     if (error) return dbFail(error);
     if (!data) return fail("İlan bulunamadı.", "not_found");
-    revalidateListing(parsed.data.listingId);
+    await revalidateListing(parsed.data.listingId);
     return ok(null, "İlan kaldırıldı.");
   });
 }

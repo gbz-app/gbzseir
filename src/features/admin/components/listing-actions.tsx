@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Check, ExternalLink, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { reviewListingAction, removeListingAction } from "../actions/listings";
@@ -64,9 +63,10 @@ export function ListingActions({
       ) : null}
       {publicHref ? (
         <Button asChild variant="outline">
-          <Link href={publicHref} target="_blank" rel="noopener">
+          {/* Public app page (a separate site): plain link, no client routing. */}
+          <a href={publicHref} target="_blank" rel="noopener noreferrer">
             <ExternalLink aria-hidden /> Sayfayı aç
-          </Link>
+          </a>
         </Button>
       ) : null}
     </div>

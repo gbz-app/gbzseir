@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
+import { revalidatePublic } from "@/lib/revalidate-public";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { firstIssue } from "../lib/zod";
@@ -34,7 +35,10 @@ export async function clearDemoDataAction(input: z.input<typeof schema>): Promis
       if (error) return dbFail(error);
       Object.assign(out, ((data as { deleted?: Record<string, number> } | null)?.deleted ?? {}) as Record<string, number>);
     }
-    revalidatePath("/", "layout");
+    await revalidatePublic({
+      tags: ["businesses", "content:announcements", "content:news", "poi", "nearby", "duty", "listings", "listing-categories", "services"],
+      paths: [{ path: "/", type: "layout" }],
+    });
     revalidatePath(routes.admin.data());
     const total = Object.values(out).reduce((a, b) => a + b, 0);
     return ok(out, `${total} örnek kayıt silindi.`);

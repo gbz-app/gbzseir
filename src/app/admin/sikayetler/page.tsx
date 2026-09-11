@@ -7,6 +7,7 @@ import { AdminPageHeader } from "@/components/admin/admin-page";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { routes, withQuery } from "@/core/routes";
+import { publicUrl } from "@/config/app-mode";
 import { formatDateTime, formatPhoneTR, formatPrice, formatRelativeTime, truncate } from "@/core/format";
 import { AdminCard, AdminPagination, AdminThumb, EmptyCard, FilterTabs, StatusBadge } from "@/features/admin/components/admin-ui";
 import { ReportActions } from "@/features/admin/components/report-actions";
@@ -66,7 +67,7 @@ async function loadPreviews(supabase: ServerSupabase, rows: Array<{ target_type:
       subtitle: `${l.type === "job" ? "İş ilanı" : formatPrice(l.price_try)} · ${l.owner?.full_name ?? "İsimsiz"}`,
       statusMap: LISTING_STATUS,
       status: l.status,
-      href: isPublic ? (l.type === "job" ? routes.listings.job(l.id) : routes.listings.classified(l.id)) : withQuery(routes.admin.listings(), { durum: "tumu", q: l.title.slice(0, 40) }),
+      href: isPublic ? publicUrl(l.type === "job" ? routes.listings.job(l.id) : routes.listings.classified(l.id)) : withQuery(routes.admin.listings(), { durum: "tumu", q: l.title.slice(0, 40) }),
       external: isPublic,
       thumb: media?.thumb_url ?? media?.url ?? null,
     });
@@ -77,7 +78,7 @@ async function loadPreviews(supabase: ServerSupabase, rows: Array<{ target_type:
       subtitle: [b.category_label, formatPhoneTR(b.phone)].filter(Boolean).join(" · "),
       statusMap: BUSINESS_STATUS,
       status: b.status,
-      href: b.status === "approved" ? routes.businesses.detail(b.slug) : withQuery(routes.admin.businesses(), { sekme: "tumu", q: b.name }),
+      href: b.status === "approved" ? publicUrl(routes.businesses.detail(b.slug)) : withQuery(routes.admin.businesses(), { q: b.name }),
       external: b.status === "approved",
     });
   }
@@ -85,7 +86,7 @@ async function loadPreviews(supabase: ServerSupabase, rows: Array<{ target_type:
     map.set(`review:${r.id}`, {
       title: `${r.rating}/5 · ${truncate(r.comment ?? "Yorum metni yok", 140)}`,
       subtitle: `${r.author?.full_name ?? "Kullanıcı"} → ${r.businesses?.name ?? "İşletme"}`,
-      href: r.businesses ? routes.businesses.detail(r.businesses.slug) : undefined,
+      href: r.businesses ? publicUrl(routes.businesses.detail(r.businesses.slug)) : undefined,
       external: true,
     });
   }
@@ -217,14 +218,19 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
                       <p className="text-sm text-muted-foreground">Şikayet edilen içerik artık yok (silinmiş olabilir).</p>
                     )}
                   </div>
-                  {p?.href ? (
-                    <Link
+                  {p?.href && p.external ? (
+                    // Public app page (a separate site): plain link in a new tab.
+                    <a
                       href={p.href}
-                      target={p.external ? "_blank" : undefined}
-                      rel={p.external ? "noopener" : undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl hover:bg-muted"
                       aria-label="İçeriği aç"
                     >
+                      <ExternalLink className="size-5" aria-hidden />
+                    </a>
+                  ) : p?.href ? (
+                    <Link href={p.href} className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl hover:bg-muted" aria-label="İçeriği aç">
                       <ExternalLink className="size-5" aria-hidden />
                     </Link>
                   ) : null}

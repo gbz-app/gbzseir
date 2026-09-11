@@ -44,6 +44,8 @@ export function useUnreadNotifications(): { count: number; refresh: () => void }
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .is("read_at", null)
+      // Admin notices (links into the separate admin site) are shown in the admin panel only.
+      .or("link.is.null,link.not.like./admin*")
       .then(({ count, error }) => {
         if (active && !error) setState({ uid: user.id, count: count ?? 0 });
       });

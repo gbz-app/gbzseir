@@ -5,6 +5,7 @@ import { FlaskConical, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PhoneForm } from "@/components/auth/phone-form";
 import { OTP_DEMO_MODE } from "@/config/site";
+import { IS_ADMIN_SITE } from "@/config/app-mode";
 import { routes } from "@/core/routes";
 import { MARKETING_CONSENT_SESSION_KEY, sendLoginOtp } from "@/lib/auth/otp";
 import { canGoBack } from "@/lib/navigation-history";
@@ -36,7 +37,7 @@ export function LoginScreen({ next }: { next: string }) {
         }}
       />
 
-      {OTP_DEMO_MODE ? (
+      {OTP_DEMO_MODE && !IS_ADMIN_SITE ? (
         <p className="mt-5 flex items-start gap-2 rounded-xl bg-highlight-soft px-3.5 py-2.5 text-xs leading-relaxed text-highlight-foreground dark:text-foreground">
           <FlaskConical className="mt-0.5 size-4 shrink-0 text-highlight" aria-hidden />
           <span>
@@ -45,16 +46,18 @@ export function LoginScreen({ next }: { next: string }) {
         </p>
       ) : null}
 
-      <div className="mt-auto pt-8 text-center">
-        <Button
-          type="button"
-          variant="ghost"
-          className="text-muted-foreground"
-          onClick={() => (canGoBack() ? router.back() : router.push(routes.home()))}
-        >
-          Misafir olarak devam et
-        </Button>
-      </div>
+      {IS_ADMIN_SITE ? null : (
+        <div className="mt-auto pt-8 text-center">
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-muted-foreground"
+            onClick={() => (canGoBack() ? router.back() : router.push(routes.home()))}
+          >
+            Misafir olarak devam et
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

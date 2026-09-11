@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Check, ExternalLink, FileText, Loader2, PauseCircle, PlayCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -112,9 +111,10 @@ export function BusinessActions({
 
       {publicHref ? (
         <Button asChild variant="outline">
-          <Link href={publicHref} target="_blank" rel="noopener">
+          {/* Public app page (a separate site): plain link, no client routing. */}
+          <a href={publicHref} target="_blank" rel="noopener noreferrer">
             <ExternalLink aria-hidden /> Sayfayı aç
-          </Link>
+          </a>
         </Button>
       ) : null}
     </div>

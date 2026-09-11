@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { IS_ADMIN_SITE } from "@/config/app-mode";
 import { getCurrentUser, getProfile } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { periodRange } from "@/features/admin/lib/finance-period";
@@ -27,6 +28,7 @@ const cell = (v: string | number | null | undefined) => {
 
 /** GET /admin/muhasebe/csv?bas=YYYY-MM-DD&bit=YYYY-MM-DD: Excel-friendly CSV (UTF-8 BOM, ";" separated, decimal comma). */
 export async function GET(req: Request) {
+  if (!IS_ADMIN_SITE) return new NextResponse("Bulunamadı", { status: 404 });
   const user = await getCurrentUser();
   const profile = user ? await getProfile() : null;
   if (!user || profile?.role !== "admin") return new NextResponse("Bulunamadı", { status: 404 });

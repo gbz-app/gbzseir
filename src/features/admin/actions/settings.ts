@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { APP_SETTINGS_TAG, normalizeTrPhone } from "@/lib/app-settings";
+import { revalidatePublic } from "@/lib/revalidate-public";
 import { routes } from "@/core/routes";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
@@ -43,8 +44,7 @@ export async function saveSettingsAction(input: z.input<typeof schema>): Promise
     ] as const;
     const { error } = await supabase.from("app_settings").upsert(rows.map(([key, value]) => ({ key, value, updated_at: now })));
     if (error) return dbFail(error);
-    updateTag(APP_SETTINGS_TAG);
-    revalidatePath("/", "layout");
+    await revalidatePublic({ tags: [APP_SETTINGS_TAG], paths: [{ path: "/", type: "layout" }] });
     revalidatePath(routes.admin.settings());
     return ok(null, "Ayarlar kaydedildi.");
   });

@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import { IS_ADMIN_SITE, publicUrl } from "@/config/app-mode";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -115,20 +115,23 @@ export function PhoneForm({
           <label className="flex items-start gap-3 text-sm leading-snug">
             <Checkbox checked={terms} onCheckedChange={(c) => setTerms(c === true)} className="mt-0.5" aria-required="true" />
             <span>
-              <Link href={routes.legal.terms()} target="_blank" className="font-semibold text-primary underline underline-offset-2">
+              {/* Legal pages live on the public app (absolute on the separate admin site). */}
+              <a href={publicUrl(routes.legal.terms())} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary underline underline-offset-2">
                 Kullanım Koşulları
-              </Link>{" "}
+              </a>{" "}
               ve{" "}
-              <Link href={routes.legal.kvkk()} target="_blank" className="font-semibold text-primary underline underline-offset-2">
+              <a href={publicUrl(routes.legal.kvkk())} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary underline underline-offset-2">
                 KVKK Aydınlatma Metni
-              </Link>
+              </a>
               &apos;ni okudum.
             </span>
           </label>
-          <label className="flex items-start gap-3 text-sm leading-snug text-muted-foreground">
-            <Checkbox checked={marketing} onCheckedChange={(c) => setMarketing(c === true)} className="mt-0.5" />
-            <span>Kampanya ve duyuru bildirimleri almak istiyorum. (İsteğe bağlı)</span>
-          </label>
+          {IS_ADMIN_SITE ? null : (
+            <label className="flex items-start gap-3 text-sm leading-snug text-muted-foreground">
+              <Checkbox checked={marketing} onCheckedChange={(c) => setMarketing(c === true)} className="mt-0.5" />
+              <span>Kampanya ve duyuru bildirimleri almak istiyorum. (İsteğe bağlı)</span>
+            </label>
+          )}
         </div>
       ) : null}
 

@@ -1,10 +1,11 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
 import { CONTENT_CACHE_TAGS } from "@/features/content/cache-tags";
 import { parseFeed } from "@/features/content/news/parse";
+import { revalidatePublic } from "@/lib/revalidate-public";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { firstIssue, zId } from "../lib/zod";
@@ -26,11 +27,9 @@ const sourceSchema = z.object({
   active: z.boolean(),
 });
 
-function refreshNews() {
-  updateTag(CONTENT_CACHE_TAGS.news);
-  revalidatePath(routes.content.news());
-  revalidatePath(routes.home());
+async function refreshNews() {
   revalidatePath(routes.admin.news());
+  await revalidatePublic({ tags: [CONTENT_CACHE_TAGS.news], paths: [routes.content.news(), routes.home()] });
 }
 
 export async function saveNewsSourceAction(input: z.input<typeof sourceSchema>): Promise<ActionResult<null>> {
@@ -41,7 +40,7 @@ export async function saveNewsSourceAction(input: z.input<typeof sourceSchema>):
     const row = { name: v.name, site_url: v.siteUrl, feed_url: v.feedUrl, active: v.active };
     const { error } = v.id ? await supabase.from("news_sources").update(row).eq("id", v.id) : await supabase.from("news_sources").insert(row);
     if (error) return dbFail(error, "Kaynak kaydedilemedi.");
-    refreshNews();
+    await refreshNews();
     return ok(null, v.id ? "Kaynak güncellendi." : "Kaynak eklendi.");
   });
 }
@@ -52,7 +51,7 @@ export async function deleteNewsSourceAction(input: { id: string }): Promise<Act
     if (!id.success) return fail("Geçersiz kaynak.");
     const { error } = await supabase.from("news_sources").delete().eq("id", id.data);
     if (error) return dbFail(error);
-    refreshNews();
+    await refreshNews();
     return ok(null, "Kaynak ve arşivlenmiş başlıkları silindi.");
   });
 }
@@ -82,7 +81,7 @@ export async function testNewsFeedAction(input: { feedUrl: string; name?: string
 
 export async function refreshNewsAction(): Promise<ActionResult<null>> {
   return withAdmin(async () => {
-    refreshNews();
+    await refreshNews();
     return ok(null, "Haberler bir sonraki ziyarette yeniden çekilecek.");
   });
 }

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Google_Sans } from "next/font/google";
 import "./globals.css";
 import { APP_DESCRIPTION, APP_FULL_NAME, APP_NAME, BRAND_COLORS, SITE_URL } from "@/config/site";
+import { IS_ADMIN_SITE } from "@/config/app-mode";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { AppProviders } from "@/components/providers/app-providers";
 import { LandscapeLock } from "@/components/layout/landscape-lock";
@@ -33,6 +34,8 @@ export const metadata: Metadata = {
     images: [{ url: "/icons/og-image.png", width: 1200, height: 630, alt: APP_FULL_NAME }],
   },
   twitter: { card: "summary_large_image", title: APP_FULL_NAME, description: APP_DESCRIPTION, images: ["/icons/og-image.png"] },
+  // The separate admin site must never be indexed.
+  ...(IS_ADMIN_SITE ? { robots: { index: false, follow: false, nocache: true } } : {}),
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -46,9 +49,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  // App-like: no pinch / double-tap zoom (iOS gestures are also blocked by <NoZoom />).
-  maximumScale: 1,
-  userScalable: false,
+  // App-like: no pinch / double-tap zoom (iOS gestures are also blocked by <NoZoom />). The admin site can zoom.
+  ...(IS_ADMIN_SITE ? {} : { maximumScale: 1, userScalable: false }),
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: BRAND_COLORS.backgroundLight },
@@ -61,12 +63,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="tr" className={googleSans.variable} suppressHydrationWarning>
       <head>
         <ThemeScript />
-        <OnboardingPreScript />
+        {IS_ADMIN_SITE ? null : <OnboardingPreScript />}
       </head>
       <body className="min-h-dvh bg-background font-sans text-foreground">
         <AppProviders>{children}</AppProviders>
-        <LandscapeLock />
-        <NoZoom />
+        {/* App-only behaviour; the admin site is used on desktop too. */}
+        {IS_ADMIN_SITE ? null : <LandscapeLock />}
+        {IS_ADMIN_SITE ? null : <NoZoom />}
       </body>
     </html>
   );

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { OTP_DEMO_MODE } from "@/config/site";
+import { IS_ADMIN_SITE } from "@/config/app-mode";
 import { DemoOtpBanner } from "./demo-otp-banner";
 
 export type OtpFormProps = {
@@ -31,7 +32,16 @@ type OTPCredentialLike = Credential & { code?: string };
  * 6-box code entry: autocomplete="one-time-code", numeric keyboard, WebOTP on Android,
  * auto-submit on 6 digits, 60 s resend countdown, optional demo banner.
  */
-export function OtpForm({ phone, onVerify, onResend, resendAfter = 60, demoMode = OTP_DEMO_MODE, submitLabel = "Doğrula", className }: OtpFormProps) {
+export function OtpForm({
+  phone,
+  onVerify,
+  onResend,
+  resendAfter = 60,
+  // Admins never get a demo code (get_demo_otp refuses admin phones): no demo banner on the admin site.
+  demoMode = OTP_DEMO_MODE && !IS_ADMIN_SITE,
+  submitLabel = "Doğrula",
+  className,
+}: OtpFormProps) {
   const [code, setCode] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);

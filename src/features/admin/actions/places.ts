@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
 import { slugifyTr } from "@/core/tr";
+import { revalidatePublic } from "@/lib/revalidate-public";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { firstIssue, zId } from "../lib/zod";
@@ -28,11 +29,12 @@ const schema = z.object({
   lng: z.number().min(29).max(30).nullable(),
 });
 
-function revalidatePlaces(slug?: string) {
+async function revalidatePlaces(slug?: string) {
   revalidatePath(routes.admin.places());
-  revalidatePath(routes.nearby.places());
-  revalidatePath(routes.home());
-  if (slug) revalidatePath(routes.nearby.place(slug));
+  await revalidatePublic({
+    tags: ["poi", "nearby"],
+    paths: [routes.nearby.places(), routes.home(), ...(slug ? [routes.nearby.place(slug)] : [])],
+  });
 }
 
 /** Gezilecek yer ekle / düzenle. poi.details keeps unknown keys (wikidata, source data) on update. */
@@ -61,7 +63,7 @@ export async function savePlaceAction(input: z.input<typeof schema>): Promise<Ac
         .update({ name: v.name, address: v.address || null, details: { ...base, ...patch }, ...(location ? { location } : {}), updated_at: new Date().toISOString() })
         .eq("id", v.id);
       if (error) return dbFail(error);
-      revalidatePlaces(current.slug);
+      await revalidatePlaces(current.slug);
       return ok({ slug: current.slug }, "Yer güncellendi.");
     }
 
@@ -69,7 +71,7 @@ export async function savePlaceAction(input: z.input<typeof schema>): Promise<Ac
     const slug = `${slugifyTr(v.name).slice(0, 60) || "yer"}-${Math.random().toString(36).slice(2, 6)}`;
     const { error } = await supabase.from("poi").insert({ kind: "place", name: v.name, slug, address: v.address || null, location, details: patch, source: "manual", license: null });
     if (error) return dbFail(error, "Yer eklenemedi.");
-    revalidatePlaces(slug);
+    await revalidatePlaces(slug);
     return ok({ slug }, "Yer eklendi.");
   });
 }
@@ -81,7 +83,7 @@ export async function deletePlaceAction(input: { id: string }): Promise<ActionRe
     const { data, error } = await supabase.from("poi").delete().eq("id", id.data).eq("kind", "place").select("slug").maybeSingle();
     if (error) return dbFail(error);
     if (!data) return fail("Yer bulunamadı.", "not_found");
-    revalidatePlaces(data.slug);
+    await revalidatePlaces(data.slug);
     return ok(null, "Yer silindi.");
   });
 }

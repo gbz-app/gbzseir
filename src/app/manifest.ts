@@ -1,8 +1,27 @@
 import type { MetadataRoute } from "next";
 import { APP_DESCRIPTION, APP_FULL_NAME, APP_NAME, BRAND_COLORS } from "@/config/site";
 import { routes } from "@/core/routes";
+import { IS_ADMIN_SITE } from "@/config/app-mode";
 
 export default function manifest(): MetadataRoute.Manifest {
+  // The separate admin site installs as its own "Yönetim" app that opens the panel.
+  if (IS_ADMIN_SITE) {
+    return {
+      id: "/admin",
+      name: `${APP_NAME} Yönetim`,
+      short_name: `${APP_NAME} Yönetim`,
+      lang: "tr",
+      start_url: "/admin",
+      scope: "/",
+      display: "standalone",
+      background_color: BRAND_COLORS.backgroundLight,
+      theme_color: BRAND_COLORS.backgroundLight,
+      icons: [
+        { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      ],
+    };
+  }
   return {
     id: "/",
     name: APP_FULL_NAME,

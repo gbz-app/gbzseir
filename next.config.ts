@@ -25,6 +25,8 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Permissions-Policy", value: "camera=(self), geolocation=(self), microphone=(), payment=(), usb=(), interest-cohort=()" },
+          // The separate admin site (NEXT_PUBLIC_APP_MODE=admin) is never indexed, static files included.
+          ...(process.env.NEXT_PUBLIC_APP_MODE === "admin" ? [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] : []),
         ],
       },
       {

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
+import { revalidatePublic } from "@/lib/revalidate-public";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { firstIssue, zId } from "../lib/zod";
@@ -20,10 +21,12 @@ const schema = z
   })
   .refine((v) => !v.endsAt || v.endsAt > v.startsAt, { message: "Bitiş, başlangıçtan sonra olmalı." });
 
-function revalidateAnnouncements() {
+async function revalidateAnnouncements() {
   revalidatePath(routes.admin.announcements());
-  revalidatePath(routes.content.announcements());
-  revalidatePath(routes.home());
+  await revalidatePublic({
+    tags: ["content:announcements"],
+    paths: [routes.content.announcements(), routes.home()],
+  });
 }
 
 /** Duyuru ekle / güncelle (su, elektrik kesintisi, belediye, genel). */
@@ -45,7 +48,7 @@ export async function saveAnnouncementAction(input: z.input<typeof schema>): Pro
       ? await supabase.from("announcements").update(row).eq("id", v.id)
       : await supabase.from("announcements").insert({ ...row, created_by: userId });
     if (error) return dbFail(error);
-    revalidateAnnouncements();
+    await revalidateAnnouncements();
     return ok(null, v.id ? "Duyuru güncellendi." : "Duyuru yayınlandı.");
   });
 }
@@ -57,7 +60,7 @@ export async function deleteAnnouncementAction(input: { id: string }): Promise<A
     const { data, error } = await supabase.from("announcements").delete().eq("id", id.data).select("id").maybeSingle();
     if (error) return dbFail(error);
     if (!data) return fail("Duyuru bulunamadı.", "not_found");
-    revalidateAnnouncements();
+    await revalidateAnnouncements();
     return ok(null, "Duyuru silindi.");
   });
 }

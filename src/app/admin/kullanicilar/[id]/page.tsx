@@ -30,7 +30,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateTime, formatNumber, formatPhoneTR, formatRelativeTime, initials } from "@/core/format";
 import { telHref } from "@/core/phone";
-import { routes } from "@/core/routes";
+import { routes, withQuery } from "@/core/routes";
+import { publicUrl } from "@/config/app-mode";
 import { AdminCard, InfoList, InfoRow, StatTile, StatusBadge } from "@/features/admin/components/admin-ui";
 import { HBarList, formatDuration } from "@/features/admin/components/charts";
 import { UserActions } from "@/features/admin/components/user-actions";
@@ -159,9 +160,15 @@ export default async function AdminUserPage({ params }: Props) {
               <ul className="flex flex-col gap-2">
                 {o.businesses.map((b) => (
                   <li key={b.id} className="flex items-center justify-between gap-2 text-sm">
-                    <Link href={routes.businesses.detail(b.slug)} className="truncate text-primary hover:underline">
-                      {b.name}
-                    </Link>
+                    {b.status === "approved" ? (
+                      <a href={publicUrl(routes.businesses.detail(b.slug))} target="_blank" rel="noopener noreferrer" className="truncate text-primary hover:underline">
+                        {b.name}
+                      </a>
+                    ) : (
+                      <Link href={withQuery(routes.admin.businesses(), { q: b.name })} className="truncate text-primary hover:underline">
+                        {b.name}
+                      </Link>
+                    )}
                     <StatusBadge map={BUSINESS_STATUS} value={b.status} />
                   </li>
                 ))}

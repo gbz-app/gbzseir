@@ -6,6 +6,7 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { routes } from "@/core/routes";
 import { ACTIVE_BUSINESS_COOKIE, pickActiveBusiness } from "@/features/business/lib/active-business";
+import { IS_ADMIN_SITE } from "@/config/app-mode";
 import type { BusinessSummary, Profile } from "@/lib/types";
 
 /**
@@ -53,7 +54,11 @@ export async function requireAdmin(nextPath: string = routes.admin.root()): Prom
   const user = await getCurrentUser();
   if (!user) redirect(routes.auth.login(nextPath));
   const profile = await getProfile();
-  if (!profile || profile.role !== "admin") notFound();
+  if (!profile || profile.role !== "admin") {
+    // On the admin site a signed-in non-admin gets a "no access" screen with sign-out (else they would be stuck).
+    if (IS_ADMIN_SITE) redirect(routes.auth.noAdminAccess());
+    notFound();
+  }
   return { user, profile };
 }
 

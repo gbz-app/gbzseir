@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { DemoBadge } from "@/components/shared/badges";
 import { Badge } from "@/components/ui/badge";
 import { routes, withQuery } from "@/core/routes";
+import { publicUrl } from "@/config/app-mode";
 import { formatDateTime, formatPhoneTR, formatPrice, formatPriceRange, formatRelativeTime } from "@/core/format";
 import {
   AdminCard,
@@ -166,7 +167,7 @@ export default async function AdminListingsPage({ searchParams }: PageProps<"/ad
         ) : (
           rows.map((l) => {
             const isPublic = l.status === "active" || l.status === "sold" || l.status === "filled";
-            const publicHref = isPublic ? (l.type === "job" ? routes.listings.job(l.id) : routes.listings.classified(l.id)) : null;
+            const publicHref = isPublic ? publicUrl(l.type === "job" ? routes.listings.job(l.id) : routes.listings.classified(l.id)) : null;
             const media = [...(l.listing_media ?? [])].sort((a, b) => a.sort - b.sort);
             const attrs = l.attributes && typeof l.attributes === "object" && !Array.isArray(l.attributes) ? Object.entries(l.attributes as Record<string, unknown>) : [];
             return (

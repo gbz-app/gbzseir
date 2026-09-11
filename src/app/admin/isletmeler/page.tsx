@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { DemoBadge, VerifiedBadge } from "@/components/shared/badges";
 import { Badge } from "@/components/ui/badge";
 import { routes, withQuery } from "@/core/routes";
+import { publicUrl } from "@/config/app-mode";
 import { formatDateTime, formatNumber, formatPhoneTR, formatRelativeTime } from "@/core/format";
 import {
   AdminCard,
@@ -308,7 +309,7 @@ export default async function AdminBusinessesPage({ searchParams }: PageProps<"/
           </EmptyCard>
         ) : (
           rows.map((b) => {
-            const publicHref = b.status === "approved" ? routes.businesses.detail(b.slug) : null;
+            const publicHref = b.status === "approved" ? publicUrl(routes.businesses.detail(b.slug)) : null;
             return (
               <AdminCard key={b.id} as="article">
                 <div className="flex items-start gap-3">

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ExternalLink, MapPinned, Pencil, Plus, Star, TriangleAlert } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
@@ -9,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatRelativeTime } from "@/core/format";
 import { routes, withQuery } from "@/core/routes";
+import { publicUrl } from "@/config/app-mode";
 import { parsePlaceDetails } from "@/features/nearby/lib/details";
 import { AdminThumb, EmptyCard, FilterTabs, SearchBox } from "@/features/admin/components/admin-ui";
 import { PlaceDialog, type PlaceValue } from "@/features/admin/components/place-dialog";
@@ -99,9 +99,15 @@ export default async function AdminPlacesPage({ searchParams }: Props) {
                     {PLACE_CATEGORIES[p.category] ?? p.category} · {p.photos.length} fotoğraf · {POI_SOURCES[p.source] ?? p.source} · {formatRelativeTime(p.updated_at)}
                   </p>
                 </div>
-                <Link href={routes.nearby.place(p.slug)} target="_blank" aria-label={`${p.name} sayfasını aç`} className="text-muted-foreground hover:text-foreground">
+                <a
+                  href={publicUrl(routes.nearby.place(p.slug))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${p.name} sayfasını aç`}
+                  className="text-muted-foreground hover:text-foreground"
+                >
                   <ExternalLink className="size-4" />
-                </Link>
+                </a>
                 <PlaceDialog
                   value={p}
                   trigger={

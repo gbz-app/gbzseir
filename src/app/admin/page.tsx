@@ -31,9 +31,19 @@ export const metadata: Metadata = { title: "Genel bakış" };
 
 /** Yönetim ana ekranı: canlı kullanıcı, bugün, bekleyen işler, 14 günlük grafik, kurulumlar, en çok bakılan sayfalar. */
 export default async function AdminDashboardPage() {
-  await requireAdmin();
+  const { user } = await requireAdmin();
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("admin_dashboard");
+  const [{ data, error }, { data: notices }] = await Promise.all([
+    supabase.rpc("admin_dashboard"),
+    // Admin notices (new business, unmatched request...) are shown here only, never in the app.
+    supabase
+      .from("notifications")
+      .select("id,title,body,link,read_at,created_at")
+      .eq("user_id", user.id)
+      .like("link", "/admin%")
+      .order("created_at", { ascending: false })
+      .limit(8),
+  ]);
   const d = data as unknown as DashboardData | null;
 
   if (error || !d) {
@@ -106,6 +116,27 @@ export default async function AdminDashboardPage() {
               </li>
             ))}
           </ul>
+        </AdminCard>
+
+        <AdminCard title="Yönetim bildirimleri" description="Yeni işletmeler, eşleşmeyen talepler ve onay bekleyen işler">
+          {notices?.length ? (
+            <ul className="divide-y">
+              {notices.map((n) => (
+                <li key={n.id}>
+                  <Link href={n.link ?? routes.admin.root()} className="flex items-start gap-3 py-2.5 outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50">
+                    <span className={n.read_at ? "mt-1.5 size-2 shrink-0 rounded-full bg-transparent" : "mt-1.5 size-2 shrink-0 rounded-full bg-primary"} aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold">{n.title}</span>
+                      {n.body ? <span className="block truncate text-sm text-muted-foreground">{n.body}</span> : null}
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{formatRelativeTime(n.created_at)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">Yeni bildirim yok.</p>
+          )}
         </AdminCard>
 
         <div className="grid gap-4 lg:grid-cols-2">

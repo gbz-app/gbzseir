@@ -15,6 +15,8 @@ export default async function NotificationsPage() {
     .from("notifications")
     .select("id,type,title,body,link,read_at,created_at")
     .eq("user_id", user.id)
+    // Admin notices (links into the separate admin site) are shown in the admin panel only.
+    .or("link.is.null,link.not.like./admin*")
     .order("created_at", { ascending: false })
     .limit(100);
   const items: NotificationItem[] = (data ?? []).map((n) => ({

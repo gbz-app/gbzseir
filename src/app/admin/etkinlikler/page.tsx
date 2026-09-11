@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { CalendarDays, ExternalLink, TriangleAlert } from "lucide-react";
+import { publicUrl } from "@/config/app-mode";
 import { requireAdmin } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { AdminPageHeader } from "@/components/admin/admin-page";
@@ -116,9 +116,9 @@ export default async function AdminEventsPage({ searchParams }: Props) {
                       {e.businesses ? (
                         <>
                           Düzenleyen:{" "}
-                          <Link className="text-primary hover:underline" href={routes.businesses.detail(e.businesses.slug)}>
+                          <a className="text-primary hover:underline" href={publicUrl(routes.businesses.detail(e.businesses.slug))} target="_blank" rel="noopener noreferrer">
                             {e.businesses.name}
-                          </Link>
+                          </a>
                         </>
                       ) : (
                         "Şehir etkinliği"
@@ -130,9 +130,14 @@ export default async function AdminEventsPage({ searchParams }: Props) {
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
                   <EventModeration id={e.id} title={e.title} status={e.status} />
                   {e.status === "published" ? (
-                    <Link href={routes.events.detail(e.slug)} target="_blank" className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
+                    <a
+                      href={publicUrl(routes.events.detail(e.slug))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-primary"
+                    >
                       Sayfayı aç <ExternalLink className="size-4" aria-hidden />
-                    </Link>
+                    </a>
                   ) : null}
                 </div>
               </AdminCard>

@@ -57,6 +57,8 @@ async function handle(req: Request) {
   const totals = { pushed: 0, removed: 0, failed: 0 };
   await Promise.all(
     (claimed ?? []).map(async (n) => {
+      // Admin notices live in the separate admin site's dashboard; never push them to the app.
+      if (n.link?.startsWith("/admin")) return;
       try {
         const r = await sendPushToUser(n.user_id, { title: n.title, body: n.body ?? "", link: n.link, tag: `${n.type}-${n.id}` });
         totals.pushed += r.pushed;

@@ -12,6 +12,7 @@ import {
   Home,
   LayoutDashboard,
   LifeBuoy,
+  LogOut,
   MapPinned,
   Megaphone,
   Menu,
@@ -26,8 +27,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { APP_NAME } from "@/config/site";
+import { APP_NAME, SITE_URL } from "@/config/site";
 import { routes, isRouteActive } from "@/core/routes";
+import { useAuth } from "@/lib/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
@@ -79,6 +81,25 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+function SignOutLink({ className }: { className?: string }) {
+  const { signOut } = useAuth();
+  const [busy, setBusy] = React.useState(false);
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        await signOut();
+        window.location.assign(routes.auth.login(routes.admin.root()));
+      }}
+      className={cn("flex items-center gap-1.5 hover:underline disabled:opacity-60", className)}
+    >
+      <LogOut className="size-3.5" aria-hidden /> Çıkış yap
+    </button>
+  );
+}
+
 function Brand() {
   return (
     <Link href={routes.admin.root()} className="flex items-center gap-2 px-3 font-heading text-base font-bold">
@@ -99,9 +120,11 @@ export function AdminShell({ adminName, children }: { adminName: string; childre
         </div>
         <div className="border-t px-4 pt-3 text-xs text-muted-foreground">
           <p className="truncate font-semibold text-foreground">{adminName}</p>
-          <Link href={routes.home()} className="mt-1 inline-flex items-center gap-1.5 hover:underline">
-            <Home className="size-3.5" /> Uygulamaya dön
-          </Link>
+          {/* The public app is a separate site. */}
+          <a href={SITE_URL} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1.5 hover:underline">
+            <Home className="size-3.5" /> Uygulamayı aç
+          </a>
+          <SignOutLink className="mt-1.5" />
         </div>
       </aside>
 
@@ -118,6 +141,13 @@ export function AdminShell({ adminName, children }: { adminName: string; childre
               <Brand />
             </div>
             <NavList onNavigate={() => setOpen(false)} />
+            <div className="mt-4 border-t px-3 pt-3 text-xs text-muted-foreground">
+              <p className="truncate font-semibold text-foreground">{adminName}</p>
+              <a href={SITE_URL} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1.5 hover:underline">
+                <Home className="size-3.5" /> Uygulamayı aç
+              </a>
+              <SignOutLink className="mt-1.5" />
+            </div>
           </SheetContent>
         </Sheet>
         <Brand />

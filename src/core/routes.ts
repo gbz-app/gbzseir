@@ -3,6 +3,8 @@
  * Never hand-write internal URLs in components; use these builders.
  */
 
+import { IS_ADMIN_SITE } from "@/config/app-mode";
+
 export type QueryValue = string | number | boolean | null | undefined;
 export type QueryRecord = Record<string, QueryValue | QueryValue[]>;
 
@@ -24,13 +26,15 @@ export function withQuery(path: string, query?: QueryRecord | null): string {
 
 /**
  * Sanitize a ?next= value: only same-origin relative paths are allowed (prevents open redirects),
- * and auth pages are never a "next" target (prevents loops).
+ * and auth pages are never a "next" target (prevents loops). On the separate admin site every target is /admin/**.
  */
 export function safeNextPath(next: string | null | undefined, fallback = "/"): string {
-  if (!next || typeof next !== "string") return fallback;
+  const fb = IS_ADMIN_SITE ? "/admin" : fallback;
+  if (!next || typeof next !== "string") return fb;
   const n = next.trim();
-  if (!n.startsWith("/") || n.startsWith("//") || n.startsWith("/\\")) return fallback;
-  if (/^\/giris(?:[/?#]|$)/.test(n)) return fallback;
+  if (!n.startsWith("/") || n.startsWith("//") || n.startsWith("/\\")) return fb;
+  if (/^\/giris(?:[/?#]|$)/.test(n)) return fb;
+  if (IS_ADMIN_SITE && !/^\/admin(?:[/?#]|$)/.test(n)) return fb;
   return n;
 }
 
@@ -57,6 +61,8 @@ export const routes = {
     verify: (phone: string, next?: string | null) => withQuery("/giris/dogrula", { phone, next }),
     /** /giris/profil?next=... (new users complete their profile) */
     profile: (next?: string | null) => withQuery("/giris/profil", { next }),
+    /** Admin site: signed-in account without the admin role */
+    noAdminAccess: () => "/giris/yetki",
   },
 
   nearby: {

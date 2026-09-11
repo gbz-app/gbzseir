@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient, type ServerSupabase } from "@/lib/supabase/server";
 import { getCurrentUser, getProfile } from "@/lib/auth/server";
+import { IS_ADMIN_SITE } from "@/config/app-mode";
 import { fail, type ActionResult } from "../lib/action-result";
 
 /**
@@ -11,6 +12,8 @@ import { fail, type ActionResult } from "../lib/action-result";
 export type AdminContext = { supabase: ServerSupabase; userId: string };
 
 export async function getAdminContext(): Promise<AdminContext | null> {
+  // Admin actions only run on the separate admin site (their ids are compiled into the public app too).
+  if (!IS_ADMIN_SITE) return null;
   const user = await getCurrentUser();
   if (!user) return null;
   const profile = await getProfile();
