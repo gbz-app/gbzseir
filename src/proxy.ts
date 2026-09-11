@@ -3,6 +3,8 @@ import { ADMIN_SITE_URL, IS_ADMIN_SITE } from "@/config/app-mode";
 import { updateSession } from "@/lib/supabase/proxy";
 
 const isAdminPath = (p: string) => p === "/admin" || p.startsWith("/admin/");
+/** Phone + password form of the admin site; guests see it at the /admin address they opened (rewrite, not redirect). */
+const ADMIN_LOGIN_PATH = "/giris/yonetim";
 /** What the separate admin site serves besides /admin: only the login flow (admin pages call no /api route). */
 const ADMIN_SITE_ALLOWED = (p: string) => isAdminPath(p) || p === "/giris" || p.startsWith("/giris/");
 
@@ -20,7 +22,17 @@ export async function proxy(request: NextRequest) {
   } else if (isAdminPath(pathname)) {
     return NextResponse.redirect(`${ADMIN_SITE_URL}${pathname}${search}`, 307);
   }
-  return updateSession(request);
+  const { response, signedIn } = await updateSession(request);
+  if (IS_ADMIN_SITE && !signedIn && isAdminPath(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = ADMIN_LOGIN_PATH;
+    url.search = `?next=${encodeURIComponent(`${pathname}${search}`)}`;
+    const rewrite = NextResponse.rewrite(url);
+    // Keep any cookie changes (e.g. a cleared expired session) made while checking the session.
+    for (const cookie of response.cookies.getAll()) rewrite.cookies.set(cookie);
+    return rewrite;
+  }
+  return response;
 }
 
 export const config = {

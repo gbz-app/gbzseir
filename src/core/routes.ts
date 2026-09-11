@@ -71,6 +71,8 @@ export const routes = {
     profile: (next?: string | null) => withQuery("/giris/profil", { next }),
     /** Admin site: signed-in account without the admin role */
     noAdminAccess: () => "/giris/yetki",
+    /** Admin site: phone + password sign-in (shown at /admin/* for guests by src/proxy.ts) */
+    adminLogin: (next?: string | null) => withQuery("/giris/yonetim", { next }),
   },
 
   nearby: {
@@ -200,6 +202,8 @@ export const routes = {
     /** İşlem kaydı (audit_log): ?tur, kim, kullanici, hedef, q, bas, bit, sayfa */
     audit: (query?: QueryRecord) => withQuery("/admin/denetim", query),
     settings: () => "/admin/ayarlar",
+    /** The signed-in admin's own account and password */
+    account: () => "/admin/hesap",
   },
 } as const;
 

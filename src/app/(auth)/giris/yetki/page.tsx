@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Yetki yok", robots: { index: false, 
 export default async function NoAdminAccessPage() {
   if (!IS_ADMIN_SITE) redirect(routes.home());
   const user = await getCurrentUser();
-  if (!user) redirect(routes.auth.login(routes.admin.root()));
+  if (!user) redirect(routes.admin.root());
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
@@ -24,7 +24,7 @@ export default async function NoAdminAccessPage() {
       <p className="max-w-sm text-[15px] leading-relaxed text-muted-foreground">
         Yönetim paneline yalnızca yönetici hesapları girebilir. Çıkış yapıp yönetici numaranla tekrar giriş yap.
       </p>
-      <SignOutButton to={routes.auth.login(routes.admin.root())} className="mt-2 w-full max-w-xs" />
+      <SignOutButton to={routes.admin.root()} className="mt-2 w-full max-w-xs" />
       <a href={SITE_URL} className="text-sm font-semibold text-primary hover:underline">
         Uygulamaya git
       </a>

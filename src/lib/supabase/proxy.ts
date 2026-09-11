@@ -4,11 +4,11 @@ import type { Database } from "@/lib/database.types";
 
 /**
  * Refresh the Supabase session cookie on each matched request (called from src/proxy.ts).
- * Guests without auth cookies are passed through without any Supabase call.
+ * Guests without auth cookies are passed through without any Supabase call. `signedIn` tells the caller whether a valid session exists.
  */
-export async function updateSession(request: NextRequest): Promise<NextResponse> {
+export async function updateSession(request: NextRequest): Promise<{ response: NextResponse; signedIn: boolean }> {
   const hasAuthCookie = request.cookies.getAll().some((c) => c.name.startsWith("sb-"));
-  if (!hasAuthCookie) return NextResponse.next({ request });
+  if (!hasAuthCookie) return { response: NextResponse.next({ request }), signedIn: false };
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
@@ -27,6 +27,6 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   });
 
   // Do not run code between createServerClient and getClaims (per @supabase/ssr guidance).
-  await supabase.auth.getClaims();
-  return response;
+  const { data } = await supabase.auth.getClaims();
+  return { response, signedIn: !!data?.claims?.sub };
 }

@@ -10,6 +10,7 @@ import {
   Flag,
   FolderTree,
   Home,
+  KeyRound,
   LayoutDashboard,
   Library,
   LifeBuoy,
@@ -61,6 +62,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { href: routes.admin.data(), label: "Veri sağlığı", icon: Database },
   { href: routes.admin.audit(), label: "İşlem kaydı", icon: ScrollText },
   { href: routes.admin.settings(), label: "Ayarlar", icon: Settings },
+  { href: routes.admin.account(), label: "Hesabım ve şifre", icon: KeyRound },
 ];
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
@@ -99,7 +101,7 @@ function SignOutLink({ className }: { className?: string }) {
       onClick={async () => {
         setBusy(true);
         await signOut();
-        window.location.assign(routes.auth.login(routes.admin.root()));
+        window.location.assign(routes.admin.root());
       }}
       className={cn("flex items-center gap-1.5 hover:underline disabled:opacity-60", className)}
     >

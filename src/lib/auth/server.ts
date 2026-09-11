@@ -52,7 +52,8 @@ export async function requireProfile(nextPath: string): Promise<{ user: User; pr
  */
 export async function requireAdmin(nextPath: string = routes.admin.root()): Promise<{ user: User; profile: Profile }> {
   const user = await getCurrentUser();
-  if (!user) redirect(routes.auth.login(nextPath));
+  // The admin site signs in with phone + password; the public app keeps its OTP login.
+  if (!user) redirect(IS_ADMIN_SITE ? routes.auth.adminLogin(nextPath) : routes.auth.login(nextPath));
   const profile = await getProfile();
   if (!profile || profile.role !== "admin") {
     // On the admin site a signed-in non-admin gets a "no access" screen with sign-out (else they would be stuck).
