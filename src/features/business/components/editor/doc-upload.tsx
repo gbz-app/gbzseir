@@ -99,8 +99,8 @@ export function DocUpload({ value, onChange, onUploadingChange }: { value: Uploa
       )}
       <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
         <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-        Belgeler herkese açık değildir; yalnızca başvurunu inceleyen {""}
-        ekip görebilir. Belge yüklemek onay sürecini hızlandırır.
+        Belgeler herkese açık değildir; yalnızca Gebzem ekibi görebilir. Vergi levhanı yüklersen ekibimiz işletmeni
+        doğrulayabilir ve sayfanda &quot;Onaylı&quot; rozeti görünür.
       </p>
     </div>
   );

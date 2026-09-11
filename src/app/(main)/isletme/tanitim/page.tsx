@@ -11,6 +11,7 @@ import {
   MapPin,
   Navigation,
   Phone,
+  Plus,
   Rocket,
   Search,
   Star,
@@ -27,7 +28,7 @@ import { routes } from "@/core/routes";
 import { getCurrentUser, getProfile } from "@/lib/auth/server";
 import { BusinessLogo } from "@/features/business/components/business-logo";
 import { RatingInline } from "@/features/business/components/rating";
-import { getOwnerBusiness } from "@/features/business/lib/owner-queries";
+import { getOwnerBusinessList } from "@/features/business/lib/owner-queries";
 
 export const metadata: Metadata = {
   title: "İşletme hesabı",
@@ -51,43 +52,38 @@ const NEEDS: Array<{ icon: LucideIcon; text: string }> = [
 ];
 
 const TIMELINE: Array<{ icon: LucideIcon; title: string; text: string }> = [
-  { icon: FileText, title: "Başvuru", text: "~3 dakika" },
-  { icon: Search, title: "İnceleme", text: "1 iş günü" },
-  { icon: Rocket, title: "Yayında", text: "Sayfan açılır" },
+  { icon: FileText, title: "Bilgiler", text: "~3 dakika" },
+  { icon: Rocket, title: "Yayında", text: "Hemen" },
+  { icon: Search, title: "Bulunursun", text: "Müşteri arar" },
 ];
 
 /** 3a: "İşletme hesabına geç" introduction; guests can read it, the CTA asks for login. */
 export default async function BusinessIntroPage() {
   const user = await getCurrentUser();
-  const [profile, business] = user ? await Promise.all([getProfile(), getOwnerBusiness().catch(() => null)]) : [null, null];
+  const profile = user ? await getProfile() : null;
+  const owned = user ? await getOwnerBusinessList().catch(() => []) : [];
   const settings = await getAppSettings();
   const previewName = profile?.full_name?.trim() || "Senin İşletmen";
 
+  const live = owned.find((b) => b.status === "approved");
+  const unfinished = owned.find((b) => b.status === "pending" || b.status === "rejected");
   let note: React.ReactNode = null;
+  let secondary: { href: string; label: string } | null = null;
   let primary: { href: string; label: string } = {
     href: user ? routes.business.apply() : routes.auth.login(routes.business.apply()),
-    label: "Başvuruya başla",
+    label: "İşletmemi aç",
   };
-  if (business?.status === "approved") {
+  if (live) {
     primary = { href: routes.business.root(), label: "İşletme Paneli" };
-  } else if (business?.status === "pending") {
+    if (settings.businessApplications && !owned.some((b) => b.status === "suspended")) secondary = { href: routes.business.apply(), label: "Yeni işletme ekle" };
+  } else if (unfinished) {
     note = (
       <p className="flex items-center gap-2 text-sm font-semibold">
-        <Hourglass className="size-4 text-highlight" aria-hidden /> Başvurun inceleniyor ⏳
+        <Hourglass className="size-4 text-highlight" aria-hidden /> {unfinished.name} henüz yayında değil. Bilgilerini tamamla, hemen yayına girsin.
       </p>
     );
-    primary = { href: routes.business.root(), label: "Başvurumu gör" };
-  } else if (business?.status === "rejected") {
-    note = (
-      <p className="flex items-start gap-2 text-sm">
-        <CircleAlert className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
-        <span>
-          <strong>Başvurun onaylanmadı.</strong> {business.rejection_reason ?? ""}
-        </span>
-      </p>
-    );
-    primary = { href: routes.business.apply(), label: "Başvuruyu düzenle" };
-  } else if (business?.status === "suspended") {
+    primary = { href: routes.business.applyEdit(unfinished.id), label: "Bilgileri tamamla" };
+  } else if (owned.length > 0) {
     note = (
       <p className="flex items-start gap-2 text-sm">
         <CircleAlert className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
@@ -95,7 +91,7 @@ export default async function BusinessIntroPage() {
       </p>
     );
     primary = { href: routes.content.help(), label: "Yardım ve iletişim" };
-  } else if (!business && !settings.businessApplications) {
+  } else if (!settings.businessApplications) {
     note = <p className="text-sm">Yeni işletme başvuruları yakında açılacak. İşletmeni listelemek ya da reklam vermek için bize ulaşabilirsin.</p>;
     primary = { href: telHref(settings.supportPhone), label: `Bizi ara: ${displayTrPhone(settings.supportPhone)}` };
   }
@@ -205,7 +201,13 @@ export default async function BusinessIntroPage() {
               {primary.label} <ArrowRight />
             </Link>
           </Button>
-          {!business ? (
+          {secondary ? (
+            <Button asChild variant="outline">
+              <Link href={secondary.href}>
+                <Plus /> {secondary.label}
+              </Link>
+            </Button>
+          ) : owned.length === 0 ? (
             <Button asChild variant="ghost" className="text-muted-foreground">
               <Link href={routes.profile.root()}>Şimdi değil</Link>
             </Button>

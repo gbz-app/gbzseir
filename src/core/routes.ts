@@ -122,10 +122,15 @@ export const routes = {
     root: () => "/isletme",
     intro: () => "/isletme/tanitim",
     apply: () => "/isletme/basvuru",
+    /** Finish / fix a pending or rejected business of the user */
+    applyEdit: (businessId: string) => `/isletme/basvuru?duzenle=${encodeURIComponent(businessId)}`,
     applyDone: () => "/isletme/basvuru/alindi",
+    /** Switch the active business (route handler; use a plain <a>, not <Link>) and continue to `next` */
+    select: (businessId: string, next?: string) => `/isletme/sec?b=${encodeURIComponent(businessId)}${next ? `&next=${encodeURIComponent(next)}` : ""}`,
     edit: () => "/isletme/duzenle",
     photos: () => "/isletme/fotograflar",
     reviews: () => "/isletme/yorumlar",
+    services: () => "/isletme/hizmetlerim",
     menu: () => "/isletme/menu",
     menuQr: () => "/isletme/menu/qr",
     rooms: () => "/isletme/odalar",

@@ -297,7 +297,7 @@ for (const b of BUSINESSES) {
       (select id from public.neighbourhoods where slug = ${lit(b.nb)}), '{shop,employer}'::text[], ${lit(b.label)}, ${jsonLit(b.hours)},
       'approved', 1, now(), true, ${lit(b.vertical)}, ${b.price ?? "null"}, ${b.stars ?? "null"}, ${lit(`{${b.amenities.join(",")}}`)}::text[],
       ${lit(b.website ?? null)}, ${lit(P(b.cover))})
-    on conflict (owner_id) do update set slug = excluded.slug, name = excluded.name, description = excluded.description, phone = excluded.phone,
+    on conflict (id) do update set slug = excluded.slug, name = excluded.name, description = excluded.description, phone = excluded.phone,
       address = excluded.address, location = excluded.location, neighbourhood_id = excluded.neighbourhood_id, kinds = excluded.kinds,
       category_label = excluded.category_label, working_hours = excluded.working_hours, status = 'approved', verification_level = 1,
       approved_at = coalesce(public.businesses.approved_at, now()), is_demo = true, vertical = excluded.vertical, price_level = excluded.price_level,

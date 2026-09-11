@@ -49,7 +49,8 @@ import {
   type ServiceCategoryLite,
 } from "@/features/business/lib/queries";
 import { createPublicClient } from "@/features/business/lib/public-client";
-import { getBusinessMenu, getBusinessRooms, type MenuSection, type Room } from "@/features/business/lib/vertical-queries";
+import { getBusinessMenu, getBusinessRooms, getBusinessServices, type BusinessService, type MenuSection, type Room } from "@/features/business/lib/vertical-queries";
+import { ServiceList } from "@/features/business/components/service-list";
 import { LISTABLE_VERTICALS, VERTICAL_INFO, amenityList, hasMenu, hasRooms, priceLevelInfo, resolveVertical, type Vertical } from "@/features/business/lib/verticals";
 import { EventCard } from "@/features/events/components/event-card";
 import { listBusinessEvents, type EventItem } from "@/features/events/queries";
@@ -219,7 +220,8 @@ export default async function FirmPage({ params }: Props) {
 
   const vertical = resolveVertical(b.vertical, b.kinds);
   const info = VERTICAL_INFO[vertical];
-  const [reviews, listings, allCategories, totalNeighbourhoods, menu, rooms, events] = await Promise.all([
+  const offersServices = b.kinds.includes("service") || vertical === "hizmet";
+  const [reviews, listings, allCategories, totalNeighbourhoods, menu, rooms, events, services] = await Promise.all([
     getBusinessReviews(b.id).catch(() => [] as PublicReview[]),
     getBusinessActiveListings(b.id).catch(() => [] as BusinessListing[]),
     getServiceCategories().catch(() => [] as ServiceCategoryLite[]),
@@ -227,6 +229,7 @@ export default async function FirmPage({ params }: Props) {
     hasMenu(vertical) ? getBusinessMenu(b.id).catch(() => [] as MenuSection[]) : Promise.resolve([] as MenuSection[]),
     hasRooms(vertical) ? getBusinessRooms(b.id).catch(() => [] as Room[]) : Promise.resolve([] as Room[]),
     listBusinessEvents(b.id).catch(() => [] as EventItem[]),
+    offersServices ? getBusinessServices(b.id).catch(() => [] as BusinessService[]) : Promise.resolve([] as BusinessService[]),
   ]);
 
   const url = `${SITE_URL}${routes.businesses.detail(b.slug)}`;
@@ -453,8 +456,15 @@ export default async function FirmPage({ params }: Props) {
             </Section>
           ) : null}
 
+          {services.length ? (
+            <Section id="fiyatlar" title="Hizmetler ve fiyatlar" icon={Wrench}>
+              <ServiceList services={services} />
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Fiyatlar firma tarafından girilir; kesin fiyat için firmayı ara.</p>
+            </Section>
+          ) : null}
+
           {isService && groups.length > 0 ? (
-            <Section id="hizmetler" title="Hizmetler" icon={Wrench}>
+            <Section id="hizmetler" title={services.length ? "Hizmet kategorileri" : "Hizmetler"} icon={Wrench}>
               <div className="flex flex-col gap-3">
                 {groups.map((g) => (
                   <div key={g.name}>

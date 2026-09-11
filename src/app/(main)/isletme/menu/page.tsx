@@ -9,7 +9,7 @@ import { routes } from "@/core/routes";
 import { requireProfile } from "@/lib/auth/server";
 import { MenuManager } from "@/features/business/components/menu-manager";
 import { WrongVerticalNote } from "@/features/business/components/owner-gate";
-import { getOwnerBusiness } from "@/features/business/lib/owner-queries";
+import { getOtherOwnedBusinesses, getOwnerBusiness } from "@/features/business/lib/owner-queries";
 import { qrForUrl } from "@/features/business/lib/qr";
 import { getBusinessMenu } from "@/features/business/lib/vertical-queries";
 import { hasMenu, resolveVertical } from "@/features/business/lib/verticals";
@@ -29,7 +29,11 @@ export default async function OwnerMenuPage() {
       <>
         <PageHeader title="Menü ve QR menü" subtitle={b.name} backHref={routes.business.root()} />
         <div className="px-4 pt-5">
-          <WrongVerticalNote text="Menü ve QR menü; yemek, restoran ve kafe işletmeleri içindir. İşletme türünü değiştirirsen bu bölüm açılır." />
+          <WrongVerticalNote
+            text="Menü ve QR menü; yemek, restoran ve kafe işletmeleri içindir. İşletme türünü değiştirirsen bu bölüm açılır."
+            alternatives={await getOtherOwnedBusinesses(b.id, (x) => hasMenu(x.vertical))}
+            next={routes.business.menu()}
+          />
         </div>
       </>
     );

@@ -126,7 +126,7 @@ for (const b of BUSINESSES) {
       category_label, working_hours, status, verification_level, approved_at, is_demo)
     values (${lit(id)}, ${lit(ownerId)}, ${lit(b.slug)}, ${lit(b.name)}, ${lit(b.desc)}, ${lit("+" + b.phone)}, ${lit(b.address)},
       ${locExpr}, ${nbExpr}, ${lit(`{${b.kinds.join(",")}}`)}::text[], ${lit(b.label)}, ${jsonLit(b.hours)}, 'approved', ${b.level}, now(), true)
-    on conflict (owner_id) do update set slug = excluded.slug, name = excluded.name, description = excluded.description,
+    on conflict (id) do update set slug = excluded.slug, name = excluded.name, description = excluded.description,
       phone = excluded.phone, address = excluded.address, location = excluded.location, neighbourhood_id = excluded.neighbourhood_id,
       kinds = excluded.kinds, category_label = excluded.category_label, working_hours = excluded.working_hours,
       status = 'approved', verification_level = excluded.verification_level, approved_at = coalesce(public.businesses.approved_at, now()),

@@ -1,17 +1,29 @@
 import Link from "next/link";
-import { Info } from "lucide-react";
+import { ArrowLeftRight, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { routes } from "@/core/routes";
 
-/** Shown on an owner tool that does not fit the business type (e.g. rooms for a cafe). */
-export function WrongVerticalNote({ text }: { text: string }) {
+/**
+ * Shown on an owner tool that does not fit the active business type (e.g. rooms for a cafe). When the owner has
+ * another business the tool fits, offers switching to it first.
+ */
+export function WrongVerticalNote({ text, alternatives = [], next }: { text: string; alternatives?: Array<{ id: string; name: string }>; next?: string }) {
   return (
     <div className="flex flex-col items-center rounded-3xl bg-card px-5 py-8 text-center shadow-soft ring-1 ring-foreground/[0.05]">
       <Info className="size-9 text-primary/60" strokeWidth={1.5} aria-hidden />
       <p className="mt-3 max-w-sm text-[15px] leading-relaxed">{text}</p>
-      <Button asChild variant="outline" className="mt-5">
-        <Link href={routes.business.edit()}>İşletme türünü değiştir</Link>
-      </Button>
+      <div className="mt-5 flex w-full max-w-xs flex-col gap-2">
+        {alternatives.map((b) => (
+          <Button key={b.id} asChild>
+            <a href={routes.business.select(b.id, next)}>
+              <ArrowLeftRight /> {b.name} işletmesine geç
+            </a>
+          </Button>
+        ))}
+        <Button asChild variant="outline">
+          <Link href={routes.business.edit()}>İşletme türünü değiştir</Link>
+        </Button>
+      </div>
     </div>
   );
 }

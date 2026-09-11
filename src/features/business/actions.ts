@@ -8,18 +8,21 @@ import { BUSINESS_CACHE_TAG } from "./lib/cache-tags";
 
 /**
  * Server Action: call after the owner changed their business (page info, photos, hours, vacation mode, review
- * replies, menu, rooms, events). Expires the cached public data so /firma/<slug>, /menu/<slug>, the Keşfet lists and
- * the event pages show the change right away. Only works for a signed-in user who owns a business.
+ * replies, menu, rooms, services, events). Expires the cached public data so /firma/<slug>, /menu/<slug>, the Keşfet
+ * lists and the event pages show the change right away. Revalidates every business the user owns (an owner can have
+ * several). Only works for a signed-in user who owns a business.
  */
 export async function refreshMyBusinessPages(): Promise<{ ok: boolean }> {
   const user = await getCurrentUser();
   if (!user) return { ok: false };
   const supabase = await createClient();
-  const { data } = await supabase.from("businesses").select("slug").eq("owner_id", user.id).limit(1).maybeSingle();
-  if (!data) return { ok: false };
+  const { data } = await supabase.from("businesses").select("slug").eq("owner_id", user.id).limit(20);
+  if (!data?.length) return { ok: false };
   updateTag(BUSINESS_CACHE_TAG);
-  revalidatePath(routes.businesses.detail(data.slug));
-  revalidatePath(routes.businesses.menu(data.slug));
+  for (const b of data) {
+    revalidatePath(routes.businesses.detail(b.slug));
+    revalidatePath(routes.businesses.menu(b.slug));
+  }
   revalidatePath(routes.businesses.root());
   revalidatePath("/kesfet/[tur]", "page");
   revalidatePath(routes.events.root());

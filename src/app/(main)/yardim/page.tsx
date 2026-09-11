@@ -17,11 +17,16 @@ export const metadata: Metadata = {
   alternates: { canonical: routes.content.help() },
 };
 
+const BUSINESS_Q = "İşletmemi nasıl eklerim?";
+/** Answer while business sign-ups are open (app setting); the FAQ entry below is the "paused" answer. */
+const BUSINESS_OPEN_A =
+  "Profil > \"İşletmen mi var?\" kartından ya da İşletme paneli > Yeni işletme ekle adımından birkaç dakikada işletmeni açabilirsin; bilgilerini gönderdiğin anda sayfan yayına girer. Bir hesapla 10 işletmeye kadar (örneğin kafe, otel ve hizmet firması) açabilirsin.";
+
 const FAQ: Array<{ q: string; a: string }> = [
   { q: "Uygulamada neden mesajlaşma yok?", a: `${APP_NAME}'de iletişim yalnızca telefonla yapılır. Böylece dolandırıcılık ve spam mesajların önüne geçiyoruz. İlan ve işletme sayfalarındaki "Ara" butonunu kullanabilirsin.` },
   { q: "İlanım neden yayına alınmadı?", a: "Yasaklı kategorideki (emlak, vasıta, ilaç, silah, canlı hayvan, alkol, tütün) ya da eksik bilgili ilanlar yayına alınmaz. Profil > İlanlarım sayfasında ret nedenini görebilir, düzeltip tekrar gönderebilirsin." },
   { q: "Nöbetçi eczane bilgisi nereden geliyor?", a: "Nöbet listeleri resmi kaynaklardan günlük olarak alınır. Gitmeden önce eczaneyi aramanı öneririz." },
-  { q: "İşletmemi nasıl eklerim?", a: "Yeni işletme başvuruları yakında açılacak. Şimdilik bu sayfadaki \"İşletme ekletme\" formundan bize yazabilirsin; ekibimiz seni arar." },
+  { q: BUSINESS_Q, a: "Yeni işletme başvuruları yakında açılacak. Şimdilik bu sayfadaki \"İşletme ekletme\" formundan bize yazabilirsin; ekibimiz seni arar." },
   { q: "Reklam vermek istiyorum, ne yapmalıyım?", a: "\"Reklam ve iş birliği\" formunu doldur. Ana sayfa vitrini, kategori öne çıkarma ve etkinlik tanıtımı gibi seçenekleri seninle konuşuruz." },
   { q: "Hesabımı nasıl silerim?", a: "Profil > Ayarlar > Hesabı sil adımlarını izleyebilirsin. Silme işlemi telefonuna gelen kod ile onaylanır ve geri alınamaz." },
   { q: "Bir ilan ya da işletmeyi nasıl şikayet ederim?", a: "İlgili sayfadaki ⋯ menüsünden \"Şikayet et\"i seç ya da bu sayfadaki \"Şikayet bildir\" formunu kullan." },
@@ -62,7 +67,7 @@ export default async function HelpPage({ searchParams }: Props) {
         <section>
           <h2 className="mb-2 text-lg font-semibold">Sık sorulan sorular</h2>
           <Accordion type="single" collapsible className="rounded-3xl bg-card px-4 shadow-soft ring-1 ring-foreground/[0.05]">
-            {FAQ.map((f, i) => (
+            {FAQ.map((f) => (f.q === BUSINESS_Q && settings.businessApplications ? { ...f, a: BUSINESS_OPEN_A } : f)).map((f, i) => (
               <AccordionItem key={f.q} value={`s${i}`}>
                 <AccordionTrigger className="text-left text-[15px] font-semibold">{f.q}</AccordionTrigger>
                 <AccordionContent className="text-[15px] leading-relaxed text-muted-foreground">{f.a}</AccordionContent>

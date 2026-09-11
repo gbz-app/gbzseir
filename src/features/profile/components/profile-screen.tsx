@@ -14,6 +14,7 @@ import {
   Heart,
   LogOut,
   Megaphone,
+  Plus,
   Settings,
   ShieldCheck,
   Store,
@@ -159,8 +160,8 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
   }
 
   const first = profile?.full_name?.trim().split(/\s+/)[0];
-  const pending = businesses.find((b) => b.status === "pending");
-  const rejected = businesses.find((b) => b.status === "rejected");
+  const liveCount = businesses.filter((b) => b.status === "approved").length;
+  const unfinished = businesses.find((b) => b.status === "pending" || b.status === "rejected");
 
   let promo: Promo | null = null;
   if (!user) {
@@ -172,22 +173,20 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
       icon: UserRound,
     };
   } else if (approved) {
-    promo = { title: "İşletme paneli", text: `${approved.name} · talepler ve istatistikler`, cta: "Panele git", href: routes.business.root(), icon: Store };
-  } else if (pending) {
     promo = {
-      title: "Başvurun inceleniyor",
-      text: "Genelde 1 iş günü içinde sonuçlanır. Onaylanınca bildirim alacaksın.",
-      cta: "Durumu gör",
+      title: "İşletme paneli",
+      text: liveCount > 1 ? `${liveCount} işletme · talepler ve istatistikler` : `${approved.name} · talepler ve istatistikler`,
+      cta: "Panele git",
       href: routes.business.root(),
-      icon: Clock,
-    };
-  } else if (rejected && applicationsOpen) {
-    promo = {
-      title: "Başvurun onaylanmadı",
-      text: "Bilgileri düzeltip tekrar gönderebilirsin.",
-      cta: "Başvuruyu düzenle",
-      href: routes.business.apply(),
       icon: Store,
+    };
+  } else if (unfinished) {
+    promo = {
+      title: "İşletmen henüz yayında değil",
+      text: "Bilgilerini tamamla, işletme sayfan hemen yayına girsin.",
+      cta: "Tamamla",
+      href: routes.business.applyEdit(unfinished.id),
+      icon: Clock,
     };
   } else if (!promoDismissed && applicationsOpen) {
     promo = {
@@ -251,6 +250,7 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
           <Row icon={UserRound} label="Kişisel bilgiler" href={routes.profile.edit()} />
           <Row icon={Tag} label="İlanlarım" href={routes.profile.listings()} />
           {approved ? <Row icon={Briefcase} label="İş ilanlarım" href={routes.profile.jobs()} /> : null}
+          {businesses.length > 0 && applicationsOpen && !businesses.some((b) => b.status === "suspended") ? <Row icon={Plus} label="Yeni işletme ekle" href={routes.business.apply()} /> : null}
           <Row icon={ClipboardList} label="Hizmet taleplerim" href={routes.profile.requests()} />
           <Row icon={Heart} label="Favorilerim" href={routes.profile.favorites()} />
           <Row icon={Bell} label="Bildirimler" href={routes.profile.notifications()} badge={count} />

@@ -51,6 +51,7 @@ export function useMyBusinesses(): { businesses: BusinessSummary[]; loading: boo
       .from("businesses")
       .select("*")
       .eq("owner_id", user.id)
+      .order("created_at")
       .then(({ data }) => {
         if (active) setState({ uid: user.id, list: (data as BusinessSummary[] | null) ?? [] });
       });

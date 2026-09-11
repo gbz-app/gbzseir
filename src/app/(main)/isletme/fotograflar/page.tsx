@@ -14,6 +14,8 @@ export default async function BusinessPhotosPage() {
   const { user } = await requireProfile(routes.business.photos());
   const b = await getOwnerBusiness();
   if (!b) redirect(routes.business.intro());
+  // Unfinished / suspended businesses are completed from the panel (an edit here would not publish them).
+  if (b.status !== "approved") redirect(routes.business.root());
 
   return (
     <>

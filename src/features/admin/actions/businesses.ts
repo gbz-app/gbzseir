@@ -63,15 +63,16 @@ export async function setBusinessStatusAction(input: z.input<typeof statusSchema
             user_id: current.owner_id,
             type: "business_suspended",
             title: "İşletmen askıya alındı",
-            body: "İşletme sayfan geçici olarak yayından kaldırıldı. Ayrıntı için destek ekibiyle iletişime geç.",
-            link: routes.business.root(),
+            body: `${current.name} geçici olarak yayından kaldırıldı. Ayrıntı için destek ekibiyle iletişime geç.`,
+            // An owner can have several businesses: the link makes this one active in the panel.
+            link: routes.business.select(businessId),
           }
         : {
             user_id: current.owner_id,
             type: "business_approved",
             title: "İşletmen yeniden yayında",
             body: `${current.name} tekrar görünür durumda.`,
-            link: routes.business.root(),
+            link: routes.business.select(businessId),
           },
     );
     await revalidateBusiness(supabase, businessId);

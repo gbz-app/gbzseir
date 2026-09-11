@@ -52,7 +52,10 @@ export function NotificationsList({ items }: { items: NotificationItem[] }) {
           () => undefined,
         );
     }
-    if (n.link && n.link.startsWith("/")) router.push(n.link);
+    if (!n.link || !n.link.startsWith("/")) return;
+    // /isletme/sec is a route handler that switches the active business (cookie) and redirects: full navigation.
+    if (n.link.startsWith("/isletme/sec")) window.location.assign(n.link);
+    else router.push(n.link);
   };
 
   const markAll = async () => {

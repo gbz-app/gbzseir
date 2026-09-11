@@ -24,6 +24,7 @@ import {
   SlidersHorizontal,
   Star,
   Store,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -36,8 +37,10 @@ import { formatRating } from "@/features/business/components/rating";
 import { VacationToggle } from "@/features/business/components/vacation-toggle";
 import { MIN_PORTFOLIO_PHOTOS, businessChecklist, type ChecklistKey } from "@/features/business/lib/completeness";
 import { KIND_SHORT_LABELS } from "@/features/business/lib/kinds";
-import { getOwnerBusiness } from "@/features/business/lib/owner-queries";
+import { BusinessSwitcher } from "@/features/business/components/business-switcher";
+import { getOwnerBusiness, getOwnerBusinessList } from "@/features/business/lib/owner-queries";
 import { hasMenu, hasRooms, resolveVertical } from "@/features/business/lib/verticals";
+import { getAppSettings } from "@/lib/app-settings";
 
 export const metadata: Metadata = { title: "İşletme Paneli", robots: { index: false } };
 
@@ -129,22 +132,26 @@ export default async function BusinessPanelPage() {
   await requireProfile(routes.business.root());
   const b = await getOwnerBusiness();
   if (!b) redirect(routes.business.intro());
+  const [owned, settings] = await Promise.all([getOwnerBusinessList(), getAppSettings()]);
+  // A suspended owner cannot open a new business (apply_business refuses it too).
+  const canAdd = settings.businessApplications && !owned.some((x) => x.status === "suspended");
 
   if (b.status !== "approved") {
     return (
       <>
         <PageHeader title="İşletme Paneli" subtitle={b.name} backHref={routes.profile.root()} />
-        <div className="px-4 pt-5 pb-8">
+        <div className="flex flex-col gap-4 px-4 pt-4 pb-8">
+          <BusinessSwitcher businesses={owned} activeId={b.id} canAdd={canAdd} />
           {b.status === "pending" ? (
             <StatusCard
               icon={Clock}
               tone="bg-highlight-soft text-highlight-foreground"
-              title="Başvurun inceleniyor"
-              text="Ekibimiz başvurunu genelde 1 iş günü içinde inceler. Onaylanınca bildirim alacaksın."
+              title="İşletmen henüz yayında değil"
+              text="Bilgilerini tamamlayıp gönderdiğinde işletme sayfan hemen yayına girer."
               action={
-                <Button asChild variant="outline" className="mt-2">
-                  <Link href={routes.business.apply()}>
-                    <Pencil /> Başvuruyu düzenle
+                <Button asChild className="mt-2">
+                  <Link href={routes.business.applyEdit(b.id)}>
+                    <Pencil /> Bilgileri tamamla ve yayına al
                   </Link>
                 </Button>
               }
@@ -153,16 +160,16 @@ export default async function BusinessPanelPage() {
             <StatusCard
               icon={CircleAlert}
               tone="bg-destructive/10 text-destructive"
-              title="Başvurun onaylanmadı"
+              title="İşletmen yayından kaldırıldı"
               text={
                 <>
-                  <p>{b.rejection_reason ?? "Başvurunda eksik ya da hatalı bilgi var."}</p>
-                  <p className="mt-2">Bilgileri düzeltip tekrar gönderebilirsin.</p>
+                  <p>{b.rejection_reason ?? "İşletme bilgilerinde eksik ya da hatalı bilgi var."}</p>
+                  <p className="mt-2">Bilgileri düzeltip gönderdiğinde tekrar yayına girer.</p>
                 </>
               }
               action={
                 <Button asChild className="mt-2">
-                  <Link href={routes.business.apply()}>Başvuruyu düzenle ve gönder</Link>
+                  <Link href={routes.business.applyEdit(b.id)}>Bilgileri düzelt ve yayına al</Link>
                 </Button>
               }
             />
@@ -185,7 +192,7 @@ export default async function BusinessPanelPage() {
   }
 
   const supabase = await createClient();
-  const { data } = await supabase.rpc("business_panel_stats");
+  const { data } = await supabase.rpc("business_panel_stats", { p_business_id: b.id });
   const stats = (data ?? {}) as Stats;
   const isService = b.kinds.includes("service");
   const isEmployer = b.kinds.includes("employer");
@@ -228,6 +235,7 @@ export default async function BusinessPanelPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 px-4 pt-4 pb-8">
+        <BusinessSwitcher businesses={owned} activeId={b.id} canAdd={canAdd} className="col-span-2" />
         {isService ? (
           <StatTile
             href={routes.business.leads()}
@@ -339,6 +347,7 @@ export default async function BusinessPanelPage() {
           <ul className="divide-y">
             {isService ? <MenuRow href={routes.business.leads()} icon={ClipboardList} label="Gelen talepler" badge={stats.leads_waiting} /> : null}
             <MenuRow href={routes.business.edit()} icon={Pencil} label="İşletme sayfamı düzenle" />
+            {isService || vertical === "hizmet" ? <MenuRow href={routes.business.services()} icon={Wrench} label="Hizmetlerim ve fiyatlar" /> : null}
             {hasMenu(vertical) ? <MenuRow href={routes.business.menu()} icon={QrCode} label="Menü ve QR menü" /> : null}
             {hasRooms(vertical) ? <MenuRow href={routes.business.rooms()} icon={BedDouble} label="Odalar" /> : null}
             <MenuRow href={routes.business.photos()} icon={ImagePlus} label="Fotoğraflar ve galeri" />
@@ -346,6 +355,7 @@ export default async function BusinessPanelPage() {
             <MenuRow href={routes.business.reviews()} icon={Star} label="Yorumlar" badge={unreplied} />
             {isEmployer ? <MenuRow href={routes.profile.jobs()} icon={Briefcase} label="İş ilanlarım" /> : null}
             <MenuRow href={routes.content.help("reklam")} icon={Megaphone} label="Reklam ve öne çıkma" />
+            {canAdd ? <MenuRow href={routes.business.apply()} icon={Plus} label="Yeni işletme ekle" /> : null}
             <li>
               <VacationToggle businessId={b.id} initial={b.vacation_mode} />
             </li>

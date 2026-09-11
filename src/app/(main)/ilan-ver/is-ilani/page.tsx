@@ -17,18 +17,21 @@ export default async function PostJobPage({ searchParams }: Props) {
   const path = editParam ? withQuery(routes.listings.postJob(), { duzenle: editParam }) : routes.listings.postJob();
   const { user } = await requireProfile(path);
 
-  const business = await getMyBusiness(user.id);
-  if (!business || business.status !== "approved") redirect(routes.listings.post());
-
-  const sectors = (await safeCategories()).filter((c) => c.type === "job");
   let initial: JobDraft | null = null;
   let editId: string | null = null;
+  let listingBusinessId: string | null = null;
   if (editParam) {
     const own = await getOwnListing(user.id, editParam);
     if (!own || own.type !== "job") notFound();
     editId = own.id;
     initial = jobDraftFromDetail(own);
+    listingBusinessId = own.business_id;
   }
+
+  // An owner can have several businesses: an edit keeps the ad's own business, a new ad uses the active one.
+  const business = await getMyBusiness(user.id, listingBusinessId);
+  if (!business || business.status !== "approved") redirect(routes.listings.post());
+  const sectors = (await safeCategories()).filter((c) => c.type === "job");
 
   return (
     <JobWizard

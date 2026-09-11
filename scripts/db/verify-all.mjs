@@ -155,21 +155,29 @@ try {
       p_name: "Test İşletmesi", p_kinds: ["service", "employer"], p_phone: "0532 000 00 00", p_category_label: "Temizlik",
       p_neighbourhood_id: ref.hh_id, p_service_category_ids: [ref.ev_id], p_service_area_ids: [ref.hh_id],
     }, tmp.access_token);
-    check("apply_business -> pending", ap2.body?.ok === true && ap2.body.status === "pending", short(ap2.body));
+    check("apply_business -> live immediately", ap2.body?.ok === true && ap2.body.status === "approved", short(ap2.body));
     const bid = ap2.body?.business_id;
-    await rest(`businesses?id=eq.${bid}`, { method: "PATCH", body: { status: "approved", verification_level: 3, description: "Açıklama" }, token: tmp.access_token });
+    await rest(`businesses?id=eq.${bid}`, { method: "PATCH", body: { verification_level: 3, description: "Açıklama" }, token: tmp.access_token });
     const [bs] = await sql(`select status, verification_level, description, phone from public.businesses where id = ${lit(bid)}`);
-    check("owner cannot self-approve business (safe fields still editable)", bs?.status === "pending" && bs.verification_level === 0 && bs.description === "Açıklama" && bs.phone === "+905320000000", short(bs));
-    const second = await rest("businesses", { method: "POST", body: { name: "İkinci İşletme", owner_id: tmp.user.id, status: "approved" }, token: tmp.access_token });
-    check("second business for same user rejected", second.status >= 400, `status ${second.status}`);
-    const pubB = await rest(`businesses?select=id&id=eq.${bid}`);
+    check("owner cannot self-verify business (safe fields still editable)", bs?.status === "approved" && bs.verification_level === 0 && bs.description === "Açıklama" && bs.phone === "+905320000000", short(bs));
+    const ap3 = await rpc("apply_business", { p_name: "Test Kafe", p_kinds: [], p_vertical: "kafe", p_phone: "0532 000 00 01", p_neighbourhood_id: ref.hh_id }, tmp.access_token);
+    check("second business for same user (multi-business) goes live", ap3.body?.ok === true && ap3.body.status === "approved" && ap3.body.business_id !== bid, short(ap3.body));
+    const bid2 = ap3.body?.business_id;
+    const second = await rest("businesses", { method: "POST", body: { name: "Doğrudan İşletme", owner_id: tmp.user.id, status: "approved" }, token: tmp.access_token });
+    check("direct REST insert is refused (apply_business only)", second.status === 401 || second.status === 403, `status ${second.status}`);
+    // A business can still be pending (an unfinished one the owner edited): simulate it.
+    await sql(`update public.businesses set status = 'pending' where id = ${lit(bid2)}`);
+    const bidPending = bid2;
+    const pubB = await rest(`businesses?select=id&id=eq.${bidPending}`);
     check("pending business hidden from anon", pubB.body?.length === 0);
-    const rb = await rpc("admin_review_business", { p_business_id: bid, p_approve: true }, admin.access_token);
+    const rb = await rpc("admin_review_business", { p_business_id: bidPending, p_approve: true }, admin.access_token);
     check("admin_review_business approve", rb.body?.ok === true && rb.body.status === "approved", short(rb.body));
     const bnote = await rest("notifications?select=title&type=eq.business_approved", { token: tmp.access_token });
     check("owner notified 'İşletmen yayında!'", bnote.body?.[0]?.title === "İşletmen yayında!", short(bnote.body?.[0]));
     const jobOk = await rest("listings", { method: "POST", token: tmp.access_token, body: { type: "job", category_id: ref.job_cat, title: "Test eleman ilanı", description: "Deneme ilanı", job_work_type: "tam_zamanli", job_benefits: ["sgk"] } });
-    check("approved business can post a job (business_id set)", jobOk.status === 201 && jobOk.body?.[0]?.business_id === bid, `status ${jobOk.status} ${short(jobOk.body?.[0]?.status ?? jobOk.body)}`);
+    check("job without business_id -> oldest approved business", jobOk.status === 201 && jobOk.body?.[0]?.business_id === bid, `status ${jobOk.status} ${short(jobOk.body?.[0]?.status ?? jobOk.body)}`);
+    const jobPick = await rest("listings", { method: "POST", token: tmp.access_token, body: { type: "job", category_id: ref.job_cat, title: "Kafe eleman ilanı", description: "Deneme ilanı", job_work_type: "tam_zamanli", business_id: bid2 } });
+    check("job for a chosen business keeps that business", jobPick.status === 201 && jobPick.body?.[0]?.business_id === bid2, `status ${jobPick.status}`);
     const mr = await rpc("mark_notifications_read", {}, tmp.access_token);
     check("mark_notifications_read", typeof mr.body === "number" && mr.body >= 1, short(mr.body));
   } else {

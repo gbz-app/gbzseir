@@ -1,13 +1,18 @@
 import "server-only";
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import type { BusinessKind, BusinessStatus } from "@/lib/types";
+import { ACTIVE_BUSINESS_COOKIE, pickActiveBusiness } from "./active-business";
 import { parseKinds } from "./kinds";
 import type { BusinessPhoto } from "./queries";
+import { SERVICE_COLUMNS, toBusinessService, type BusinessService, type RawBusinessService } from "./service-catalog";
+import { resolveVertical, type Vertical } from "./verticals";
 
 /**
- * The signed-in owner's business (any status), read with the user's session (RLS: owner reads own).
+ * The signed-in owner's businesses (any status), read with the user's session (RLS: owner reads own).
+ * An owner can have several (cafe + hotel + service firm); the panel works on the active one.
  * Never selects the geography column.
  */
 
@@ -65,19 +70,68 @@ type Raw = Omit<OwnerBusiness, "kinds" | "status" | "rating_avg" | "amenities" |
 
 const STATUSES: BusinessStatus[] = ["pending", "approved", "rejected", "suspended"];
 
-/** Current user's business with relations, or null (guest / no business). Deduped per request. */
-export const getOwnerBusiness = cache(async (): Promise<OwnerBusiness | null> => {
+/** Light row for the business switcher and "switch to" hints. */
+export type OwnerBusinessBrief = {
+  id: string;
+  slug: string;
+  name: string;
+  logo_url: string | null;
+  status: BusinessStatus;
+  vertical: Vertical;
+  kinds: BusinessKind[];
+};
+
+/** Every business of the signed-in user, oldest first (an owner can have several). Deduped per request. */
+export const getOwnerBusinessList = cache(async (): Promise<OwnerBusinessBrief[]> => {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("businesses").select("id,slug,name,logo_url,status,vertical,kinds").eq("owner_id", user.id).order("created_at");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((b) => {
+    const kinds = parseKinds(b.kinds);
+    return {
+      id: b.id,
+      slug: b.slug,
+      name: b.name,
+      logo_url: b.logo_url,
+      status: (STATUSES as string[]).includes(b.status) ? (b.status as BusinessStatus) : "pending",
+      vertical: resolveVertical(b.vertical, kinds),
+      kinds,
+    };
+  });
+});
+
+/** Id of the business the panel shows: the one remembered in the cookie (if still owned), else the first approved. */
+export const getActiveBusinessId = cache(async (): Promise<string | null> => {
+  const list = await getOwnerBusinessList();
+  if (list.length === 0) return null;
+  const remembered = (await cookies()).get(ACTIVE_BUSINESS_COOKIE)?.value;
+  return pickActiveBusiness(list, remembered)?.id ?? null;
+});
+
+/** Other approved businesses of the owner that match `fits` (for "<name> işletmesine geç" hints on owner tools). */
+export async function getOtherOwnedBusinesses(currentId: string, fits: (b: OwnerBusinessBrief) => boolean): Promise<OwnerBusinessBrief[]> {
+  return (await getOwnerBusinessList()).filter((b) => b.id !== currentId && b.status === "approved" && fits(b));
+}
+
+/**
+ * The active business of the current user with relations (or the given one, when the user owns it), null for guests
+ * and users without a business. Deduped per request.
+ */
+export const getOwnerBusiness = cache(async (businessId?: string): Promise<OwnerBusiness | null> => {
   const user = await getCurrentUser();
   if (!user) return null;
+  const id = businessId ?? (await getActiveBusinessId());
+  if (!id) return null;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("businesses")
     .select(
       `${OWNER_COLUMNS},neighbourhoods!businesses_neighbourhood_id_fkey(name),business_service_categories(category_id),business_service_areas(neighbourhood_id),business_photos(id,url,sort)`,
     )
+    .eq("id", id)
     .eq("owner_id", user.id)
-    .order("created_at")
-    .limit(1)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
@@ -96,3 +150,11 @@ export const getOwnerBusiness = cache(async (): Promise<OwnerBusiness | null> =>
     photos: [...(business_photos ?? [])].sort((a, b) => a.sort - b.sort),
   };
 });
+
+/** Full service catalog (hidden rows too) of an owned business, read with the owner's session. */
+export async function getOwnerServices(businessId: string): Promise<BusinessService[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("business_services").select(SERVICE_COLUMNS).eq("business_id", businessId).order("sort");
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as RawBusinessService[]).map(toBusinessService);
+}

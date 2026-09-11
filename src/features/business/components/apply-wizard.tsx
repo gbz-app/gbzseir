@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
-import { CircleAlert, Clock, FileCheck, Info, MapPin, Pencil, Phone, Wrench } from "lucide-react";
+import { Briefcase, Check, CircleAlert, Clock, FileCheck, Info, MapPin, Pencil, Phone, Wrench } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Wizard, type WizardStep, type WizardStepContext } from "@/components/wizard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
 import { createClient } from "@/lib/supabase/client";
@@ -17,7 +18,7 @@ import type { LatLng } from "@/core/geo";
 import { routes } from "@/core/routes";
 import type { BusinessKind } from "@/lib/types";
 import { hoursToJson, summarizeHours, validateHours, type WorkingHours } from "../lib/hours";
-import { KIND_LABELS, KIND_SHORT_LABELS } from "../lib/kinds";
+import { BUSINESS_VERTICALS, VERTICAL_INFO, type Vertical } from "../lib/verticals";
 import { BusinessLogo } from "./business-logo";
 import { AreaPicker } from "./editor/area-picker";
 import { CategoryPicker, useServiceCategoryNames } from "./editor/category-picker";
@@ -25,12 +26,13 @@ import { DocUpload, type UploadedDoc } from "./editor/doc-upload";
 import { CharCount, Field } from "./editor/field";
 import { HoursEditor } from "./editor/hours-editor";
 import { BusinessImagePicker, type PickedImage } from "./editor/image-picker";
-import { KindsPicker } from "./editor/kinds-picker";
 import { LocationPicker } from "./editor/location-picker";
 import { PhoneField, businessPhoneE164 } from "./editor/phone-field";
 
 export type ApplyData = {
+  /** Derived from the vertical (+ "employer" when the owner also hires). */
   kinds: BusinessKind[];
+  vertical: Vertical | null;
   name: string;
   categoryLabel: string;
   description: string;
@@ -48,14 +50,16 @@ export type ApplyData = {
 
 export type ApplyWizardProps = {
   initial: ApplyData;
-  /** Editing a pending/rejected application (no local draft, old files are kept). */
+  /** Finishing this pending/rejected business of the user instead of opening a new one. */
+  businessId: string | null;
+  /** Editing an existing business (no local draft, old files are kept). */
   resubmit: boolean;
   rejectionReason: string | null;
 };
 
 type Ctx = WizardStepContext<ApplyData>;
 
-const DRAFT_KEY = "isletme-basvuru";
+const DRAFT_KEY = "isletme-basvuru-v2";
 const NAME_MAX = 80;
 const LABEL_MAX = 60;
 const DESC_MAX = 2000;
@@ -63,43 +67,106 @@ const ADDRESS_MAX = 200;
 
 const RESULT_MESSAGES: Record<string, string> = {
   invalid_kinds: "Geçerli bir işletme türü seç.",
+  invalid_vertical: "Geçerli bir işletme türü seç.",
   invalid_phone: "İşletme telefonu geçersiz görünüyor. Kontrol edip tekrar dene.",
   categories_required: "Hizmet veren firmalar için en az bir hizmet kategorisi seçmelisin.",
-  already_exists: "Zaten onaylı bir işletme hesabın var.",
+  too_many: "Bir hesaba en fazla 10 işletme eklenebilir.",
+  not_editable: "Bu işletme zaten yayında. Bilgilerini işletme panelinden düzenleyebilirsin.",
+  not_found: "İşletme bulunamadı.",
+  suspended: "İşletme hesabın askıya alındığı için yeni işletme açamazsın. Destek ekibiyle iletişime geç.",
 };
 
-const LABEL_PLACEHOLDER: Record<BusinessKind, string> = {
-  service: "Örn. Ev temizliği, Boya badana",
-  shop: "Örn. Kırtasiye, Telefon aksesuarı",
-  employer: "Örn. Tekstil üretimi, Lojistik",
+const LABEL_PLACEHOLDER: Record<Vertical, string> = {
+  yemek: "Örn. Ev yemekleri, Dürüm ve kebap",
+  restoran: "Örn. Balık restoranı, Ocakbaşı",
+  kafe: "Örn. Kahve ve kahvaltı",
+  otel: "Örn. Butik otel, Apart otel",
+  hizmet: "Örn. Ev temizliği, Boya badana",
+  magaza: "Örn. Kırtasiye, Telefon aksesuarı",
+  etkinlik: "Örn. Etkinlik alanı",
+  diger: "Örn. Oto yıkama, Kuru temizleme",
 };
+
+/** What each business type unlocks in the panel (shown under the type name). */
+const VERTICAL_HINT: Record<Vertical, string> = {
+  yemek: "Menü ve QR menü",
+  restoran: "Menü ve QR menü",
+  kafe: "Menü ve QR menü",
+  otel: "Odalar ve gecelik fiyatlar",
+  hizmet: "Hizmet listesi ve müşteri talepleri",
+  magaza: "Dükkan sayfası ve galeri",
+  etkinlik: "Etkinlikler",
+  diger: "İşletme sayfası ve galeri",
+};
+
+/** Kinds follow the vertical: service firms receive leads, every other type is a place customers visit; hiring is opt-in. */
+function kindsFor(vertical: Vertical | null, employer: boolean): BusinessKind[] {
+  const main: BusinessKind = vertical === "hizmet" ? "service" : "shop";
+  return employer ? [main, "employer"] : [main];
+}
 
 function TypeStep({ ctx, rejectionReason, resubmit }: { ctx: Ctx; rejectionReason: string | null; resubmit: boolean }) {
+  const { data, setData } = ctx;
+  const employer = data.kinds.includes("employer");
   return (
     <div className="flex flex-col gap-4">
       {rejectionReason ? (
         <div role="note" className="flex items-start gap-3 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <CircleAlert className="mt-0.5 size-5 shrink-0" aria-hidden />
           <p>
-            <strong className="block">Başvurun onaylanmadı</strong>
+            <strong className="block">İşletmen yayından kaldırıldı</strong>
             <span className="text-foreground">{rejectionReason}</span>
-            <span className="mt-1 block text-foreground/80">Bilgilerini düzeltip yeniden gönderebilirsin.</span>
+            <span className="mt-1 block text-foreground/80">Bilgilerini düzeltip gönderdiğinde tekrar yayına girer.</span>
           </p>
         </div>
       ) : resubmit ? (
         <div role="note" className="flex items-start gap-3 rounded-2xl bg-info-soft px-4 py-3 text-sm">
           <Info className="mt-0.5 size-5 shrink-0 text-info" aria-hidden />
-          <p>Başvurun inceleniyor. Bilgilerini güncelleyip yeniden gönderebilirsin.</p>
+          <p>İşletmen henüz yayında değil. Bilgilerini tamamlayıp gönderdiğinde hemen yayına girer.</p>
         </div>
       ) : null}
-      <KindsPicker value={ctx.data.kinds} onChange={(kinds) => ctx.setData({ kinds })} />
+      <div role="radiogroup" aria-label="İşletme türü" className="grid grid-cols-2 gap-2.5">
+        {BUSINESS_VERTICALS.map((v) => {
+          const info = VERTICAL_INFO[v];
+          const selected = data.vertical === v;
+          return (
+            <button
+              key={v}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => setData({ vertical: v, kinds: kindsFor(v, employer) })}
+              className={cn(
+                "relative flex flex-col items-start gap-2 rounded-2xl bg-card p-3.5 text-left ring-1 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                selected ? "bg-brand-soft/50 ring-2 ring-primary" : "ring-foreground/10 hover:bg-muted/60",
+              )}
+            >
+              <span className={cn("flex size-10 items-center justify-center rounded-xl", info.tone)}>
+                <info.icon className="size-5" aria-hidden />
+              </span>
+              <span className="leading-tight font-semibold">{info.label}</span>
+              <span className="text-xs leading-snug text-muted-foreground">{VERTICAL_HINT[v]}</span>
+              {selected ? <Check className="absolute top-3 right-3 size-4 text-primary" aria-hidden /> : null}
+            </button>
+          );
+        })}
+      </div>
+      <label className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
+        <span className="flex items-start gap-3">
+          <Briefcase className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
+          <span>
+            <span className="block font-semibold">Personel de arıyorum</span>
+            <span className="text-sm text-muted-foreground">İşletmen adına iş ilanı verebilirsin.</span>
+          </span>
+        </span>
+        <Switch checked={employer} onCheckedChange={(on) => setData({ kinds: kindsFor(data.vertical, on) })} />
+      </label>
     </div>
   );
 }
 
 function BasicsStep({ ctx, deleteReplaced, onUploading }: { ctx: Ctx; deleteReplaced: boolean; onUploading: (b: boolean) => void }) {
   const { data, setData } = ctx;
-  const mainKind = data.kinds[0] ?? "service";
   return (
     <div className="flex flex-col gap-5">
       <Field label="İşletme adı" htmlFor="biz-name">
@@ -120,7 +187,7 @@ function BasicsStep({ ctx, deleteReplaced, onUploading }: { ctx: Ctx; deleteRepl
           id="biz-label"
           value={data.categoryLabel}
           maxLength={LABEL_MAX}
-          placeholder={LABEL_PLACEHOLDER[mainKind]}
+          placeholder={LABEL_PLACEHOLDER[data.vertical ?? "hizmet"]}
           onChange={(e) => setData({ categoryLabel: e.target.value })}
           className="h-12"
         />
@@ -242,18 +309,24 @@ function PreviewStep({ ctx }: { ctx: Ctx }) {
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {data.kinds.map((k) => (
-            <Badge key={k} variant="secondary" className="h-6 px-2.5">
-              {KIND_SHORT_LABELS[k]}
+          {data.vertical ? (
+            <Badge variant="secondary" className="h-6 px-2.5">
+              {VERTICAL_INFO[data.vertical].label}
             </Badge>
-          ))}
+          ) : null}
+          {data.kinds.includes("employer") ? (
+            <Badge variant="secondary" className="h-6 px-2.5">
+              İş ilanı
+            </Badge>
+          ) : null}
         </div>
         {data.description.trim() ? <p className="mt-3 line-clamp-4 text-sm leading-relaxed whitespace-pre-line">{data.description.trim()}</p> : null}
       </div>
 
       <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
         <PreviewRow icon={Info} title="İşletme türü" onEdit={() => goTo("tur")}>
-          {data.kinds.map((k) => KIND_LABELS[k]).join(", ")}
+          {data.vertical ? VERTICAL_INFO[data.vertical].label : "Seçilmedi"}
+          {data.kinds.includes("employer") ? " · personel arıyor" : ""}
         </PreviewRow>
         <PreviewRow icon={Phone} title="İletişim ve konum" onEdit={() => goTo("iletisim")}>
           <p className="tabular-nums">{phone ? formatPhoneTR(phone) : "Telefon eksik"}</p>
@@ -283,15 +356,14 @@ function PreviewStep({ ctx }: { ctx: Ctx }) {
 
       <p className="flex items-start gap-2 rounded-2xl bg-info-soft px-4 py-3 text-sm leading-relaxed">
         <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
-        Başvurun Gebzem ekibine iletilir ve genelde 1 iş günü içinde sonuçlanır. Sonucu bildirimle haber veririz.
+        Gönderdiğinde işletme sayfan hemen yayına girer. Menü, oda, hizmet ve fotoğraflarını sonra işletme panelinden eklersin.
       </p>
     </div>
   );
 }
 
-/** H1: business application wizard (7 steps; the services step appears only for service businesses). */
-export function ApplyWizard({ initial, resubmit, rejectionReason }: ApplyWizardProps) {
-  const router = useRouter();
+/** H1: new business wizard (7 steps; the services step appears only for service businesses). Goes live on submit. */
+export function ApplyWizard({ initial, businessId, resubmit, rejectionReason }: ApplyWizardProps) {
   const uploads = React.useRef(0);
   const onUploading = React.useCallback((busy: boolean) => {
     uploads.current = Math.max(0, uploads.current + (busy ? 1 : -1));
@@ -303,8 +375,8 @@ export function ApplyWizard({ initial, resubmit, rejectionReason }: ApplyWizardP
       {
         id: "tur",
         title: "İşletme türün ne?",
-        help: "Birden fazla seçebilirsin. Seçimine göre sana uygun özellikleri açacağız.",
-        validate: (d) => (d.kinds.length ? null : "En az bir işletme türü seç."),
+        help: "Seçimine göre panelde sana uygun araçlar açılır (menü, odalar, hizmet listesi).",
+        validate: (d) => (d.vertical && d.kinds.length ? null : "İşletme türünü seç."),
         render: (ctx) => <TypeStep ctx={ctx} rejectionReason={rejectionReason} resubmit={resubmit} />,
       },
       {
@@ -354,14 +426,14 @@ export function ApplyWizard({ initial, resubmit, rejectionReason }: ApplyWizardP
       {
         id: "belgeler",
         title: "Belgeler",
-        help: "İsteğe bağlı. Vergi levhası yüklersen başvurun daha hızlı onaylanır; yoksa bu adımı geçebilirsin.",
+        help: "İsteğe bağlı. Vergi levhanı yüklersen ekibimiz işletmeni doğrulayabilir; yoksa bu adımı geçebilirsin.",
         validate: () => waitForUploads(),
         render: (ctx) => <DocUpload value={ctx.data.document} onChange={(document) => ctx.setData({ document })} onUploadingChange={onUploading} />,
       },
       {
         id: "onizleme",
         title: "Son kontrol",
-        help: "Bilgilerini gözden geçir, sonra başvurunu gönder.",
+        help: "Bilgilerini gözden geçir, sonra işletmeni yayına al.",
         render: (ctx) => <PreviewStep ctx={ctx} />,
       },
     ],
@@ -385,26 +457,21 @@ export function ApplyWizard({ initial, resubmit, rejectionReason }: ApplyWizardP
       p_lat: d.location?.lat,
       p_lng: d.location?.lng,
       p_logo_url: d.logo?.url,
+      p_vertical: d.vertical ?? undefined,
+      p_business_id: businessId ?? undefined,
     });
-    if (error) return error.message || "Başvurun gönderilemedi. Lütfen tekrar dene.";
+    if (error) return error.message || "İşletmen kaydedilemedi. Lütfen tekrar dene.";
     const result = data as { ok?: boolean; reason?: string; business_id?: string } | null;
-    if (!result?.ok) {
-      if (result?.reason === "already_exists") {
-        toast.message(RESULT_MESSAGES.already_exists);
-        router.replace(routes.business.root());
-        return;
-      }
-      return (result?.reason && RESULT_MESSAGES[result.reason]) || "Başvurun gönderilemedi. Lütfen tekrar dene.";
-    }
-    if (d.document && result.business_id) {
+    if (!result?.ok || !result.business_id) return (result?.reason && RESULT_MESSAGES[result.reason]) || "İşletmen kaydedilemedi. Lütfen tekrar dene.";
+    if (d.document) {
       const { error: docError } = await supabase
         .from("business_documents")
         .insert({ business_id: result.business_id, path: d.document.path, kind: "vergi_levhasi" });
-      if (docError) toast.error("Başvurun alındı ama belge kaydedilemedi. İnceleme sırasında ekibimiz seninle iletişime geçebilir.");
+      if (docError) toast.error("İşletmen yayında ama belge kaydedilemedi. Belgeni sonra destek ekibine iletebilirsin.");
     }
-    toast.success("Başvurun alındı");
-    router.replace(routes.business.applyDone());
-    router.refresh();
+    toast.success("İşletmen yayında!");
+    // Route handler: makes the new business the active one in the panel, then opens /isletme.
+    window.location.assign(routes.business.select(result.business_id));
   };
 
   return (
@@ -413,9 +480,9 @@ export function ApplyWizard({ initial, resubmit, rejectionReason }: ApplyWizardP
       initialData={initial}
       draftKey={resubmit ? undefined : DRAFT_KEY}
       onComplete={onComplete}
-      completeLabel="Başvuruyu Gönder"
-      title={resubmit ? "Başvuruyu düzenle" : "İşletme başvurusu"}
-      exitHref={routes.business.intro()}
+      completeLabel={resubmit ? "Kaydet ve yayına al" : "İşletmemi aç"}
+      title={resubmit ? "İşletme bilgileri" : "Yeni işletme"}
+      exitHref={resubmit ? routes.business.root() : routes.business.intro()}
     />
   );
 }

@@ -557,6 +557,62 @@ export type Database = {
           },
         ]
       }
+      business_services: {
+        Row: {
+          business_id: string
+          created_at: string
+          description: string | null
+          duration_text: string | null
+          id: string
+          is_active: boolean
+          name: string
+          photo_url: string | null
+          price_max_try: number | null
+          price_try: number | null
+          price_unit: string
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          description?: string | null
+          duration_text?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          photo_url?: string | null
+          price_max_try?: number | null
+          price_try?: number | null
+          price_unit?: string
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          description?: string | null
+          duration_text?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          photo_url?: string | null
+          price_max_try?: number | null
+          price_try?: number | null
+          price_unit?: string
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_services_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       businesses: {
         Row: {
           address: string | null
@@ -677,14 +733,14 @@ export type Database = {
           {
             foreignKeyName: "businesses_owner_id_fkey"
             columns: ["owner_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "businesses_owner_id_fkey"
             columns: ["owner_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
@@ -2314,6 +2370,7 @@ export type Database = {
       apply_business: {
         Args: {
           p_address?: string
+          p_business_id?: string
           p_category_label?: string
           p_cover_url?: string
           p_description?: string
@@ -2326,12 +2383,13 @@ export type Database = {
           p_phone?: string
           p_service_area_ids?: string[]
           p_service_category_ids?: string[]
+          p_vertical?: string
           p_working_hours?: Json
         }
         Returns: Json
       }
       business_is_public: { Args: { p_business_id: string }; Returns: boolean }
-      business_panel_stats: { Args: never; Returns: Json }
+      business_panel_stats: { Args: { p_business_id?: string }; Returns: Json }
       close_request: {
         Args: { p_code: string; p_hired_business_id?: string }
         Returns: Json

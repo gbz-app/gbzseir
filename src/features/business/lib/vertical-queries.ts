@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createPublicClient } from "./public-client";
 import { resolveVertical, type Vertical } from "./verticals";
+import { SERVICE_COLUMNS, toBusinessService, type BusinessService, type RawBusinessService } from "./service-catalog";
 
 /** Card data for the vertical list pages (/kesfet/[tur]). Anon client, ISR friendly. */
 export type VerticalCard = {
@@ -114,6 +115,15 @@ export const getBusinessRooms = cache(async (businessId: string): Promise<Room[]
     amenities: r.amenities ?? [],
     photos: r.photos ?? [],
   }));
+});
+
+export type { BusinessService };
+
+/** Active services of a firm, for the public page (anon client; RLS shows only public businesses). */
+export const getBusinessServices = cache(async (businessId: string): Promise<BusinessService[]> => {
+  const { data, error } = await createPublicClient().from("business_services").select(SERVICE_COLUMNS).eq("business_id", businessId).eq("is_active", true).order("sort");
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as RawBusinessService[]).map(toBusinessService);
 });
 
 export const listVerticalBusinesses = cache(async (vertical: Vertical): Promise<VerticalCard[]> => {

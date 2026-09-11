@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Briefcase, ChevronRight, Clock, Store, Tag, type LucideIcon } from "lucide-react";
+import { Briefcase, ChevronRight, Pencil, Store, Tag, type LucideIcon } from "lucide-react";
 import { getAppSettings } from "@/lib/app-settings";
 import { routes } from "@/core/routes";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ export default async function PostChooserPage() {
   const { user } = await requireProfile(routes.listings.post());
   const [business, settings] = await Promise.all([getMyBusiness(user.id), getAppSettings()]);
   const approved = business?.status === "approved";
+  const unfinished = business?.status === "pending" || business?.status === "rejected";
 
   return (
     <>
@@ -52,16 +53,18 @@ export default async function PostChooserPage() {
               <span className="min-w-0 flex-1">
                 <span className="block text-lg font-bold">İş İlanı</span>
                 <span className="mt-0.5 block text-sm leading-snug text-muted-foreground">
-                  {business?.status === "pending"
-                    ? "İşletme başvurun inceleniyor. Onaylanınca iş ilanı verebilirsin."
-                    : "İş ilanı vermek için onaylı işletme hesabı gerekir."}
+                  {unfinished
+                    ? "İşletmen henüz yayında değil. Bilgilerini tamamla, hemen yayına girsin; sonra iş ilanı verebilirsin."
+                    : business?.status === "suspended"
+                      ? "İşletme hesabın askıya alındığı için şu an iş ilanı veremezsin."
+                      : "İş ilanı vermek için işletme hesabı gerekir."}
                 </span>
               </span>
             </div>
-            {business?.status === "pending" ? (
+            {unfinished && business ? (
               <Button asChild variant="outline">
-                <Link href={routes.business.root()}>
-                  <Clock /> Başvuru durumunu gör
+                <Link href={routes.business.applyEdit(business.id)}>
+                  <Pencil /> Bilgileri tamamla
                 </Link>
               </Button>
             ) : business || settings.businessApplications ? (

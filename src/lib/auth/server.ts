@@ -1,9 +1,11 @@
 import "server-only";
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { routes } from "@/core/routes";
+import { ACTIVE_BUSINESS_COOKIE, pickActiveBusiness } from "@/features/business/lib/active-business";
 import type { BusinessSummary, Profile } from "@/lib/types";
 
 /**
@@ -55,15 +57,20 @@ export async function requireAdmin(nextPath: string = routes.admin.root()): Prom
   return { user, profile };
 }
 
-/** Businesses owned by the current user (empty for guests / non-business users). */
+/** Businesses owned by the current user, oldest first (empty for guests / non-business users). */
 export const getMyBusinesses = cache(async (): Promise<BusinessSummary[]> => {
   const user = await getCurrentUser();
   if (!user) return [];
   const supabase = await createClient();
-  const { data, error } = await supabase.from("businesses").select("*").eq("owner_id", user.id);
+  const { data, error } = await supabase.from("businesses").select("*").eq("owner_id", user.id).order("created_at");
   if (error || !data) return [];
   return data as BusinessSummary[];
 });
+
+/** Id remembered as the active business in the owner panel (not validated; compare with an owned list). */
+export async function getRememberedBusinessId(): Promise<string | null> {
+  return (await cookies()).get(ACTIVE_BUSINESS_COOKIE)?.value ?? null;
+}
 
 /** True if the user owns at least one business (any status unless approvedOnly). */
 export async function isBusinessOwner(opts: { approvedOnly?: boolean } = {}): Promise<boolean> {
@@ -71,10 +78,11 @@ export async function isBusinessOwner(opts: { approvedOnly?: boolean } = {}): Pr
   return list.some((b) => !opts.approvedOnly || b.status === "approved");
 }
 
-/** Approved business of the current user or redirect (to login / to the business intro page). */
+/** Active approved business of the current user or redirect (to login / to the business intro page). */
 export async function requireApprovedBusiness(nextPath: string): Promise<{ user: User; business: BusinessSummary }> {
   const user = await requireAuth(nextPath);
-  const business = (await getMyBusinesses()).find((b) => b.status === "approved");
+  const approved = (await getMyBusinesses()).filter((b) => b.status === "approved");
+  const business = pickActiveBusiness(approved, await getRememberedBusinessId());
   if (!business) redirect(routes.business.intro());
   return { user, business };
 }

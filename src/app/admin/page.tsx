@@ -20,7 +20,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AdminPageHeader } from "@/components/admin/admin-page";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatNumber, formatRelativeTime } from "@/core/format";
-import { routes } from "@/core/routes";
+import { routes, withQuery } from "@/core/routes";
 import { VERTICAL_INFO, parseVertical } from "@/features/business/lib/verticals";
 import { AdminCard, EmptyCard, StatTile } from "@/features/admin/components/admin-ui";
 import { ColumnChart, HBarList, dayLabel, formatDuration } from "@/features/admin/components/charts";
@@ -49,7 +49,7 @@ export default async function AdminDashboardPage() {
 
   const store = d.installs.store ?? {};
   const pending = [
-    { label: "Onay bekleyen işletme", value: d.businesses.pending, href: routes.admin.businesses(), icon: Store },
+    { label: "Yayında olmayan işletme", value: d.businesses.pending, href: withQuery(routes.admin.businesses(), { sekme: "basvurular" }), icon: Store },
     { label: "Onay bekleyen ilan", value: d.content.listings_pending, href: routes.admin.listings(), icon: Tag },
     { label: "Açık şikayet", value: d.content.reports_open, href: routes.admin.reports(), icon: Flag },
     { label: "Yeni destek mesajı", value: d.content.support_new, href: routes.admin.support(), icon: LifeBuoy },

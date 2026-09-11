@@ -230,7 +230,9 @@ function BusinessDetails({ b }: { b: BusinessRow }) {
 export default async function AdminBusinessesPage({ searchParams }: PageProps<"/admin/isletmeler">) {
   await requireAdmin();
   const sp = await searchParams;
-  const tab = oneOf(sp.sekme, TABS, "basvurular");
+  // Businesses go live on creation, so the full list (newest first) is the default; "Yayında değil" keeps the rare
+  // unfinished (pending) ones.
+  const tab = oneOf(sp.sekme, TABS, "tumu");
   const status = oneOf<StatusFilter>(sp.durum, STATUSES, "tumu");
   const q = searchTerm(sp.q);
   const page = pageParam(sp.sayfa);
@@ -251,21 +253,21 @@ export default async function AdminBusinessesPage({ searchParams }: PageProps<"/
     supabase.from("businesses").select("id", { count: "exact", head: true }),
   ]);
   const rows = (data ?? []) as unknown as BusinessRow[];
-  const baseQuery = { sekme: tab === "basvurular" ? undefined : tab, durum: tab === "tumu" && status !== "tumu" ? status : undefined, q };
+  const baseQuery = { sekme: tab === "tumu" ? undefined : tab, durum: tab === "tumu" && status !== "tumu" ? status : undefined, q };
   const statusLabel: Record<StatusFilter, string> = { tumu: "Tüm durumlar", approved: "Onaylı", suspended: "Askıda", rejected: "Reddedilen", pending: "Bekleyen" };
 
   return (
     <>
       <AdminPageHeader
         title="İşletmeler"
-        description="Başvuruları incele; belgeler 2 dakikalık güvenli bağlantıyla açılır. Onaylanan işletme yayına alınır ve sahibine bildirim gider."
+        description="İşletmeler açıldığı anda yayına girer; uygunsuz olanları askıya alabilirsin. Belgeler 2 dakikalık güvenli bağlantıyla açılır."
       />
       <div className="flex flex-col gap-3">
         <FilterTabs
           ariaLabel="İşletme sekmeleri"
           items={[
-            { label: "Başvurular", count: pendingCount.count ?? 0, active: tab === "basvurular", href: withQuery(routes.admin.businesses(), { q }) },
-            { label: "Tüm işletmeler", count: allCount.count ?? 0, active: tab === "tumu", href: withQuery(routes.admin.businesses(), { sekme: "tumu", q }) },
+            { label: "Tüm işletmeler", count: allCount.count ?? 0, active: tab === "tumu", href: withQuery(routes.admin.businesses(), { q }) },
+            { label: "Yayında değil", count: pendingCount.count ?? 0, active: tab === "basvurular", href: withQuery(routes.admin.businesses(), { sekme: "basvurular", q }) },
           ]}
         />
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -300,8 +302,8 @@ export default async function AdminBusinessesPage({ searchParams }: PageProps<"/
           <EmptyCard>
             <EmptyState
               icon={Store}
-              title={tab === "basvurular" ? "Bekleyen başvuru yok" : "Bu filtrede işletme yok"}
-              description={tab === "basvurular" ? "Kullanıcılar profilinden işletme başvurusu yaptığında burada görünür." : undefined}
+              title={tab === "basvurular" ? "Yayında olmayan işletme yok" : "Bu filtrede işletme yok"}
+              description={tab === "basvurular" ? "Sahibi bilgilerini tamamlamamış işletmeler burada görünür." : undefined}
             />
           </EmptyCard>
         ) : (
@@ -320,7 +322,7 @@ export default async function AdminBusinessesPage({ searchParams }: PageProps<"/
                     </div>
                     <h2 className="mt-1.5 text-lg leading-snug font-bold break-words">{b.name}</h2>
                     <p className="text-sm text-muted-foreground">
-                      {b.kinds.map((k) => BUSINESS_KINDS[k] ?? k).join(", ")} · {tab === "basvurular" ? "Başvuru " : "Kayıt "}
+                      {b.kinds.map((k) => BUSINESS_KINDS[k] ?? k).join(", ")} · {"Açılış "}
                       {formatRelativeTime(b.created_at)}
                     </p>
                   </div>

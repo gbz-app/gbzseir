@@ -5,7 +5,7 @@ import { routes } from "@/core/routes";
 import { requireProfile } from "@/lib/auth/server";
 import { WrongVerticalNote } from "@/features/business/components/owner-gate";
 import { RoomsManager } from "@/features/business/components/rooms-manager";
-import { getOwnerBusiness } from "@/features/business/lib/owner-queries";
+import { getOtherOwnedBusinesses, getOwnerBusiness } from "@/features/business/lib/owner-queries";
 import { getBusinessRooms } from "@/features/business/lib/vertical-queries";
 import { hasRooms, resolveVertical } from "@/features/business/lib/verticals";
 
@@ -26,7 +26,11 @@ export default async function OwnerRoomsPage() {
         {hasRooms(vertical) ? (
           <RoomsManager businessId={b.id} initial={await getBusinessRooms(b.id).catch(() => [])} />
         ) : (
-          <WrongVerticalNote text="Oda yönetimi otel işletmeleri içindir. İşletme türünü Otel yaparsan bu bölüm açılır." />
+          <WrongVerticalNote
+            text="Oda yönetimi otel işletmeleri içindir. İşletme türünü Otel yaparsan bu bölüm açılır."
+            alternatives={await getOtherOwnedBusinesses(b.id, (x) => hasRooms(x.vertical))}
+            next={routes.business.rooms()}
+          />
         )}
       </div>
     </>

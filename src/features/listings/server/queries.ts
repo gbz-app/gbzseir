@@ -2,6 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getRememberedBusinessId } from "@/lib/auth/server";
+import { pickActiveBusiness } from "@/features/business/lib/active-business";
 import type { ListingType } from "../constants";
 import { isUuid } from "../format";
 import { CARD_SELECT } from "../search";
@@ -139,23 +141,29 @@ export type MyBusiness = {
   status: string;
 };
 
-/** The user's business (one per user), any status. */
-export async function getMyBusiness(userId: string): Promise<MyBusiness | null> {
+/**
+ * The user's business for job ads (any status). An owner can have several: `businessId` when the user owns it,
+ * else the one active in the business panel (approved ones first), else the oldest.
+ */
+export async function getMyBusiness(userId: string, businessId?: string | null): Promise<MyBusiness | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("businesses")
     .select("id,name,slug,logo_url,phone,verification_level,neighbourhood_id,status")
     .eq("owner_id", userId)
-    .maybeSingle();
-  if (error || !data) return null;
+    .order("created_at");
+  if (error || !data?.length) return null;
+  const approved = data.filter((b) => b.status === "approved");
+  const pick = (businessId ? data.find((b) => b.id === businessId) : undefined) ?? pickActiveBusiness(approved.length ? approved : data, await getRememberedBusinessId());
+  if (!pick) return null;
   return {
-    id: data.id,
-    name: data.name,
-    slug: data.slug,
-    logo_url: data.logo_url,
-    phone: data.phone,
-    verification_level: data.verification_level ?? 0,
-    neighbourhood_id: data.neighbourhood_id,
-    status: data.status,
+    id: pick.id,
+    name: pick.name,
+    slug: pick.slug,
+    logo_url: pick.logo_url,
+    phone: pick.phone,
+    verification_level: pick.verification_level ?? 0,
+    neighbourhood_id: pick.neighbourhood_id,
+    status: pick.status,
   };
 }

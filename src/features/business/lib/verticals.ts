@@ -228,6 +228,23 @@ export const MENU_TAGS: Record<string, { label: string; icon: LucideIcon; tone: 
 export const MENU_TAG_KEYS = Object.keys(MENU_TAGS);
 
 // ---------------------------------------------------------------------------
+// Service catalog (hizmet firmaları)
+// ---------------------------------------------------------------------------
+export const SERVICE_UNITS = { is: "iş", saat: "saat", gun: "gün", m2: "m²", adet: "adet", kisi: "kişi", ay: "ay" } as const;
+export type ServiceUnit = keyof typeof SERVICE_UNITS;
+
+const tl = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 });
+
+/** "1.500 TL'den / iş", "400 - 600 TL / saat", "Fiyat için arayın". */
+export function formatServicePrice(min: number | null, max: number | null, unit: string): string {
+  const u = SERVICE_UNITS[unit as ServiceUnit] ?? unit;
+  if (min == null && max == null) return "Fiyat için arayın";
+  if (min != null && max != null && max > min) return `${tl.format(min)} - ${tl.format(max)} TL / ${u}`;
+  const v = min ?? max!;
+  return `${tl.format(v)} TL'den / ${u}`;
+}
+
+// ---------------------------------------------------------------------------
 // Price level (1-4)
 // ---------------------------------------------------------------------------
 export const PRICE_LEVELS: Record<1 | 2 | 3 | 4, { symbol: string; label: string }> = {

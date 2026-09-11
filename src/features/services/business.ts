@@ -1,20 +1,26 @@
 import "server-only";
-import { getMyBusinesses } from "@/lib/auth/server";
+import { getMyBusinesses, getRememberedBusinessId } from "@/lib/auth/server";
 import type { BusinessSummary } from "@/lib/types";
 
 export type ServiceBusinessGate =
   | { ok: true; business: BusinessSummary }
   | { ok: false; reason: "no_business" | "not_approved" | "not_service"; business: BusinessSummary | null };
 
-/** The caller's approved business whose kinds include 'service' (H4/H5 guard; call after requireAuth). */
+const isService = (b: BusinessSummary) => ((b.kinds ?? []) as string[]).includes("service");
+
+/**
+ * The caller's approved service business (H4/H5 guard; call after requireAuth). An owner can have several
+ * businesses: the active one wins when it is an approved service firm, else the first approved service firm.
+ */
 export async function getServiceBusiness(): Promise<ServiceBusinessGate> {
   const list = await getMyBusinesses();
   if (list.length === 0) return { ok: false, reason: "no_business", business: null };
-  const approved = list.find((b) => b.status === "approved");
-  if (!approved) return { ok: false, reason: "not_approved", business: list[0] };
-  const kinds = (approved.kinds ?? []) as string[];
-  if (!kinds.includes("service")) return { ok: false, reason: "not_service", business: approved };
-  return { ok: true, business: approved };
+  const approved = list.filter((b) => b.status === "approved");
+  if (approved.length === 0) return { ok: false, reason: "not_approved", business: list[0] };
+  const remembered = await getRememberedBusinessId();
+  const service = approved.find((b) => b.id === remembered && isService(b)) ?? approved.find(isService);
+  if (!service) return { ok: false, reason: "not_service", business: approved[0] };
+  return { ok: true, business: service };
 }
 
 export const SERVICE_GATE_COPY: Record<Exclude<ServiceBusinessGate, { ok: true }>["reason"], { title: string; description: string }> = {
@@ -23,8 +29,8 @@ export const SERVICE_GATE_COPY: Record<Exclude<ServiceBusinessGate, { ok: true }
     description: "Gebze'de hizmet veriyorsan ücretsiz işletme hesabı aç; bölgendeki müşteri talepleri buraya düşsün.",
   },
   not_approved: {
-    title: "İşletmen henüz onaylanmadı",
-    description: "Başvurun onaylandığında bölgendeki hizmet talepleri burada görünecek. Durumunu işletme panelinden takip edebilirsin.",
+    title: "İşletme hesabın şu an kapalı",
+    description: "İşletmen yayında olduğunda bölgendeki hizmet talepleri burada görünür. Durumunu işletme panelinden görebilirsin.",
   },
   not_service: {
     title: "İşletmen hizmet vermiyor görünüyor",
