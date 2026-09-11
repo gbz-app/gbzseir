@@ -5,7 +5,9 @@ import { routes } from "@/core/routes";
 import { formatDistance } from "@/core/geo";
 import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
-import { DutyBadge } from "@/components/shared/badges";
+import { DemoBadge, DutyBadge } from "@/components/shared/badges";
+import { DemoDataBanner } from "@/components/shared/demo-data-banner";
+import { ECZACI_ODASI_NAME, ECZACI_ODASI_URL } from "../config";
 import type { DutyRow } from "../types";
 import { KindIcon } from "./kind-icon";
 
@@ -16,11 +18,13 @@ export type DutyCardProps = {
   windowText: string;
   /** Show the "Nöbetçi" badge (current window). */
   onDuty?: boolean;
+  /** Sample (demo) duty row: shows the "Örnek veri" badge. */
+  demo?: boolean;
   className?: string;
 };
 
 /** Pharmacy card for duty lists: name, neighbourhood, address, window, Ara + Yol tarifi. */
-export function DutyCard({ row, distance, windowText, onDuty, className }: DutyCardProps) {
+export function DutyCard({ row, distance, windowText, onDuty, demo, className }: DutyCardProps) {
   return (
     <article className={cn("relative rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]", className)}>
       <div className="flex items-start gap-3">
@@ -41,6 +45,7 @@ export function DutyCard({ row, distance, windowText, onDuty, className }: DutyC
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             {onDuty ? <DutyBadge /> : null}
+            {demo ? <DemoBadge /> : null}
             {row.neighbourhood_name ? <span className="text-sm text-muted-foreground">{row.neighbourhood_name} Mah.</span> : null}
           </div>
           {row.address ? <p className="mt-1.5 line-clamp-2 text-sm leading-snug">{row.address}</p> : null}
@@ -55,5 +60,18 @@ export function DutyCard({ row, distance, windowText, onDuty, className }: DutyC
         <DirectionsButton lat={row.lat} lng={row.lng} name={row.name} subjectType="poi" subjectId={row.poi_id} className="flex-1" />
       </div>
     </article>
+  );
+}
+
+/** One-line "Örnek veri" band for sample duty data, with the official list link. Server-safe. */
+export function DutyDemoNote({ className }: { className?: string }) {
+  return (
+    <DemoDataBanner compact className={className}>
+      Gerçek nöbet listesi değil - resmi liste için{" "}
+      <a href={ECZACI_ODASI_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">
+        {ECZACI_ODASI_NAME}
+      </a>
+      .
+    </DemoDataBanner>
   );
 }

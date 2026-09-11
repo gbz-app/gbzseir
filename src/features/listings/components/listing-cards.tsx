@@ -3,6 +3,7 @@ import { BadgeCheck, Clock, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { initials } from "@/core/format";
+import { DemoBadge } from "@/components/shared/badges";
 import { RelativeTime } from "@/components/shared/relative-time";
 import { CONDITIONS, WORK_TYPES, optionLabel } from "../constants";
 import { isSalaryVisible, listingPriceText, salaryText } from "../format";
@@ -59,6 +60,7 @@ export function ClassifiedCard({ item, headingLevel: H = "h3", className }: { it
           ) : (
             <ListingPlaceholder icon={item.categoryIcon} />
           )}
+          {item.isDemo ? <DemoBadge label="Örnek" className="absolute top-2 left-2 h-5 px-1.5 text-[11px]" /> : null}
           {item.isBusiness ? (
             <span className="absolute bottom-2 left-2 rounded-md bg-black/65 px-1.5 py-0.5 text-[11px] font-bold text-white">İşletme</span>
           ) : item.condition === "sifir" ? (
@@ -101,6 +103,7 @@ export function ClassifiedRailCard({ item }: { item: ListingCardData }) {
           ) : (
             <ListingPlaceholder icon={item.categoryIcon} iconClassName="size-9" />
           )}
+          {item.isDemo ? <DemoBadge label="Örnek" className="absolute top-2 left-2 h-5 px-1.5 text-[11px]" /> : null}
         </div>
         <div className="flex flex-1 flex-col p-2.5">
           <p className="text-sm leading-tight font-extrabold tabular-nums">{listingPriceText(item.price)}</p>
@@ -132,6 +135,7 @@ export function JobCard({ item, headingLevel: H = "h3", className }: { item: Lis
             <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
               <span className="truncate">{item.business?.name ?? "İşletme"}</span>
               {verified ? <BadgeCheck className="size-4 shrink-0 text-primary" aria-label="Onaylı işletme" /> : null}
+              {item.isDemo ? <DemoBadge label="Örnek" className="h-5 shrink-0 px-1.5 text-[11px]" /> : null}
             </p>
           </div>
         </div>

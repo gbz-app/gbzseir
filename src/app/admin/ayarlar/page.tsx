@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FolderTree, ShieldAlert, Tags, Wallet } from "lucide-react";
+import { FolderTree, Scale, ShieldAlert, Tags, Wallet } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { AdminPageHeader } from "@/components/admin/admin-page";
@@ -10,6 +10,7 @@ import { routes } from "@/core/routes";
 import { DEFAULT_SETTINGS, displayTrPhone } from "@/lib/app-settings";
 import { AdminCard } from "@/features/admin/components/admin-ui";
 import { SettingsForm } from "@/features/admin/components/settings-form";
+import { legalAdminPath } from "@/features/legal/meta";
 
 export const metadata: Metadata = { title: "Ayarlar" };
 
@@ -23,6 +24,7 @@ export default async function AdminSettingsPage() {
   const n = (k: string, d: number) => (typeof m.get(k) === "number" ? (m.get(k) as number) : d);
   const s = (k: string, d: string) => (typeof m.get(k) === "string" ? (m.get(k) as string) : d);
   const phone = s("support_phone", DEFAULT_SETTINGS.supportPhone);
+  const duty = s("duty_data_mode", DEFAULT_SETTINGS.dutyDataMode);
 
   return (
     <>
@@ -38,6 +40,7 @@ export default async function AdminSettingsPage() {
             firstListingsModerated: n("first_listings_moderated", DEFAULT_SETTINGS.firstListingsModerated),
             maxProvidersDefault: n("max_providers_default", DEFAULT_SETTINGS.maxProvidersDefault),
             analyticsRetentionDays: n("analytics_retention_days", DEFAULT_SETTINGS.analyticsRetentionDays),
+            dutyDataMode: duty === "off" || duty === "live" ? duty : "demo",
           }}
         />
         <div className="grid content-start gap-4">
@@ -60,6 +63,12 @@ export default async function AdminSettingsPage() {
               </li>
             </ul>
           </AdminCard>
+          <AdminCard title="Yasal metinler">
+            <Link href={legalAdminPath()} className="flex items-center gap-2 text-sm text-primary hover:underline">
+              <Scale className="size-4" aria-hidden /> KVKK, açık rıza, koşullar ve politikalar
+            </Link>
+            <p className="mt-1 text-xs text-muted-foreground">Sürümlü metinler; yayınlanan sürüm değişmez.</p>
+          </AdminCard>
           <AdminCard title="Sistem (salt okunur)">
             <div className="grid gap-3 text-sm">
               <div>
@@ -69,14 +78,8 @@ export default async function AdminSettingsPage() {
                 </Badge>
                 <p className="mt-1 text-xs text-muted-foreground">Canlıya geçmeden gerçek SMS sağlayıcısı bağlanıp kapatılmalı.</p>
               </div>
-              <div>
-                <p className="font-semibold">Nöbetçi eczane verisi</p>
-                <Badge variant="secondary" className="mt-1">
-                  {s("duty_data_mode", "demo") === "demo" ? "Örnek veri" : s("duty_data_mode", "")}
-                </Badge>
-              </div>
               <p className="flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-xs text-muted-foreground">
-                <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden /> Bu iki ayar güvenlik ve veri kaynağıyla ilgili olduğu için yalnızca geliştirici tarafından değiştirilir.
+                <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden /> Bu ayar güvenlikle ilgili olduğu için yalnızca geliştirici tarafından değiştirilir.
               </p>
             </div>
           </AdminCard>

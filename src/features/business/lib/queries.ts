@@ -11,7 +11,7 @@ import { createPublicClient } from "./public-client";
  */
 
 export const PUBLIC_BUSINESS_COLUMNS =
-  "id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,neighbourhood_id,kinds,category_label,working_hours,verification_level,vacation_mode,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at,vertical,price_level,star_rating,amenities,website,instagram";
+  "id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,neighbourhood_id,kinds,category_label,working_hours,verification_level,vacation_mode,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at,vertical,price_level,star_rating,amenities,website,instagram,is_demo";
 
 export type ServiceCategoryLite = {
   id: string;
@@ -51,6 +51,8 @@ export type PublicBusiness = {
   amenities: string[];
   website: string | null;
   instagram: string | null;
+  /** Sample (seed) business: labelled "Örnek", not callable, no JSON-LD. */
+  is_demo: boolean;
 };
 
 export type BusinessPhoto = { id: string; url: string; sort: number };
@@ -108,6 +110,7 @@ export const getPublicBusinessBySlug = cache(async (slug: string): Promise<Busin
     kinds: parseKinds(raw.kinds),
     rating_avg: toNumber(raw.rating_avg),
     amenities: raw.amenities ?? [],
+    is_demo: raw.is_demo === true,
     neighbourhood_name: neighbourhoods?.name ?? null,
     categories: (business_service_categories ?? [])
       .map((x) => x.service_categories)
@@ -202,6 +205,7 @@ export type DirectoryBusiness = {
   photo_count: number;
   has_description: boolean;
   has_hours: boolean;
+  is_demo: boolean;
 };
 
 type RawDirectory = {
@@ -220,6 +224,7 @@ type RawDirectory = {
   vacation_mode: boolean | null;
   description: string | null;
   working_hours: unknown;
+  is_demo: boolean | null;
   neighbourhoods: { name: string } | null;
   business_service_categories: Array<{ category_id: string }> | null;
   business_photos: Array<{ count: number }> | null;
@@ -230,7 +235,7 @@ export const listApprovedBusinesses = cache(async (limit = 500): Promise<Directo
   const { data, error } = await createPublicClient()
     .from("businesses")
     .select(
-      "id,slug,name,logo_url,cover_url,category_label,kinds,lat,lng,rating_avg,rating_count,verification_level,vacation_mode,description,working_hours,neighbourhoods!businesses_neighbourhood_id_fkey(name),business_service_categories(category_id),business_photos(count)",
+      "id,slug,name,logo_url,cover_url,category_label,kinds,lat,lng,rating_avg,rating_count,verification_level,vacation_mode,description,working_hours,is_demo,neighbourhoods!businesses_neighbourhood_id_fkey(name),business_service_categories(category_id),business_photos(count)",
     )
     .eq("status", "approved")
     .order("rating_avg", { ascending: false })
@@ -257,5 +262,6 @@ export const listApprovedBusinesses = cache(async (limit = 500): Promise<Directo
     photo_count: b.business_photos?.[0]?.count ?? 0,
     has_description: !!b.description && b.description.trim().length >= 30,
     has_hours: !!b.working_hours && typeof b.working_hours === "object" && Object.values(b.working_hours as object).some(Boolean),
+    is_demo: b.is_demo === true,
   }));
 });

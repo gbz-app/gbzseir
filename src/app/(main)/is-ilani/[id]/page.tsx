@@ -47,7 +47,7 @@ export default async function JobPage({ params }: Props) {
 
   return (
     <>
-      {model.state === "live" ? <JsonLd data={jobPostingJsonLd(detail, model)} /> : null}
+      {model.state === "live" && !detail.is_demo ? <JsonLd data={jobPostingJsonLd(detail, model)} /> : null}
       <PageHeader
         title="İş İlanı"
         backHref={routes.listings.root("is-ilanlari")}
@@ -62,6 +62,7 @@ export default async function JobPage({ params }: Props) {
       />
       <JobDetailView
         model={model}
+        isDemo={detail.is_demo}
         notice={<StatusNotice state={model.state} kind="job" rejectionReason={detail.rejection_reason} />}
         footer={<ReportFooter listingId={detail.id} ownerId={detail.owner_id} />}
       />
@@ -74,6 +75,7 @@ export default async function JobPage({ params }: Props) {
         similarHref={similarHref}
         editHref={editHref}
         manageHref={manageHref}
+        isDemo={detail.is_demo}
       />
       {model.state === "live" ? <ViewTracker listingId={detail.id} /> : null}
     </>

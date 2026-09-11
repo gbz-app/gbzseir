@@ -155,7 +155,8 @@ export const SUPPORT_TOPIC: Record<string, string> = {
 export const PROFILE_STATUS_HELP: Record<string, string> = {
   active: "Hesap normal çalışır.",
   restricted: "Yeni ilanları her zaman onaya düşer.",
-  banned: "Yeni ilan ve hizmet talebi oluşturamaz.",
+  banned:
+    "Giriş yapamaz; işletmeleri, ilanları, etkinlikleri ve yorumları gizlenir. Açık oturumu en geç 1 saat içinde kapanır. Engeli kaldırınca hepsi geri gelir.",
 };
 
 export const ANNOUNCEMENT_KINDS: LabelMap = {

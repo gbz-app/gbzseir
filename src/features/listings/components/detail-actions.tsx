@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { EllipsisVertical, Flag, ListChecks, Pencil } from "lucide-react";
+import { EllipsisVertical, Flag, ListChecks, Pencil, PhoneOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -90,6 +90,16 @@ export function ActionBarSpacer() {
   return <div aria-hidden className="h-[calc(5.25rem+env(safe-area-inset-bottom,0px))] shrink-0" />;
 }
 
+/** Shown instead of the phone button on sample (is_demo) listings: their numbers are not real. */
+function DemoNoCall() {
+  return (
+    <p className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-muted px-3 text-sm font-semibold text-muted-foreground">
+      <PhoneOff className="size-5 shrink-0" aria-hidden />
+      <span className="truncate">Örnek kayıt - aranamaz</span>
+    </p>
+  );
+}
+
 function OwnerBar({ editHref, manageHref }: OwnerLinks) {
   return (
     <div className={barClass}>
@@ -111,7 +121,7 @@ function OwnerBar({ editHref, manageHref }: OwnerLinks) {
   );
 }
 
-/** E3 sticky bottom bar: price + "Numarayı göster" (then number + Ara). Owner sees management buttons. */
+/** E3 sticky bottom bar: price + "Numarayı göster" (then number + Ara). Owner sees management buttons. Demo: not callable. */
 export function ClassifiedActionBar({
   listingId,
   ownerId,
@@ -120,12 +130,14 @@ export function ClassifiedActionBar({
   similarHref,
   editHref,
   manageHref,
+  isDemo,
 }: {
   listingId: string;
   ownerId: string;
   priceText: string;
   state: DisplayState;
   similarHref: string;
+  isDemo?: boolean;
 } & OwnerLinks) {
   const { user } = useAuth();
   const [revealed, setRevealed] = React.useState(false);
@@ -148,13 +160,17 @@ export function ClassifiedActionBar({
             <p className="max-w-[9rem] truncate text-lg leading-tight font-extrabold tabular-nums">{priceText}</p>
           </div>
         )}
-        <RevealPhoneButton listingId={listingId} fullWidth className="h-12 flex-1 text-base" onRevealed={() => setRevealed(true)} />
+        {isDemo ? (
+          <DemoNoCall />
+        ) : (
+          <RevealPhoneButton listingId={listingId} fullWidth className="h-12 flex-1 text-base" onRevealed={() => setRevealed(true)} />
+        )}
       </div>
     </div>
   );
 }
 
-/** E4 sticky bottom bar: phone visible without login (İŞKUR rule), CallButton logs call_click. */
+/** E4 sticky bottom bar: phone visible without login (İŞKUR rule), CallButton logs call_click. Demo: not callable. */
 export function JobActionBar({
   listingId,
   ownerId,
@@ -163,12 +179,14 @@ export function JobActionBar({
   similarHref,
   editHref,
   manageHref,
+  isDemo,
 }: {
   listingId: string;
   ownerId: string;
   phone: string | null;
   state: DisplayState;
   similarHref: string;
+  isDemo?: boolean;
 } & OwnerLinks) {
   const { user } = useAuth();
   if (user && user.id === ownerId) return <OwnerBar editHref={editHref} manageHref={manageHref} />;
@@ -183,7 +201,7 @@ export function JobActionBar({
   }
   return (
     <div className={barClass}>
-      <CallButton phone={phone} subjectType="job" subjectId={listingId} showNumber fullWidth size="lg" className="h-12 text-base" />
+      {isDemo ? <DemoNoCall /> : <CallButton phone={phone} subjectType="job" subjectId={listingId} showNumber fullWidth size="lg" className="h-12 text-base" />}
     </div>
   );
 }

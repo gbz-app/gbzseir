@@ -22,6 +22,9 @@ export const metadata: Metadata = { title: "Talep detayı", robots: { index: fal
 
 type Props = { params: Promise<{ id: string }> };
 
+/** Request photos are private: /api/talep-foto checks access and redirects to a short-lived signed URL. */
+const requestPhotoSrc = (requestId: string, index: number) => `/api/talep-foto?r=${requestId}&i=${index}`;
+
 type Banner = { icon: LucideIcon; tone: "success" | "muted" | "warning"; title: string; text: string };
 
 function bannerFor(v: LeadDetailView, hired: boolean): Banner | null {
@@ -198,7 +201,7 @@ export default async function LeadDetailPage({ params }: Props) {
             <h3 id="fotograflar" className="mb-3 font-bold">
               Fotoğraflar
             </h3>
-            <PhotoGrid photos={r.photos} />
+            <PhotoGrid photos={r.photos.map((_, i) => requestPhotoSrc(r.id, i))} />
           </section>
         ) : null}
 

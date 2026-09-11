@@ -17,6 +17,7 @@ export function authErrorMessage(err: AuthLikeError, context: "send" | "verify" 
   const msg = (err.message ?? "").toLowerCase();
   const wait = msg.match(/after (\d+) seconds?/);
   if (wait) return `Yeni kod isteyebilmek için ${wait[1]} saniye beklemelisin.`;
+  if (code === "captcha_failed" || msg.includes("captcha")) return "Güvenlik doğrulaması geçilemedi. Sayfayı yenileyip tekrar dene.";
   if (code === "over_sms_send_rate_limit" || code === "over_request_rate_limit" || err.status === 429 || msg.includes("rate limit"))
     return "Çok fazla deneme, lütfen biraz sonra tekrar dene.";
   if (code === "otp_expired" || msg.includes("expired") || msg.includes("invalid") || code === "invalid_credentials")
@@ -33,10 +34,13 @@ export function authErrorMessage(err: AuthLikeError, context: "send" | "verify" 
   return "Bir şeyler ters gitti. Lütfen tekrar dene.";
 }
 
-/** Send the login/signup code. */
-export async function sendLoginOtp(phone: string): Promise<{ error: string | null }> {
+/** Send the login/signup code. `captchaToken` comes from the Turnstile widget (only sent when present). */
+export async function sendLoginOtp(phone: string, captchaToken?: string): Promise<{ error: string | null }> {
   try {
-    const { error } = await createClient().auth.signInWithOtp({ phone, options: { shouldCreateUser: true, channel: "sms" } });
+    const { error } = await createClient().auth.signInWithOtp({
+      phone,
+      options: { shouldCreateUser: true, channel: "sms", ...(captchaToken ? { captchaToken } : {}) },
+    });
     return { error: error ? authErrorMessage(error, "send") : null };
   } catch (e) {
     return { error: authErrorMessage(e as AuthLikeError, "send") };

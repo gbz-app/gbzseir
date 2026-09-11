@@ -14,8 +14,11 @@ import { readString, removeItem } from "@/lib/storage";
 import { maskPhone } from "@/core/format";
 import { routes } from "@/core/routes";
 
-/** B2 /giris/dogrula: 6-digit code. New users continue to /giris/profil, returning users to `next`. */
-export function VerifyScreen({ phone, next }: { phone: string | null; next: string }) {
+/**
+ * B2 /giris/dogrula: 6-digit code. New users continue to /giris/profil, returning users to `next`.
+ * `demoMode` = app_settings.otp_demo_mode (read by the page).
+ */
+export function VerifyScreen({ phone, next, demoMode }: { phone: string | null; next: string; demoMode?: boolean }) {
   const router = useRouter();
   const { refreshProfile } = useAuth();
 
@@ -77,6 +80,7 @@ export function VerifyScreen({ phone, next }: { phone: string | null; next: stri
 
       <OtpForm
         phone={phone}
+        demoMode={demoMode}
         onVerify={onVerify}
         onResend={async () => {
           const { error } = await sendLoginOtp(phone);

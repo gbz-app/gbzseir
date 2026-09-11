@@ -1212,6 +1212,77 @@ export type Database = {
           },
         ]
       }
+      legal_texts: {
+        Row: {
+          body_md: string
+          created_at: string
+          created_by: string | null
+          id: string
+          pending_review: boolean
+          published_at: string | null
+          published_by: string | null
+          slug: string
+          title: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          body_md?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pending_review?: boolean
+          published_at?: string | null
+          published_by?: string | null
+          slug: string
+          title: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          body_md?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pending_review?: boolean
+          published_at?: string | null
+          published_by?: string | null
+          slug?: string
+          title?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_texts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_texts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_texts_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_texts_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_categories: {
         Row: {
           attributes_schema: Json
@@ -1301,6 +1372,7 @@ export type Database = {
           call_count: number
           category_id: string
           created_at: string
+          deleted_at: string | null
           description: string | null
           expires_at: string
           flags: string[]
@@ -1332,6 +1404,7 @@ export type Database = {
           call_count?: number
           category_id: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           expires_at?: string
           flags?: string[]
@@ -1363,6 +1436,7 @@ export type Database = {
           call_count?: number
           category_id?: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           expires_at?: string
           flags?: string[]
@@ -1768,6 +1842,7 @@ export type Database = {
           id: string
           is_demo: boolean
           kvkk_accepted_at: string | null
+          kvkk_version: string | null
           marketing_consent: boolean
           marketing_consent_at: string | null
           neighbourhood_id: string | null
@@ -1786,6 +1861,7 @@ export type Database = {
           id: string
           is_demo?: boolean
           kvkk_accepted_at?: string | null
+          kvkk_version?: string | null
           marketing_consent?: boolean
           marketing_consent_at?: string | null
           neighbourhood_id?: string | null
@@ -1804,6 +1880,7 @@ export type Database = {
           id?: string
           is_demo?: boolean
           kvkk_accepted_at?: string | null
+          kvkk_version?: string | null
           marketing_consent?: boolean
           marketing_consent_at?: string | null
           neighbourhood_id?: string | null
@@ -2553,6 +2630,10 @@ export type Database = {
       get_demo_otp: { Args: { p_phone: string }; Returns: string }
       get_lead_detail: { Args: { p_lead_id: string }; Returns: Json }
       get_request_for_customer: { Args: { p_code: string }; Returns: Json }
+      get_request_photo_paths: {
+        Args: { p_request_id: string }
+        Returns: string[]
+      }
       global_search: { Args: { p_limit?: number; p_q: string }; Returns: Json }
       increment_listing_view: {
         Args: { p_listing_id: string }
@@ -2634,6 +2715,7 @@ export type Database = {
           call_count: number
           category_id: string
           created_at: string
+          deleted_at: string | null
           description: string | null
           expires_at: string
           flags: string[]
@@ -2667,6 +2749,22 @@ export type Database = {
         }
       }
       send_sms_hook: { Args: { event: Json }; Returns: Json }
+      set_business_photos: {
+        Args: { p_business_id: string; p_photos: Json }
+        Returns: number
+      }
+      set_business_service_scope: {
+        Args: {
+          p_business_id: string
+          p_category_ids: string[]
+          p_neighbourhood_ids: string[]
+        }
+        Returns: Json
+      }
+      set_listing_media: {
+        Args: { p_listing_id: string; p_media: Json }
+        Returns: number
+      }
       short_name: { Args: { p_full_name: string }; Returns: string }
       submit_business_review: {
         Args: { p_business_id: string; p_comment?: string; p_rating: number }

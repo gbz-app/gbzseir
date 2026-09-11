@@ -1,7 +1,7 @@
-import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToUser } from "@/lib/notify";
+import { isCronAuthorized } from "@/lib/server/cron-auth";
 
 /**
  * Web Push sender for `notifications` rows (services module).
@@ -19,17 +19,8 @@ export const maxDuration = 30;
 const WINDOW_MS = 30 * 60 * 1000;
 const BATCH = 100;
 
-function authorized(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const given = req.headers.get("x-push-secret") ?? req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  const a = Buffer.from(given);
-  const b = Buffer.from(secret);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
 async function handle(req: Request) {
-  if (!authorized(req)) return NextResponse.json({ ok: false, error: "Yetkisiz" }, { status: 401 });
+  if (!isCronAuthorized(req, "x-push-secret")) return NextResponse.json({ ok: false, error: "Yetkisiz" }, { status: 401 });
 
   const admin = createAdminClient();
   const since = new Date(Date.now() - WINDOW_MS).toISOString();

@@ -84,8 +84,14 @@ export async function getRequestDetailAction(input: { requestId: string }): Prom
       answers = Object.entries(rawAnswers).map(([k, v]) => ({ title: k, answer: Array.isArray(v) ? v.join(", ") : String(v ?? "") }));
     }
 
-    const media = supabase.storage.from("media");
-    const photos = (row.photos ?? []).map((p) => (/^https?:\/\//.test(p) ? p : media.getPublicUrl(p).data.publicUrl));
+    // Request photos are private-docs paths (old rows: full URLs); admins get 10-minute signed URLs (the admin site has no /api).
+    const isUrl = (p: string) => /^https?:\/\//.test(p);
+    const photoPaths = (row.photos ?? []).filter((p) => !isUrl(p));
+    const { data: signed } = photoPaths.length
+      ? await supabase.storage.from("private-docs").createSignedUrls(photoPaths, 600)
+      : { data: null };
+    const signedByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
+    const photos = (row.photos ?? []).map((p) => (isUrl(p) ? p : signedByPath.get(p))).filter((u): u is string => !!u);
     const leads = [...(row.leads ?? [])].sort((a, b) => a.wave_no - b.wave_no || a.created_at.localeCompare(b.created_at));
     const candidates = (candRes.data as Array<{ business_id: string; business_name: string; area_match: boolean; score: number }> | null) ?? null;
 

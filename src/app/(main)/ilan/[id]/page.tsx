@@ -48,7 +48,7 @@ export default async function ClassifiedPage({ params }: Props) {
 
   return (
     <>
-      {model.state === "live" ? <JsonLd data={productJsonLd(detail, model)} /> : null}
+      {model.state === "live" && !detail.is_demo ? <JsonLd data={productJsonLd(detail, model)} /> : null}
       <PageHeader
         title="İlan"
         backHref={routes.listings.root()}
@@ -63,6 +63,7 @@ export default async function ClassifiedPage({ params }: Props) {
       />
       <ClassifiedDetailView
         model={model}
+        isDemo={detail.is_demo}
         notice={<StatusNotice state={model.state} kind="classified" rejectionReason={detail.rejection_reason} />}
         footer={<ReportFooter listingId={detail.id} ownerId={detail.owner_id} />}
       />
@@ -75,6 +76,7 @@ export default async function ClassifiedPage({ params }: Props) {
         similarHref={similarHref}
         editHref={editHref}
         manageHref={manageHref}
+        isDemo={detail.is_demo}
       />
       {model.state === "live" ? <ViewTracker listingId={detail.id} /> : null}
     </>

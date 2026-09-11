@@ -26,6 +26,9 @@ export const metadata: Metadata = { title: "Talebim", robots: { index: false } }
 
 type Props = { params: Promise<{ code: string }> };
 
+/** Request photos are private: /api/talep-foto checks access and redirects to a short-lived signed URL. */
+const requestPhotoSrc = (requestId: string, index: number) => `/api/talep-foto?r=${requestId}&i=${index}`;
+
 function statusText(v: CustomerRequestView, hiredName: string | null): string {
   const r = v.request;
   switch (r.status) {
@@ -210,7 +213,7 @@ export default async function RequestDetailPage({ params }: Props) {
               {r.photos.length ? (
                 <div className="mt-4">
                   <p className="mb-2 text-xs font-medium text-muted-foreground">Fotoğraflar</p>
-                  <PhotoGrid photos={r.photos} />
+                  <PhotoGrid photos={r.photos.map((_, i) => requestPhotoSrc(r.id, i))} />
                 </div>
               ) : null}
             </AccordionContent>

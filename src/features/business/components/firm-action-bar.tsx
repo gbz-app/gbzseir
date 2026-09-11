@@ -1,5 +1,6 @@
 "use client";
 
+import { PhoneOff } from "lucide-react";
 import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
 import { ShareButton } from "@/components/shared/share-button";
@@ -11,15 +12,24 @@ export type FirmActionBarProps = {
   phone: string | null;
   lat: number | null;
   lng: number | null;
+  /** Sample (seed) business: its number is not real, so no call button. */
+  isDemo?: boolean;
 };
 
 /** Sticky bottom actions of a firm page: Ara (logged call_click) · Yol tarifi · Paylaş. No messaging. */
-export function FirmActionBar({ businessId, name, phone, lat, lng }: FirmActionBarProps) {
+export function FirmActionBar({ businessId, name, phone, lat, lng, isDemo }: FirmActionBarProps) {
   const hasLocation = typeof lat === "number" && typeof lng === "number";
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-2xl border-t bg-background/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] shadow-float backdrop-blur-md">
       <div className="flex items-center gap-2">
-        {phone ? <CallButton phone={phone} subjectType="business" subjectId={businessId} label="Ara" size="lg" className="flex-1" /> : null}
+        {phone && isDemo ? (
+          <p className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-muted px-4 text-[15px] font-semibold text-muted-foreground">
+            <PhoneOff className="size-5 shrink-0" aria-hidden />
+            <span className="truncate">Örnek kayıt - aranamaz</span>
+          </p>
+        ) : phone ? (
+          <CallButton phone={phone} subjectType="business" subjectId={businessId} label="Ara" size="lg" className="flex-1" />
+        ) : null}
         {hasLocation ? (
           <DirectionsButton
             lat={lat}

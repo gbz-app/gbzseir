@@ -1,5 +1,6 @@
 import { BadgeCheck, Check, Clock, MapPin, PhoneCall } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { DemoBadge } from "@/components/shared/badges";
 import { JOB_SAFETY_TEXT, SAFETY_TEXT } from "../constants";
 import { listingPriceText } from "../format";
 import type { ClassifiedViewModel, JobViewModel } from "../view-models";
@@ -15,11 +16,14 @@ export function ClassifiedDetailView({
   notice,
   footer,
   preview,
+  isDemo,
 }: {
   model: ClassifiedViewModel;
   notice?: React.ReactNode;
   footer?: React.ReactNode;
   preview?: boolean;
+  /** Sample (seed) listing: "Örnek veri" badge next to the price. */
+  isDemo?: boolean;
 }) {
   const rows = [{ label: "Kategori", value: model.categoryTrail || model.categoryName }, ...model.attributes.map((a) => ({ label: a.label, value: a.value }))];
   return (
@@ -34,6 +38,7 @@ export function ClassifiedDetailView({
                 {model.conditionLabel}
               </Badge>
             ) : null}
+            {isDemo ? <DemoBadge /> : null}
           </div>
           <p className="mt-2.5 text-xl leading-snug font-bold text-balance break-words">{model.title}</p>
           <MetaRow neighbourhoodName={model.neighbourhoodName} postedAt={model.postedAt} listingNo={model.listingNo} />
@@ -55,11 +60,14 @@ export function JobDetailView({
   notice,
   footer,
   preview,
+  isDemo,
 }: {
   model: JobViewModel;
   notice?: React.ReactNode;
   footer?: React.ReactNode;
   preview?: boolean;
+  /** Sample (seed) job ad: "Örnek veri" badge in the chip row. */
+  isDemo?: boolean;
 }) {
   const location = [model.locationLabel, model.neighbourhoodName ? `${model.neighbourhoodName} Mah.` : null].filter(Boolean).join(" · ");
   const rows = [
@@ -87,6 +95,7 @@ export function JobDetailView({
               {model.workTypeLabel}
             </span>
           ) : null}
+          {isDemo ? <DemoBadge className="self-center" /> : null}
         </div>
         <p className="mt-3 text-lg font-extrabold tabular-nums">{model.salaryVisible ? model.salaryText : "Maaş: Görüşülür"}</p>
         <MetaRow neighbourhoodName={null} postedAt={model.postedAt} listingNo={model.listingNo} />
@@ -115,7 +124,9 @@ export function JobDetailView({
         <div className="text-sm leading-relaxed">
           <p className="font-bold">Nasıl başvurulur?</p>
           <p className="mt-0.5 text-muted-foreground">
-            Başvurmak için işletmeyi telefonla ara. Gebzem üzerinden CV gönderilmez; görüşme bilgisini işletme sana verir.
+            {isDemo
+              ? "Bu bir örnek ilan, başvuru alınmıyor. Gerçek ilanlarda işletmeyi telefonla arayarak başvurursun."
+              : "Başvurmak için işletmeyi telefonla ara. Gebzem üzerinden CV gönderilmez; görüşme bilgisini işletme sana verir."}
           </p>
         </div>
       </div>

@@ -3,7 +3,8 @@ import { cache } from "react";
 import { createPublicClient } from "@/features/business/lib/public-client";
 import { parseEventCategory, type EventCategory } from "@/features/business/lib/verticals";
 
-export type EventOrganizer = { id: string; slug: string; name: string; logo_url: string | null; phone: string | null };
+/** is_demo: sample organizer, its phone is a placeholder. */
+export type EventOrganizer = { id: string; slug: string; name: string; logo_url: string | null; phone: string | null; is_demo?: boolean };
 
 export type EventItem = {
   id: string;
@@ -25,10 +26,12 @@ export type EventItem = {
   cover_url: string | null;
   neighbourhood_name: string | null;
   business: EventOrganizer | null;
+  /** Sample (seed) event: labelled "Örnek", no call button, no JSON-LD. */
+  is_demo: boolean;
 };
 
 const COLUMNS =
-  "id,slug,title,description,category,starts_at,ends_at,venue_name,address,lat,lng,is_free,price_try,price_note,ticket_url,phone,cover_url,neighbourhoods(name),businesses(id,slug,name,logo_url,phone)";
+  "id,slug,title,description,category,starts_at,ends_at,venue_name,address,lat,lng,is_free,price_try,price_note,ticket_url,phone,cover_url,is_demo,neighbourhoods(name),businesses(id,slug,name,logo_url,phone,is_demo)";
 
 type Raw = Omit<EventItem, "category" | "price_try" | "neighbourhood_name" | "business"> & {
   category: string;
@@ -46,6 +49,7 @@ function toItem(r: Raw): EventItem {
     price_try: price !== null && Number.isFinite(price) ? price : null,
     neighbourhood_name: neighbourhoods?.name ?? null,
     business: businesses ?? null,
+    is_demo: r.is_demo === true,
   };
 }
 

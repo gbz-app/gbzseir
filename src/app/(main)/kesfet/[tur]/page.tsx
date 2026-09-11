@@ -45,21 +45,25 @@ export default async function VerticalPage({ params }: Props) {
       </div>
     );
   }
+  // Sample firms stay out of structured data.
+  const listed = items.filter((b) => !b.is_demo).slice(0, 50);
   return (
     <>
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "ItemList",
-          name: `${CITY.name} ${VERTICAL_INFO[v].plural}`,
-          itemListElement: items.slice(0, 50).map((b, i) => ({
-            "@type": "ListItem",
-            position: i + 1,
-            url: `${SITE_URL}${routes.businesses.detail(b.slug)}`,
-            name: b.name,
-          })),
-        }}
-      />
+      {listed.length ? (
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            name: `${CITY.name} ${VERTICAL_INFO[v].plural}`,
+            itemListElement: listed.map((b, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              url: `${SITE_URL}${routes.businesses.detail(b.slug)}`,
+              name: b.name,
+            })),
+          }}
+        />
+      ) : null}
       <VerticalExplorer vertical={v} items={items} applicationsOpen={settings.businessApplications} />
     </>
   );

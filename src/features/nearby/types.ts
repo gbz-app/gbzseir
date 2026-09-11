@@ -102,6 +102,9 @@ export type PlaceSummary = {
   details: PlaceDetails;
 };
 
+/** app_settings.duty_data_mode: labelled sample list, no list, or real rows only. */
+export type DutyMode = "demo" | "off" | "live";
+
 /** One pharmacy_duty row for the pharmacy detail page. */
 export type PharmacyDuty = { id: string; duty_start: string; duty_end: string; source: string; note: string | null; fetched_at: string };
 

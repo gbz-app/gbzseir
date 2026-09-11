@@ -89,7 +89,9 @@ export function ProfileSetupScreen({ next, initial }: { next: string; initial?: 
       return;
     }
     const clean = (s: string) => s.trim().replace(/\s+/g, " ");
-    const payload = {
+    // KVKK + terms accepted on the login screen. A DB trigger stamps the server time and the live KVKK version
+    // (profiles.kvkk_version), so the accepted text version is recorded next to kvkk_accepted_at.
+    const row = {
       full_name: `${clean(values.firstName)} ${clean(values.lastName)}`,
       email: values.email ? values.email.trim().toLowerCase() : null,
       neighbourhood_id: values.neighbourhoodId,
@@ -98,10 +100,10 @@ export function ProfileSetupScreen({ next, initial }: { next: string; initial?: 
       kvkk_accepted_at: new Date().toISOString(),
       marketing_consent: readString(MARKETING_CONSENT_SESSION_KEY, "session") === "1",
     };
-    const upd = await supabase.from(TABLES.profiles).update(payload).eq("id", uid).select("id");
+    const upd = await supabase.from(TABLES.profiles).update(row).eq("id", uid).select("id");
     let error = upd.error;
     if (!error && (!upd.data || upd.data.length === 0)) {
-      error = (await supabase.from(TABLES.profiles).upsert({ id: uid, ...payload })).error;
+      error = (await supabase.from(TABLES.profiles).upsert({ id: uid, ...row })).error;
     }
     if (error) {
       setSubmitError("Profil kaydedilemedi. Lütfen tekrar dene.");

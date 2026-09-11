@@ -3,6 +3,13 @@
 //   node --env-file=.env.local scripts/db/auth-config.mjs get [key-substring]
 //   node --env-file=.env.local scripts/db/auth-config.mjs patch path/to/patch.json
 // Secret-looking fields are always redacted in output.
+//
+// OTP go-live (plan step 10, with supabase/golive/otp_golive.sql). Keep the patch file with secrets in the scratchpad:
+//   { "hook_send_sms_uri": "<provider hook>", "rate_limit_sms_sent": <expected SMS per hour>,
+//     "security_captcha_enabled": true, "security_captcha_provider": "turnstile", "security_captcha_secret": "<secret>" }
+// Optionally "sms_test_otp": "" (drops the fixed test code of the +90 555 000 00 01 admin account).
+// Enable captcha only after NEXT_PUBLIC_TURNSTILE_SITE_KEY is deployed AND the other /otp senders send a token too
+// (resend on /giris/dogrula, account delete): today only the /giris form has the widget, so they would fail.
 import { readFileSync } from "node:fs";
 
 const ref = process.env.SUPABASE_PROJECT_REF || "fboythglcjofakbskstg";

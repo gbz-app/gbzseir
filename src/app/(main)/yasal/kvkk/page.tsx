@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Scale } from "lucide-react";
-import { ComingSoon } from "@/components/shared/coming-soon";
+import { LegalPage, legalMetadata } from "@/features/legal/legal-page";
 
-// Placeholder created by the app-shell agent; the content agent replaces this page.
-export const metadata: Metadata = { title: "KVKK Aydınlatma Metni" };
+// Latest published version (ISR); admin publishes expire this path.
+export const revalidate = 3600;
+export const metadata: Metadata = legalMetadata("kvkk");
 
 export default function Page() {
-  return <ComingSoon title="KVKK Aydınlatma Metni" icon={Scale} description="Aydınlatma metni hazırlanıyor." />;
+  return <LegalPage slug="kvkk" />;
 }

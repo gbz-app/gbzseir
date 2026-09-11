@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Banknote, CalendarDays, ChevronRight, Clock, ExternalLink, MapPin, Ticket } from "lucide-react";
+import { Banknote, CalendarDays, ChevronRight, Clock, ExternalLink, MapPin, PhoneOff, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { DemoBadge } from "@/components/shared/badges";
 import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
 import { DetailActions, DetailHero, DetailSheet, PRIMARY_CTA, SECONDARY_CTA } from "@/components/shared/detail-hero";
@@ -65,34 +66,38 @@ export default async function EventPage({ params }: Props) {
 
   const cat = EVENT_CATEGORY_INFO[e.category];
   const hasLocation = typeof e.lat === "number" && typeof e.lng === "number";
-  const phone = e.phone ?? e.business?.phone ?? null;
+  // A sample organizer's number is a placeholder, never the fallback.
+  const phone = e.phone ?? (e.business && !e.business.is_demo ? e.business.phone : null);
   const url = `${SITE_URL}${routes.events.detail(e.slug)}`;
   const place = [e.venue_name, e.address].filter(Boolean);
 
   return (
     <>
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "Event",
-          name: e.title,
-          url,
-          description: e.description ?? undefined,
-          startDate: e.starts_at,
-          endDate: e.ends_at ?? undefined,
-          eventStatus: "https://schema.org/EventScheduled",
-          eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-          image: e.cover_url ? [e.cover_url] : undefined,
-          location: {
-            "@type": "Place",
-            name: e.venue_name ?? CITY.name,
-            address: { "@type": "PostalAddress", streetAddress: e.address ?? undefined, addressLocality: CITY.name, addressRegion: CITY.province, addressCountry: "TR" },
-            geo: hasLocation ? { "@type": "GeoCoordinates", latitude: e.lat, longitude: e.lng } : undefined,
-          },
-          offers: { "@type": "Offer", price: e.is_free ? 0 : (e.price_try ?? undefined), priceCurrency: "TRY", url: e.ticket_url ?? url },
-          organizer: e.business ? { "@type": "Organization", name: e.business.name, url: `${SITE_URL}${routes.businesses.detail(e.business.slug)}` } : undefined,
-        }}
-      />
+      {/* Sample events stay out of structured data. */}
+      {e.is_demo ? null : (
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "Event",
+            name: e.title,
+            url,
+            description: e.description ?? undefined,
+            startDate: e.starts_at,
+            endDate: e.ends_at ?? undefined,
+            eventStatus: "https://schema.org/EventScheduled",
+            eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+            image: e.cover_url ? [e.cover_url] : undefined,
+            location: {
+              "@type": "Place",
+              name: e.venue_name ?? CITY.name,
+              address: { "@type": "PostalAddress", streetAddress: e.address ?? undefined, addressLocality: CITY.name, addressRegion: CITY.province, addressCountry: "TR" },
+              geo: hasLocation ? { "@type": "GeoCoordinates", latitude: e.lat, longitude: e.lng } : undefined,
+            },
+            offers: { "@type": "Offer", price: e.is_free ? 0 : (e.price_try ?? undefined), priceCurrency: "TRY", url: e.ticket_url ?? url },
+            organizer: e.business ? { "@type": "Organization", name: e.business.name, url: `${SITE_URL}${routes.businesses.detail(e.business.slug)}` } : undefined,
+          }}
+        />
+      )}
 
       <DetailHero
         images={e.cover_url ? [e.cover_url] : []}
@@ -119,6 +124,7 @@ export default async function EventPage({ params }: Props) {
               >
                 {eventPriceLabel(e)}
               </span>
+              {e.is_demo ? <DemoBadge /> : null}
             </div>
             <h1 className="mt-3 text-[1.625rem] leading-tight font-semibold tracking-tight text-balance">{e.title}</h1>
           </header>
@@ -174,6 +180,11 @@ export default async function EventPage({ params }: Props) {
               <ExternalLink /> Bilet al
             </a>
           </Button>
+        ) : phone && e.is_demo ? (
+          <p className="flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-muted px-4 text-[15px] font-semibold text-muted-foreground">
+            <PhoneOff className="size-5 shrink-0" aria-hidden />
+            <span className="truncate">Örnek kayıt - aranamaz</span>
+          </p>
         ) : phone ? (
           <CallButton phone={phone} subjectType={e.business ? "business" : "poi"} subjectId={e.business?.id ?? e.id} label="Ara" variant="default" size="lg" className={PRIMARY_CTA} />
         ) : null}

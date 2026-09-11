@@ -3,14 +3,16 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { STORAGE_BUCKETS } from "@/lib/db-contract";
 import { processImage, uuid } from "@/lib/images";
 
 /**
  * Request photos are prepared on the device (resized, EXIF/GPS stripped) and kept in IndexedDB until the
- * request is submitted, so they survive the login redirect. They are uploaded to media/<uid>/requests/ only at
- * submit time (guests cannot upload). Falls back to memory when IndexedDB is unavailable (private mode).
+ * request is submitted, so they survive the login redirect. They are uploaded to the private bucket
+ * private-docs/<uid>/requests/ only at submit time (guests cannot upload); service_requests.photos keeps the storage
+ * paths and pages show them through /api/talep-foto (signed URLs). Falls back to memory when IndexedDB is unavailable.
  */
+
+const REQUEST_PHOTOS_BUCKET = "private-docs";
 
 export type StoredPhoto = {
   id: string;
@@ -223,9 +225,12 @@ export function useRequestPhotos(draftKey: string, initialKeepIds: string[]): Re
   return { previews, processing, processingRef, add, remove, recordsFor, clearAll };
 }
 
-/** Upload prepared photos to media/<uid>/requests/. Returns public URLs of the full images (+ paths for cleanup). */
+/**
+ * Upload prepared photos to private-docs/<uid>/requests/. `urls`: what goes into service_requests.photos (storage
+ * paths of the full images, never public URLs); `paths`: everything uploaded incl. thumbnails (for cleanup).
+ */
 export async function uploadRequestPhotos(uid: string, recs: StoredPhoto[]): Promise<{ urls: string[]; paths: string[] }> {
-  const bucket = createClient().storage.from(STORAGE_BUCKETS.media);
+  const bucket = createClient().storage.from(REQUEST_PHOTOS_BUCKET);
   const urls: string[] = [];
   const paths: string[] = [];
   const opts = { cacheControl: "31536000", upsert: false };
@@ -241,7 +246,7 @@ export async function uploadRequestPhotos(uid: string, recs: StoredPhoto[]): Pro
       if (!a.error) paths.push(path);
       if (!b.error) paths.push(thumbPath);
       if (a.error) throw new Error("Fotoğraflar yüklenemedi. Bağlantını kontrol edip tekrar dene.");
-      urls.push(bucket.getPublicUrl(path).data.publicUrl);
+      urls.push(path);
     }
   } catch (e) {
     await removeUploadedPhotos(paths);
@@ -253,7 +258,7 @@ export async function uploadRequestPhotos(uid: string, recs: StoredPhoto[]): Pro
 export async function removeUploadedPhotos(paths: string[]): Promise<void> {
   if (!paths.length) return;
   await createClient()
-    .storage.from(STORAGE_BUCKETS.media)
+    .storage.from(REQUEST_PHOTOS_BUCKET)
     .remove(paths)
     .catch(() => undefined);
 }

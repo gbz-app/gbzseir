@@ -7,6 +7,7 @@ import { revalidatePublic } from "@/lib/revalidate-public";
 import { dbFail, withAdmin, type AdminContext } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { firstIssue, zId } from "../lib/zod";
+import { setUserStatusAction } from "./users";
 
 const noteSchema = z.string().trim().max(500, "Not en fazla 500 karakter olabilir.").optional();
 
@@ -46,8 +47,9 @@ export async function setReportStatusAction(input: z.input<typeof statusSchema>)
 }
 
 async function recomputeRating(supabase: AdminContext["supabase"], businessId: string) {
-  const { data } = await supabase.from("reviews").select("rating").eq("business_id", businessId);
-  const ratings = (data ?? []).map((r) => r.rating);
+  const { data } = await supabase.from("reviews").select("rating,author:profiles!reviews_author_id_fkey(status)").eq("business_id", businessId);
+  // Reviews by banned users are hidden and left out of the rating (same rule as private.recompute_business_rating).
+  const ratings = (data ?? []).filter((r) => r.author?.status !== "banned").map((r) => r.rating);
   const avg = ratings.length ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 100) / 100 : 0;
   await supabase.from("businesses").update({ rating_avg: avg, rating_count: ratings.length }).eq("id", businessId);
 }
@@ -115,11 +117,9 @@ export async function removeReportedContentAction(input: z.input<typeof removeSc
       }
       case "user": {
         if (targetId === userId) return fail("Kendi hesabını engelleyemezsin.", "self");
-        const { data: target } = await supabase.from("profiles").select("role").eq("id", targetId).maybeSingle();
-        if (!target) return fail("Kullanıcı artık yok.", "not_found");
-        if (target.role === "admin") return fail("Yönetici hesapları buradan engellenemez.", "admin_target");
-        const { error } = await supabase.from("profiles").update({ status: "banned" }).eq("id", targetId);
-        if (error) return dbFail(error);
+        // Same path as Admin > Kullanıcılar: profile status, sign-in ban and hidden public content.
+        const res = await setUserStatusAction({ userId: targetId, status: "banned" });
+        if (!res.ok) return fail(res.error, res.hint);
         message = "Kullanıcı engellendi.";
         break;
       }

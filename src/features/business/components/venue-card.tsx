@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { formatPrice } from "@/core/format";
 import { formatDistance } from "@/core/geo";
 import { routes } from "@/core/routes";
+import { DemoBadge } from "@/components/shared/badges";
 import { FavoriteButton } from "@/components/shared/favorite-button";
 import { describeOpenStatus, type OpenStatus } from "../lib/hours";
 import type { VerticalCard } from "../lib/vertical-queries";
@@ -97,7 +98,10 @@ export function VenueCard(props: VenueCardProps) {
 
           <div className="absolute inset-x-2.5 bottom-2.5 flex items-center gap-3 rounded-[1.35rem] bg-card/95 py-3 pr-3 pl-4 shadow-soft backdrop-blur-md">
             <div className="min-w-0 flex-1">
-              <h3 className="truncate text-base leading-snug font-semibold">{item.name}</h3>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <h3 className="min-w-0 truncate text-base leading-snug font-semibold">{item.name}</h3>
+                {item.is_demo ? <DemoBadge label="Örnek" className="h-5 shrink-0 px-1.5 text-[11px]" /> : null}
+              </div>
               {where ? (
                 <p className="mt-0.5 flex items-center gap-1 text-[13px] text-muted-foreground">
                   <MapPin className="size-3.5 shrink-0" aria-hidden />
@@ -159,6 +163,7 @@ function CompactVenueCard({ item, distance, open, eager }: VenueCardProps) {
           ) : (
             <VenuePhotoFallback vertical={item.vertical} iconClassName="size-10" />
           )}
+          {item.is_demo ? <DemoBadge label="Örnek" className="absolute bottom-2 left-2 h-5 px-1.5 text-[11px]" /> : null}
         </div>
         <div className="flex min-w-0 flex-1 flex-col px-1.5 pt-2 pb-1">
           <h3 className="line-clamp-2 text-[15px] leading-snug font-semibold">{item.name}</h3>

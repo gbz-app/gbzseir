@@ -303,8 +303,6 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
       const { data, error } = await supabase.from("listings").update(payload).eq("id", editId).eq("owner_id", user.id).select("id,status").single();
       if (error) return error.message;
       status = data.status;
-      const del = await supabase.from("listing_media").delete().eq("listing_id", editId);
-      if (del.error) return `İlan kaydedildi ama fotoğraflar güncellenemedi: ${del.error.message}`;
     } else {
       const { data, error } = await supabase
         .from("listings")
@@ -316,10 +314,13 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
       status = data.status;
     }
     if (!id) return "İlan kaydedilemedi. Lütfen tekrar dene.";
-    if (d.images.length) {
-      const media = d.images.map((img, i) => ({ listing_id: id as string, url: img.url, thumb_url: img.thumbUrl, sort: i }));
-      const { error } = await supabase.from("listing_media").insert(media);
-      if (error) return `İlan kaydedildi ama fotoğraflar eklenemedi: ${error.message}`;
+    if (editId || d.images.length) {
+      // One transaction (set_listing_media): a failed save keeps the old photos.
+      const { error } = await supabase.rpc("set_listing_media", {
+        p_listing_id: id,
+        p_media: d.images.map((img) => ({ url: img.url, thumb_url: img.thumbUrl || null })),
+      });
+      if (error) return `İlan kaydedildi ama fotoğraflar ${editId ? "güncellenemedi" : "eklenemedi"}: ${error.message}`;
     }
     router.push(routes.listings.postDone({ id, tur: "ikinci-el", durum: status ?? undefined }));
   };

@@ -4,15 +4,17 @@ import { useRouter } from "next/navigation";
 import { FlaskConical, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PhoneForm } from "@/components/auth/phone-form";
-import { OTP_DEMO_MODE } from "@/config/site";
 import { IS_ADMIN_SITE } from "@/config/app-mode";
 import { routes } from "@/core/routes";
 import { MARKETING_CONSENT_SESSION_KEY, sendLoginOtp } from "@/lib/auth/otp";
 import { canGoBack } from "@/lib/navigation-history";
 import { writeString } from "@/lib/storage";
 
-/** B1 /giris: phone number -> SMS code. Login and signup are the same flow. */
-export function LoginScreen({ next }: { next: string }) {
+/**
+ * B1 /giris: phone number -> SMS code. Login and signup are the same flow.
+ * `demoMode` = app_settings.otp_demo_mode (read by the page); never shown on the admin site.
+ */
+export function LoginScreen({ next, demoMode = false }: { next: string; demoMode?: boolean }) {
   const router = useRouter();
 
   return (
@@ -29,15 +31,16 @@ export function LoginScreen({ next }: { next: string }) {
 
       <PhoneForm
         showConsents
-        onSubmit={async (phone, { marketingConsent }) => {
-          const { error } = await sendLoginOtp(phone);
+        captcha
+        onSubmit={async (phone, { marketingConsent, captchaToken }) => {
+          const { error } = await sendLoginOtp(phone, captchaToken);
           if (error) return error;
           writeString(MARKETING_CONSENT_SESSION_KEY, marketingConsent ? "1" : "0", "session");
           router.push(routes.auth.verify(phone, next));
         }}
       />
 
-      {OTP_DEMO_MODE && !IS_ADMIN_SITE ? (
+      {demoMode && !IS_ADMIN_SITE ? (
         <p className="mt-5 flex items-start gap-2 rounded-xl bg-highlight-soft px-3.5 py-2.5 text-xs leading-relaxed text-highlight-foreground dark:text-foreground">
           <FlaskConical className="mt-0.5 size-4 shrink-0 text-highlight" aria-hidden />
           <span>

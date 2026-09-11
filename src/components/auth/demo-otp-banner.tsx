@@ -4,6 +4,7 @@ import * as React from "react";
 import { FlaskConical, Loader2, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchDemoOtp } from "@/lib/auth/otp";
+import { createClient } from "@/lib/supabase/client";
 
 export type DemoOtpBannerProps = {
   /** E.164 phone the code was sent to. */
@@ -18,7 +19,31 @@ const POLL_MS = 1500;
 const MAX_TRIES = 10;
 
 /**
- * PROTOTYPE ONLY (NEXT_PUBLIC_OTP_DEMO_MODE=true): no SMS is sent; the code captured by the Send-SMS hook
+ * Browser read of app_settings.otp_demo_mode (public read) for OTP screens whose page passes no server value.
+ * False until loaded, and whenever `enabled` is false.
+ */
+export function useOtpDemoModeSetting(enabled: boolean): boolean {
+  const [on, setOn] = React.useState(false);
+  React.useEffect(() => {
+    if (!enabled) return;
+    let active = true;
+    void createClient()
+      .from("app_settings")
+      .select("value")
+      .eq("key", "otp_demo_mode")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active) setOn(data?.value === true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [enabled]);
+  return enabled && on;
+}
+
+/**
+ * PROTOTYPE ONLY (app_settings.otp_demo_mode = true): no SMS is sent; the code captured by the Send-SMS hook
  * is read with rpc('get_demo_otp') and shown in a clearly labelled amber banner.
  */
 export function DemoOtpBanner({ phone, nonce = 0, onFill }: DemoOtpBannerProps) {

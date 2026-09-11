@@ -5,6 +5,7 @@ import { Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { saveSettingsAction } from "../actions/settings";
@@ -19,7 +20,15 @@ export type SettingsValues = {
   firstListingsModerated: number;
   maxProvidersDefault: number;
   analyticsRetentionDays: number;
+  /** app_settings.duty_data_mode. */
+  dutyDataMode: "demo" | "off" | "live";
 };
+
+const DUTY_MODES: Array<{ value: SettingsValues["dutyDataMode"]; label: string }> = [
+  { value: "demo", label: "Örnek veri (etiketli)" },
+  { value: "off", label: "Kapalı (resmi listeye yönlendir)" },
+  { value: "live", label: "Canlı (yalnızca gerçek liste)" },
+];
 
 function Row({ id, label, help, children }: { id?: string; label: string; help?: string; children: React.ReactNode }) {
   return (
@@ -68,6 +77,27 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
         </Row>
         <Row id="st-banner" label="Duyuru bandı" help="Boş bırakırsan görünmez. Doluysa uygulamanın üstünde tüm kullanıcılara gösterilir (bakım, önemli duyuru).">
           <Textarea id="st-banner" rows={2} maxLength={200} value={v.maintenanceBanner} onChange={(e) => set("maintenanceBanner", e.target.value)} placeholder="ör. Bu gece 02:00-03:00 arası bakım çalışması yapılacak." />
+        </Row>
+      </Section>
+
+      <Section title="Nöbetçi eczane">
+        <Row
+          id="st-duty"
+          label="Nöbet listesi verisi"
+          help="Örnek veri: rastgele liste, her yerde 'Örnek veri' etiketiyle görünür. Kapalı: liste gizlenir, Eczacı Odası bağlantısı gösterilir. Canlı: yalnızca gerçek nöbet kayıtları; gerçek kayıt yoksa 'Liste doğrulanamadı' uyarısı çıkar. Örnek veri dışında günlük örnek liste üretimi durur."
+        >
+          <Select value={v.dutyDataMode} onValueChange={(m) => set("dutyDataMode", m as SettingsValues["dutyDataMode"])}>
+            <SelectTrigger id="st-duty" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DUTY_MODES.map((m) => (
+                <SelectItem key={m.value} value={m.value}>
+                  {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Row>
       </Section>
 

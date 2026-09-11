@@ -7,9 +7,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { OTP_DEMO_MODE } from "@/config/site";
 import { IS_ADMIN_SITE } from "@/config/app-mode";
-import { DemoOtpBanner } from "./demo-otp-banner";
+import { DemoOtpBanner, useOtpDemoModeSetting } from "./demo-otp-banner";
 
 export type OtpFormProps = {
   /** E.164 phone the code was sent to (used by the demo banner). */
@@ -20,7 +19,10 @@ export type OtpFormProps = {
   onResend: () => Promise<string | void> | string | void;
   /** Seconds before "Kodu tekrar gönder" is enabled (default 60). */
   resendAfter?: number;
-  /** Show the prototype banner with the captured code (default: NEXT_PUBLIC_OTP_DEMO_MODE). */
+  /**
+   * Show the prototype banner with the captured code: app_settings.otp_demo_mode read by the page.
+   * When omitted (profile flows) the setting is read in the browser. Never shown on the admin site.
+   */
   demoMode?: boolean;
   submitLabel?: string;
   className?: string;
@@ -37,11 +39,13 @@ export function OtpForm({
   onVerify,
   onResend,
   resendAfter = 60,
-  // Admins never get a demo code (get_demo_otp refuses admin phones): no demo banner on the admin site.
-  demoMode = OTP_DEMO_MODE && !IS_ADMIN_SITE,
+  demoMode,
   submitLabel = "Doğrula",
   className,
 }: OtpFormProps) {
+  // Admins never get a demo code (get_demo_otp refuses admin phones): no demo banner on the admin site.
+  const browserDemoMode = useOtpDemoModeSetting(demoMode === undefined && !IS_ADMIN_SITE);
+  const showDemo = !IS_ADMIN_SITE && (demoMode ?? browserDemoMode);
   const [code, setCode] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -110,7 +114,7 @@ export function OtpForm({
 
   return (
     <div className={cn("flex flex-col gap-5", className)}>
-      {demoMode ? (
+      {showDemo ? (
         <DemoOtpBanner
           phone={phone}
           nonce={nonce}

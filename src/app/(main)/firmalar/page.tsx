@@ -51,6 +51,7 @@ function buildDirectory(businesses: DirectoryBusiness[], categories: ServiceCate
       verification_level: b.verification_level,
       vacation_mode: b.vacation_mode,
       neighbourhood_name: b.neighbourhood_name,
+      is_demo: b.is_demo,
       lat: b.lat,
       lng: b.lng,
       keys: [...keys],
@@ -71,6 +72,8 @@ export default async function FirmsPage() {
   } catch {
     data = null;
   }
+  // Sample firms stay out of structured data.
+  const listed = (data?.items ?? []).filter((b) => !b.is_demo).slice(0, 50);
 
   return (
     <>
@@ -78,19 +81,21 @@ export default async function FirmsPage() {
       <div className="flex flex-col gap-6 px-4 py-4">
         {data ? (
           <>
-            <JsonLd
-              data={{
-                "@context": "https://schema.org",
-                "@type": "ItemList",
-                name: `${CITY.name} firmaları`,
-                itemListElement: data.items.slice(0, 50).map((b, i) => ({
-                  "@type": "ListItem",
-                  position: i + 1,
-                  url: `${SITE_URL}${routes.businesses.detail(b.slug)}`,
-                  name: b.name,
-                })),
-              }}
-            />
+            {listed.length ? (
+              <JsonLd
+                data={{
+                  "@context": "https://schema.org",
+                  "@type": "ItemList",
+                  name: `${CITY.name} firmaları`,
+                  itemListElement: listed.map((b, i) => ({
+                    "@type": "ListItem",
+                    position: i + 1,
+                    url: `${SITE_URL}${routes.businesses.detail(b.slug)}`,
+                    name: b.name,
+                  })),
+                }}
+              />
+            ) : null}
             <Suspense fallback={<ListSkeleton count={6} />}>
               <FirmsDirectory items={data.items} chips={data.chips} />
             </Suspense>

@@ -24,21 +24,25 @@ export default async function EventsPage() {
       </div>
     );
   }
+  // Sample events stay out of structured data.
+  const listed = events.filter((e) => !e.is_demo).slice(0, 50);
   return (
     <>
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "ItemList",
-          name: `${CITY.name} etkinlikleri`,
-          itemListElement: events.slice(0, 50).map((e, i) => ({
-            "@type": "ListItem",
-            position: i + 1,
-            url: `${SITE_URL}${routes.events.detail(e.slug)}`,
-            name: e.title,
-          })),
-        }}
-      />
+      {listed.length ? (
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            name: `${CITY.name} etkinlikleri`,
+            itemListElement: listed.map((e, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              url: `${SITE_URL}${routes.events.detail(e.slug)}`,
+              name: e.title,
+            })),
+          }}
+        />
+      ) : null}
       <EventsExplorer events={events} applicationsOpen={settings.businessApplications} />
     </>
   );

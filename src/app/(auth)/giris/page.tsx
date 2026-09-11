@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { LoginScreen } from "@/features/auth/login-screen";
 import { getCurrentUser, getProfile } from "@/lib/auth/server";
+import { getAppSettings } from "@/lib/app-settings";
 import { routes, safeNextPath } from "@/core/routes";
 
 export const metadata: Metadata = {
@@ -18,5 +19,6 @@ export default async function LoginPage({ searchParams }: PageProps<"/giris">) {
     const profile = await getProfile();
     redirect(profile?.onboarded ? next : routes.auth.profile(next));
   }
-  return <LoginScreen next={next} />;
+  const { otpDemoMode } = await getAppSettings();
+  return <LoginScreen next={next} demoMode={otpDemoMode} />;
 }

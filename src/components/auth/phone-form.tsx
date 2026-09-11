@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Loader2 } from "lucide-react";
 import { IS_ADMIN_SITE, publicUrl } from "@/config/app-mode";
+import { TURNSTILE_SITE_KEY } from "@/config/site";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,9 +14,9 @@ import { routes } from "@/core/routes";
 export type PhoneFormProps = {
   /**
    * Called with the E.164 phone (+905XXXXXXXXX). Return a Turkish error message to show it,
-   * or nothing on success (navigate in the handler).
+   * or nothing on success (navigate in the handler). `captchaToken` is set only when the captcha is on.
    */
-  onSubmit: (phone: string, extras: { marketingConsent: boolean }) => Promise<string | void> | string | void;
+  onSubmit: (phone: string, extras: { marketingConsent: boolean; captchaToken?: string }) => Promise<string | void> | string | void;
   /** Button text (default "Kod Gönder"). */
   submitLabel?: string;
   /** Field label (default "Cep telefonu"). */
@@ -24,9 +25,73 @@ export type PhoneFormProps = {
   defaultPhone?: string | null;
   /** Show the required KVKK/terms checkbox and the optional marketing checkbox (login screen). */
   showConsents?: boolean;
+  /** Protect the send with Cloudflare Turnstile (login screen). Does nothing while NEXT_PUBLIC_TURNSTILE_SITE_KEY is unset. */
+  captcha?: boolean;
   autoFocus?: boolean;
   className?: string;
 };
+
+type TurnstileApi = {
+  render: (container: HTMLElement, options: Record<string, unknown>) => string | undefined;
+  remove: (widgetId: string) => void;
+};
+
+const TURNSTILE_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+let turnstileScript: Promise<TurnstileApi> | null = null;
+
+/** Load the Turnstile script once per tab (explicit rendering). */
+function loadTurnstile(): Promise<TurnstileApi> {
+  const w = window as Window & { turnstile?: TurnstileApi };
+  if (w.turnstile) return Promise.resolve(w.turnstile);
+  turnstileScript ??= new Promise<TurnstileApi>((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = TURNSTILE_SRC;
+    s.defer = true;
+    s.onload = () => (w.turnstile ? resolve(w.turnstile) : reject(new Error("turnstile unavailable")));
+    s.onerror = () => {
+      turnstileScript = null;
+      s.remove();
+      reject(new Error("turnstile failed to load"));
+    };
+    document.head.appendChild(s);
+  });
+  return turnstileScript;
+}
+
+/** Cloudflare Turnstile widget. Reports a token, or null when it expires or fails. Remount it (key) for a fresh token. */
+function TurnstileWidget({ onToken }: { onToken: (token: string | null) => void }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const onTokenRef = React.useRef(onToken);
+  React.useEffect(() => {
+    onTokenRef.current = onToken;
+  }, [onToken]);
+
+  React.useEffect(() => {
+    let active = true;
+    let widget: { api: TurnstileApi; id: string } | null = null;
+    loadTurnstile()
+      .then((api) => {
+        if (!active || !ref.current) return;
+        const id = api.render(ref.current, {
+          sitekey: TURNSTILE_SITE_KEY,
+          theme: "auto",
+          size: "flexible",
+          language: "tr",
+          callback: (token: string) => onTokenRef.current(token),
+          "expired-callback": () => onTokenRef.current(null),
+          "error-callback": () => onTokenRef.current(null),
+        });
+        if (id) widget = { api, id };
+      })
+      .catch(() => onTokenRef.current(null));
+    return () => {
+      active = false;
+      if (widget) widget.api.remove(widget.id);
+    };
+  }, []);
+
+  return <div ref={ref} className="min-h-[65px]" />;
+}
 
 /** "+90 | 5XX XXX XX XX" phone field with validation (TR mobile only) and optional consent checkboxes. */
 export function PhoneForm({
@@ -35,6 +100,7 @@ export function PhoneForm({
   label = "Cep telefonu",
   defaultPhone,
   showConsents,
+  captcha,
   autoFocus = true,
   className,
 }: PhoneFormProps) {
@@ -44,7 +110,10 @@ export function PhoneForm({
   const [error, setError] = React.useState<string | null>(null);
   const [fieldError, setFieldError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
+  const [captchaToken, setCaptchaToken] = React.useState<string | null>(null);
+  const [captchaRound, setCaptchaRound] = React.useState(0);
   const inputId = React.useId();
+  const withCaptcha = !!captcha && TURNSTILE_SITE_KEY !== "";
 
   const national = digitsOnly(value);
   const valid = isValidTRMobile(national);
@@ -60,11 +129,20 @@ export function PhoneForm({
       setError("Devam etmek için Kullanım Koşulları ve KVKK Aydınlatma Metni'ni onaylamalısın.");
       return;
     }
+    if (withCaptcha && !captchaToken) {
+      setError("Güvenlik doğrulaması henüz tamamlanmadı. Birkaç saniye bekleyip tekrar dene.");
+      return;
+    }
     setPending(true);
-    const res = await onSubmit(normalizePhoneTR(national)!, { marketingConsent: marketing });
+    const res = await onSubmit(normalizePhoneTR(national)!, { marketingConsent: marketing, captchaToken: captchaToken ?? undefined });
     if (typeof res === "string" && res) {
       setError(res);
       setPending(false);
+      // A Turnstile token works once: get a fresh one for the next try.
+      if (withCaptcha) {
+        setCaptchaToken(null);
+        setCaptchaRound((r) => r + 1);
+      }
     }
     // On success the caller navigates; keep the button in its loading state.
   };
@@ -134,6 +212,8 @@ export function PhoneForm({
           )}
         </div>
       ) : null}
+
+      {withCaptcha ? <TurnstileWidget key={captchaRound} onToken={setCaptchaToken} /> : null}
 
       {error ? (
         <p role="alert" className="rounded-xl bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive">

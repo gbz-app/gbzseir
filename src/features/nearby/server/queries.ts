@@ -3,12 +3,19 @@ import { cache } from "react";
 import { dutyDayFor } from "@/core/duty";
 import { addDaysToKey } from "@/core/time";
 import { trCompare } from "@/core/tr";
+import { getAppSettings } from "@/lib/app-settings";
 import { parsePlaceDetails } from "../lib/details";
 import { PLACE_CATEGORIES } from "../config";
-import type { DutyRow, PharmacyDuty, PlaceSummary, PoiDetail, PoiKind, PoiRow } from "../types";
+import type { DutyMode, DutyRow, PharmacyDuty, PlaceSummary, PoiDetail, PoiKind, PoiRow } from "../types";
 import { createPublicClient } from "./public-client";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Duty data mode from the app settings (unknown values count as "demo", which is always labelled). */
+export async function getDutyMode(): Promise<DutyMode> {
+  const m = (await getAppSettings()).dutyDataMode;
+  return m === "off" || m === "live" ? m : "demo";
+}
 
 export type DutyData = {
   /** Duty rows of the current duty day and the next two (deduplicated, sorted by start then name). */
@@ -19,6 +26,8 @@ export type DutyData = {
   ok: boolean;
   /** Server time of this render (ms) - pass to client components as the hydration "now". */
   generatedAt: number;
+  /** app_settings.duty_data_mode ("off": rows is always empty). */
+  mode: DutyMode;
 };
 
 /**
@@ -27,6 +36,8 @@ export type DutyData = {
  */
 export async function getDutyData(revalidate = 300): Promise<DutyData> {
   const now = Date.now();
+  const mode = await getDutyMode();
+  if (mode === "off") return { rows: [], fetchedAt: null, ok: true, generatedAt: now, mode };
   const day = dutyDayFor(now);
   const days = [day, addDaysToKey(day, 1), addDaysToKey(day, 2)];
   const supabase = createPublicClient(revalidate, ["nearby", "duty"]);
@@ -46,14 +57,15 @@ export async function getDutyData(revalidate = 300): Promise<DutyData> {
       ok = false;
       continue;
     }
-    for (const row of (r.data ?? []) as DutyRow[]) map.set(row.duty_id, row);
+    // The RPC already hides sample rows outside "demo"; this keeps a stale cached answer honest too.
+    for (const row of (r.data ?? []) as DutyRow[]) if (mode === "demo" || row.source !== "demo") map.set(row.duty_id, row);
   }
   const rows = [...map.values()].sort(
     (a, b) => new Date(a.duty_start).getTime() - new Date(b.duty_start).getTime() || trCompare(a.name, b.name),
   );
   let fetchedAt: string | null = null;
   for (const r of rows) if (!fetchedAt || new Date(r.fetched_at).getTime() > new Date(fetchedAt).getTime()) fetchedAt = r.fetched_at;
-  return { rows, fetchedAt, ok, generatedAt: now };
+  return { rows, fetchedAt, ok, generatedAt: now, mode };
 }
 
 const POI_COLUMNS = "id,kind,name,slug,address,phone,lat,lng,neighbourhood_id,details,source,license,updated_at,neighbourhoods(name)";
@@ -100,18 +112,16 @@ export function renderNow(): number {
   return Date.now();
 }
 
-/** Current and upcoming duty windows of one pharmacy (clients filter expired ones at render time). */
+/** Current and upcoming duty windows of one pharmacy, filtered by the duty mode like the duty RPCs. */
 export async function getPharmacyDuties(poiId: string): Promise<PharmacyDuty[]> {
+  const mode = await getDutyMode();
+  if (mode === "off") return [];
   // Round to the hour so the cached request key stays stable for a while.
   const hour = new Date(Math.floor(Date.now() / 3_600_000) * 3_600_000).toISOString();
   const supabase = createPublicClient(900, ["nearby", "duty"]);
-  const { data, error } = await supabase
-    .from("pharmacy_duty")
-    .select("id,duty_start,duty_end,source,note,fetched_at")
-    .eq("poi_id", poiId)
-    .gt("duty_end", hour)
-    .order("duty_start", { ascending: true })
-    .limit(8);
+  let query = supabase.from("pharmacy_duty").select("id,duty_start,duty_end,source,note,fetched_at").eq("poi_id", poiId).gt("duty_end", hour);
+  if (mode === "live") query = query.neq("source", "demo");
+  const { data, error } = await query.order("duty_start", { ascending: true }).limit(8);
   if (error) return [];
   return data ?? [];
 }

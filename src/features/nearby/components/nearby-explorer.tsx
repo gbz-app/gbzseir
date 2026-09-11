@@ -36,8 +36,9 @@ import { LazyNearbyMap } from "../map/lazy-map";
 import type { FlyRequest, MapPadding, MapPoint } from "../map/types";
 import { useNearbyData } from "../lib/use-nearby-data";
 import { useNow } from "../lib/use-now";
-import type { NearbyFilter, NearbyItem } from "../types";
+import type { DutyMode, NearbyFilter, NearbyItem } from "../types";
 import { CoachMarks, type CoachStep } from "./coach-marks";
+import { DutyDemoNote } from "./duty-card";
 import { DutyUnverified } from "./duty-unverified";
 import { LocationPrompt } from "./location-prompt";
 import { NearbyCard } from "./nearby-card";
@@ -48,8 +49,9 @@ const COACH_KEY = "gebzem.coach.yakinimda.v1";
 /** Space kept for the chip row at the top of the map. */
 const CHIPS_SPACE = 64;
 
-/** "Nöbetçi" is preselected between 19:00 and 08:30 (Istanbul). */
-function defaultFilterFor(now: number): NearbyFilter {
+/** "Nöbetçi" is preselected between 19:00 and 08:30 (Istanbul), but only when the duty list is real ("live"). */
+function defaultFilterFor(now: number, dutyMode: DutyMode): NearbyFilter {
+  if (dutyMode !== "live") return "eczane";
   const p = istanbulParts(now);
   const minutes = p.hour * 60 + p.minute;
   return minutes >= 19 * 60 || minutes < 8 * 60 + 30 ? "nobetci" : "eczane";
@@ -57,11 +59,11 @@ function defaultFilterFor(now: number): NearbyFilter {
 
 const CHIP_OPTIONS: ChipOption<NearbyFilter>[] = NEARBY_FILTERS.map((f) => ({ value: f.value, label: f.label, icon: f.icon }));
 
-function sourceFor(filter: NearbyFilter): { source: string; sourceUrl?: string; callAhead?: boolean; note?: React.ReactNode } {
+function sourceFor(filter: NearbyFilter, dutyMode: DutyMode): { source: string; sourceUrl?: string; callAhead?: boolean; note?: React.ReactNode } {
   switch (filter) {
     case "nobetci":
       return {
-        source: "Nöbet listesi",
+        source: dutyMode === "demo" ? "Örnek veri (gerçek liste değil)" : "Nöbet listesi",
         callAhead: true,
         note: (
           <>
@@ -90,24 +92,27 @@ function sourceFor(filter: NearbyFilter): { source: string; sourceUrl?: string; 
   }
 }
 
-/** D1: map + draggable list of nearby places with filter chips. */
-export function NearbyExplorer() {
+/** D1: map + draggable list of nearby places with filter chips. `dutyMode` (app setting) drives the duty labels and night default. */
+export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
   const searchParams = useSearchParams();
   const now = useNow();
   const loc = useApproxLocation();
   const onboardingActive = useOnboardingActive();
 
   const [chosen, setChosen] = React.useState<NearbyFilter | null>(() => parseFilter(searchParams.get("tur")));
-  const filter: NearbyFilter | null = chosen ?? (now ? defaultFilterFor(now) : null);
+  const filter: NearbyFilter | null = chosen ?? (now ? defaultFilterFor(now, dutyMode) : null);
   const meta = filterMeta(filter ?? "eczane");
   const data = useNearbyData(filter, loc.point);
   const showDistance = loc.pointSource !== "city";
+  const demoDuty = dutyMode === "demo";
 
   const dutyNow = filter === "nobetci" ? now : 0;
-  const items = React.useMemo<NearbyItem[]>(
-    () => (filter === "nobetci" ? data.items.filter((i) => !!i.duty && isDutyActive(i.duty.start, i.duty.end, dutyNow)) : data.items),
-    [data.items, filter, dutyNow],
-  );
+  const items = React.useMemo<NearbyItem[]>(() => {
+    if (filter !== "nobetci") return data.items;
+    // "off": no duty list at all (DutyUnverified), whatever a cached answer holds.
+    if (dutyMode === "off") return [];
+    return data.items.filter((i) => !!i.duty && isDutyActive(i.duty.start, i.duty.end, dutyNow));
+  }, [data.items, filter, dutyNow, dutyMode]);
   // In-sheet search over the current tab (name / subtitle / address, Turkish-insensitive). Pins follow it.
   const [query, setQuery] = React.useState("");
   const searchRef = React.useRef<HTMLInputElement>(null);
@@ -206,7 +211,7 @@ export function NearbyExplorer() {
   const fitKey = !data.loading && visible.length > 0 ? `${data.cacheKey}|${fitQuery}` : "";
   const sortHint =
     loc.pointSource === "gps" ? "en yakından uzağa" : loc.pointSource === "neighbourhood" && loc.neighbourhood ? `${loc.neighbourhood.name} merkezine göre` : `${CITY.name} merkezine göre`;
-  const source = filter ? sourceFor(filter) : null;
+  const source = filter ? sourceFor(filter, dutyMode) : null;
 
   const coachSteps: CoachStep[] = [
     { targetRef: chipsRef, text: "Ne arıyorsan seç: nöbetçi eczane, cami, durak, ATM…", placement: "bottom" },
@@ -309,6 +314,7 @@ export function NearbyExplorer() {
         >
           {/* Hidden while searching so the matches start right under the search bar. */}
           {query.trim() ? null : <LocationPrompt loc={loc} onLocate={locate} onPickNeighbourhood={() => setPickerOpen(true)} className="mb-3" />}
+          {filter === "nobetci" && demoDuty && !query.trim() && !data.loading && !data.error && items.length > 0 ? <DutyDemoNote className="mb-3" /> : null}
 
           {data.loading ? (
             <ListSkeleton count={3} variant="card" />
@@ -342,7 +348,7 @@ export function NearbyExplorer() {
             <ul className="flex flex-col gap-3" aria-label={meta.title}>
               {visible.map((item) => (
                 <li key={item.id}>
-                  <NearbyCard item={item} now={now} showDistance={showDistance} selected={item.id === selectedId} onShowOnMap={showOnMap} />
+                  <NearbyCard item={item} now={now} showDistance={showDistance} selected={item.id === selectedId} demoDuty={demoDuty} onShowOnMap={showOnMap} />
                 </li>
               ))}
             </ul>

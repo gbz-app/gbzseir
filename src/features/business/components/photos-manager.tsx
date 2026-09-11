@@ -44,20 +44,15 @@ export function PhotosManager({ businessId, cover: initialCover, photos: initial
 
   const savePhotos = async () => {
     setSaving(true);
-    const supabase = createClient();
-    const del = await supabase.from("business_photos").delete().eq("business_id", businessId);
-    if (del.error) {
+    // One transaction (set_business_photos): a failed save keeps the old photos.
+    const { error } = await createClient().rpc("set_business_photos", {
+      p_business_id: businessId,
+      p_photos: photos.map((p) => ({ url: p.url })),
+    });
+    if (error) {
       setSaving(false);
       toast.error("Fotoğraflar kaydedilemedi.");
       return;
-    }
-    if (photos.length) {
-      const { error } = await supabase.from("business_photos").insert(photos.map((p, i) => ({ business_id: businessId, url: p.url, sort: i })));
-      if (error) {
-        setSaving(false);
-        toast.error("Fotoğraflar kaydedilemedi.");
-        return;
-      }
     }
     await refreshMyBusinessPages().catch(() => undefined);
     setSaving(false);

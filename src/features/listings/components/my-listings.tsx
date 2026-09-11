@@ -165,7 +165,7 @@ export function MyListings({ rows, type, error }: { rows: MyListingRow[]; type: 
   const visible = rows.filter((r) => tabOf(effectiveStatus(r)) === tab);
 
   const onAction = async (row: MyListingRow, action: Action) => {
-    if (action === "delete" && !window.confirm("İlan kalıcı olarak silinsin mi? Bu işlem geri alınamaz.")) return;
+    if (action === "delete" && !window.confirm("İlan silinsin mi? İlan yayından kalkar, 30 gün içinde kalıcı olarak silinir.")) return;
     setBusyId(row.id);
     const supabase = createClient();
     let message: string | null = null;

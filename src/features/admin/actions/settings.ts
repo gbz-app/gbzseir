@@ -21,6 +21,7 @@ const schema = z.object({
   firstListingsModerated: int(0, 50, "Onaya düşen ilk ilan sayısı"),
   maxProvidersDefault: int(1, 10, "Firma sayısı"),
   analyticsRetentionDays: int(30, 730, "Saklama süresi"),
+  dutyDataMode: z.enum(["demo", "off", "live"], { message: "Nöbet listesi verisi için bir seçenek seç." }),
 });
 
 /** Saves the editable app settings and refreshes every cached page that reads them. */
@@ -41,10 +42,12 @@ export async function saveSettingsAction(input: z.input<typeof schema>): Promise
       ["first_listings_moderated", v.firstListingsModerated],
       ["max_providers_default", v.maxProvidersDefault],
       ["analytics_retention_days", v.analyticsRetentionDays],
+      ["duty_data_mode", v.dutyDataMode],
     ] as const;
     const { error } = await supabase.from("app_settings").upsert(rows.map(([key, value]) => ({ key, value, updated_at: now })));
     if (error) return dbFail(error);
-    await revalidatePublic({ tags: [APP_SETTINGS_TAG], paths: [{ path: "/", type: "layout" }] });
+    // "duty": the cached duty RPC answers follow duty_data_mode.
+    await revalidatePublic({ tags: [APP_SETTINGS_TAG, "duty"], paths: [{ path: "/", type: "layout" }] });
     revalidatePath(routes.admin.settings());
     return ok(null, "Ayarlar kaydedildi.");
   });

@@ -13,7 +13,10 @@ const REMOVE_TEXT: Record<string, { label: string; description: string }> = {
   listing: { label: "İlanı kaldır", description: "İlan silindi olarak işaretlenir ve yayından kalkar." },
   business: { label: "İşletmeyi askıya al", description: "İşletme sayfası ve teklifleri durdurulur. İşletmeler ekranından yeniden etkinleştirebilirsin." },
   review: { label: "Yorumu sil", description: "Yorum kalıcı olarak silinir ve işletme puanı yeniden hesaplanır." },
-  user: { label: "Kullanıcıyı engelle", description: "Kullanıcı yeni ilan ve hizmet talebi oluşturamaz. Kullanıcılar ekranından geri alabilirsin." },
+  user: {
+    label: "Kullanıcıyı engelle",
+    description: "Kullanıcı giriş yapamaz; işletmeleri, ilanları, etkinlikleri ve yorumları gizlenir. Kullanıcılar ekranından geri alabilirsin.",
+  },
 };
 
 function NoteField({ value, onChange }: { value: string; onChange: (v: string) => void }) {

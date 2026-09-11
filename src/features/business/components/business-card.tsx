@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronRight, TreePalm } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
-import { VerifiedBadge } from "@/components/shared/badges";
+import { DemoBadge, VerifiedBadge } from "@/components/shared/badges";
 import { BusinessLogo } from "./business-logo";
 import { RatingInline } from "./rating";
 
@@ -16,6 +16,8 @@ export type BusinessRowData = {
   verification_level: number;
   vacation_mode?: boolean;
   neighbourhood_name?: string | null;
+  /** Sample (seed) business: small "Örnek" chip. */
+  is_demo?: boolean;
 };
 
 /** Directory row card: logo, name + Onaylı, rating, category · neighbourhood, optional distance. Server-safe. */
@@ -42,6 +44,7 @@ export function BusinessRow({ b, distanceLabel, className }: { b: BusinessRowDat
               <TreePalm className="size-3.5" aria-hidden /> Tatilde
             </span>
           ) : null}
+          {b.is_demo ? <DemoBadge label="Örnek" className="h-5 px-1.5 text-[11px]" /> : null}
         </div>
         {meta ? <p className="mt-0.5 truncate text-xs text-muted-foreground">{meta}</p> : null}
       </div>

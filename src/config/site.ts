@@ -36,8 +36,11 @@ export const BRAND_COLORS = {
   backgroundDark: "#15121F",
 } as const;
 
-/** Prototype flags. */
-export const OTP_DEMO_MODE = process.env.NEXT_PUBLIC_OTP_DEMO_MODE === "true";
+/**
+ * Cloudflare Turnstile site key for the login form. Unset = no widget and no captchaToken.
+ * (OTP demo mode is app_settings.otp_demo_mode, read on the server: one DB switch.)
+ */
+export const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
 
 /** Feature switches (turn on when the feature is ready to launch). */
 export const FEATURES = {

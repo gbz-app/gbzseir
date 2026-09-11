@@ -6,7 +6,7 @@ import { formatDistance } from "@/core/geo";
 import { Button } from "@/components/ui/button";
 import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
-import { DutyBadge, OpenStatusBadge, VerifiedBadge } from "@/components/shared/badges";
+import { DemoBadge, DutyBadge, OpenStatusBadge, VerifiedBadge } from "@/components/shared/badges";
 import { openStatus } from "../lib/hours";
 import type { NearbyItem } from "../types";
 import { KindIcon } from "./kind-icon";
@@ -17,13 +17,15 @@ export type NearbyCardProps = {
   now: number;
   showDistance: boolean;
   selected?: boolean;
+  /** Duty data is sample data: on-duty cards also get the "Örnek veri" badge. */
+  demoDuty?: boolean;
   onShowOnMap?: (item: NearbyItem) => void;
 };
 
 const MAX_LINES = 6;
 
 /** List card on /yakinimda: icon, name, distance, address, status badges, Ara + Yol tarifi + Haritada göster. */
-export function NearbyCard({ item, now, showDistance, selected, onShowOnMap }: NearbyCardProps) {
+export function NearbyCard({ item, now, showDistance, selected, demoDuty, onShowOnMap }: NearbyCardProps) {
   const onDuty = !!item.duty && isDutyActive(item.duty.start, item.duty.end, now);
   const status = item.kind === "business" ? openStatus(item.hours, now, item.vacation) : null;
   const lines = item.lines ?? [];
@@ -61,6 +63,7 @@ export function NearbyCard({ item, now, showDistance, selected, onShowOnMap }: N
           {hasBadges ? (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {onDuty ? <DutyBadge /> : null}
+              {onDuty && demoDuty ? <DemoBadge /> : null}
               {status ? <OpenStatusBadge open={status.open} openLabel={status.label} closedLabel={status.label} /> : null}
               {item.verified ? <VerifiedBadge /> : null}
               {lines.length > 0 ? (

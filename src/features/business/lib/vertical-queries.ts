@@ -29,6 +29,8 @@ export type VerticalCard = {
   /** Hotels: cheapest available room per night. */
   min_room_price: number | null;
   photo_count: number;
+  /** Sample (seed) business: labelled "Örnek" on the card. */
+  is_demo: boolean;
 };
 
 type Raw = {
@@ -50,6 +52,7 @@ type Raw = {
   kinds: string[] | null;
   working_hours: unknown;
   vacation_mode: boolean | null;
+  is_demo: boolean | null;
   neighbourhoods: { name: string } | null;
   business_photos: Array<{ url: string; sort: number }> | null;
   business_rooms: Array<{ price_try: number | string | null; is_available: boolean }> | null;
@@ -133,7 +136,7 @@ export const listVerticalBusinesses = cache(async (vertical: Vertical): Promise<
   const { data, error } = await createPublicClient()
     .from("businesses")
     .select(
-      "id,slug,name,cover_url,logo_url,category_label,description,lat,lng,rating_avg,rating_count,price_level,star_rating,amenities,vertical,kinds,working_hours,vacation_mode,neighbourhoods!businesses_neighbourhood_id_fkey(name),business_photos(url,sort),business_rooms(price_try,is_available)",
+      "id,slug,name,cover_url,logo_url,category_label,description,lat,lng,rating_avg,rating_count,price_level,star_rating,amenities,vertical,kinds,working_hours,vacation_mode,is_demo,neighbourhoods!businesses_neighbourhood_id_fkey(name),business_photos(url,sort),business_rooms(price_try,is_available)",
     )
     .eq("status", "approved")
     .eq("vertical", vertical)
@@ -166,6 +169,7 @@ export const listVerticalBusinesses = cache(async (vertical: Vertical): Promise<
       vacation_mode: !!b.vacation_mode,
       min_room_price: prices.length ? Math.min(...prices) : null,
       photo_count: photos.length,
+      is_demo: b.is_demo === true,
     };
   });
 });

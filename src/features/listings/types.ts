@@ -61,6 +61,8 @@ export type ListingCardData = {
   locationLabel: string | null;
   experience: string | null;
   business: BusinessRef | null;
+  /** Örnek (seed) ilan: kartta "Örnek" etiketi. */
+  isDemo: boolean;
 };
 
 /** İlan detay sayfası verisi. */
@@ -249,6 +251,7 @@ export function toCardData(row: Row): ListingCardData {
     locationLabel: str(row.job_location_label),
     experience: str(row.job_experience),
     business: toBusiness(row.business),
+    isDemo: row.is_demo === true,
   };
 }
 

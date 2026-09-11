@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, MapPin, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
+import { DemoBadge } from "@/components/shared/badges";
 import { EVENT_CATEGORY_INFO } from "@/features/business/lib/verticals";
 import { dateBadge, eventPriceLabel, eventWhenShort } from "../format";
 import type { EventItem } from "../queries";
@@ -47,7 +48,10 @@ export function EventCard({ event, eager, className }: { event: EventItem; eager
 
         <div className="absolute inset-x-2.5 bottom-2.5 flex items-center gap-3 rounded-[1.35rem] bg-card/95 py-3 pr-3 pl-4 shadow-soft backdrop-blur-md">
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-base leading-snug font-semibold">{event.title}</h3>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <h3 className="min-w-0 truncate text-base leading-snug font-semibold">{event.title}</h3>
+              {event.is_demo ? <DemoBadge label="Örnek" className="h-5 shrink-0 px-1.5 text-[11px]" /> : null}
+            </div>
             {where ? (
               <p className="mt-0.5 flex items-center gap-1 text-[13px] text-muted-foreground">
                 <MapPin className="size-3.5 shrink-0" aria-hidden />

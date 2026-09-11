@@ -11,7 +11,7 @@ import { DirectionsButton } from "@/components/shared/directions-button";
 import { ShareButton } from "@/components/shared/share-button";
 import { DataSourceNote } from "@/components/shared/data-source-note";
 import { JsonLd } from "@/components/seo/json-ld";
-import { DetailHero, DetailSection, InfoList, InfoRow, STICKY_BAR_SPACE, StickyActionBar } from "@/features/nearby/components/detail-parts";
+import { DetailHero, InfoList, InfoRow, STICKY_BAR_SPACE, StickyActionBar } from "@/features/nearby/components/detail-parts";
 import { KindIcon } from "@/features/nearby/components/kind-icon";
 import { DistanceLabel } from "@/features/nearby/components/distance-label";
 import { PharmacyDutyBadges, PharmacyDutySchedule } from "@/features/nearby/components/pharmacy-duty";
@@ -20,7 +20,7 @@ import { InfoReportSheet } from "@/features/nearby/components/info-report-sheet"
 import { MiniMap } from "@/features/nearby/map/mini-map";
 import { KBB_SOURCE, OSM_COPYRIGHT_URL, OSM_SOURCE } from "@/features/nearby/config";
 import { poiJsonLd } from "@/features/nearby/jsonld";
-import { getNearbyPois, getPharmacyDuties, getPoi, renderNow } from "@/features/nearby/server/queries";
+import { getDutyMode, getNearbyPois, getPharmacyDuties, getPoi, renderNow } from "@/features/nearby/server/queries";
 
 export const revalidate = 3600;
 
@@ -44,9 +44,10 @@ export default async function PharmacyPage({ params }: Props) {
   if (!poi) notFound();
 
   const hasPoint = typeof poi.lat === "number" && typeof poi.lng === "number";
-  const [duties, nearby] = await Promise.all([
+  const [duties, nearby, dutyMode] = await Promise.all([
     getPharmacyDuties(poi.id),
     hasPoint ? getNearbyPois({ kind: "pharmacy", lat: poi.lat as number, lng: poi.lng as number, excludeId: poi.id }) : Promise.resolve([]),
+    getDutyMode(),
   ]);
   const now = renderNow();
   const path = routes.nearby.pharmacy(poi.slug);
@@ -62,7 +63,7 @@ export default async function PharmacyPage({ params }: Props) {
           title={poi.name}
           badges={
             <>
-              <PharmacyDutyBadges duties={duties} serverNow={now} />
+              <PharmacyDutyBadges duties={duties} serverNow={now} mode={dutyMode} />
               <DistanceLabel lat={poi.lat} lng={poi.lng} withIcon className="text-sm text-muted-foreground" />
             </>
           }
@@ -81,9 +82,8 @@ export default async function PharmacyPage({ params }: Props) {
             ) : null}
           </InfoList>
         ) : null}
-        <DetailSection title="Nöbet günleri">
-          <PharmacyDutySchedule duties={duties} serverNow={now} />
-        </DetailSection>
+        {/* Renders its own "Nöbet günleri" section (it used to be wrapped twice). */}
+        <PharmacyDutySchedule duties={duties} serverNow={now} mode={dutyMode} />
         {hasPoint ? <MiniMap lat={poi.lat as number} lng={poi.lng as number} kind="pharmacy" name={poi.name} /> : null}
         <NearbyMiniList title="Yakındaki eczaneler" rows={nearby} />
         <DataSourceNote

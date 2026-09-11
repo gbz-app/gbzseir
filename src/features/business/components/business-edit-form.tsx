@@ -123,19 +123,13 @@ export function BusinessEditForm({ initial }: { initial: BusinessEditData }) {
       return;
     }
     if (d.isService) {
-      const [c, a] = await Promise.all([
-        supabase.from("business_service_categories").delete().eq("business_id", d.id),
-        supabase.from("business_service_areas").delete().eq("business_id", d.id),
-      ]);
-      const inserts = await Promise.all([
-        !c.error && d.categoryIds.length
-          ? supabase.from("business_service_categories").insert(d.categoryIds.map((category_id) => ({ business_id: d.id, category_id })))
-          : Promise.resolve({ error: c.error }),
-        !a.error && d.areaIds.length
-          ? supabase.from("business_service_areas").insert(d.areaIds.map((neighbourhood_id) => ({ business_id: d.id, neighbourhood_id })))
-          : Promise.resolve({ error: a.error }),
-      ]);
-      if (inserts.some((r) => r.error)) toast.error("Hizmet kategorileri ya da bölgeler kaydedilemedi.");
+      // One transaction (set_business_service_scope): a failed save keeps the old categories and areas.
+      const scope = await supabase.rpc("set_business_service_scope", {
+        p_business_id: d.id,
+        p_category_ids: d.categoryIds,
+        p_neighbourhood_ids: d.areaIds,
+      });
+      if (scope.error) toast.error("Hizmet kategorileri ya da bölgeler kaydedilemedi.");
     }
     await refreshMyBusinessPages().catch(() => undefined);
     setSaving(false);

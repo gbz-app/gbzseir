@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { VerifyScreen } from "@/features/auth/verify-screen";
 import { getCurrentUser, getProfile } from "@/lib/auth/server";
+import { getAppSettings } from "@/lib/app-settings";
 import { normalizePhoneTR } from "@/core/phone";
 import { routes, safeNextPath } from "@/core/routes";
 
@@ -19,5 +20,6 @@ export default async function VerifyPage({ searchParams }: PageProps<"/giris/dog
     const profile = await getProfile();
     redirect(profile?.onboarded ? next : routes.auth.profile(next));
   }
-  return <VerifyScreen phone={phone} next={next} />;
+  const { otpDemoMode } = await getAppSettings();
+  return <VerifyScreen phone={phone} next={next} demoMode={otpDemoMode} />;
 }

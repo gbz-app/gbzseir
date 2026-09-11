@@ -14,8 +14,8 @@ import { useApproxLocation } from "@/lib/location/use-approx-location";
 import { ECZACI_ODASI_NAME, ECZACI_ODASI_URL } from "../config";
 import { buildDutyView, sortDutyRows } from "../lib/duty-view";
 import { useNow } from "../lib/use-now";
-import type { DutyRow } from "../types";
-import { DutyCard } from "./duty-card";
+import type { DutyMode, DutyRow } from "../types";
+import { DutyCard, DutyDemoNote } from "./duty-card";
 import { DutyUnverified } from "./duty-unverified";
 
 export type DutyBrowserProps = {
@@ -24,15 +24,20 @@ export type DutyBrowserProps = {
   serverNow: number;
   fetchedAt: string | null;
   ok: boolean;
+  /** Duty data mode; "demo" labels the list and every card as sample data. */
+  mode: DutyMode;
 };
 
 type Tab = "now" | "next";
+
+const DEMO_SOURCE = "Örnek veri (gerçek liste değil)";
 
 /**
  * D2 list: "Bugün / Yarın" tabs, filtered at render time (the HTML may come from ISR or the service worker),
  * sorted by distance when a location is known, refreshed automatically at the 08:30 switch.
  */
-export function DutyBrowser({ rows, serverNow, fetchedAt, ok }: DutyBrowserProps) {
+export function DutyBrowser({ rows, serverNow, fetchedAt, ok, mode }: DutyBrowserProps) {
+  const demo = mode === "demo";
   const router = useRouter();
   const now = useNow(serverNow);
   const loc = useApproxLocation();
@@ -76,6 +81,8 @@ export function DutyBrowser({ rows, serverNow, fetchedAt, ok }: DutyBrowserProps
 
   return (
     <div className="flex flex-col gap-3">
+      {demo ? <DutyDemoNote /> : null}
+
       <div role="tablist" aria-label="Nöbet günü" className="grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1">
         {tabs.map((t) => {
           const active = tab === t.id;
@@ -141,6 +148,7 @@ export function DutyBrowser({ rows, serverNow, fetchedAt, ok }: DutyBrowserProps
                   distance={r.distance}
                   windowText={describeDutyWindow({ start: r.duty_start, end: r.duty_end }, now)}
                   onDuty={tab === "now"}
+                  demo={demo || r.source === "demo"}
                 />
               </li>
             ))}
@@ -159,7 +167,7 @@ export function DutyBrowser({ rows, serverNow, fetchedAt, ok }: DutyBrowserProps
       </div>
 
       <DataSourceNote
-        source="Nöbet listesi"
+        source={demo ? DEMO_SOURCE : "Nöbet listesi"}
         updatedAt={fetchedAt}
         callAhead
         note={

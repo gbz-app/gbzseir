@@ -4,6 +4,7 @@ import { routes } from "@/core/routes";
 import { CITY } from "@/config/site";
 import { NearbyExplorer } from "@/features/nearby/components/nearby-explorer";
 import { NearbyExplorerSkeleton } from "@/features/nearby/components/nearby-explorer-skeleton";
+import { getDutyMode } from "@/features/nearby/server/queries";
 
 export const metadata: Metadata = {
   title: "Yakınımda",
@@ -11,15 +12,19 @@ export const metadata: Metadata = {
   alternates: { canonical: routes.nearby.root() },
 };
 
-/** D1 - Yakınımda. Full-screen map (no top bar). Static shell; the explorer reads ?tur= and the location on the client. */
-export default function NearbyPage() {
+/**
+ * D1 - Yakınımda. Full-screen map (no top bar). Static shell; the explorer reads ?tur= and the location on the client.
+ * The duty mode (cached app setting) decides the night default tab and the "Örnek veri" labels.
+ */
+export default async function NearbyPage() {
+  const dutyMode = await getDutyMode();
   return (
     <>
       <h1 className="sr-only">Yakınımda</h1>
       {/* Keeps the map below the status bar / notch now that the page has no top bar. */}
       <div aria-hidden className="pt-safe" />
       <Suspense fallback={<NearbyExplorerSkeleton />}>
-        <NearbyExplorer />
+        <NearbyExplorer dutyMode={dutyMode} />
       </Suspense>
     </>
   );
