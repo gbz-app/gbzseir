@@ -35,7 +35,7 @@ const QUICK: Tile[] = [
   // Opens the map like the other pharmacies (Yakınımda > Nöbetçi).
   { href: routes.nearby.root("nobetci"), label: "Nöbetçi Eczane", image: "/images/home/eczane.webp", imageClassName: "bg-card" },
   { href: routes.nearby.root("durak"), label: "Durak", icon: Bus, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" },
-  { href: routes.nearby.root(), label: "Şehir Rehberi", icon: MapIcon, tone: "bg-brand-soft text-primary" },
+  { href: routes.guide.root(), label: "Şehir Rehberi", icon: MapIcon, tone: "bg-brand-soft text-primary" },
   { href: routes.nearby.root("taksi"), label: "Taksi", image: "/images/home/taksi.webp", imageClassName: "bg-card" },
 ];
 

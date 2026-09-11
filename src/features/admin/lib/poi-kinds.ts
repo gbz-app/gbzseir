@@ -42,8 +42,12 @@ export function poiKindParam(kind: PoiKind): string | undefined {
   return kind === "place" ? undefined : POI_KIND_META[kind].param;
 }
 
-/** Synced non-place rows (OSM / KBB) would come back with the next import, so they are hidden instead of deleted. */
-export function poiDeletable(kind: PoiKind, source: string): boolean {
+/**
+ * Imported rows would come back with the next import, so they are hidden instead of deleted: synced non-place rows
+ * (OSM / KBB) and every city-guide import row (source_ref "guide/…", any kind).
+ */
+export function poiDeletable(kind: PoiKind, source: string, sourceRef?: string | null): boolean {
+  if (sourceRef?.startsWith("guide/")) return false;
   return kind === "place" || (source !== "osm" && source !== "kbb");
 }
 

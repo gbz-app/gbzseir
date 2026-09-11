@@ -158,11 +158,11 @@ export async function deletePlaceAction(input: { id: string }): Promise<ActionRe
   return withAdmin(async ({ supabase }) => {
     const id = zId.safeParse(input.id);
     if (!id.success) return fail("Geçersiz yer.");
-    const { data: current, error: cErr } = await supabase.from("poi").select("kind,source,slug").eq("id", id.data).maybeSingle();
+    const { data: current, error: cErr } = await supabase.from("poi").select("kind,source,source_ref,slug").eq("id", id.data).maybeSingle();
     if (cErr) return dbFail(cErr);
     if (!current) return fail("Yer bulunamadı.", "not_found");
     const kind = current.kind as PoiKind;
-    if (!poiDeletable(kind, current.source)) return fail("Veri kaynağından gelen yer silinmez; gizleyebilirsin.");
+    if (!poiDeletable(kind, current.source, current.source_ref)) return fail("Veri kaynağından gelen yer silinmez; gizleyebilirsin.");
     const { error } = await supabase.from("poi").delete().eq("id", id.data);
     if (error) return dbFail(error);
     await revalidatePois(kind, current.slug);

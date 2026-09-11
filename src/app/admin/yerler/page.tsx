@@ -75,7 +75,7 @@ export default async function AdminPlacesPage({ searchParams }: Props) {
 
   let query = supabase
     .from("poi")
-    .select("id,kind,name,slug,address,phone,lat,lng,details,source,updated_at,hidden,locked")
+    .select("id,kind,name,slug,address,phone,lat,lng,details,source,source_ref,updated_at,hidden,locked")
     .eq("kind", kind)
     .order("name");
   if (ref) query = UUID_RE.test(ref) ? query.eq("id", ref) : query.eq("slug", ref);
@@ -102,6 +102,7 @@ export default async function AdminPlacesPage({ searchParams }: Props) {
       hidden: p.hidden,
       locked: p.locked,
       source: p.source,
+      source_ref: p.source_ref,
       category: d.category,
       description: d.description,
       hours: d.hours,

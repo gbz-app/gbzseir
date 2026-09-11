@@ -30,6 +30,8 @@ export type PlaceValue = {
   hidden: boolean;
   locked: boolean;
   source: string;
+  /** "guide/…" for city-guide import rows: those are hidden, never deleted (see poiDeletable). */
+  source_ref?: string | null;
   /** Gezilecek yer fields (kind "place"). */
   category: string;
   description: string | null;
@@ -222,7 +224,7 @@ export function PlaceDialog({
             />
           ) : null}
           <div className="flex flex-wrap justify-between gap-2">
-            {value && poiDeletable(kind, value.source) ? <DeletePlace id={value.id} name={value.name} onDone={() => setOpen(false)} /> : <span />}
+            {value && poiDeletable(kind, value.source, value.source_ref) ? <DeletePlace id={value.id} name={value.name} onDone={() => setOpen(false)} /> : <span />}
             <Button type="submit" disabled={pending || uploading}>
               {pending ? <Loader2 className="animate-spin" aria-hidden /> : null} Kaydet
             </Button>
