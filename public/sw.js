@@ -11,7 +11,7 @@
  *   cross-origin requests (Supabase, maps), RSC payloads, non-GET requests.
  * - A page can opt out of caching with the response header "X-SW-Cache: no".
  */
-const VERSION = "v4-2026-09-11";
+const VERSION = "v5-2026-09-11";
 const PREFIX = "gebzem";
 const STATIC_CACHE = `${PREFIX}-static-${VERSION}`;
 const PAGES_CACHE = `${PREFIX}-pages-${VERSION}`;
