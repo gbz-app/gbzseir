@@ -3,6 +3,7 @@
  */
 import {
   Bus,
+  CarTaxiFront,
   Castle,
   Cross,
   Landmark,
@@ -42,6 +43,7 @@ export const NEARBY_FILTERS: FilterMeta[] = [
   { value: "eczane", label: "Eczane", icon: Pill, marker: "pharmacy", title: "Yakındaki eczaneler", noun: "eczane" },
   { value: "cami", label: "Cami", icon: MoonStar, marker: "mosque", title: "Yakındaki camiler", noun: "cami" },
   { value: "durak", label: "Durak", icon: Bus, marker: "bus_stop", title: "Yakındaki duraklar", noun: "durak" },
+  { value: "taksi", label: "Taksi", icon: CarTaxiFront, marker: "taxi", title: "Yakındaki taksi durakları", noun: "taksi durağı" },
   { value: "gezilecek", label: "Gezilecek", icon: Landmark, marker: "place", title: "Gezilecek yerler", noun: "yer" },
   { value: "isletme", label: "İşletmeler", icon: Store, marker: "business", title: "Yakındaki işletmeler", noun: "işletme" },
 ];
@@ -99,6 +101,13 @@ export const KIND_META: Record<MarkerKind, KindMeta> = {
     glyph: "#FFFFFF",
     tone: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
   },
+  taxi: {
+    label: "Taksi durağı",
+    icon: CarTaxiFront,
+    pin: "#EAB308",
+    glyph: "#1C1917",
+    tone: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
+  },
   place: {
     label: "Gezilecek yer",
     icon: Landmark,
@@ -151,6 +160,9 @@ export function poiHref(kind: PoiKind, slug: string): string {
       return routes.nearby.stop(slug);
     case "place":
       return routes.nearby.place(slug);
+    case "taxi":
+      // No detail page for taxi stands: the list card opens the map view.
+      return routes.nearby.root("taksi");
   }
 }
 

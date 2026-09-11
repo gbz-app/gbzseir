@@ -35,7 +35,7 @@ const QUICK: Tile[] = [
 
 /** Category cards, 4 per row. */
 const CATEGORIES: Tile[] = [
-  { href: routes.search("taksi"), label: "Taksi", image: "/images/home/taksi.webp", imageClassName: "bg-card" },
+  { href: routes.nearby.root("taksi"), label: "Taksi", image: "/images/home/taksi.webp", imageClassName: "bg-card" },
   vertical("yemek"),
   vertical("restoran"),
   vertical("kafe"),

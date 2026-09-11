@@ -55,7 +55,7 @@ export function isRouteActive(pathname: string, base: string): boolean {
 const enc = (v: string | number) => encodeURIComponent(String(v));
 
 export type ListingsTab = "ikinci-el" | "is-ilanlari";
-export type NearbyKind = "eczane" | "nobetci" | "cami" | "durak" | "gezilecek";
+export type NearbyKind = "eczane" | "nobetci" | "cami" | "durak" | "taksi" | "gezilecek";
 
 export const routes = {
   home: () => "/",

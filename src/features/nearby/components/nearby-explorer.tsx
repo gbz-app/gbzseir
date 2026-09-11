@@ -77,6 +77,8 @@ function sourceFor(filter: NearbyFilter): { source: string; sourceUrl?: string; 
       return { source: KBB_SOURCE };
     case "durak":
       return { source: OSM_SOURCE, sourceUrl: OSM_COPYRIGHT_URL };
+    case "taksi":
+      return { source: OSM_SOURCE, sourceUrl: OSM_COPYRIGHT_URL, callAhead: true };
     case "gezilecek":
       return { source: `${KBB_SOURCE}, ${OSM_SOURCE}` };
     case "isletme":
