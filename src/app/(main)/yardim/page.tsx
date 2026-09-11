@@ -90,18 +90,25 @@ export default async function HelpPage({ searchParams }: Props) {
           </Accordion>
         </section>
 
-        <section className="grid grid-cols-2 gap-2.5">
-          <a href={telHref(settings.supportPhone)} className="flex flex-col gap-1 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
-            <Phone className="size-5 text-primary" aria-hidden />
-            <span className="mt-1 text-xs text-muted-foreground">Telefon</span>
-            <span className="text-sm font-semibold">{displayTrPhone(settings.supportPhone)}</span>
-          </a>
-          <a href={`mailto:${settings.supportEmail}`} className="flex min-w-0 flex-col gap-1 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
-            <Mail className="size-5 text-primary" aria-hidden />
-            <span className="mt-1 text-xs text-muted-foreground">E-posta</span>
-            <span className="truncate text-sm font-semibold">{settings.supportEmail}</span>
-          </a>
-        </section>
+        {/* Contact cards only for contacts set in Admin > Ayarlar (the form above always works). */}
+        {settings.supportPhone || settings.supportEmail ? (
+          <section className={`grid gap-2.5 ${settings.supportPhone && settings.supportEmail ? "grid-cols-2" : ""}`}>
+            {settings.supportPhone ? (
+              <a href={telHref(settings.supportPhone)} className="flex flex-col gap-1 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
+                <Phone className="size-5 text-primary" aria-hidden />
+                <span className="mt-1 text-xs text-muted-foreground">Telefon</span>
+                <span className="text-sm font-semibold">{displayTrPhone(settings.supportPhone)}</span>
+              </a>
+            ) : null}
+            {settings.supportEmail ? (
+              <a href={`mailto:${settings.supportEmail}`} className="flex min-w-0 flex-col gap-1 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
+                <Mail className="size-5 text-primary" aria-hidden />
+                <span className="mt-1 text-xs text-muted-foreground">E-posta</span>
+                <span className="truncate text-sm font-semibold">{settings.supportEmail}</span>
+              </a>
+            ) : null}
+          </section>
+        ) : null}
       </div>
     </>
   );

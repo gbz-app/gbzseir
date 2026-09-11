@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Inbox, Mail, Phone, Store, TriangleAlert, UserRound } from "lucide-react";
+import { Inbox, Mail, Pencil, Phone, Store, TriangleAlert, UserRound } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { AdminPageHeader } from "@/components/admin/admin-page";
@@ -13,6 +13,7 @@ import { AdminCard, AdminPagination, EmptyCard, FilterTabs, StatusBadge } from "
 import { SupportActions } from "@/features/admin/components/support-actions";
 import { SUPPORT_STATUS, SUPPORT_TOPIC } from "@/features/admin/lib/labels";
 import { oneOf, pageParam, pageRange } from "@/features/admin/lib/params";
+import { adminPoiHref, poiFromPagePath } from "@/features/admin/lib/poi-kinds";
 import { MESSAGE_TOPICS, TOPIC_INFO, type MessageTopic } from "@/features/support/topics";
 
 export const metadata: Metadata = { title: "Destek mesajları" };
@@ -98,6 +99,8 @@ export default async function AdminSupportPage({ searchParams }: Props) {
         ) : (
           rows.map((m) => {
             const info = TOPIC_INFO[m.topic] ?? TOPIC_INFO.diger;
+            // Yer bilgisi düzeltme: open that poi's editor (page_path is its public detail page).
+            const poi = m.topic === "bilgi_duzeltme" ? poiFromPagePath(m.page_path) : null;
             return (
               <AdminCard key={m.id} as="article">
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -135,6 +138,11 @@ export default async function AdminSupportPage({ searchParams }: Props) {
                     <span className="inline-flex items-center gap-1.5">
                       <Store className="size-4 text-muted-foreground" aria-hidden /> {m.business_name}
                     </span>
+                  ) : null}
+                  {poi ? (
+                    <Link href={adminPoiHref(poi.kind, poi.ref)} className="inline-flex items-center gap-1.5 font-semibold text-primary hover:underline">
+                      <Pencil className="size-4" aria-hidden /> Yeri düzenle
+                    </Link>
                   ) : null}
                 </div>
                 {m.page_path || m.user_agent ? (

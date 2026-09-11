@@ -3,27 +3,44 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
-import { revalidatePublic } from "@/lib/revalidate-public";
+import { getAppSettings } from "@/lib/app-settings";
+import { revalidatePublic, type PublicCacheTag } from "@/lib/revalidate-public";
 import { parseFlowSchema, type FlowStep } from "@/core/flow";
 import { dbFail, withAdmin, type AdminContext } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { firstIssue, zId } from "../lib/zod";
 import { cleanFlowSchema, validateFlowDraft } from "../lib/flow-draft";
 
-async function revalidateCategory(supabase: AdminContext["supabase"], id: string) {
+/** Public /hizmetler and request-wizard paths of the given category slugs. */
+function servicePaths(slugs: Array<string | null | undefined>): string[] {
+  const paths: string[] = [routes.services.root()];
+  for (const slug of new Set(slugs)) {
+    if (slug) paths.push(routes.services.category(slug), routes.services.request(slug));
+  }
+  return paths;
+}
+
+/** Catalog changes (add, rename, move, on/off, delete) also show on /firmalar and firm pages (category names, filter list). */
+const CATALOG_TAGS: PublicCacheTag[] = ["services", "businesses"];
+
+/** Admin list + detail and the public pages of the category, its parent and any previous slug / parent. */
+async function revalidateCategory(
+  supabase: AdminContext["supabase"],
+  id: string,
+  previousSlugs: Array<string | null | undefined> = [],
+  tags: PublicCacheTag[] = ["services"],
+) {
   revalidatePath(routes.admin.serviceCategories());
   revalidatePath(routes.admin.serviceCategory(id));
-  const paths: string[] = [routes.services.root()];
+  const slugs = [...previousSlugs];
   const { data } = await supabase.from("service_categories").select("slug,parent_id").eq("id", id).maybeSingle();
-  if (data?.slug) {
-    paths.push(routes.services.category(data.slug), routes.services.request(data.slug));
-  }
+  if (data?.slug) slugs.push(data.slug);
   if (data?.parent_id) {
     const { data: parent } = await supabase.from("service_categories").select("slug").eq("id", data.parent_id).maybeSingle();
-    if (parent?.slug) paths.push(routes.services.category(parent.slug));
+    if (parent?.slug) slugs.push(parent.slug);
   }
   // Public pages live on another deployment (own cache) when the admin runs as a separate site.
-  await revalidatePublic({ tags: ["services"], paths });
+  await revalidatePublic({ tags, paths: servicePaths(slugs) });
 }
 
 const patchSchema = z
@@ -51,12 +68,13 @@ export async function updateServiceCategoryAction(input: z.input<typeof patchSch
       .maybeSingle();
     if (cErr) return dbFail(cErr);
     if (!current) return fail("Kategori bulunamadı.", "not_found");
-    const max = patch.max_providers ?? current.max_providers;
+    // A category without its own limit uses the admin default (2026091332).
+    const max = patch.max_providers ?? current.max_providers ?? (await getAppSettings()).maxProvidersDefault;
     const pool = patch.notify_pool_size ?? current.notify_pool_size;
     if (pool < max) return fail(`Bildirim havuzu (${pool}), kabul limitinden (${max}) küçük olamaz.`, "pool_lt_max");
     const { error } = await supabase.from("service_categories").update(patch).eq("id", id);
     if (error) return dbFail(error);
-    await revalidateCategory(supabase, id);
+    await revalidateCategory(supabase, id, [], patch.active !== undefined ? CATALOG_TAGS : ["services"]);
     const msg =
       patch.auto_dispatch !== undefined
         ? patch.auto_dispatch
@@ -64,6 +82,105 @@ export async function updateServiceCategoryAction(input: z.input<typeof patchSch
           : "Concierge modu: yeni talepler önce yönetici incelemesine düşer."
         : "Kategori güncellendi.";
     return ok(null, msg);
+  });
+}
+
+const SORT_MSG = "Sıra 0 ile 10000 arasında bir tam sayı olmalı.";
+const categoryFields = {
+  parentId: zId.nullable(),
+  name: z.string().trim().min(2, "Kategori adı en az 2 karakter olmalı.").max(60, "Kategori adı en fazla 60 karakter olabilir."),
+  /** Normalised with tr_slug and checked for uniqueness in the database; empty = from the name. */
+  slug: z.string().trim().max(60, "Adres (slug) en fazla 60 karakter olabilir."),
+  icon: z.string().trim().regex(/^[a-z0-9-]{1,40}$/, "Simge adı geçersiz.").nullable(),
+  description: z.string().trim().max(300, "Açıklama en fazla 300 karakter olabilir."),
+  synonyms: z
+    .array(z.string().trim().max(40, "Bir arama kelimesi en fazla 40 karakter olabilir."))
+    .max(30, "En fazla 30 arama kelimesi ekleyebilirsin."),
+  sort: z.coerce.number().int(SORT_MSG).min(0, SORT_MSG).max(10000, SORT_MSG),
+};
+const createSchema = z.object({ ...categoryFields, active: z.boolean() }).strict();
+const editSchema = z.object({ id: zId, ...categoryFields }).strict();
+
+type SaveResult =
+  | { ok: true; id: string; slug: string; created: boolean; old_slug: string | null; old_parent_slug: string | null }
+  | { ok: false; reason: "not_found" };
+
+async function saveCategory(
+  supabase: AdminContext["supabase"],
+  id: string | null,
+  v: z.output<typeof editSchema> | z.output<typeof createSchema>,
+): Promise<ActionResult<{ id: string; slug: string }>> {
+  const { data, error } = await supabase.rpc("admin_save_service_category", {
+    // null = new category / main category (generated types do not mark uuid args nullable).
+    p_id: id as string,
+    p_parent_id: v.parentId as string,
+    p_name: v.name,
+    p_slug: v.slug || undefined,
+    p_icon: v.icon ?? undefined,
+    p_description: v.description || undefined,
+    p_synonyms: v.synonyms,
+    p_sort: v.sort,
+    p_active: "active" in v ? v.active : true,
+  });
+  if (error) return dbFail(error, "Kategori kaydedilemedi.");
+  const res = data as unknown as SaveResult | null;
+  if (!res?.ok) return fail("Kategori bulunamadı.", "not_found");
+  await revalidateCategory(supabase, res.id, [res.old_slug, res.old_parent_slug], CATALOG_TAGS);
+  const msg = res.created
+    ? "Kategori eklendi."
+    : res.old_slug && res.old_slug !== res.slug
+      ? `Kategori güncellendi. Yeni adres: ${routes.services.category(res.slug)}`
+      : "Kategori güncellendi.";
+  return ok({ id: res.id, slug: res.slug }, msg);
+}
+
+/** New service category (main or sub). The slug comes from tr_slug and must be unique. */
+export async function createServiceCategoryAction(input: z.input<typeof createSchema>): Promise<ActionResult<{ id: string; slug: string }>> {
+  return withAdmin(async ({ supabase }) => {
+    const parsed = createSchema.safeParse(input);
+    if (!parsed.success) return fail(firstIssue(parsed.error));
+    return saveCategory(supabase, null, parsed.data);
+  });
+}
+
+/** Edit name, slug, parent, icon, description, search words and sort of a category. */
+export async function editServiceCategoryAction(input: z.input<typeof editSchema>): Promise<ActionResult<{ id: string; slug: string }>> {
+  return withAdmin(async ({ supabase }) => {
+    const parsed = editSchema.safeParse(input);
+    if (!parsed.success) return fail(firstIssue(parsed.error));
+    return saveCategory(supabase, parsed.data.id, parsed.data);
+  });
+}
+
+type DeleteResult =
+  | { ok: true; slug: string; parent_slug: string | null }
+  | { ok: false; reason: "not_found" | "in_use"; children?: number; firms?: number; requests?: number };
+
+/** Deletes an unused category (with its question flows). A category in use is refused (hint in_use): deactivate it instead. */
+export async function deleteServiceCategoryAction(input: { id: string }): Promise<ActionResult<null>> {
+  return withAdmin(async ({ supabase }) => {
+    const id = zId.safeParse(input.id);
+    if (!id.success) return fail("Geçersiz kategori.");
+    const { data, error } = await supabase.rpc("admin_delete_service_category", { p_id: id.data });
+    if (error) return dbFail(error, "Kategori silinemedi.");
+    const res = data as unknown as DeleteResult | null;
+    if (!res) return fail("Kategori silinemedi.");
+    if (!res.ok) {
+      if (res.reason === "not_found") return fail("Kategori bulunamadı.", "not_found");
+      const used = [
+        res.children ? `${res.children} alt kategori` : null,
+        res.firms ? `${res.firms} firma` : null,
+        res.requests ? `${res.requests} hizmet talebi` : null,
+      ].filter(Boolean);
+      return fail(
+        `Bu kategori silinemez, bağlı kayıtlar var: ${used.join(", ")}. Silmek yerine pasif yap: kayıtlar korunur, kategori sitede görünmez.`,
+        "in_use",
+      );
+    }
+    revalidatePath(routes.admin.serviceCategories());
+    revalidatePath(routes.admin.serviceCategory(id.data));
+    await revalidatePublic({ tags: CATALOG_TAGS, paths: servicePaths([res.slug, res.parent_slug]) });
+    return ok(null, "Kategori silindi.");
   });
 }
 

@@ -18,8 +18,11 @@ export type SettingsValues = {
   supportEmail: string;
   listingDays: number;
   firstListingsModerated: number;
+  listingDailyCap: number;
+  listingActiveCap: number;
   maxProvidersDefault: number;
   analyticsRetentionDays: number;
+  auditRetentionDays: number;
   /** app_settings.duty_data_mode. */
   dutyDataMode: "demo" | "off" | "live";
 };
@@ -102,11 +105,11 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
       </Section>
 
       <Section title="İletişim">
-        <Row id="st-phone" label="Destek telefonu" help="Yardım sayfası ve 'başvurular kapalı' ekranında görünür.">
-          <Input id="st-phone" type="tel" value={v.supportPhone} onChange={(e) => set("supportPhone", e.target.value)} />
+        <Row id="st-phone" label="Destek telefonu" help="Yardım, kaynaklar, işletme tanıtım ve 'başvurular kapalı' ekranlarında arama butonu olur. Boşken gizlenir.">
+          <Input id="st-phone" type="tel" value={v.supportPhone} onChange={(e) => set("supportPhone", e.target.value)} placeholder="ör. 0850 123 45 67" />
         </Row>
-        <Row id="st-email" label="Destek e-postası">
-          <Input id="st-email" type="email" value={v.supportEmail} onChange={(e) => set("supportEmail", e.target.value)} />
+        <Row id="st-email" label="Destek e-postası" help="Yardım ve kaynaklar sayfasında görünür. Boşken gizlenir.">
+          <Input id="st-email" type="email" value={v.supportEmail} onChange={(e) => set("supportEmail", e.target.value)} placeholder="ör. destek@alanadin.com" />
         </Row>
       </Section>
 
@@ -117,7 +120,17 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
         <Row id="st-mod" label="Onaya düşen ilk ilan sayısı" help="Yeni kullanıcının ilk N ilanı yönetici onayından geçer. 0 = hiçbiri.">
           <Input id="st-mod" type="number" min={0} max={50} value={v.firstListingsModerated} onChange={(e) => set("firstListingsModerated", Number(e.target.value))} />
         </Row>
-        <Row id="st-prov" label="Bir talebe en fazla firma" help="Hizmet talebini kabul edebilecek firma sayısının varsayılanı.">
+        <Row id="st-daily" label="Günlük ilan sınırı" help="Bir kullanıcı 24 saatte en fazla bu kadar yeni ilan verebilir. 0 = sınır yok.">
+          <Input id="st-daily" type="number" min={0} max={100} value={v.listingDailyCap} onChange={(e) => set("listingDailyCap", Number(e.target.value))} />
+        </Row>
+        <Row id="st-active" label="Açık ilan sınırı" help="Bir kullanıcının aynı anda yayında, onay bekleyen ve durdurulmuş ilan sayısı. 0 = sınır yok.">
+          <Input id="st-active" type="number" min={0} max={1000} value={v.listingActiveCap} onChange={(e) => set("listingActiveCap", Number(e.target.value))} />
+        </Row>
+        <Row
+          id="st-prov"
+          label="Bir talebe en fazla firma"
+          help="Kendi kabul limiti olmayan hizmet kategorilerinde geçerlidir; limiti girilmiş kategoriler kendi değerini kullanır. Yeni talepler için uygulanır."
+        >
           <Input id="st-prov" type="number" min={1} max={10} value={v.maxProvidersDefault} onChange={(e) => set("maxProvidersDefault", Number(e.target.value))} />
         </Row>
       </Section>
@@ -125,6 +138,9 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
       <Section title="Veri ve gizlilik">
         <Row id="st-ret" label="Analitik saklama süresi (gün)" help="Sayfa görüntüleme ve oturum kayıtları bu süreden sonra her gece silinir (KVKK).">
           <Input id="st-ret" type="number" min={30} max={730} value={v.analyticsRetentionDays} onChange={(e) => set("analyticsRetentionDays", Number(e.target.value))} />
+        </Row>
+        <Row id="st-audit" label="İşlem kaydı saklama süresi (gün)" help="Hesap ve içerik işlem kayıtları (kim, ne zaman, ne yaptı) bu süreden sonra her gece silinir.">
+          <Input id="st-audit" type="number" min={30} max={3650} value={v.auditRetentionDays} onChange={(e) => set("auditRetentionDays", Number(e.target.value))} />
         </Row>
       </Section>
 

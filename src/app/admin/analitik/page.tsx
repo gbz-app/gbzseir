@@ -6,8 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import { AdminPageHeader } from "@/components/admin/admin-page";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatNumber, formatRelativeTime } from "@/core/format";
+import { formatDate, formatNumber } from "@/core/format";
 import { routes } from "@/core/routes";
+import { DEFAULT_SETTINGS } from "@/lib/app-settings";
 import { AdminCard, EmptyCard, FilterTabs, StatTile } from "@/features/admin/components/admin-ui";
 import { ColumnChart, HBarList, dayLabel, formatDuration } from "@/features/admin/components/charts";
 import { LiveRefresher } from "@/features/admin/components/live-refresher";
@@ -29,15 +30,23 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const days = Number(oneOf(sp.gun, RANGES, "30"));
   const supabase = await createClient();
-  const [analytics, online] = await Promise.all([supabase.rpc("admin_analytics", { p_days: days }), supabase.rpc("admin_online_now")]);
+  const [analytics, online, retentionRow] = await Promise.all([
+    supabase.rpc("admin_analytics", { p_days: days }),
+    supabase.rpc("admin_online_now"),
+    supabase.from("app_settings").select("value").eq("key", "analytics_retention_days").maybeSingle(),
+  ]);
   const a = analytics.data as unknown as AnalyticsData | null;
   const live = (online.data as unknown as OnlineSession[] | null) ?? [];
+  // Ayarlar > Analitik saklama süresi (read with the admin session, so it is fresh after a save).
+  const retention = typeof retentionRow.data?.value === "number" ? retentionRow.data.value : DEFAULT_SETTINGS.analyticsRetentionDays;
+  // Latest manual store entry (the RPC returns the newest rows, whatever the range).
+  const lastStoreDate = (a?.store ?? []).reduce((max, s) => (s.stat_date > max ? s.stat_date : max), "");
 
   return (
     <>
       <AdminPageHeader
         title="Canlı ve analitik"
-        description="Uygulama içi, çerezsiz ölçüm: yalnızca sayfa yolu, cihaz türü ve süre tutulur. Veriler 180 gün saklanır."
+        description={`Uygulama içi, çerezsiz ölçüm: yalnızca sayfa yolu, cihaz türü ve süre tutulur. Veriler ${formatNumber(retention)} gün saklanır.`}
         actions={<LiveRefresher seconds={30} />}
       />
 
@@ -170,7 +179,9 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
                   </table>
                 </div>
               ) : null}
-              <p className="mt-3 text-xs text-muted-foreground">Son ölçüm {formatRelativeTime(new Date())}.</p>
+              <p className="mt-3 text-xs text-muted-foreground">
+                {lastStoreDate ? `Son ölçüm: ${formatDate(lastStoreDate, { year: true })}.` : "Son ölçüm: henüz veri yok."}
+              </p>
             </AdminCard>
           </>
         )}

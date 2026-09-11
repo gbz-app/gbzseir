@@ -1078,6 +1078,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          document_path: string | null
           document_url: string | null
           id: string
           is_demo: boolean
@@ -1095,6 +1096,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          document_path?: string | null
           document_url?: string | null
           id?: string
           is_demo?: boolean
@@ -1112,6 +1114,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          document_path?: string | null
           document_url?: string | null
           id?: string
           is_demo?: boolean
@@ -1770,12 +1773,14 @@ export type Database = {
           address: string | null
           created_at: string
           details: Json
+          hidden: boolean
           id: string
           kind: string
           lat: number | null
           license: string | null
           lng: number | null
           location: unknown
+          locked: boolean
           name: string
           neighbourhood_id: string | null
           phone: string | null
@@ -1789,12 +1794,14 @@ export type Database = {
           address?: string | null
           created_at?: string
           details?: Json
+          hidden?: boolean
           id?: string
           kind: string
           lat?: number | null
           license?: string | null
           lng?: number | null
           location: unknown
+          locked?: boolean
           name: string
           neighbourhood_id?: string | null
           phone?: string | null
@@ -1808,12 +1815,14 @@ export type Database = {
           address?: string | null
           created_at?: string
           details?: Json
+          hidden?: boolean
           id?: string
           kind?: string
           lat?: number | null
           license?: string | null
           lng?: number | null
           location?: unknown
+          locked?: boolean
           name?: string
           neighbourhood_id?: string | null
           phone?: string | null
@@ -2151,7 +2160,7 @@ export type Database = {
           description: string | null
           icon: string | null
           id: string
-          max_providers: number
+          max_providers: number | null
           name: string
           notify_pool_size: number
           parent_id: string | null
@@ -2168,7 +2177,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
-          max_providers?: number
+          max_providers?: number | null
           name: string
           notify_pool_size?: number
           parent_id?: string | null
@@ -2185,7 +2194,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
-          max_providers?: number
+          max_providers?: number | null
           name?: string
           notify_pool_size?: number
           parent_id?: string | null
@@ -2512,9 +2521,24 @@ export type Database = {
         Returns: Json
       }
       admin_analytics: { Args: { p_days?: number }; Returns: Json }
+      admin_audit_log: {
+        Args: {
+          p_actor?: string
+          p_entity_id?: string
+          p_from?: string
+          p_limit?: number
+          p_offset?: number
+          p_prefixes?: string[]
+          p_q?: string
+          p_to?: string
+          p_user?: string
+        }
+        Returns: Json
+      }
       admin_clear_demo_data: { Args: { p_scopes: string[] }; Returns: Json }
       admin_dashboard: { Args: never; Returns: Json }
       admin_data_health: { Args: never; Returns: Json }
+      admin_delete_service_category: { Args: { p_id: string }; Returns: Json }
       admin_finance_summary: {
         Args: { p_from: string; p_to: string }
         Returns: Json
@@ -2539,6 +2563,20 @@ export type Database = {
       }
       admin_review_listing: {
         Args: { p_approve: boolean; p_listing_id: string; p_reason?: string }
+        Returns: Json
+      }
+      admin_save_service_category: {
+        Args: {
+          p_active?: boolean
+          p_description?: string
+          p_icon?: string
+          p_id: string
+          p_name: string
+          p_parent_id: string
+          p_slug?: string
+          p_sort?: number
+          p_synonyms?: string[]
+        }
         Returns: Json
       }
       admin_user_overview: { Args: { p_user: string }; Returns: Json }

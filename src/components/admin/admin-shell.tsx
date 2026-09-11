@@ -18,6 +18,7 @@ import {
   Menu,
   Newspaper,
   PenLine,
+  ScrollText,
   Settings,
   Store,
   Tag,
@@ -54,6 +55,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { href: routes.admin.announcements(), label: "Duyurular", icon: Megaphone },
   { href: routes.admin.places(), label: "Yerler", icon: MapPinned },
   { href: routes.admin.data(), label: "Veri sağlığı", icon: Database },
+  { href: routes.admin.audit(), label: "İşlem kaydı", icon: ScrollText },
   { href: routes.admin.settings(), label: "Ayarlar", icon: Settings },
 ];
 

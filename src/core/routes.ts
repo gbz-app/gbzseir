@@ -193,6 +193,8 @@ export const routes = {
     announcements: () => "/admin/duyurular",
     places: () => "/admin/yerler",
     data: () => "/admin/veri",
+    /** İşlem kaydı (audit_log): ?tur, kim, kullanici, hedef, q, bas, bit, sayfa */
+    audit: (query?: QueryRecord) => withQuery("/admin/denetim", query),
     settings: () => "/admin/ayarlar",
   },
 } as const;

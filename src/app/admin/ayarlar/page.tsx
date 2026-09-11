@@ -7,7 +7,7 @@ import { AdminPageHeader } from "@/components/admin/admin-page";
 import { Badge } from "@/components/ui/badge";
 import { formatRelativeTime } from "@/core/format";
 import { routes } from "@/core/routes";
-import { DEFAULT_SETTINGS, displayTrPhone } from "@/lib/app-settings";
+import { DEFAULT_SETTINGS, displayTrPhone, supportContact } from "@/lib/app-settings";
 import { AdminCard } from "@/features/admin/components/admin-ui";
 import { SettingsForm } from "@/features/admin/components/settings-form";
 import { legalAdminPath } from "@/features/legal/meta";
@@ -23,7 +23,8 @@ export default async function AdminSettingsPage() {
   const lastUpdate = (data ?? []).reduce<string | null>((max, r) => (!max || r.updated_at > max ? r.updated_at : max), null);
   const n = (k: string, d: number) => (typeof m.get(k) === "number" ? (m.get(k) as number) : d);
   const s = (k: string, d: string) => (typeof m.get(k) === "string" ? (m.get(k) as string) : d);
-  const phone = s("support_phone", DEFAULT_SETTINGS.supportPhone);
+  // Placeholder contacts show as empty (unset).
+  const phone = supportContact(m.get("support_phone"));
   const duty = s("duty_data_mode", DEFAULT_SETTINGS.dutyDataMode);
 
   return (
@@ -35,11 +36,14 @@ export default async function AdminSettingsPage() {
             businessApplications: m.get("feature_business_applications") === true,
             maintenanceBanner: s("maintenance_banner", ""),
             supportPhone: phone.startsWith("+90") ? displayTrPhone(phone) : phone,
-            supportEmail: s("support_email", DEFAULT_SETTINGS.supportEmail),
+            supportEmail: supportContact(m.get("support_email")),
             listingDays: n("listing_days", DEFAULT_SETTINGS.listingDays),
             firstListingsModerated: n("first_listings_moderated", DEFAULT_SETTINGS.firstListingsModerated),
+            listingDailyCap: n("listing_daily_cap", DEFAULT_SETTINGS.listingDailyCap),
+            listingActiveCap: n("listing_active_cap", DEFAULT_SETTINGS.listingActiveCap),
             maxProvidersDefault: n("max_providers_default", DEFAULT_SETTINGS.maxProvidersDefault),
             analyticsRetentionDays: n("analytics_retention_days", DEFAULT_SETTINGS.analyticsRetentionDays),
+            auditRetentionDays: n("audit_retention_days", DEFAULT_SETTINGS.auditRetentionDays),
             dutyDataMode: duty === "off" || duty === "live" ? duty : "demo",
           }}
         />

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDateTime, formatNumber, formatRelativeTime } from "@/core/format";
 import { AdminCard, EmptyCard, InfoList, InfoRow, StatTile } from "@/features/admin/components/admin-ui";
 import { DemoCleanup } from "@/features/admin/components/demo-cleanup";
-import { POI_KINDS, POI_SOURCES } from "@/features/admin/lib/labels";
+import { POI_KINDS, POI_SOURCES, type DemoScope } from "@/features/admin/lib/labels";
 
 export const metadata: Metadata = { title: "Veri sağlığı" };
 
@@ -16,11 +16,24 @@ type Health = {
   generated_at: string;
   poi: Array<{ kind: string; source: string; license: string; n: number; last_updated: string | null }>;
   places: { total: number; curated: number; with_photos: number };
-  duty: { total: number; active_now: number; current_start: string | null; current_end: string | null; last_fetched_at: string | null; by_source: Record<string, number> };
+  duty: {
+    total: number;
+    active_now: number;
+    current_start: string | null;
+    current_end: string | null;
+    last_fetched_at: string | null;
+    by_source: Record<string, number>;
+    mode?: string;
+    demo_job?: boolean;
+  };
   news: { sources: number; active: number; with_error: number; last_fetched_at: string | null; items: number; latest_item_at: string | null };
-  demo: Record<"users" | "businesses" | "listings" | "reviews" | "announcements" | "requests" | "duty" | "poi", number>;
+  demo: Partial<Record<DemoScope, number>>;
+  /** Active non-demo admins (the demo admin can only be removed while there is one). */
+  real_admins?: number;
   counts: Record<string, number>;
 };
+
+const DUTY_MODES: Record<string, string> = { demo: "Örnek veri", off: "Kapalı", live: "Canlı" };
 
 const COUNT_LABELS: Record<string, string> = {
   users: "Kullanıcı",
@@ -40,11 +53,7 @@ const COUNT_LABELS: Record<string, string> = {
 export default async function AdminDataPage() {
   await requireAdmin();
   const supabase = await createClient();
-  const [{ data, error }, ev, fin] = await Promise.all([
-    supabase.rpc("admin_data_health"),
-    supabase.from("events").select("id", { count: "exact", head: true }).eq("is_demo", true),
-    supabase.from("finance_entries").select("id", { count: "exact", head: true }).eq("is_demo", true),
-  ]);
+  const { data, error } = await supabase.rpc("admin_data_health");
   const h = data as unknown as Health | null;
   if (error || !h) {
     return (
@@ -56,7 +65,7 @@ export default async function AdminDataPage() {
       </>
     );
   }
-  const demoTotal = Object.values(h.demo).reduce((a, b) => a + b, 0) + (ev.count ?? 0) + (fin.count ?? 0);
+  const demoTotal = Object.values(h.demo).reduce<number>((a, b) => a + (b ?? 0), 0);
 
   return (
     <>
@@ -103,6 +112,10 @@ export default async function AdminDataPage() {
               <InfoRow label="Şu an nöbette">{formatNumber(h.duty.active_now)}</InfoRow>
               <InfoRow label="Nöbet aralığı">{h.duty.current_start && h.duty.current_end ? `${formatDateTime(h.duty.current_start)} - ${formatDateTime(h.duty.current_end)}` : "-"}</InfoRow>
               <InfoRow label="Son çekim">{h.duty.last_fetched_at ? formatDateTime(h.duty.last_fetched_at) : "-"}</InfoRow>
+              {h.duty.mode ? <InfoRow label="Liste modu">{DUTY_MODES[h.duty.mode] ?? h.duty.mode}</InfoRow> : null}
+              {h.duty.demo_job !== undefined ? (
+                <InfoRow label="Örnek liste üretimi">{h.duty.demo_job ? "Açık (her sabah)" : "Durduruldu"}</InfoRow>
+              ) : null}
               <InfoRow label="Kaynaklar">
                 <span className="flex flex-wrap gap-1.5">
                   {Object.entries(h.duty.by_source).map(([k, n]) => (
@@ -130,7 +143,7 @@ export default async function AdminDataPage() {
         </AdminCard>
 
         <AdminCard title="Örnek veri temizliği" description="Canlıya geçmeden önce örnek hesapları, işletmeleri, ilanları ve diğer örnek kayıtları buradan silebilirsin.">
-          <DemoCleanup counts={{ ...h.demo, events: ev.count ?? 0, finance: fin.count ?? 0 }} />
+          <DemoCleanup counts={h.demo} realAdmins={h.real_admins ?? 0} />
         </AdminCard>
       </div>
     </>

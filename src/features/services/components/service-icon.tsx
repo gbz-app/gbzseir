@@ -83,6 +83,9 @@ const ICONS: Record<string, LucideIcon> = {
   zap: Zap,
 };
 
+/** Icon names an admin can pick for a category. */
+export const SERVICE_ICON_NAMES = Object.keys(ICONS);
+
 export function serviceIconFor(name: string | null | undefined): LucideIcon {
   return (name && ICONS[name]) || Wrench;
 }

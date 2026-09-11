@@ -190,13 +190,41 @@ export const POI_SOURCES: Record<string, string> = {
 };
 
 /** Demo cleanup scopes (admin_clear_demo_data). */
-export const DEMO_SCOPES: Array<{ value: string; label: string; note?: string }> = [
+export const DEMO_SCOPE_VALUES = [
+  "listings",
+  "reviews",
+  "announcements",
+  "requests",
+  "businesses",
+  "events",
+  "finance",
+  "news_articles",
+  "duty",
+  "poi",
+  "users",
+  "demo_admin",
+] as const;
+export type DemoScope = (typeof DEMO_SCOPE_VALUES)[number];
+
+export const DEMO_SCOPES: Array<{ value: DemoScope; label: string; note?: string }> = [
   { value: "listings", label: "Örnek ilanlar" },
   { value: "reviews", label: "Örnek yorumlar" },
   { value: "announcements", label: "Örnek duyurular" },
   { value: "requests", label: "Örnek hizmet talepleri" },
-  { value: "businesses", label: "Örnek işletmeler", note: "İşletmelerin ilanları, fotoğrafları ve teklifleri de silinir." },
-  { value: "duty", label: "Örnek nöbet kayıtları", note: "Günlük cron görevi (roll_demo_duty) çalıştıkça yeniden oluşur." },
+  {
+    value: "businesses",
+    label: "Örnek işletmeler",
+    note: "Bağlı ilanlar, fotoğraflar ve teklifler; tüm örnek etkinlikler ve muhasebe kayıtları da silinir. Depodaki örnek fotoğraflar da kaldırılır.",
+  },
+  { value: "events", label: "Örnek etkinlikler" },
+  { value: "finance", label: "Örnek muhasebe kayıtları" },
+  { value: "news_articles", label: "Örnek haber yazıları" },
+  { value: "duty", label: "Örnek nöbet kayıtları", note: "Nöbet listesi 'Örnek veri' modundaysa 'Kapalı'ya alınır ve her sabahki örnek liste üretimi durur." },
   { value: "poi", label: "Örnek yerler (kaynak: demo)" },
-  { value: "users", label: "Örnek kullanıcı hesapları", note: "Yönetici hesapları ve senin hesabın hiçbir zaman silinmez." },
+  {
+    value: "users",
+    label: "Örnek kullanıcı hesapları",
+    note: "Bu hesapların işletmeleri ve ilanları da silinir. Yönetici hesapları bu seçenekle silinmez, senin hesabın hiç silinmez.",
+  },
+  { value: "demo_admin", label: "Örnek yönetici hesabı", note: "Yalnızca örnek olmayan, aktif bir yönetici hesabı varken silinebilir. Senin hesabın silinmez." },
 ];

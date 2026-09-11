@@ -23,12 +23,14 @@ export async function ApplicationsPaused() {
           ulaşabilirsin.
         </p>
         <div className="mt-6 flex w-full max-w-xs flex-col gap-2">
-          <Button asChild size="lg">
-            <a href={telHref(supportPhone)}>
-              <Phone /> {displayTrPhone(supportPhone)}
-            </a>
-          </Button>
-          <Button asChild variant="outline" size="lg">
+          {supportPhone ? (
+            <Button asChild size="lg">
+              <a href={telHref(supportPhone)}>
+                <Phone /> {displayTrPhone(supportPhone)}
+              </a>
+            </Button>
+          ) : null}
+          <Button asChild variant={supportPhone ? "outline" : "default"} size="lg">
             <Link href={routes.content.help("isletme")}>Mesaj gönder</Link>
           </Button>
         </div>

@@ -93,7 +93,10 @@ export default async function BusinessIntroPage() {
     primary = { href: routes.content.help(), label: "Yardım ve iletişim" };
   } else if (!settings.businessApplications) {
     note = <p className="text-sm">Yeni işletme başvuruları yakında açılacak. İşletmeni listelemek ya da reklam vermek için bize ulaşabilirsin.</p>;
-    primary = { href: telHref(settings.supportPhone), label: `Bizi ara: ${displayTrPhone(settings.supportPhone)}` };
+    // No support phone set yet: the support form instead.
+    primary = settings.supportPhone
+      ? { href: telHref(settings.supportPhone), label: `Bizi ara: ${displayTrPhone(settings.supportPhone)}` }
+      : { href: routes.content.help("isletme"), label: "Bize yaz" };
   }
 
   return (

@@ -18,6 +18,7 @@ import { FinanceCategories } from "@/features/admin/components/finance-categorie
 import {
   FinanceDeleteButton,
   FinanceEntryDialog,
+  FinanceReceiptButton,
   PAYMENT_LABELS,
   type FinanceCategoryOption,
   type FinanceEntryValue,
@@ -63,7 +64,7 @@ export default async function AdminFinancePage({ searchParams }: Props) {
   let entriesQuery = supabase
     .from("finance_entries")
     .select(
-      "id,kind,category_id,amount,vat_rate,occurred_on,description,counterparty,business_id,payment_method,document_url,is_demo,finance_categories(name,color),businesses(name)",
+      "id,kind,category_id,amount,vat_rate,occurred_on,description,counterparty,business_id,payment_method,document_url,document_path,is_demo,finance_categories(name,color),businesses(name)",
       { count: "exact" },
     )
     .gte("occurred_on", from)
@@ -213,7 +214,7 @@ export default async function AdminFinancePage({ searchParams }: Props) {
                           <span className="line-clamp-1">{e.description ?? "-"}</span>
                           <span className="block truncate text-xs text-muted-foreground">
                             {[e.counterparty, e.businesses?.name].filter(Boolean).join(" · ")}
-                            {e.document_url ? (
+                            {e.document_url && !e.document_path ? (
                               <a href={e.document_url} target="_blank" rel="noopener noreferrer" className="ml-1 text-primary hover:underline">
                                 belge
                               </a>
@@ -228,6 +229,8 @@ export default async function AdminFinancePage({ searchParams }: Props) {
                           {Number(e.vat_rate) ? <Badge variant="outline" className="ml-1.5 h-5 px-1.5 text-[10px]">%{Number(e.vat_rate)}</Badge> : null}
                         </td>
                         <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                          {/* Receipts are private: opened through a 2-minute signed URL. */}
+                          {e.document_path ? <FinanceReceiptButton id={e.id} /> : null}
                           <FinanceEntryDialog
                             categories={categories}
                             businesses={businesses}
@@ -249,7 +252,7 @@ export default async function AdminFinancePage({ searchParams }: Props) {
             <AdminPagination path={routes.admin.finance()} query={baseQuery} page={page} pageSize={PAGE_SIZE} total={entriesRes.count ?? 0} />
           </AdminCard>
 
-          <AdminCard title="Kategoriler" description="Gizlenen kategori yeni kayıtlarda görünmez; eski kayıtlarda kalır.">
+          <AdminCard title="Kategoriler" description="Ad ve renk değişikliği eski kayıtlara da yansır. Kullanılan kategori silinemez; gizlenen kategori yeni kayıtlarda görünmez, eski kayıtlarda kalır.">
             <FinanceCategories categories={categories} />
           </AdminCard>
         </div>

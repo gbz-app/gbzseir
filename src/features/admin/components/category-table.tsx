@@ -2,30 +2,29 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ChevronRight, ListChecks } from "lucide-react";
+import { ChevronRight, ListChecks, Pencil, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { routes } from "@/core/routes";
+import { ServiceIcon } from "@/features/services/components/service-icon";
 import { updateServiceCategoryAction } from "../actions/categories";
+import { CategoryDialog, type CategoryRoot, type ServiceCategoryValue } from "./category-dialog";
 import { useAdminAction } from "./use-admin-action";
 
-export type CategoryRowData = {
-  id: string;
-  parent_id: string | null;
-  name: string;
-  slug: string;
-  active: boolean;
+export type CategoryRowData = ServiceCategoryValue & {
   popular: boolean;
   auto_dispatch: boolean;
-  max_providers: number;
+  /** null = the admin default (Ayarlar > max_providers_default). */
+  max_providers: number | null;
   notify_pool_size: number;
   flowVersion: number | null;
   flowCount: number;
 };
 
-type Patch = Partial<Pick<CategoryRowData, "active" | "popular" | "auto_dispatch" | "max_providers" | "notify_pool_size">>;
+type Patch = Omit<Parameters<typeof updateServiceCategoryAction>[0], "id">;
 
 function Toggle({
   label,
@@ -63,20 +62,24 @@ function NumberCell({
   max,
   onCommit,
   disabled,
+  fallback,
 }: {
   label: string;
-  value: number;
+  /** null = not set: the input stays empty and shows `fallback` as a placeholder. */
+  value: number | null;
   min: number;
   max: number;
   onCommit: (v: number) => void;
   disabled?: boolean;
+  fallback?: number;
 }) {
   const id = React.useId();
-  const [draft, setDraft] = React.useState(String(value));
+  const shown = value === null ? "" : String(value);
+  const [draft, setDraft] = React.useState(shown);
   const commit = () => {
     const n = Number(draft);
-    if (!Number.isInteger(n) || n < min || n > max) {
-      setDraft(String(value));
+    if (draft.trim() === "" || !Number.isInteger(n) || n < min || n > max) {
+      setDraft(shown);
       return;
     }
     if (n !== value) onCommit(n);
@@ -93,25 +96,52 @@ function NumberCell({
         min={min}
         max={max}
         value={draft}
+        placeholder={value === null && fallback !== undefined ? String(fallback) : undefined}
         disabled={disabled}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-          if (e.key === "Escape") setDraft(String(value));
+          if (e.key === "Escape") setDraft(shown);
         }}
         className="h-10 w-20 text-center tabular-nums"
         aria-describedby={`${id}-range`}
       />
       <span id={`${id}-range`} className="sr-only">
-        {min} ile {max} arası
+        {min} ile {max} arası{value === null && fallback !== undefined ? `, boş: varsayılan ${fallback}` : ""}
       </span>
     </div>
   );
 }
 
+/** "Yeni kategori" button (page header). */
+export function NewCategoryButton({ roots }: { roots: CategoryRoot[] }) {
+  return (
+    <CategoryDialog
+      roots={roots}
+      trigger={
+        <Button>
+          <Plus aria-hidden /> Yeni kategori
+        </Button>
+      }
+    />
+  );
+}
+
 /** One category row. Optimistic local state; remounted (via key) whenever the server values change. */
-function CategoryRow({ row, isParent }: { row: CategoryRowData; isParent: boolean }) {
+function CategoryRow({
+  row,
+  isParent,
+  roots,
+  hasChildren,
+  defaultMaxProviders,
+}: {
+  row: CategoryRowData;
+  isParent: boolean;
+  roots: CategoryRoot[];
+  hasChildren: boolean;
+  defaultMaxProviders: number;
+}) {
   const { pending, run } = useAdminAction();
   const [state, setState] = React.useState(row);
 
@@ -129,16 +159,44 @@ function CategoryRow({ row, isParent }: { row: CategoryRowData; isParent: boolea
         isParent ? "bg-muted/60" : "border-t",
       )}
     >
-      <div className="min-w-0 py-1">
-        <p className={cn("font-semibold break-words", isParent && "font-heading text-base font-bold")}>{row.name}</p>
-        <p className="text-xs text-muted-foreground">
-          {row.slug}
-          {!state.active ? (
-            <Badge variant="outline" className="ml-2">
-              Pasif
-            </Badge>
+      <div className="flex min-w-0 items-start justify-between gap-2 py-1">
+        <div className="flex min-w-0 items-start gap-2">
+          <ServiceIcon name={row.icon} className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+          <div className="min-w-0">
+            <p className={cn("font-semibold break-words", isParent && "font-heading text-base font-bold")}>{row.name}</p>
+            <p className="text-xs break-all text-muted-foreground">
+              {row.slug}
+              {!state.active ? (
+                <Badge variant="outline" className="ml-2">
+                  Pasif
+                </Badge>
+              ) : null}
+            </p>
+          </div>
+        </div>
+        <div className="-my-1 flex shrink-0 items-center">
+          {isParent ? (
+            <CategoryDialog
+              roots={roots}
+              defaultParentId={row.id}
+              trigger={
+                <Button type="button" variant="ghost" size="icon" className="lg:size-9" aria-label={`${row.name} altına kategori ekle`}>
+                  <Plus aria-hidden />
+                </Button>
+              }
+            />
           ) : null}
-        </p>
+          <CategoryDialog
+            category={row}
+            roots={roots}
+            hasChildren={hasChildren}
+            trigger={
+              <Button type="button" variant="ghost" size="icon" className="lg:size-9" aria-label={`${row.name} düzenle`}>
+                <Pencil aria-hidden />
+              </Button>
+            }
+          />
+        </div>
       </div>
       <Toggle label="Aktif" checked={state.active} disabled={pending} onChange={(v) => save({ active: v })} />
       <Toggle label="Popüler" checked={state.popular} disabled={pending} onChange={(v) => save({ popular: v })} />
@@ -155,7 +213,15 @@ function CategoryRow({ row, isParent }: { row: CategoryRowData; isParent: boolea
         </>
       ) : (
         <>
-          <NumberCell label="Kabul limiti" value={state.max_providers} min={1} max={10} disabled={pending} onCommit={(v) => save({ max_providers: v })} />
+          <NumberCell
+            label="Kabul limiti"
+            value={state.max_providers}
+            fallback={defaultMaxProviders}
+            min={1}
+            max={10}
+            disabled={pending}
+            onCommit={(v) => save({ max_providers: v })}
+          />
           <NumberCell label="Bildirim havuzu" value={state.notify_pool_size} min={1} max={50} disabled={pending} onCommit={(v) => save({ notify_pool_size: v })} />
           <div className="flex min-h-11 items-center justify-between gap-2 lg:justify-end">
             <span className="text-sm text-muted-foreground lg:sr-only">Soru akışı</span>
@@ -174,9 +240,10 @@ function CategoryRow({ row, isParent }: { row: CategoryRowData; isParent: boolea
   );
 }
 
-export function CategoryTable({ categories }: { categories: CategoryRowData[] }) {
+export function CategoryTable({ categories, defaultMaxProviders }: { categories: CategoryRowData[]; defaultMaxProviders: number }) {
   const parents = categories.filter((c) => !c.parent_id);
   const childrenOf = (id: string) => categories.filter((c) => c.parent_id === id);
+  const roots: CategoryRoot[] = parents.map((p) => ({ id: p.id, name: p.name }));
   const keyOf = (r: CategoryRowData) => [r.id, r.active, r.popular, r.auto_dispatch, r.max_providers, r.notify_pool_size].join(":");
 
   return (
@@ -193,14 +260,17 @@ export function CategoryTable({ categories }: { categories: CategoryRowData[] })
         <span className="text-center">Bild. havuzu</span>
         <span className="text-right">Soru akışı</span>
       </div>
-      {parents.map((p) => (
-        <div key={p.id} className="border-b last:border-b-0">
-          <CategoryRow key={keyOf(p)} row={p} isParent />
-          {childrenOf(p.id).map((c) => (
-            <CategoryRow key={keyOf(c)} row={c} isParent={false} />
-          ))}
-        </div>
-      ))}
+      {parents.map((p) => {
+        const children = childrenOf(p.id);
+        return (
+          <div key={p.id} className="border-b last:border-b-0">
+            <CategoryRow key={keyOf(p)} row={p} isParent roots={roots} hasChildren={children.length > 0} defaultMaxProviders={defaultMaxProviders} />
+            {children.map((c) => (
+              <CategoryRow key={keyOf(c)} row={c} isParent={false} roots={roots} hasChildren={false} defaultMaxProviders={defaultMaxProviders} />
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }

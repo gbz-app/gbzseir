@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import { FEATURES, SUPPORT } from "@/config/site";
+import { FEATURES } from "@/config/site";
 
 /**
  * Admin-editable app settings (public.app_settings, public read). Read with a cookie-less client through the data
@@ -13,12 +13,20 @@ export const APP_SETTINGS_TAG = "app-settings";
 export type AppSettings = {
   businessApplications: boolean;
   maintenanceBanner: string;
+  /** E.164; "" while unset (the phone card/button is hidden). */
   supportPhone: string;
+  /** "" while unset (the e-mail card is hidden). */
   supportEmail: string;
   listingDays: number;
   firstListingsModerated: number;
+  /** New listings per user per 24 h (0 = no cap). */
+  listingDailyCap: number;
+  /** Open (active, pending, paused) listings per user (0 = no cap). */
+  listingActiveCap: number;
+  /** Request accept limit for service categories without their own. */
   maxProvidersDefault: number;
   analyticsRetentionDays: number;
+  auditRetentionDays: number;
   dutyDataMode: string;
   otpDemoMode: boolean;
 };
@@ -26,12 +34,15 @@ export type AppSettings = {
 export const DEFAULT_SETTINGS: AppSettings = {
   businessApplications: FEATURES.businessApplications,
   maintenanceBanner: "",
-  supportPhone: SUPPORT.phone,
-  supportEmail: SUPPORT.email,
+  supportPhone: "",
+  supportEmail: "",
   listingDays: 30,
   firstListingsModerated: 3,
+  listingDailyCap: 10,
+  listingActiveCap: 50,
   maxProvidersDefault: 5,
   analyticsRetentionDays: 180,
+  auditRetentionDays: 730,
   dutyDataMode: "demo",
   otpDemoMode: false,
 };
@@ -39,6 +50,17 @@ export const DEFAULT_SETTINGS: AppSettings = {
 const bool = (v: unknown, d: boolean) => (typeof v === "boolean" ? v : d);
 const num = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? v : d);
 const str = (v: unknown, d: string) => (typeof v === "string" ? v : d);
+
+/** Seed values from 2026091230_admin_core.sql: not real contacts, so they count as unset. */
+const SUPPORT_PLACEHOLDERS: ReadonlySet<string> = new Set(["+908500000000", "destek@gebzem.app"]);
+
+export const isSupportPlaceholder = (value: string) => SUPPORT_PLACEHOLDERS.has(value.trim().toLowerCase());
+
+/** Stored support phone / e-mail, or "" when missing, empty or a placeholder. */
+export function supportContact(value: unknown): string {
+  const v = str(value, "").trim();
+  return isSupportPlaceholder(v) ? "" : v;
+}
 
 export const getAppSettings = cache(async (): Promise<AppSettings> => {
   try {
@@ -53,12 +75,15 @@ export const getAppSettings = cache(async (): Promise<AppSettings> => {
     return {
       businessApplications: bool(m.get("feature_business_applications"), d.businessApplications),
       maintenanceBanner: str(m.get("maintenance_banner"), d.maintenanceBanner).trim(),
-      supportPhone: str(m.get("support_phone"), d.supportPhone),
-      supportEmail: str(m.get("support_email"), d.supportEmail),
+      supportPhone: supportContact(m.get("support_phone")),
+      supportEmail: supportContact(m.get("support_email")),
       listingDays: num(m.get("listing_days"), d.listingDays),
       firstListingsModerated: num(m.get("first_listings_moderated"), d.firstListingsModerated),
+      listingDailyCap: num(m.get("listing_daily_cap"), d.listingDailyCap),
+      listingActiveCap: num(m.get("listing_active_cap"), d.listingActiveCap),
       maxProvidersDefault: num(m.get("max_providers_default"), d.maxProvidersDefault),
       analyticsRetentionDays: num(m.get("analytics_retention_days"), d.analyticsRetentionDays),
+      auditRetentionDays: num(m.get("audit_retention_days"), d.auditRetentionDays),
       dutyDataMode: str(m.get("duty_data_mode"), d.dutyDataMode),
       otpDemoMode: bool(m.get("otp_demo_mode"), d.otpDemoMode),
     };

@@ -20,13 +20,6 @@ export const CITY = {
 /** Public site URL without trailing slash. */
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://gbzsehir.vercel.app").replace(/\/+$/, "");
 
-/** Placeholder support contacts (replace before launch). */
-export const SUPPORT = {
-  phone: "+908500000000",
-  phoneDisplay: "0850 000 00 00",
-  email: "destek@gebzem.app",
-} as const;
-
 /** Brand colors used outside CSS (manifest, viewport theme-color, icons). */
 export const BRAND_COLORS = {
   primary: "#8C6CF0",

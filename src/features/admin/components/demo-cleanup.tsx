@@ -6,32 +6,35 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { clearDemoDataAction } from "../actions/data";
-import { DEMO_SCOPES } from "../lib/labels";
+import { DEMO_SCOPES, type DemoScope } from "../lib/labels";
 import { ConfirmDialog } from "./confirm-dialog";
 import { useAdminAction } from "./use-admin-action";
 
-type Scope = "listings" | "reviews" | "announcements" | "requests" | "businesses" | "duty" | "poi" | "users" | "events" | "finance";
-
-const SCOPES: Array<{ value: Scope; label: string; note?: string }> = [
-  ...(DEMO_SCOPES as Array<{ value: Scope; label: string; note?: string }>),
-  { value: "events", label: "Örnek etkinlikler" },
-  { value: "finance", label: "Örnek muhasebe kayıtları" },
-];
+/** Scopes that always go with 'businesses' (the server adds them too): they would stay behind without a business. */
+const WITH_BUSINESSES: DemoScope[] = ["events", "finance"];
 
 /** Demo verisi temizliği: scope seçimi + "SİL" yazarak onay. */
-export function DemoCleanup({ counts }: { counts: Partial<Record<Scope, number>> }) {
+export function DemoCleanup({ counts, realAdmins }: { counts: Partial<Record<DemoScope, number>>; realAdmins: number }) {
   const { pending, run } = useAdminAction();
-  const [selected, setSelected] = React.useState<Scope[]>([]);
+  const [selected, setSelected] = React.useState<DemoScope[]>([]);
   const [confirm, setConfirm] = React.useState("");
-  const toggle = (s: Scope, on: boolean) => setSelected((cur) => (on ? [...cur, s] : cur.filter((x) => x !== s)));
+  const toggle = (s: DemoScope, on: boolean) =>
+    setSelected((cur) => (on ? [...new Set([...cur, s, ...(s === "businesses" ? WITH_BUSINESSES : [])])] : cur.filter((x) => x !== s)));
+  // Locked while 'businesses' is selected; the demo admin needs a real admin to remain.
+  const isDisabled = (s: DemoScope) => (WITH_BUSINESSES.includes(s) && selected.includes("businesses")) || (s === "demo_admin" && realAdmins < 1);
 
   return (
     <div className="grid gap-3">
       <ul className="grid gap-2 sm:grid-cols-2">
-        {SCOPES.map((s) => (
+        {DEMO_SCOPES.map((s) => (
           <li key={s.value}>
             <label className="flex items-start gap-2.5 rounded-xl bg-muted/40 p-3 text-sm">
-              <Checkbox checked={selected.includes(s.value)} onCheckedChange={(c) => toggle(s.value, c === true)} className="mt-0.5" />
+              <Checkbox
+                checked={selected.includes(s.value)}
+                disabled={isDisabled(s.value)}
+                onCheckedChange={(c) => toggle(s.value, c === true)}
+                className="mt-0.5"
+              />
               <span className="min-w-0">
                 <span className="font-semibold">{s.label}</span>
                 <span className="ml-1 text-muted-foreground tabular-nums">({counts[s.value] ?? 0})</span>
