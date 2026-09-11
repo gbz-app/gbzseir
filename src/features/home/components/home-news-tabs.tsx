@@ -52,7 +52,10 @@ function CardContent({ entry, categories }: { entry: Entry; categories: readonly
         <span className="line-clamp-3 text-[15px] leading-snug font-semibold">{entry.title}</span>
         <span className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
           <span className={cn("truncate font-medium", !entry.external && "text-primary")}>{entry.source}</span>
-          <span className="shrink-0">{ago(entry.publishedAt)}</span>
+          {/* The home HTML is cached, so the server's "x saat önce" can differ from the client's; like RelativeTime. */}
+          <span className="shrink-0" suppressHydrationWarning>
+            {ago(entry.publishedAt)}
+          </span>
         </span>
       </span>
       {entry.external ? <span className="sr-only"> (kaynak sitede, yeni sekmede açılır)</span> : null}
