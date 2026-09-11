@@ -19,14 +19,16 @@ export type VenueCardProps = {
   /** Open/closed now (null until mounted, and for hotels). */
   open: OpenStatus | null;
   eager?: boolean;
+  /** "compact": small card for the two-column grid (Sağlık). */
+  variant?: "default" | "compact";
 };
 
 /** Photo placeholder with the vertical icon (no photo uploaded yet). */
-export function VenuePhotoFallback({ vertical, className }: { vertical: VerticalCard["vertical"]; className?: string }) {
+export function VenuePhotoFallback({ vertical, className, iconClassName }: { vertical: VerticalCard["vertical"]; className?: string; iconClassName?: string }) {
   const info = VERTICAL_INFO[vertical];
   return (
     <span className={cn("absolute inset-0 flex items-center justify-center bg-linear-to-br from-brand-soft via-muted to-highlight-soft", className)}>
-      <info.icon className="size-14 text-primary/40" strokeWidth={1.5} aria-hidden />
+      <info.icon className={cn("size-14 text-primary/40", iconClassName)} strokeWidth={1.5} aria-hidden />
     </span>
   );
 }
@@ -39,12 +41,38 @@ function priceLine(item: VerticalCard): { strong: string; rest?: string } | null
   return level ? { strong: level.symbol, rest: ` · ${level.label}` } : null;
 }
 
+/** "Tatilde" / "Kapanış 18:00" and whether the business is open right now. */
+function statusOf(item: VerticalCard, open: OpenStatus | null): { text: string | null; isOpen: boolean } {
+  return {
+    text: item.vacation_mode ? "Tatilde" : open ? describeOpenStatus(open) : null,
+    isOpen: !item.vacation_mode && !!open?.known && open.open,
+  };
+}
+
+function RatingBadge({ item, small }: { item: VerticalCard; small?: boolean }) {
+  if (item.rating_count <= 0) return null;
+  return (
+    <span
+      className={cn(
+        "pointer-events-none absolute inline-flex items-center gap-1 rounded-full bg-card/90 font-semibold tabular-nums shadow-soft backdrop-blur",
+        small ? "top-3 left-3 h-7 px-2 text-xs" : "top-3 left-3 h-8 px-2.5 text-sm",
+      )}
+      aria-label={`5 üzerinden ${formatRating(item.rating_avg)} puan, ${item.rating_count} yorum`}
+    >
+      <Star className={cn("fill-highlight text-highlight", small ? "size-3.5" : "size-4")} aria-hidden />
+      {formatRating(item.rating_avg)}
+      <span className="font-medium text-muted-foreground">({item.rating_count})</span>
+    </span>
+  );
+}
+
 /** Big photo card of the vertical lists: rating badge, heart, floating white info panel with an arrow. */
-export function VenueCard({ item, distance, open, eager }: VenueCardProps) {
+export function VenueCard(props: VenueCardProps) {
+  if (props.variant === "compact") return <CompactVenueCard {...props} />;
+  const { item, distance, open, eager } = props;
   const price = priceLine(item);
   const where = [item.neighbourhood_name ? `${item.neighbourhood_name} Mah.` : null, distance != null ? formatDistance(distance) : null].filter(Boolean).join(" · ");
-  const status = item.vacation_mode ? "Tatilde" : open ? describeOpenStatus(open) : null;
-  const isOpen = !item.vacation_mode && !!open?.known && open.open;
+  const { text: status, isOpen } = statusOf(item, open);
 
   return (
     <article className="relative">
@@ -52,7 +80,7 @@ export function VenueCard({ item, distance, open, eager }: VenueCardProps) {
         href={routes.businesses.detail(item.slug)}
         className="group block overflow-hidden rounded-[1.75rem] bg-muted shadow-soft ring-1 ring-foreground/[0.05] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
-        <div className="relative aspect-square max-h-[26rem] w-full">
+        <div className="relative aspect-[5/4] max-h-[20.8rem] w-full">
           {item.photo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -101,17 +129,61 @@ export function VenueCard({ item, distance, open, eager }: VenueCardProps) {
         </div>
       </Link>
 
-      {item.rating_count > 0 ? (
-        <span
-          className="pointer-events-none absolute top-3 left-3 inline-flex h-8 items-center gap-1 rounded-full bg-card/90 px-2.5 text-sm font-semibold tabular-nums shadow-soft backdrop-blur"
-          aria-label={`5 üzerinden ${formatRating(item.rating_avg)} puan, ${item.rating_count} yorum`}
-        >
-          <Star className="size-4 fill-highlight text-highlight" aria-hidden />
-          {formatRating(item.rating_avg)}
-          <span className="font-medium text-muted-foreground">({item.rating_count})</span>
-        </span>
-      ) : null}
+      <RatingBadge item={item} />
       <FavoriteButton targetType="business" targetId={item.id} variant="overlay" className="absolute top-2 right-2" />
+    </article>
+  );
+}
+
+/** Half-width card (two per row at 390 px): photo on top, name, category, place and open status below. */
+function CompactVenueCard({ item, distance, open, eager }: VenueCardProps) {
+  const where = [item.neighbourhood_name, distance != null ? formatDistance(distance) : null].filter(Boolean).join(" · ");
+  const status = statusOf(item, open);
+
+  return (
+    <article className="relative h-full">
+      <Link
+        href={routes.businesses.detail(item.slug)}
+        className="group flex h-full flex-col rounded-3xl bg-card p-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-[1.1rem] bg-muted">
+          {item.photo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.photo_url}
+              alt=""
+              loading={eager ? "eager" : "lazy"}
+              decoding="async"
+              className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+          ) : (
+            <VenuePhotoFallback vertical={item.vertical} iconClassName="size-10" />
+          )}
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col px-1.5 pt-2 pb-1">
+          <h3 className="line-clamp-2 text-[15px] leading-snug font-semibold">{item.name}</h3>
+          {item.category_label ? <p className="mt-0.5 truncate text-[13px] text-muted-foreground">{item.category_label}</p> : null}
+          {where || status.text ? (
+            <div className="mt-auto flex flex-col gap-0.5 pt-1.5 text-xs">
+              {where ? (
+                <p className="flex items-center gap-1 text-muted-foreground">
+                  <MapPin className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">{where}</span>
+                </p>
+              ) : null}
+              {status.text ? (
+                <p className={cn("truncate font-medium", status.isOpen ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
+                  {status.isOpen ? "Açık · " : ""}
+                  {status.text}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </Link>
+
+      <RatingBadge item={item} small />
+      <FavoriteButton targetType="business" targetId={item.id} variant="overlay" className="absolute top-2.5 right-2.5 size-9" />
     </article>
   );
 }

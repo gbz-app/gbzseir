@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ImageIcon } from "lucide-react";
+import { ArrowLeft, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { canGoBack } from "@/lib/navigation-history";
 import type { FavoriteTargetType } from "@/lib/db-contract";
@@ -10,8 +10,9 @@ import { HideBottomNav } from "@/components/layout/nav-visibility";
 import { FavoriteButton } from "./favorite-button";
 import { ShareButton } from "./share-button";
 
+/** Round translucent (blurred) button on top of the hero photos. */
 const OVERLAY_BUTTON =
-  "flex size-11 shrink-0 items-center justify-center rounded-full bg-white/90 text-foreground shadow-soft backdrop-blur transition-colors outline-none hover:bg-white focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-black/60 dark:text-white dark:hover:bg-black/70";
+  "flex size-11 shrink-0 items-center justify-center rounded-full border-0 bg-white/35 text-foreground shadow-none backdrop-blur-md transition-colors outline-none hover:bg-white/50 focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-black/35 dark:text-white dark:hover:bg-black/50";
 
 export type DetailHeroProps = {
   /** Photos (cover first). Empty = gradient placeholder with `fallbackIcon`. */
@@ -22,13 +23,15 @@ export type DetailHeroProps = {
   shareText?: string;
   favorite?: { targetType: FavoriteTargetType; targetId: string };
   fallbackIcon?: React.ReactNode;
+  /** Extra classes for the hero box (e.g. a different height). */
+  className?: string;
 };
 
 /**
  * Full-bleed swipeable photo header of detail pages (firm, event) with back / share / favorite buttons on top.
  * The page content follows in a sheet that overlaps the bottom edge (`-mt-8 rounded-t-[2rem]`). Hides the bottom nav.
  */
-export function DetailHero({ images, alt, backHref = "/", shareTitle, shareText, favorite, fallbackIcon }: DetailHeroProps) {
+export function DetailHero({ images, alt, backHref = "/", shareTitle, shareText, favorite, fallbackIcon, className }: DetailHeroProps) {
   const router = useRouter();
   const scroller = React.useRef<HTMLDivElement>(null);
   const [index, setIndex] = React.useState(0);
@@ -40,7 +43,7 @@ export function DetailHero({ images, alt, backHref = "/", shareTitle, shareText,
   };
 
   return (
-    <div className="relative h-[min(52vh,26rem)] min-h-72 w-full overflow-hidden bg-muted">
+    <div className={cn("relative h-[min(52vh,26rem)] min-h-72 w-full overflow-hidden bg-muted", className)}>
       <HideBottomNav />
       {images.length ? (
         <div ref={scroller} onScroll={onScroll} className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain">
@@ -68,11 +71,12 @@ export function DetailHero({ images, alt, backHref = "/", shareTitle, shareText,
 
       <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 px-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)]">
         <button type="button" aria-label="Geri" className={OVERLAY_BUTTON} onClick={() => (canGoBack() ? router.back() : router.push(backHref))}>
-          <ChevronLeft className="size-6" strokeWidth={1.75} />
+          <ArrowLeft className="size-5" strokeWidth={2} />
         </button>
         <div className="flex items-center gap-2">
-          <ShareButton title={shareTitle} text={shareText} iconOnly variant="secondary" label="Paylaş" className={cn(OVERLAY_BUTTON, "border-0")} />
-          {favorite ? <FavoriteButton targetType={favorite.targetType} targetId={favorite.targetId} variant="overlay" /> : null}
+          <ShareButton title={shareTitle} text={shareText} iconOnly variant="secondary" label="Paylaş" className={OVERLAY_BUTTON} />
+          {/* "ghost" (not "overlay"): its only background is hover:bg-muted, which OVERLAY_BUTTON overrides; overlay's shadow-soft would survive the merge. */}
+          {favorite ? <FavoriteButton targetType={favorite.targetType} targetId={favorite.targetId} variant="ghost" className={OVERLAY_BUTTON} /> : null}
         </div>
       </div>
 

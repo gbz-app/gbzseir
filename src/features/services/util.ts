@@ -1,5 +1,36 @@
 /** Small pure helpers of the services module (client + server safe). */
 
+import { routes, withQuery } from "@/core/routes";
+import type { ServiceCatalog, ServicePickerData } from "./types";
+
+/**
+ * `?sec=1` on /hizmet-talebi/<slug>: the request was started from the service picker (/hizmetler), so the
+ * wizard keeps the picker as its step 1. Plain deep links (no param) start at the first question.
+ */
+export const PICKED_PARAM = "sec";
+
+/** Wizard URL of a service chosen in the picker; `adim` 2 opens the step right after the picker. */
+export function pickedRequestHref(slug: string, adim?: number): string {
+  return withQuery(routes.services.request(slug, adim), { [PICKED_PARAM]: 1 });
+}
+
+/** Catalog -> service picker payload (groups without active sub-categories are left out). */
+export function servicePickerData(catalog: ServiceCatalog): ServicePickerData {
+  return {
+    groups: catalog.parents
+      .filter((p) => p.children.length > 0)
+      .map((p) => ({ slug: p.slug, name: p.name, icon: p.icon, description: p.description })),
+    items: catalog.subs.map((s) => ({
+      slug: s.slug,
+      name: s.name,
+      icon: s.icon,
+      parentSlug: s.parent.slug,
+      popular: s.popular,
+      terms: [...s.synonyms, s.parent.name, ...s.parent.synonyms, s.description ?? ""].filter(Boolean),
+    })),
+  };
+}
+
 /** service_requests.public_code: 8 chars from [A-Z2-9] (no 0/O/1/I). */
 export const REQUEST_CODE_RE = /^[A-HJ-NP-Z2-9]{8}$/;
 

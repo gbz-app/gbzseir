@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
-  BedDouble,
+  AtSign,
   Briefcase,
   CalendarDays,
   ChevronRight,
@@ -11,14 +11,13 @@ import {
   Images,
   MapPin,
   MessageSquareReply,
+  Phone,
   QrCode,
   ShieldCheck,
   Sparkles,
   Star,
   Tag,
-  Ticket,
   TreePalm,
-  UtensilsCrossed,
   Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,12 +31,15 @@ import { APP_NAME, CITY, SITE_URL } from "@/config/site";
 import { formatDate, formatNumber, formatPrice, truncate } from "@/core/format";
 import { routes } from "@/core/routes";
 import { trCompare } from "@/core/tr";
+import { AddressDirections } from "@/features/business/components/firm/address-directions";
+import { FirmTabs, type FirmTab } from "@/features/business/components/firm/firm-tabs";
+import { ReviewComposer } from "@/features/business/components/firm/review-composer";
+import { RoomList } from "@/features/business/components/firm/room-list";
 import { FirmGallery } from "@/features/business/components/firm-gallery";
 import { FirmMoreMenu } from "@/features/business/components/firm-more-menu";
 import { MenuSections, menuItemCount } from "@/features/business/components/menu-view";
 import { OpenNowStatus, WorkingHoursTable } from "@/features/business/components/open-now";
 import { Stars, formatRating } from "@/features/business/components/rating";
-import { RoomCard } from "@/features/business/components/room-card";
 import { DAY_KEYS, hasAnyHours, openingHoursSpecification, parseWorkingHours, type WorkingHours } from "@/features/business/lib/hours";
 import {
   getBusinessActiveListings,
@@ -85,6 +87,9 @@ const WORK_TYPE_LABELS: Record<string, string> = {
 
 const SCHEMA_TYPE: Partial<Record<Vertical, string>> = { yemek: "Restaurant", restoran: "Restaurant", kafe: "CafeOrCoffeeShop", otel: "Hotel", magaza: "Store" };
 
+/** Hero photo height: 100 px shorter than the shared DetailHero default. */
+const HERO_HEIGHT = "h-[calc(min(52vh,26rem)_-_100px)] min-h-[188px]";
+
 async function neighbourhoodTotal(): Promise<number> {
   const { count } = await createPublicClient().from("neighbourhoods").select("id", { count: "exact", head: true });
   return count ?? 0;
@@ -92,6 +97,15 @@ async function neighbourhoodTotal(): Promise<number> {
 
 function isAlwaysOpen(hours: WorkingHours): boolean {
   return DAY_KEYS.every((k) => hours[k]?.open === "00:00" && hours[k]?.close === "23:59");
+}
+
+/** "@handle" or a full URL -> { href, label }. */
+function instagramLink(value: string | null): { href: string; label: string } | null {
+  const v = value?.trim();
+  if (!v) return null;
+  if (/^https?:\/\//i.test(v)) return { href: v, label: v.replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "") };
+  const handle = v.replace(/^@/, "");
+  return { href: `https://instagram.com/${encodeURIComponent(handle)}`, label: `@${handle}` };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -127,11 +141,11 @@ function groupCategories(subs: ServiceCategoryLite[], all: ServiceCategoryLite[]
   return [...groups.values()].sort((a, b) => a.sort - b.sort || trCompare(a.name, b.name));
 }
 
-function Section({ id, title, icon: Icon, children, action }: { id?: string; title: string; icon?: typeof Star; children: React.ReactNode; action?: React.ReactNode }) {
+function Section({ title, icon: Icon, children, action }: { title: string; icon?: typeof Star; children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-20" aria-labelledby={id ? `${id}-baslik` : undefined}>
+    <section>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 id={id ? `${id}-baslik` : undefined} className="flex items-center gap-2 text-lg font-semibold">
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
           {Icon ? <Icon className="size-5 text-primary" aria-hidden /> : null}
           {title}
         </h2>
@@ -142,18 +156,26 @@ function Section({ id, title, icon: Icon, children, action }: { id?: string; tit
   );
 }
 
+/** Heading of a single-content tab panel (the tab already shows it visually). */
+function PanelTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="sr-only">{children}</h2>;
+}
+
 function Tile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex min-w-0 flex-col items-center justify-center rounded-2xl bg-card px-2 py-3 text-center shadow-soft ring-1 ring-foreground/[0.05]">
+    <div className="flex min-w-0 flex-col items-center justify-center rounded-2xl bg-card px-2 py-3 text-center">
       <div className="max-w-full truncate text-[17px] leading-tight font-semibold tabular-nums">{children}</div>
       <div className="mt-1 text-xs text-muted-foreground">{label}</div>
     </div>
   );
 }
 
+const TILE_LINK = "rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+const CARD_ROW = "flex min-h-14 items-center gap-3 px-4 py-3 text-[15px] outline-none hover:bg-muted/40 focus-visible:bg-muted/60";
+
 function ReviewItem({ r, businessName }: { r: PublicReview; businessName: string }) {
   return (
-    <li className="rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
+    <li className="rounded-3xl bg-card p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="font-semibold">{r.author_name ?? `${APP_NAME} kullanıcısı`}</p>
         <time dateTime={r.created_at} className="text-xs text-muted-foreground">
@@ -180,7 +202,7 @@ function ListingItem({ l }: { l: BusinessListing }) {
     <li>
       <Link
         href={isJob ? routes.listings.job(l.id) : routes.listings.classified(l.id)}
-        className="flex items-center gap-3 rounded-3xl bg-card p-3 shadow-soft ring-1 ring-foreground/[0.05] outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="flex items-center gap-3 rounded-3xl bg-card p-3 outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {l.thumb_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -236,7 +258,7 @@ export default async function FirmPage({ params }: Props) {
   const hours = parseWorkingHours(b.working_hours);
   const showHours = hasAnyHours(hours);
   const alwaysOpen = showHours && isAlwaysOpen(hours);
-  const isService = b.kinds.includes("service") || vertical === "hizmet";
+  const isService = offersServices;
   const verified = b.verification_level >= 1;
   const hasLocation = typeof b.lat === "number" && typeof b.lng === "number";
   const groups = groupCategories(b.categories, allCategories);
@@ -251,6 +273,8 @@ export default async function FirmPage({ params }: Props) {
   const minRoomPrice = availableRooms.length ? Math.min(...availableRooms.map((r) => r.price_try!)) : null;
   const heroImages = [...new Set([b.cover_url, ...b.photos.map((p) => p.url)].filter((u): u is string => !!u))];
   const backHref = LISTABLE_VERTICALS.includes(vertical) ? routes.businesses.vertical(vertical) : routes.businesses.root();
+  const areaLine = `${b.neighbourhood_name ? `${b.neighbourhood_name} Mah., ` : ""}${CITY.name}`;
+  const instagram = instagramLink(b.instagram);
 
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -299,11 +323,279 @@ export default async function FirmPage({ params }: Props) {
   };
 
   // Third stat tile depends on the vertical.
-  let thirdTile: { label: string; value: React.ReactNode } | null = null;
-  if (vertical === "otel" && minRoomPrice != null) thirdTile = { label: "gecelik, en düşük", value: formatPrice(minRoomPrice) };
+  let thirdTile: { label: string; value: React.ReactNode; href?: string } | null = null;
+  if (vertical === "otel" && minRoomPrice != null) thirdTile = { label: "gecelik, en düşük", value: formatPrice(minRoomPrice), href: "#odalar" };
   else if (priceLevel) thirdTile = { label: priceLevel.label, value: priceLevel.symbol };
   else if (isService) thirdTile = { label: "yanıtlanan talep", value: formatNumber(b.leads_accepted_count) };
   else thirdTile = { label: "üyelik", value: <span className="capitalize">{monthYear.format(new Date(memberSince)).split(" ")[1]}</span> };
+
+  // ---------------------------------------------------------------------------
+  // Tab panels (all server-rendered; FirmTabs only toggles `hidden`)
+  // ---------------------------------------------------------------------------
+  const generalPanel = (
+    <div className="flex flex-col gap-7">
+      {b.description ? (
+        <Section title="Hakkında">
+          <p className="text-[15px] leading-relaxed whitespace-pre-line text-foreground/90">{b.description}</p>
+        </Section>
+      ) : null}
+
+      {amenities.length ? (
+        <Section title="Olanaklar" icon={Sparkles}>
+          <ul className="flex flex-wrap gap-2">
+            {amenities.map((a) => (
+              <li key={a.key} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-card px-3 text-sm font-medium">
+                <a.icon className="size-4 text-primary" aria-hidden />
+                {a.label}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+
+      {showHours && !alwaysOpen ? (
+        <Section title="Çalışma saatleri" icon={CalendarDays}>
+          <WorkingHoursTable hours={hours} />
+        </Section>
+      ) : null}
+
+      {b.address || hasLocation ? (
+        <Section title="Konum" icon={MapPin}>
+          <AddressDirections
+            businessId={b.id}
+            name={b.name}
+            address={b.address ?? areaLine}
+            lat={b.lat}
+            lng={b.lng}
+            query={[b.address, b.neighbourhood_name ? `${b.neighbourhood_name} Mah.` : null, CITY.name, CITY.province].filter(Boolean).join(", ")}
+          />
+          {hasLocation ? (
+            <div className="mt-3">
+              <MiniMap lat={b.lat!} lng={b.lng!} kind="business" name={b.name} />
+            </div>
+          ) : null}
+        </Section>
+      ) : null}
+
+      {b.phone || b.website || instagram ? (
+        <Section title="İletişim" icon={Phone}>
+          <div className="divide-y overflow-hidden rounded-3xl bg-card">
+            {b.phone ? (
+              <CallButton
+                phone={b.phone}
+                subjectType="business"
+                subjectId={b.id}
+                showNumber
+                variant="ghost"
+                className="h-14 w-full justify-start gap-3 rounded-none px-4 text-[15px] font-medium [&_svg]:text-primary"
+              />
+            ) : null}
+            {b.website ? (
+              <a href={b.website} target="_blank" rel="noopener noreferrer nofollow" className={CARD_ROW}>
+                <Globe className="size-5 shrink-0 text-primary" aria-hidden />
+                <span className="min-w-0 flex-1 truncate font-medium">{b.website.replace(/^https?:\/\//, "")}</span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              </a>
+            ) : null}
+            {instagram ? (
+              <a href={instagram.href} target="_blank" rel="noopener noreferrer nofollow" className={CARD_ROW}>
+                <AtSign className="size-5 shrink-0 text-primary" aria-hidden />
+                <span className="min-w-0 flex-1 truncate font-medium">{instagram.label}</span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              </a>
+            ) : null}
+          </div>
+        </Section>
+      ) : null}
+
+      {b.photos.length > 0 ? (
+        <Section title={`Galeri (${b.photos.length})`} icon={Images}>
+          <FirmGallery photos={b.photos} name={b.name} layout="grid" />
+        </Section>
+      ) : null}
+
+      <Section title="Güven bilgileri" icon={ShieldCheck}>
+        <dl className="grid grid-cols-2 gap-2.5">
+          <div className="rounded-2xl bg-card p-3.5">
+            <dt className="text-xs font-semibold text-muted-foreground">Üyelik tarihi</dt>
+            <dd className="mt-1 font-semibold capitalize">{monthYear.format(new Date(memberSince))}</dd>
+          </div>
+          <div className="rounded-2xl bg-card p-3.5">
+            <dt className="text-xs font-semibold text-muted-foreground">{isService ? "Yanıtladığı talep" : "Fotoğraf"}</dt>
+            <dd className="mt-1 font-semibold tabular-nums">{formatNumber(isService ? b.leads_accepted_count : b.photos.length)}</dd>
+          </div>
+          {verified ? (
+            <div className="col-span-2 flex items-start gap-2.5 rounded-2xl bg-brand-soft p-3.5 text-sm">
+              <Sparkles className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+              <p>
+                <strong className="text-primary">Onaylı işletme.</strong> Bilgileri {APP_NAME} ekibi tarafından incelendi.
+              </p>
+            </div>
+          ) : null}
+        </dl>
+      </Section>
+    </div>
+  );
+
+  const menuPanel = itemCount ? (
+    <div className="flex flex-col gap-5">
+      <PanelTitle>Menü</PanelTitle>
+      <Link
+        href={routes.businesses.menu(b.slug)}
+        className="flex items-center gap-3 rounded-3xl bg-foreground p-4 text-background outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-background/15">
+          <QrCode className="size-6" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">Menüyü incele</span>
+          <span className="text-sm text-background/75">
+            {menu.length} bölüm · {itemCount} ürün · QR menü
+          </span>
+        </span>
+        <ChevronRight className="size-5 shrink-0" aria-hidden />
+      </Link>
+      <MenuSections sections={menu.slice(0, 4)} itemLimit={3} />
+      <Button asChild variant="outline" size="lg" className="w-full">
+        <Link href={routes.businesses.menu(b.slug)}>Menünün tamamını gör ({itemCount} ürün)</Link>
+      </Button>
+    </div>
+  ) : null;
+
+  const roomsPanel = rooms.length ? (
+    <div>
+      <PanelTitle>Odalar</PanelTitle>
+      <RoomList rooms={rooms} businessId={b.id} businessName={b.name} phone={b.phone} />
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Fiyatlar işletme tarafından girilir; müsaitlik ve rezervasyon için oteli ara.</p>
+    </div>
+  ) : null;
+
+  const hasServiceInfo = isService && (services.length > 0 || groups.length > 0 || b.areas.length > 0);
+  const servicesPanel = hasServiceInfo ? (
+    <div className="flex flex-col gap-7">
+      {services.length ? (
+        <Section title="Hizmetler ve fiyatlar" icon={Wrench}>
+          <ServiceList services={services} />
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Fiyatlar firma tarafından girilir; kesin fiyat için firmayı ara.</p>
+        </Section>
+      ) : null}
+
+      {groups.length > 0 ? (
+        <Section title={services.length ? "Hizmet kategorileri" : "Hizmetler"} icon={Wrench}>
+          <div className="flex flex-col gap-3">
+            {groups.map((g) => (
+              <div key={g.name}>
+                <p className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{g.name}</p>
+                <ul className="flex flex-wrap gap-1.5">
+                  {g.items.map((c) => (
+                    <li key={c.id} className="rounded-full bg-brand-soft px-3 py-1.5 text-sm font-semibold text-primary">
+                      {c.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <Link
+            href={routes.services.root()}
+            className="mt-4 flex items-center gap-3 rounded-3xl bg-card p-4 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <Handshake className="size-6 shrink-0 text-primary" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold">Ücretsiz teklif al</span>
+              <span className="text-muted-foreground">Talebini oluştur; bu firma dahil uygun firmalar seni arasın.</span>
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          </Link>
+        </Section>
+      ) : null}
+
+      {b.areas.length > 0 ? (
+        <Section title="Hizmet verdiği mahalleler" icon={MapPin}>
+          {coversAll ? (
+            <p className="rounded-2xl bg-brand-soft px-4 py-3 text-sm font-semibold text-primary">{CITY.name}&apos;nin tüm mahallelerine hizmet veriyor.</p>
+          ) : (
+            <ul className="flex flex-wrap gap-1.5">
+              {b.areas.map((a) => (
+                <li key={a.id} className="rounded-full bg-card px-3 py-1.5 text-sm font-medium">
+                  {a.name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+      ) : null}
+    </div>
+  ) : null;
+
+  const reviewsPanel = (
+    <div className="flex flex-col gap-3">
+      <PanelTitle>Yorumlar</PanelTitle>
+      {b.rating_count > 0 ? (
+        <div className="flex items-center gap-4 rounded-3xl bg-card p-4">
+          <p className="text-4xl font-semibold tabular-nums">{formatRating(b.rating_avg)}</p>
+          <div>
+            <Stars value={b.rating_avg} size="md" />
+            <p className="mt-1 text-sm text-muted-foreground">{b.rating_count} değerlendirme</p>
+          </div>
+        </div>
+      ) : null}
+      <ReviewComposer businessId={b.id} businessName={b.name} />
+      {reviews.length > 0 ? (
+        <ul className="flex flex-col gap-2.5">
+          {reviews.map((r) => (
+            <ReviewItem key={r.id} r={r} businessName={b.name} />
+          ))}
+        </ul>
+      ) : (
+        <p className="rounded-2xl bg-muted/60 px-4 py-4 text-sm text-muted-foreground">Henüz yorum yok. İlk yorumu sen yaz.</p>
+      )}
+    </div>
+  );
+
+  const eventsPanel = events.length ? (
+    <div>
+      <PanelTitle>Etkinlikler</PanelTitle>
+      <ul className="flex flex-col gap-3">
+        {events.map((e) => (
+          <li key={e.id}>
+            <EventCard event={e} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : null;
+
+  const listingsPanel = listings.length ? (
+    <div className="flex flex-col gap-7">
+      {jobs.length > 0 ? (
+        <Section title="İş ilanları" icon={Briefcase}>
+          <ul className="flex flex-col gap-2.5">
+            {jobs.map((l) => (
+              <ListingItem key={l.id} l={l} />
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+      {classifieds.length > 0 ? (
+        <Section title="İlanları" icon={Tag}>
+          <ul className="flex flex-col gap-2.5">
+            {classifieds.map((l) => (
+              <ListingItem key={l.id} l={l} />
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+    </div>
+  ) : null;
+
+  const tabs: FirmTab[] = [{ id: "genel", label: "Genel", content: generalPanel }];
+  if (menuPanel) tabs.push({ id: "menu", label: "Menü", content: menuPanel });
+  if (roomsPanel) tabs.push({ id: "odalar", label: "Odalar", count: rooms.length, content: roomsPanel });
+  if (servicesPanel) tabs.push({ id: "hizmetler", label: "Hizmetler", count: services.length || undefined, content: servicesPanel });
+  tabs.push({ id: "yorumlar", label: "Yorumlar", count: b.rating_count, content: reviewsPanel });
+  if (eventsPanel) tabs.push({ id: "etkinlikler", label: "Etkinlikler", count: events.length, content: eventsPanel });
+  if (listingsPanel) tabs.push({ id: "ilanlar", label: jobs.length ? "İş ilanları" : "İlanlar", count: listings.length, content: listingsPanel });
 
   return (
     <>
@@ -317,10 +609,11 @@ export default async function FirmPage({ params }: Props) {
         shareText={`${b.name} | ${APP_NAME}`}
         favorite={{ targetType: "business", targetId: b.id }}
         fallbackIcon={<info.icon className="size-16" strokeWidth={1.5} aria-hidden />}
+        className={HERO_HEIGHT}
       />
 
       <DetailSheet className="pb-36">
-        <article className="flex flex-col gap-7">
+        <article className="flex flex-col gap-6">
           <header>
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
@@ -332,8 +625,7 @@ export default async function FirmPage({ params }: Props) {
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <MapPin className="size-4" aria-hidden />
-                {b.neighbourhood_name ? `${b.neighbourhood_name} Mah., ` : ""}
-                {CITY.name}
+                {areaLine}
               </span>
               {verified ? <VerifiedBadge /> : null}
               {b.star_rating ? (
@@ -348,7 +640,7 @@ export default async function FirmPage({ params }: Props) {
           </header>
 
           <div className="grid grid-cols-3 gap-2">
-            <a href="#yorumlar" className="rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+            <a href="#yorumlar" className={TILE_LINK}>
               <Tile label={b.rating_count ? "puan" : "henüz puan yok"}>
                 <span className="inline-flex items-center gap-1">
                   <Star className="size-4 fill-highlight text-highlight" aria-hidden />
@@ -356,22 +648,17 @@ export default async function FirmPage({ params }: Props) {
                 </span>
               </Tile>
             </a>
-            <a href="#yorumlar" className="rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+            <a href="#yorumlar" className={TILE_LINK}>
               <Tile label="yorum">{formatNumber(b.rating_count)}</Tile>
             </a>
-            {thirdTile ? <Tile label={thirdTile.label}>{thirdTile.value}</Tile> : null}
+            {thirdTile.href ? (
+              <a href={thirdTile.href} className={TILE_LINK}>
+                <Tile label={thirdTile.label}>{thirdTile.value}</Tile>
+              </a>
+            ) : (
+              <Tile label={thirdTile.label}>{thirdTile.value}</Tile>
+            )}
           </div>
-
-          {amenities.length ? (
-            <ul className="flex flex-wrap gap-2" aria-label="Olanaklar">
-              {amenities.map((a) => (
-                <li key={a.key} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-card px-3 text-sm font-medium shadow-soft ring-1 ring-foreground/[0.05]">
-                  <a.icon className="size-4 text-primary" aria-hidden />
-                  {a.label}
-                </li>
-              ))}
-            </ul>
-          ) : null}
 
           {b.vacation_mode ? (
             <div role="note" className="flex items-start gap-3 rounded-2xl bg-highlight-soft px-4 py-3 text-sm text-highlight-foreground dark:text-foreground">
@@ -383,221 +670,7 @@ export default async function FirmPage({ params }: Props) {
             </div>
           ) : null}
 
-          {itemCount ? (
-            <Link
-              href={routes.businesses.menu(b.slug)}
-              className="flex items-center gap-3 rounded-3xl bg-foreground p-4 text-background shadow-float outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-background/15">
-                <QrCode className="size-6" aria-hidden />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold">Menüyü incele</span>
-                <span className="text-sm text-background/75">
-                  {menu.length} bölüm · {itemCount} ürün · QR menü
-                </span>
-              </span>
-              <ChevronRight className="size-5 shrink-0" aria-hidden />
-            </Link>
-          ) : null}
-
-          {b.description ? (
-            <Section title="Hakkında">
-              <p className="text-[15px] leading-relaxed whitespace-pre-line text-foreground/90">{b.description}</p>
-            </Section>
-          ) : null}
-
-          {itemCount ? (
-            <Section
-              id="menu"
-              title="Menü"
-              icon={UtensilsCrossed}
-              action={
-                <Link href={routes.businesses.menu(b.slug)} className="inline-flex min-h-11 items-center gap-0.5 text-sm font-semibold text-primary">
-                  Tümü <ChevronRight className="size-4" aria-hidden />
-                </Link>
-              }
-            >
-              <MenuSections sections={menu.slice(0, 2)} itemLimit={3} />
-              <Button asChild variant="outline" size="lg" className="mt-4 w-full">
-                <Link href={routes.businesses.menu(b.slug)}>Menünün tamamını gör ({itemCount} ürün)</Link>
-              </Button>
-            </Section>
-          ) : null}
-
-          {rooms.length ? (
-            <Section id="odalar" title={`Odalar (${rooms.length})`} icon={BedDouble}>
-              <ul className="flex flex-col gap-3">
-                {rooms.map((r) => (
-                  <li key={r.id}>
-                    <RoomCard room={r} name={b.name} />
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Fiyatlar işletme tarafından girilir; müsaitlik ve rezervasyon için oteli ara.</p>
-            </Section>
-          ) : null}
-
-          {b.photos.length > 0 ? (
-            <Section id="galeri" title={`Galeri (${b.photos.length})`} icon={Images}>
-              <FirmGallery photos={b.photos} name={b.name} layout="grid" />
-            </Section>
-          ) : null}
-
-          {events.length ? (
-            <Section id="etkinlikler" title="Etkinlikler" icon={Ticket}>
-              <ul className="flex flex-col gap-3">
-                {events.map((e) => (
-                  <li key={e.id}>
-                    <EventCard event={e} />
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          ) : null}
-
-          {services.length ? (
-            <Section id="fiyatlar" title="Hizmetler ve fiyatlar" icon={Wrench}>
-              <ServiceList services={services} />
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Fiyatlar firma tarafından girilir; kesin fiyat için firmayı ara.</p>
-            </Section>
-          ) : null}
-
-          {isService && groups.length > 0 ? (
-            <Section id="hizmetler" title={services.length ? "Hizmet kategorileri" : "Hizmetler"} icon={Wrench}>
-              <div className="flex flex-col gap-3">
-                {groups.map((g) => (
-                  <div key={g.name}>
-                    <p className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{g.name}</p>
-                    <ul className="flex flex-wrap gap-1.5">
-                      {g.items.map((c) => (
-                        <li key={c.id} className="rounded-full bg-brand-soft px-3 py-1.5 text-sm font-semibold text-primary">
-                          {c.name}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-              <Link
-                href={routes.services.root()}
-                className="mt-4 flex items-center gap-3 rounded-3xl bg-card p-4 text-sm shadow-soft ring-1 ring-foreground/[0.05] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <Handshake className="size-6 shrink-0 text-primary" aria-hidden />
-                <span className="min-w-0 flex-1">
-                  <span className="block font-semibold">Ücretsiz teklif al</span>
-                  <span className="text-muted-foreground">Talebini oluştur; bu firma dahil uygun firmalar seni arasın.</span>
-                </span>
-                <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-              </Link>
-            </Section>
-          ) : null}
-
-          {isService && b.areas.length > 0 ? (
-            <Section title="Hizmet verdiği mahalleler" icon={MapPin}>
-              {coversAll ? (
-                <p className="rounded-2xl bg-brand-soft px-4 py-3 text-sm font-semibold text-primary">{CITY.name}&apos;nin tüm mahallelerine hizmet veriyor.</p>
-              ) : (
-                <ul className="flex flex-wrap gap-1.5">
-                  {b.areas.map((a) => (
-                    <li key={a.id} className="rounded-full bg-card px-3 py-1.5 text-sm font-medium ring-1 ring-foreground/[0.08]">
-                      {a.name}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Section>
-          ) : null}
-
-          {showHours && !alwaysOpen ? (
-            <Section title="Çalışma saatleri" icon={CalendarDays}>
-              <WorkingHoursTable hours={hours} />
-            </Section>
-          ) : null}
-
-          {b.address || hasLocation ? (
-            <Section title="Konum" icon={MapPin}>
-              <p className="mb-3 text-[15px] leading-relaxed">
-                {b.address ?? `${b.neighbourhood_name ? `${b.neighbourhood_name} Mah., ` : ""}${CITY.name}`}
-              </p>
-              {hasLocation ? <MiniMap lat={b.lat!} lng={b.lng!} kind="business" name={b.name} /> : null}
-            </Section>
-          ) : null}
-
-          {b.website ? (
-            <a
-              href={b.website}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
-              className="flex items-center gap-3 rounded-3xl bg-card p-4 text-sm shadow-soft ring-1 ring-foreground/[0.05] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <Globe className="size-5 shrink-0 text-primary" aria-hidden />
-              <span className="min-w-0 flex-1 truncate font-medium">{b.website.replace(/^https?:\/\//, "")}</span>
-              <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            </a>
-          ) : null}
-
-          <Section id="yorumlar" title={b.rating_count > 0 ? `Yorumlar (${b.rating_count})` : "Yorumlar"} icon={Star}>
-            {b.rating_count > 0 ? (
-              <div className="mb-3 flex items-center gap-4 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
-                <p className="text-4xl font-semibold tabular-nums">{formatRating(b.rating_avg)}</p>
-                <div>
-                  <Stars value={b.rating_avg} size="md" />
-                  <p className="mt-1 text-sm text-muted-foreground">{b.rating_count} değerlendirme</p>
-                </div>
-              </div>
-            ) : null}
-            {reviews.length > 0 ? (
-              <ul className="flex flex-col gap-2.5">
-                {reviews.map((r) => (
-                  <ReviewItem key={r.id} r={r} businessName={b.name} />
-                ))}
-              </ul>
-            ) : (
-              <p className="rounded-2xl bg-muted/60 px-4 py-4 text-sm text-muted-foreground">Henüz yorum yok.</p>
-            )}
-          </Section>
-
-          <Section title="Güven bilgileri" icon={ShieldCheck}>
-            <dl className="grid grid-cols-2 gap-2.5">
-              <div className="rounded-2xl bg-card p-3.5 shadow-soft ring-1 ring-foreground/[0.05]">
-                <dt className="text-xs font-semibold text-muted-foreground">Üyelik tarihi</dt>
-                <dd className="mt-1 font-semibold capitalize">{monthYear.format(new Date(memberSince))}</dd>
-              </div>
-              <div className="rounded-2xl bg-card p-3.5 shadow-soft ring-1 ring-foreground/[0.05]">
-                <dt className="text-xs font-semibold text-muted-foreground">{isService ? "Yanıtladığı talep" : "Fotoğraf"}</dt>
-                <dd className="mt-1 font-semibold tabular-nums">{formatNumber(isService ? b.leads_accepted_count : b.photos.length)}</dd>
-              </div>
-              {verified ? (
-                <div className="col-span-2 flex items-start gap-2.5 rounded-2xl bg-brand-soft p-3.5 text-sm">
-                  <Sparkles className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
-                  <p>
-                    <strong className="text-primary">Onaylı işletme.</strong> Bilgileri {APP_NAME} ekibi tarafından incelendi.
-                  </p>
-                </div>
-              ) : null}
-            </dl>
-          </Section>
-
-          {jobs.length > 0 ? (
-            <Section title="İş ilanları" icon={Briefcase}>
-              <ul className="flex flex-col gap-2.5">
-                {jobs.map((l) => (
-                  <ListingItem key={l.id} l={l} />
-                ))}
-              </ul>
-            </Section>
-          ) : null}
-
-          {classifieds.length > 0 ? (
-            <Section title="İlanları" icon={Tag}>
-              <ul className="flex flex-col gap-2.5">
-                {classifieds.map((l) => (
-                  <ListingItem key={l.id} l={l} />
-                ))}
-              </ul>
-            </Section>
-          ) : null}
+          <FirmTabs tabs={tabs} />
         </article>
       </DetailSheet>
 

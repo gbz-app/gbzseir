@@ -34,6 +34,19 @@ export type ServiceCatalog = {
   subs: Array<ServiceCategory & { parent: ServiceCategory }>;
 };
 
+/** Step 1 of the request (service picker): top-level groups and every active sub-category. */
+export type ServicePickerGroup = { slug: string; name: string; icon: string | null; description: string | null };
+export type ServicePickerItem = {
+  slug: string;
+  name: string;
+  icon: string | null;
+  parentSlug: string;
+  popular: boolean;
+  /** Synonyms, parent words and description (any case/accents) for the search. */
+  terms: string[];
+};
+export type ServicePickerData = { groups: ServicePickerGroup[]; items: ServicePickerItem[] };
+
 /** One answer resolved by the DB (private.resolve_answers). */
 export type ResolvedAnswer = {
   id: string;

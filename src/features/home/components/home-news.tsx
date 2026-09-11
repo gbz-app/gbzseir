@@ -1,20 +1,28 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
-import { Building2, Landmark, Megaphone, Newspaper, Ticket, Trophy, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { APP_NAME } from "@/config/site";
+import { routes } from "@/core/routes";
+import { NEWS_VISUAL, type ArticleSummary } from "@/features/content/articles/meta";
 import { NEWS_CATEGORY_LABELS, NEWS_CATEGORY_ORDER, type NewsCategory, type NewsItem } from "@/features/content/news/parse";
 
-const VISUAL: Record<NewsCategory, { icon: LucideIcon; gradient: string }> = {
-  gundem: { icon: Newspaper, gradient: "from-sky-500 via-blue-500 to-indigo-600" },
-  siyaset: { icon: Landmark, gradient: "from-rose-500 via-red-500 to-orange-500" },
-  belediye: { icon: Building2, gradient: "from-violet-500 via-purple-500 to-indigo-700" },
-  spor: { icon: Trophy, gradient: "from-emerald-500 via-green-500 to-teal-600" },
-  etkinlik: { icon: Ticket, gradient: "from-fuchsia-500 via-pink-500 to-rose-500" },
-  duyuru: { icon: Megaphone, gradient: "from-amber-500 via-orange-500 to-red-500" },
+/** One card: our article (in-app page) or an RSS headline (source site, new tab). */
+type Entry = {
+  key: string;
+  category: NewsCategory;
+  title: string;
+  source: string;
+  publishedAt: string | null;
+  href: string;
+  external: boolean;
+  coverUrl: string | null;
 };
+
+const CARD = "relative block h-[19rem] overflow-hidden rounded-[1.75rem] bg-linear-to-br outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
 function ago(iso: string | null): string {
   if (!iso) return "";
@@ -22,11 +30,68 @@ function ago(iso: string | null): string {
   return Number.isNaN(d.getTime()) ? "" : formatDistanceToNow(d, { addSuffix: true, locale: tr });
 }
 
-/** Home "Haberler": category tabs (Gündem, Siyaset, Spor...) and tall cards with a white info card, like Gezilecek Yerler. */
-export function HomeNews({ items }: { items: NewsItem[] }) {
+function CardContent({ entry }: { entry: Entry }) {
+  const v = NEWS_VISUAL[entry.category];
+  return (
+    <>
+      {entry.coverUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={entry.coverUrl} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full object-cover" />
+      ) : (
+        <>
+          <span className="absolute -top-10 -left-10 size-36 rounded-full bg-white/10" aria-hidden />
+          <span className="absolute -right-8 bottom-20 size-40 rounded-full bg-black/10" aria-hidden />
+          <v.icon className="absolute top-16 left-1/2 size-14 -translate-x-1/2 text-white/90" strokeWidth={1.5} aria-hidden />
+        </>
+      )}
+      <span className="absolute top-3 right-3 inline-flex h-7 items-center rounded-full bg-white/95 px-2.5 text-xs font-semibold text-neutral-900">
+        {NEWS_CATEGORY_LABELS[entry.category]}
+      </span>
+      <span className="absolute inset-x-2.5 bottom-2.5 rounded-xl bg-card p-3.5">
+        <span className="line-clamp-3 text-[15px] leading-snug font-semibold">{entry.title}</span>
+        <span className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span className={cn("truncate font-medium", !entry.external && "text-primary")}>{entry.source}</span>
+          <span className="shrink-0">{ago(entry.publishedAt)}</span>
+        </span>
+      </span>
+      {entry.external ? <span className="sr-only"> (kaynak sitede, yeni sekmede açılır)</span> : null}
+    </>
+  );
+}
+
+/**
+ * Home "Haberler": category tabs (Gündem, Siyaset, Spor...) and tall cards with a white info card, like Gezilecek Yerler.
+ * Our own articles come first and open in the app; RSS headlines follow and open the source site.
+ */
+export function HomeNews({ articles = [], items }: { articles?: ArticleSummary[]; items: NewsItem[] }) {
   const [tab, setTab] = React.useState<NewsCategory | "tumu">("tumu");
-  const categories = NEWS_CATEGORY_ORDER.filter((c) => items.some((i) => i.category === c));
-  const shown = (tab === "tumu" ? items : items.filter((i) => i.category === tab)).slice(0, 10);
+  const entries = React.useMemo<Entry[]>(
+    () => [
+      ...articles.map((a) => ({
+        key: `a-${a.id}`,
+        category: a.category,
+        title: a.title,
+        source: APP_NAME,
+        publishedAt: a.publishedAt,
+        href: routes.content.newsArticle(a.slug),
+        external: false,
+        coverUrl: a.coverUrl,
+      })),
+      ...items.map((n) => ({
+        key: n.id,
+        category: n.category,
+        title: n.title,
+        source: n.sourceName,
+        publishedAt: n.publishedAt,
+        href: n.url,
+        external: true,
+        coverUrl: null,
+      })),
+    ],
+    [articles, items],
+  );
+  const categories = NEWS_CATEGORY_ORDER.filter((c) => entries.some((e) => e.category === c));
+  const shown = (tab === "tumu" ? entries : entries.filter((e) => e.category === tab)).slice(0, 12);
 
   return (
     <div>
@@ -53,33 +118,19 @@ export function HomeNews({ items }: { items: NewsItem[] }) {
       </div>
 
       <ul className="no-scrollbar -mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
-        {shown.map((n) => {
-          const v = VISUAL[n.category];
-          return (
-            <li key={n.id} className="w-[15.5rem] shrink-0 snap-start">
-              <a
-                href={n.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn("relative block h-[19rem] overflow-hidden rounded-[1.75rem] bg-linear-to-br outline-none focus-visible:ring-3 focus-visible:ring-ring/50", v.gradient)}
-              >
-                <span className="absolute -top-10 -left-10 size-36 rounded-full bg-white/10" aria-hidden />
-                <span className="absolute -right-8 bottom-20 size-40 rounded-full bg-black/10" aria-hidden />
-                <v.icon className="absolute top-16 left-1/2 size-14 -translate-x-1/2 text-white/90" strokeWidth={1.5} aria-hidden />
-                <span className="absolute top-3 right-3 inline-flex h-7 items-center rounded-full bg-white/95 px-2.5 text-xs font-semibold text-neutral-900">
-                  {NEWS_CATEGORY_LABELS[n.category]}
-                </span>
-                <span className="absolute inset-x-2.5 bottom-2.5 rounded-xl bg-card p-3.5">
-                  <span className="line-clamp-3 text-[15px] leading-snug font-semibold">{n.title}</span>
-                  <span className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span className="truncate font-medium">{n.sourceName}</span>
-                    <span className="shrink-0">{ago(n.publishedAt)}</span>
-                  </span>
-                </span>
+        {shown.map((e) => (
+          <li key={e.key} className="w-[15.5rem] shrink-0 snap-start">
+            {e.external ? (
+              <a href={e.href} target="_blank" rel="noopener noreferrer" className={cn(CARD, NEWS_VISUAL[e.category].gradient)}>
+                <CardContent entry={e} />
               </a>
-            </li>
-          );
-        })}
+            ) : (
+              <Link href={e.href} className={cn(CARD, NEWS_VISUAL[e.category].gradient)}>
+                <CardContent entry={e} />
+              </Link>
+            )}
+          </li>
+        ))}
       </ul>
     </div>
   );

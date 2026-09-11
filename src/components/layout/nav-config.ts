@@ -24,7 +24,7 @@ export const MAIN_TABS: MainTab[] = [
 ];
 
 /** Paths where the TopBar is shown. Other pages render <PageHeader/> (the profile page has its own header; Yakınımda is a full-screen map). */
-export const TOPBAR_PATHS = ["/", "/ilanlar", "/hizmetler"];
+export const TOPBAR_PATHS = ["/", "/ilanlar"];
 
 /** Route prefixes where the bottom nav is hidden automatically (full-screen flows). */
 export const BOTTOM_NAV_HIDDEN_PREFIXES = ["/ilan-ver", "/hizmet-talebi", "/isletme/basvuru", "/profil/telefon-degistir"];

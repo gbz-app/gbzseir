@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { canGoBack } from "@/lib/navigation-history";
 
 export const ROUND_ICON_BUTTON =
@@ -24,8 +24,13 @@ export function ExploreHeader({
   return (
     <div className="pt-safe">
       <div className="flex h-(--topbar-h) items-center justify-between gap-2">
-        <button type="button" aria-label="Geri" className={ROUND_ICON_BUTTON} onClick={() => (canGoBack() ? router.back() : router.push(backHref))}>
-          <ChevronLeft className="size-6" strokeWidth={1.75} />
+        <button
+          type="button"
+          aria-label="Geri"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-foreground/[0.06] text-foreground backdrop-blur-md transition-colors outline-none hover:bg-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50"
+          onClick={() => (canGoBack() ? router.back() : router.push(backHref))}
+        >
+          <ArrowLeft className="size-5" strokeWidth={2.2} />
         </button>
         {right}
       </div>

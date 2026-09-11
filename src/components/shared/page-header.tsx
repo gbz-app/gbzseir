@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { HideBottomNav } from "@/components/layout/nav-visibility";
@@ -73,8 +73,14 @@ export function PageHeader({
         {hideBack ? (
           <span className="w-2" aria-hidden />
         ) : (
-          <Button variant="ghost" size="icon" className="shrink-0 rounded-full" onClick={goBack} aria-label="Geri">
-            <ChevronLeft className="size-6" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 rounded-full bg-foreground/[0.06] backdrop-blur-md hover:bg-foreground/10"
+            onClick={goBack}
+            aria-label="Geri"
+          >
+            <ArrowLeft className="size-5" strokeWidth={2.2} />
           </Button>
         )}
         <div className="min-w-0 flex-1">

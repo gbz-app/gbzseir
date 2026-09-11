@@ -24,6 +24,8 @@ export type NearbySheetProps = {
   /** Space kept free above the sheet when fully open (filter chips). */
   topInset: number;
   header: React.ReactNode;
+  /** Fixed row between the header and the list (not draggable, stays visible while the list scrolls). */
+  toolbar?: React.ReactNode;
   /** Buttons that float just above the sheet edge (hidden when fully open). Children need pointer-events-auto. */
   floating?: React.ReactNode;
   handleRef?: React.Ref<HTMLButtonElement>;
@@ -35,7 +37,7 @@ export type NearbySheetProps = {
  * Draggable bottom sheet over the map with three snap points. Drag the header (or tap / press Enter on the
  * handle to cycle). The transform is written straight to the DOM while dragging (no re-render per frame).
  */
-export function NearbySheet({ snap, onSnapChange, height, topInset, header, floating, handleRef, listRef, children }: NearbySheetProps) {
+export function NearbySheet({ snap, onSnapChange, height, topInset, header, toolbar, floating, handleRef, listRef, children }: NearbySheetProps) {
   const offsets = sheetOffsets(height, topInset);
   const target = offsets[snap];
   const sheetRef = React.useRef<HTMLDivElement>(null);
@@ -139,6 +141,7 @@ export function NearbySheet({ snap, onSnapChange, height, topInset, header, floa
         </button>
         <div className="px-4 pb-2.5">{header}</div>
       </div>
+      {toolbar ? <div className="shrink-0 px-4 pb-3">{toolbar}</div> : null}
       <div ref={listRef} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4" style={{ paddingBottom: target + 16 }}>
         {children}
       </div>

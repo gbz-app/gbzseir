@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { articleSitemapEntries } from "@/features/content/articles/sitemap";
 
 /**
  * Registry for dynamic sitemap entries. Feature agents add async sources here, e.g.
@@ -11,4 +12,4 @@ import type { MetadataRoute } from "next";
  */
 export type SitemapExtraSource = () => Promise<MetadataRoute.Sitemap>;
 
-export const sitemapExtraSources: SitemapExtraSource[] = [];
+export const sitemapExtraSources: SitemapExtraSource[] = [articleSitemapEntries];

@@ -2,6 +2,7 @@
  * Static configuration of the nearby module: filters, kinds, colors, place categories and URL helpers.
  */
 import {
+  Banknote,
   Bus,
   CarTaxiFront,
   Castle,
@@ -44,8 +45,9 @@ export const NEARBY_FILTERS: FilterMeta[] = [
   { value: "cami", label: "Cami", icon: MoonStar, marker: "mosque", title: "Yakındaki camiler", noun: "cami" },
   { value: "durak", label: "Durak", icon: Bus, marker: "bus_stop", title: "Yakındaki duraklar", noun: "durak" },
   { value: "taksi", label: "Taksi", icon: CarTaxiFront, marker: "taxi", title: "Yakındaki taksi durakları", noun: "taksi durağı" },
+  { value: "atm", label: "ATM", icon: Banknote, marker: "atm", title: "Yakındaki ATM'ler", noun: "ATM" },
   { value: "gezilecek", label: "Gezilecek", icon: Landmark, marker: "place", title: "Gezilecek yerler", noun: "yer" },
-  { value: "isletme", label: "İşletmeler", icon: Store, marker: "business", title: "Yakındaki işletmeler", noun: "işletme" },
+  // "isletme" is no longer a chip: ?tur=isletme is not parsed and falls back to the default tab.
 ];
 
 export function filterMeta(f: NearbyFilter): FilterMeta {
@@ -108,6 +110,13 @@ export const KIND_META: Record<MarkerKind, KindMeta> = {
     glyph: "#1C1917",
     tone: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
   },
+  atm: {
+    label: "ATM",
+    icon: Banknote,
+    pin: "#16A34A",
+    glyph: "#FFFFFF",
+    tone: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
   place: {
     label: "Gezilecek yer",
     icon: Landmark,
@@ -163,6 +172,9 @@ export function poiHref(kind: PoiKind, slug: string): string {
     case "taxi":
       // No detail page for taxi stands: the list card opens the map view.
       return routes.nearby.root("taksi");
+    case "atm":
+      // Same as taxi: no detail page for ATMs.
+      return routes.nearby.root("atm");
   }
 }
 

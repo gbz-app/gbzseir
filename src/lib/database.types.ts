@@ -1453,6 +1453,69 @@ export type Database = {
         }
         Relationships: []
       }
+      news_articles: {
+        Row: {
+          author_id: string | null
+          body: string
+          category: string
+          cover_url: string | null
+          created_at: string
+          id: string
+          is_demo: boolean
+          published_at: string | null
+          slug: string
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          body?: string
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          is_demo?: boolean
+          published_at?: string | null
+          slug: string
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          is_demo?: boolean
+          published_at?: string | null
+          slug?: string
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "news_articles_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "news_articles_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news_items: {
         Row: {
           created_at: string
@@ -2397,6 +2460,10 @@ export type Database = {
       customer_remove_lead: { Args: { p_lead_id: string }; Returns: Json }
       decline_lead: { Args: { p_lead_id: string }; Returns: Json }
       delete_my_account: { Args: never; Returns: Json }
+      delete_my_business_review: {
+        Args: { p_business_id: string }
+        Returns: Json
+      }
       dispatch_request: {
         Args: {
           p_business_ids?: string[]
@@ -2566,6 +2633,10 @@ export type Database = {
       }
       send_sms_hook: { Args: { event: Json }; Returns: Json }
       short_name: { Args: { p_full_name: string }; Returns: string }
+      submit_business_review: {
+        Args: { p_business_id: string; p_comment?: string; p_rating: number }
+        Returns: Json
+      }
       submit_contact_message: {
         Args: {
           p_business_name?: string

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowUpRight, Clock, LocateFixed, Map as MapIcon, Search, Store, Wrench, X } from "lucide-react";
+import { ArrowUpRight, Map as MapIcon, Search, Store, Wrench, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CITY } from "@/config/site";
 import { distanceMeters, formatDistance } from "@/core/geo";
@@ -16,22 +16,24 @@ import type { MapPoint } from "@/features/nearby/map/types";
 import { useApproxLocation } from "@/lib/location/use-approx-location";
 import { openStatusAt, parseWorkingHours, type OpenStatus } from "../lib/hours";
 import type { VerticalCard } from "../lib/vertical-queries";
-import { AMENITIES, VERTICAL_INFO, type Vertical } from "../lib/verticals";
+import { VERTICAL_INFO, VERTICAL_SUBCATEGORIES, subcategoryMatcher, type Vertical } from "../lib/verticals";
 import { VenueCard, VenuePhotoFallback } from "./venue-card";
 
 type Row = { item: VerticalCard; distance: number | null; open: OpenStatus | null };
 
-const NOUN: Partial<Record<Vertical, string>> = { hizmet: "firma", otel: "otel", magaza: "mağaza" };
+const NOUN: Partial<Record<Vertical, string>> = { hizmet: "firma", otel: "otel", magaza: "mağaza", saglik: "işletme", dugun: "işletme", egitim: "kurum" };
 
-/** /kesfet/[tur]: search, chips, big photo cards and a map view of one vertical. */
+/** Verticals listed as a two-column grid of compact cards. */
+const COMPACT: readonly Vertical[] = ["saglik"];
+
+/** /kesfet/[tur]: search, sub-category chips, photo cards (compact grid for Sağlık) and a map view of one vertical. */
 export function VerticalExplorer({ vertical, items, applicationsOpen }: { vertical: Vertical; items: VerticalCard[]; applicationsOpen: boolean }) {
   const info = VERTICAL_INFO[vertical];
+  const subcategories = VERTICAL_SUBCATEGORIES[vertical] ?? [];
   const loc = useApproxLocation();
   const now = useNow();
   const [q, setQ] = React.useState("");
-  const [openNow, setOpenNow] = React.useState(false);
-  const [nearSort, setNearSort] = React.useState(false);
-  const [amenity, setAmenity] = React.useState<string | null>(null);
+  const [subKey, setSubKey] = React.useState<string | null>(null);
   const [mapOpen, setMapOpen] = React.useState(false);
 
   const hasPoint = loc.pointSource !== "city";
@@ -46,44 +48,26 @@ export function VerticalExplorer({ vertical, items, applicationsOpen }: { vertic
     [items, hasPoint, pLat, pLng, now],
   );
 
-  // Amenity chips: the most common amenities in this list (max 5).
-  const amenityChips = React.useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const it of items) for (const a of it.amenities) if (AMENITIES[a]) counts.set(a, (counts.get(a) ?? 0) + 1);
-    return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([key]) => ({ key, label: AMENITIES[key].label, icon: AMENITIES[key].icon }));
-  }, [items]);
-
   const needle = slugifyTr(q);
+  const sub = subcategories.find((s) => s.key === subKey) ?? null;
   const filtered = React.useMemo(() => {
-    let out = rows.filter(
+    const active = VERTICAL_SUBCATEGORIES[vertical]?.find((s) => s.key === subKey);
+    const matches = active ? subcategoryMatcher(active) : null;
+    return rows.filter(
       (r) =>
         (!needle || slugifyTr(`${r.item.name} ${r.item.category_label ?? ""} ${r.item.neighbourhood_name ?? ""}`).includes(needle)) &&
-        (!openNow || (!r.item.vacation_mode && (r.item.vertical === "otel" || (!!r.open?.known && r.open.open)))) &&
-        (!amenity || r.item.amenities.includes(amenity)),
+        (!matches || matches(`${r.item.category_label ?? ""} ${r.item.name} ${r.item.description ?? ""}`)),
     );
-    if (nearSort) out = [...out].sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-    return out;
-  }, [rows, needle, openNow, amenity, nearSort]);
+  }, [rows, needle, vertical, subKey]);
 
-  const anyFilter = !!needle || openNow || nearSort || !!amenity;
   const clearAll = () => {
     setQ("");
-    setOpenNow(false);
-    setNearSort(false);
-    setAmenity(null);
-  };
-
-  const toggleNear = async () => {
-    if (nearSort) return setNearSort(false);
-    if (!hasPoint) await loc.request();
-    setNearSort(true);
+    setSubKey(null);
   };
 
   const mappable = filtered.filter((r) => r.item.lat != null && r.item.lng != null);
   const noun = NOUN[vertical] ?? "mekan";
+  const compact = COMPACT.includes(vertical);
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-32">
@@ -112,24 +96,18 @@ export function VerticalExplorer({ vertical, items, applicationsOpen }: { vertic
         ) : null}
       </label>
 
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1" role="group" aria-label="Filtreler">
-        <FilterChip active={!anyFilter} onClick={clearAll}>
-          Tümü
-        </FilterChip>
-        {vertical !== "otel" ? (
-          <FilterChip active={openNow} onClick={() => setOpenNow((v) => !v)} icon={Clock}>
-            Şimdi açık
+      {subcategories.length > 0 ? (
+        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1" role="group" aria-label="Kategoriler">
+          <FilterChip active={!sub} onClick={() => setSubKey(null)}>
+            Tümü
           </FilterChip>
-        ) : null}
-        <FilterChip active={nearSort} onClick={toggleNear} icon={LocateFixed}>
-          {loc.status === "locating" ? "Konum alınıyor…" : "Yakınımda"}
-        </FilterChip>
-        {amenityChips.map((a) => (
-          <FilterChip key={a.key} active={amenity === a.key} onClick={() => setAmenity((v) => (v === a.key ? null : a.key))} icon={a.icon}>
-            {a.label}
-          </FilterChip>
-        ))}
-      </div>
+          {subcategories.map((s) => (
+            <FilterChip key={s.key} active={sub?.key === s.key} onClick={() => setSubKey((k) => (k === s.key ? null : s.key))}>
+              {s.label}
+            </FilterChip>
+          ))}
+        </div>
+      ) : null}
 
       {vertical === "hizmet" ? (
         <Link
@@ -166,20 +144,19 @@ export function VerticalExplorer({ vertical, items, applicationsOpen }: { vertic
         <>
           <p className="text-sm text-muted-foreground" aria-live="polite">
             {filtered.length} {noun}
-            {nearSort && hasPoint ? " · yakından uzağa" : ""}
           </p>
           {filtered.length === 0 ? (
             <div className="rounded-3xl bg-card px-6 py-8 text-center shadow-soft ring-1 ring-foreground/[0.05]">
-              <p className="font-semibold">Aramana uygun {noun} bulunamadı</p>
+              <p className="font-semibold">{sub && !needle ? `${sub.label} için henüz ${noun} yok` : `Aramana uygun ${noun} bulunamadı`}</p>
               <Button variant="outline" className="mt-4" onClick={clearAll}>
-                Filtreleri temizle
+                {sub ? "Tümünü göster" : "Aramayı temizle"}
               </Button>
             </div>
           ) : (
-            <ul className="flex flex-col gap-4">
+            <ul className={compact ? "grid grid-cols-2 gap-3" : "flex flex-col gap-4"}>
               {filtered.map((r, i) => (
                 <li key={r.item.id}>
-                  <VenueCard item={r.item} distance={r.distance} open={r.open} eager={i < 2} />
+                  <VenueCard item={r.item} distance={r.distance} open={r.open} eager={i < (compact ? 4 : 2)} variant={compact ? "compact" : "default"} />
                 </li>
               ))}
             </ul>

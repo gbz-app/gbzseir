@@ -47,7 +47,7 @@ export function MenuSections({ sections, itemLimit, anchorPrefix }: { sections: 
             {s.name} <span className="text-sm font-normal text-muted-foreground">({s.items.length})</span>
           </h3>
           {s.items.length ? (
-            <ul className="divide-y rounded-3xl bg-card shadow-soft ring-1 ring-foreground/[0.05]">
+            <ul className="divide-y rounded-3xl bg-card">
               {(itemLimit ? s.items.slice(0, itemLimit) : s.items).map((it) => (
                 <MenuItemRow key={it.id} item={it} />
               ))}

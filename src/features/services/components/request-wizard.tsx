@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarCheck, CalendarClock, CalendarDays, Check, ImagePlus, Loader2, Lock, LogIn, Phone, Trash2, Zap, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
-import { Wizard, buildFlowSteps, readWizardDraft, type WizardStep, type WizardStepContext } from "@/components/wizard";
+import { Wizard, WizardSkeleton, buildFlowSteps, readWizardDraft, type WizardStep, type WizardStepContext } from "@/components/wizard";
 import { useAuth } from "@/lib/auth/hooks";
 import { createClient } from "@/lib/supabase/client";
 import { getDefaultNeighbourhood } from "@/lib/location/store";
@@ -25,8 +25,9 @@ import { routes } from "@/core/routes";
 import { addDaysToKey, istanbulDateKey } from "@/core/time";
 import { WHEN_OPTIONS, whenLabel } from "../labels";
 import { removeUploadedPhotos, uploadRequestPhotos, useRequestPhotos, type RequestPhotos } from "../photo-store";
-import type { SubmitRequestResult, WhenType } from "../types";
-import { neighbourhoodLabel, rpcErrorMessage } from "../util";
+import type { ServicePickerData, SubmitRequestResult, WhenType } from "../types";
+import { PICKED_PARAM, neighbourhoodLabel, pickedRequestHref, rpcErrorMessage } from "../util";
+import { PICK_STEP_HELP, PICK_STEP_TITLE, ServicePicker } from "./service-picker";
 import { LeaveSheet, WizardTitle } from "./wizard-chrome";
 
 export type WizardCategory = {
@@ -70,11 +71,37 @@ function usePhotos(): RequestPhotos {
 const optionBase =
   "flex min-h-16 w-full items-center gap-3 rounded-2xl border-2 bg-card px-4 py-3 text-left transition-[border-color,background-color,transform] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]";
 
-/** F3/F4: question-flow wizard for a sub-category + system steps (location, time, note/photos, summary, send). */
-export function RequestWizard({ category, schema }: { category: WizardCategory; schema: FlowSchema }) {
+type RequestWizardProps = {
+  category: WizardCategory;
+  schema: FlowSchema;
+  /** Service picker payload; shown as step 1 when the request was started from /hizmetler (?sec=1). */
+  picker?: ServicePickerData;
+};
+
+/**
+ * F3/F4: question-flow wizard for a sub-category + system steps (location, time, note/photos, summary, send).
+ * Started from the picker (?sec=1) the picker is step 1 (change the service); a plain deep link skips it.
+ */
+export function RequestWizard(props: RequestWizardProps) {
+  // useSearchParams (?sec) needs a Suspense boundary on the prerendered page.
+  return (
+    <React.Suspense fallback={<WizardSkeleton />}>
+      <RequestWizardInner {...props} />
+    </React.Suspense>
+  );
+}
+
+function RequestWizardInner({ category, schema, picker }: RequestWizardProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const draftKey = `hizmet.${category.slug}`;
+  const picked = !!picker && searchParams.get(PICKED_PARAM) === "1";
+  /** This wizard's URL at step `adim` (keeps ?sec so a login round-trip returns to the same step list). */
+  const requestHref = React.useCallback(
+    (adim?: number) => (picked ? pickedRequestHref(category.slug, adim) : routes.services.request(category.slug, adim)),
+    [picked, category.slug],
+  );
   const [leaveOpen, setLeaveOpen] = React.useState(false);
 
   const [initialData] = React.useState<Draft>(() => {
@@ -111,6 +138,23 @@ export function RequestWizard({ category, schema }: { category: WizardCategory; 
   const hasUser = !!user;
   const steps = React.useMemo<WizardStep<Draft>[]>(
     () => [
+      ...(picked && picker
+        ? [
+            {
+              id: "hizmet",
+              title: PICK_STEP_TITLE,
+              help: PICK_STEP_HELP,
+              render: (ctx: Ctx) => (
+                <ServicePicker
+                  data={picker}
+                  hrefFor={(slug) => pickedRequestHref(slug, 2)}
+                  selectedSlug={category.slug}
+                  onSelectedClick={() => void ctx.next()}
+                />
+              ),
+            } satisfies WizardStep<Draft>,
+          ]
+        : []),
       ...flowSteps,
       {
         id: "konum",
@@ -144,10 +188,10 @@ export function RequestWizard({ category, schema }: { category: WizardCategory; 
         id: "gonder",
         title: "İletişim ve gönder",
         hideFooter: () => !hasUser,
-        render: (ctx) => <ContactStep ctx={ctx} category={category} />,
+        render: (ctx) => <ContactStep ctx={ctx} category={category} loginNext={requestHref(ctx.count)} />,
       },
     ],
-    [flowSteps, schema, category, hasUser],
+    [picked, picker, flowSteps, schema, category, hasUser, requestHref],
   );
 
   const onComplete = React.useCallback(
@@ -156,7 +200,7 @@ export function RequestWizard({ category, schema }: { category: WizardCategory; 
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user?.id;
       if (!uid) {
-        router.push(routes.auth.login(routes.services.request(category.slug, steps.length)));
+        router.push(routes.auth.login(requestHref(steps.length)));
         return "Göndermek için giriş yapmalısın.";
       }
       const check = validateAnswers(schema, d.answers ?? {});
@@ -193,7 +237,7 @@ export function RequestWizard({ category, schema }: { category: WizardCategory; 
           return invalidAnswersMessage(schema, ids);
         }
         if (error?.hint === "login_required") {
-          router.push(routes.auth.login(routes.services.request(category.slug, steps.length)));
+          router.push(routes.auth.login(requestHref(steps.length)));
           return "Oturumun sona ermiş. Lütfen tekrar giriş yap.";
         }
         return rpcErrorMessage(error, "Talebin gönderilemedi. Lütfen tekrar dene.");
@@ -202,7 +246,7 @@ export function RequestWizard({ category, schema }: { category: WizardCategory; 
       await photosRef.current.clearAll();
       router.push(routes.services.requestDone(res.public_code));
     },
-    [category.id, category.slug, schema, router, steps.length],
+    [category.id, schema, router, steps.length, requestHref],
   );
 
   return (
@@ -216,7 +260,12 @@ export function RequestWizard({ category, schema }: { category: WizardCategory; 
         title={<WizardTitle text={category.name} onClose={() => setLeaveOpen(true)} />}
         onExit={() => setLeaveOpen(true)}
       />
-      <LeaveSheet open={leaveOpen} onOpenChange={setLeaveOpen} onLeave={() => router.push(routes.services.category(category.parentSlug))} />
+      {/* Started from the picker: leaving ends the flow (home); a deep link goes back to its category page. */}
+      <LeaveSheet
+        open={leaveOpen}
+        onOpenChange={setLeaveOpen}
+        onLeave={() => router.push(picked ? routes.home() : routes.services.category(category.parentSlug))}
+      />
     </PhotosContext.Provider>
   );
 }
@@ -533,7 +582,8 @@ function SummaryStep({ ctx, schema }: { ctx: Ctx; schema: FlowSchema }) {
   );
 }
 
-function ContactStep({ ctx, category }: { ctx: Ctx; category: WizardCategory }) {
+/** `loginNext`: this wizard's URL at the last step (login returns here). */
+function ContactStep({ ctx, category, loginNext }: { ctx: Ctx; category: WizardCategory; loginNext: string }) {
   const router = useRouter();
   const { user, loading } = useAuth();
   const d = ctx.data;
@@ -584,12 +634,7 @@ function ContactStep({ ctx, category }: { ctx: Ctx; category: WizardCategory }) 
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             Telefon numaranla saniyeler içinde giriş yap. Cevapların bu cihazda kayıtlı; giriş yaptıktan sonra buraya dönüp talebini gönderebilirsin.
           </p>
-          <Button
-            type="button"
-            size="lg"
-            className="mt-3 w-full"
-            onClick={() => router.push(routes.auth.login(routes.services.request(category.slug, ctx.count)))}
-          >
+          <Button type="button" size="lg" className="mt-3 w-full" onClick={() => router.push(routes.auth.login(loginNext))}>
             <LogIn /> Giriş yap ve gönder
           </Button>
         </div>

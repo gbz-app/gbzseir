@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function NewsLoading() {
   return (
     <>
-      <PageHeader title="Gebze Gündemi" subtitle="Kaynaklardan derleme" />
+      <PageHeader title="Gebze Gündemi" subtitle="Gebzem ve yerel kaynaklar" />
       <div className="flex flex-col gap-4 px-4 pt-4" role="status" aria-label="Yükleniyor">
         <Skeleton className="h-4 w-4/5" />
         <div className="flex gap-2 overflow-hidden" aria-hidden>

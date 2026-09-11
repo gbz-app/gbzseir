@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { routes } from "@/core/routes";
-import { findCategory, getPublishedFlow } from "@/features/services/data";
+import { findCategory, getPublishedFlow, getServiceCatalog } from "@/features/services/data";
+import { servicePickerData } from "@/features/services/util";
 import { RequestWizard } from "@/features/services/components/request-wizard";
 
 export const revalidate = 600;
@@ -20,16 +21,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** F3/F4: request wizard for a sub-category (question flow + system steps). */
+/**
+ * F3/F4: request wizard for a sub-category (question flow + system steps). The picker payload is always sent:
+ * when the URL has ?sec=1 (started from /hizmetler) the wizard shows the service picker as step 1.
+ */
 export default async function ServiceRequestPage({ params }: Props) {
   const { altKategori } = await params;
   const found = await findCategory(altKategori);
   if (!found) notFound();
   if (found.kind === "parent") redirect(routes.services.category(found.category.slug));
   const sub = found.category;
-  const flow = await getPublishedFlow(sub.id);
+  const [flow, catalog] = await Promise.all([getPublishedFlow(sub.id), getServiceCatalog()]);
   return (
     <RequestWizard
+      key={sub.slug}
+      picker={servicePickerData(catalog)}
       category={{
         id: sub.id,
         slug: sub.slug,

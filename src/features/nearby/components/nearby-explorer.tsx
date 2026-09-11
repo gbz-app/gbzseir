@@ -3,12 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ChevronRight, Loader2, LocateFixed } from "lucide-react";
+import { ChevronRight, Loader2, LocateFixed, Search, SearchX, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { isDutyActive } from "@/core/duty";
 import { routes } from "@/core/routes";
 import { istanbulParts } from "@/core/time";
+import { trNormalize } from "@/core/tr";
+import { Button } from "@/components/ui/button";
 import { ChipFilter, type ChipOption } from "@/components/shared/chip-filter";
 import { DataSourceNote } from "@/components/shared/data-source-note";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -79,6 +81,8 @@ function sourceFor(filter: NearbyFilter): { source: string; sourceUrl?: string; 
       return { source: OSM_SOURCE, sourceUrl: OSM_COPYRIGHT_URL };
     case "taksi":
       return { source: OSM_SOURCE, sourceUrl: OSM_COPYRIGHT_URL, callAhead: true };
+    case "atm":
+      return { source: OSM_SOURCE, sourceUrl: OSM_COPYRIGHT_URL };
     case "gezilecek":
       return { source: `${KBB_SOURCE}, ${OSM_SOURCE}` };
     case "isletme":
@@ -104,7 +108,26 @@ export function NearbyExplorer() {
     () => (filter === "nobetci" ? data.items.filter((i) => !!i.duty && isDutyActive(i.duty.start, i.duty.end, dutyNow)) : data.items),
     [data.items, filter, dutyNow],
   );
-  const points = React.useMemo<MapPoint[]>(() => items.map((i) => ({ id: i.id, lat: i.lat, lng: i.lng, kind: i.kind, label: i.name })), [items]);
+  // In-sheet search over the current tab (name / subtitle / address, Turkish-insensitive). Pins follow it.
+  const [query, setQuery] = React.useState("");
+  const searchRef = React.useRef<HTMLInputElement>(null);
+  const q = trNormalize(query);
+  const visible = React.useMemo<NearbyItem[]>(() => {
+    if (!q) return items;
+    const words = q.split(" ");
+    return items.filter((i) => {
+      const hay = trNormalize([i.name, i.subtitle, i.address].filter(Boolean).join(" "));
+      return words.every((w) => hay.includes(w));
+    });
+  }, [items, q]);
+  const points = React.useMemo<MapPoint[]>(() => visible.map((i) => ({ id: i.id, lat: i.lat, lng: i.lng, kind: i.kind, label: i.name })), [visible]);
+  // The map refits to the results once typing pauses (not on every keystroke).
+  const [fitQuery, setFitQuery] = React.useState("");
+  React.useEffect(() => {
+    if (q === fitQuery) return;
+    const id = window.setTimeout(() => setFitQuery(q), 450);
+    return () => window.clearTimeout(id);
+  }, [q, fitQuery]);
 
   // Layout: measured area height drives the sheet snap points and the map padding.
   const areaRef = React.useRef<HTMLDivElement>(null);
@@ -143,6 +166,8 @@ export function NearbyExplorer() {
     if (!f || f === filter) return;
     setChosen(f);
     setSelectedId(null);
+    setQuery("");
+    setFitQuery("");
     listRef.current?.scrollTo({ top: 0 });
     window.history.replaceState(null, "", nearbyFilterHref(f));
   };
@@ -173,13 +198,18 @@ export function NearbyExplorer() {
     }
   };
 
-  const fitKey = !data.loading && items.length > 0 ? data.cacheKey : "";
+  const clearQuery = () => {
+    setQuery("");
+    searchRef.current?.focus();
+  };
+
+  const fitKey = !data.loading && visible.length > 0 ? `${data.cacheKey}|${fitQuery}` : "";
   const sortHint =
     loc.pointSource === "gps" ? "en yakından uzağa" : loc.pointSource === "neighbourhood" && loc.neighbourhood ? `${loc.neighbourhood.name} merkezine göre` : `${CITY.name} merkezine göre`;
   const source = filter ? sourceFor(filter) : null;
 
   const coachSteps: CoachStep[] = [
-    { targetRef: chipsRef, text: "Ne arıyorsan seç: nöbetçi eczane, cami, durak, işletme…", placement: "bottom" },
+    { targetRef: chipsRef, text: "Ne arıyorsan seç: nöbetçi eczane, cami, durak, ATM…", placement: "bottom" },
     { targetRef: locateRef, text: "Haritada kaybolursan buraya dokun", placement: "top" },
     { targetRef: handleRef, text: "Listeyi yukarı çek, en yakından uzağa sıralı gör", placement: "top" },
   ];
@@ -208,7 +238,7 @@ export function NearbyExplorer() {
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-background/95 via-background/70 to-transparent px-4 pt-2.5 pb-5">
         <div ref={chipsRef} className="pointer-events-auto">
-          <ChipFilter options={CHIP_OPTIONS} value={filter} onChange={onFilterChange} ariaLabel="Ne arıyorsun?" />
+          <ChipFilter options={CHIP_OPTIONS} value={filter} onChange={onFilterChange} ariaLabel="Ne arıyorsun?" centerSelected />
         </div>
       </div>
 
@@ -240,13 +270,45 @@ export function NearbyExplorer() {
               <div className="min-w-0">
                 <h2 className="truncate text-lg leading-tight font-bold">{meta.title}</h2>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground" aria-live="polite">
-                  {data.loading ? "Yükleniyor…" : `${items.length} ${meta.noun}`} · {sortHint}
+                  {data.loading ? "Yükleniyor…" : `${visible.length} ${meta.noun}`} · {sortHint}
                 </p>
               </div>
             </div>
           }
+          toolbar={
+            !data.loading && !data.error && items.length > 0 ? (
+              <div role="search" className="relative">
+                <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                <input
+                  ref={searchRef}
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onFocus={() => {
+                    if (snap === "peek") setSnap("half");
+                  }}
+                  placeholder="İsim, mahalle ya da adres ara"
+                  aria-label={`${meta.title} içinde ara`}
+                  enterKeyHint="search"
+                  autoComplete="off"
+                  className="h-11 w-full rounded-full bg-card pr-11 pl-12 text-[15px] outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:hidden"
+                />
+                {query ? (
+                  <button
+                    type="button"
+                    onClick={clearQuery}
+                    aria-label="Aramayı temizle"
+                    className="absolute top-1/2 right-1 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    <X className="size-4" aria-hidden />
+                  </button>
+                ) : null}
+              </div>
+            ) : null
+          }
         >
-          <LocationPrompt loc={loc} onLocate={locate} onPickNeighbourhood={() => setPickerOpen(true)} className="mb-3" />
+          {/* Hidden while searching so the matches start right under the search bar. */}
+          {query.trim() ? null : <LocationPrompt loc={loc} onLocate={locate} onPickNeighbourhood={() => setPickerOpen(true)} className="mb-3" />}
 
           {data.loading ? (
             <ListSkeleton count={3} variant="card" />
@@ -263,9 +325,22 @@ export function NearbyExplorer() {
                 description={filter === "isletme" ? "Haritada konumu olan onaylı işletme henüz yok." : "Farklı bir mahalle seçmeyi ya da konumunu paylaşmayı dene."}
               />
             )
+          ) : visible.length === 0 ? (
+            <EmptyState
+              compact
+              icon={SearchX}
+              tone="default"
+              title="Sonuç bulunamadı"
+              description={`"${query.trim()}" için ${meta.noun} bulamadık. Farklı bir kelime dene.`}
+              action={
+                <Button type="button" variant="secondary" className="rounded-full" onClick={clearQuery}>
+                  Aramayı temizle
+                </Button>
+              }
+            />
           ) : (
             <ul className="flex flex-col gap-3" aria-label={meta.title}>
-              {items.map((item) => (
+              {visible.map((item) => (
                 <li key={item.id}>
                   <NearbyCard item={item} now={now} showDistance={showDistance} selected={item.id === selectedId} onShowOnMap={showOnMap} />
                 </li>

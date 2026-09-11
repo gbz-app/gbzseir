@@ -53,6 +53,7 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
+import { trNormalize } from "@/core/tr";
 
 export const VERTICALS = ["yemek", "restoran", "kafe", "otel", "hizmet", "magaza", "saglik", "dugun", "egitim", "etkinlik", "diger"] as const;
 export type Vertical = (typeof VERTICALS)[number];
@@ -302,4 +303,102 @@ export const EVENT_CATEGORY_INFO: Record<EventCategory, { label: string; icon: L
 
 export function parseEventCategory(value: unknown): EventCategory | null {
   return typeof value === "string" && (EVENT_CATEGORIES as readonly string[]).includes(value) ? (value as EventCategory) : null;
+}
+
+// ---------------------------------------------------------------------------
+// Sub-categories (chips of the /kesfet/[tur] lists)
+// ---------------------------------------------------------------------------
+export type VerticalSubcategory = {
+  key: string;
+  label: string;
+  /** Matched at a word start after Turkish normalization, so suffixes count ("döner" -> "Dönerci") but mid-word hits do not. */
+  keywords: readonly string[];
+  /** Phrases removed before matching ("çiğ köfte" is not "köfte"). */
+  exclude?: readonly string[];
+};
+
+const subcat = (key: string, label: string, keywords: readonly string[], exclude?: readonly string[]): VerticalSubcategory => ({ key, label, keywords, exclude });
+
+export const VERTICAL_SUBCATEGORIES: Partial<Record<Vertical, readonly VerticalSubcategory[]>> = {
+  yemek: [
+    subcat("doner", "Döner", ["döner"]),
+    subcat("kebap", "Kebap", ["kebap", "kebab", "dürüm", "adana", "urfa", "iskender"]),
+    subcat("lahmacun-pide", "Lahmacun & Pide", ["lahmacun", "pide"]),
+    subcat("kofte", "Köfte", ["köfte"], ["çiğ köfte"]),
+    subcat("ev-yemekleri", "Ev yemekleri", ["ev yemek", "ev yemeği", "lokanta", "tencere", "sulu yemek"]),
+    subcat("cig-kofte", "Çiğ köfte", ["çiğ köfte", "çiğköfte"]),
+    subcat("tatli", "Tatlı", ["tatlı", "baklava", "künefe", "kadayıf", "muhallebi", "dondurma"]),
+  ],
+  restoran: [
+    subcat("balik", "Balık", ["balık", "deniz ürün", "levrek", "çipura", "hamsi"]),
+    subcat("ocakbasi", "Ocakbaşı", ["ocakbaşı", "ocak başı", "kebap", "kebab", "mangal"]),
+    subcat("et-steak", "Et & Steak", ["steak", "et restoran", "et lokanta", "kasap", "bonfile", "antrikot"]),
+    subcat("pizza-burger", "Pizza & Burger", ["pizz", "burger", "hamburger", "fast food"]),
+    subcat("dunya-mutfagi", "Dünya mutfağı", ["dünya mutfağı", "dünya mutfak", "italyan", "japon", "sushi", "suşi", "meksika", "uzak doğu", "asya", "fransız", "kore", "ramen", "wok"]),
+  ],
+  kafe: [
+    subcat("kahve", "Kahve", ["kahve", "coffee", "espresso", "barista", "üçüncü dalga"]),
+    subcat("kahvalti", "Kahvaltı", ["kahvaltı", "serpme", "brunch"]),
+    subcat("pastane", "Pastane", ["pastane", "pasta", "fırın", "börek", "patisserie", "baklava", "unlu mamul"]),
+    subcat("cay-bahcesi", "Çay bahçesi", ["çay bahçe", "çay evi", "çay ocağı", "semaver"]),
+  ],
+  otel: [
+    subcat("otel", "Otel", ["otel", "hotel"], ["butik otel", "apart otel"]),
+    subcat("butik-otel", "Butik otel", ["butik"]),
+    subcat("apart", "Apart", ["apart", "rezidans", "residence"]),
+    subcat("pansiyon", "Pansiyon", ["pansiyon", "misafirhane", "hostel", "konukevi", "konuk evi"]),
+  ],
+  hizmet: [
+    subcat("temizlik", "Temizlik", ["temizlik", "ev temizliği", "ofis temizliği", "halı yıkama", "koltuk yıkama", "ilaçlama"]),
+    subcat("tadilat", "Tadilat", ["tadilat", "dekorasyon", "alçıpan", "fayans", "parke", "seramik", "mutfak dolab", "renovasyon"]),
+    subcat("nakliyat", "Nakliyat", ["nakliyat", "nakliye", "taşımacılık", "evden eve", "eşya taşıma", "ofis taşıma"]),
+    subcat("elektrik", "Elektrik", ["elektrik", "aydınlatma", "avize", "sigorta panosu"]),
+    subcat("tesisat", "Tesisat", ["tesisat", "su kaçağı", "tıkanıklık", "kombi", "petek", "doğalgaz", "doğal gaz"]),
+    subcat("boya", "Boya", ["boya", "badana", "duvar kağıdı"]),
+  ],
+  magaza: [
+    subcat("giyim", "Giyim", ["giyim", "butik", "moda", "konfeksiyon", "ayakkabı", "elbise", "çanta"]),
+    subcat("elektronik", "Elektronik", ["elektronik", "telefon", "bilgisayar", "tablet", "beyaz eşya", "teknoloji", "televizyon"]),
+    subcat("market", "Market", ["market", "süpermarket", "bakkal", "şarküteri", "manav", "kasap", "gıda"]),
+    subcat("kirtasiye", "Kırtasiye", ["kırtasiye", "kitap", "kitabevi", "fotokopi", "ofis malzeme"]),
+    subcat("mobilya", "Mobilya", ["mobilya", "koltuk", "yatak", "baza", "ev tekstil", "dekorasyon"]),
+  ],
+  saglik: [
+    subcat("dis", "Diş", ["diş hekim", "diş klini", "diş polikli", "ağız ve diş", "dişçi", "dental", "ortodont", "implant"]),
+    subcat("goz", "Göz", ["göz merkez", "göz klini", "göz hastal", "göz doktor", "göz hekim", "göz sağlı", "oftalmoloji", "optik", "gözlük"]),
+    subcat("poliklinik", "Poliklinik", ["poliklini", "tıp merkez", "sağlık merkez", "dahiliye", "aile hekim"], ["diş poliklini", "diş sağlığı poliklini"]),
+    subcat("fizik-tedavi", "Fizik tedavi", ["fizik tedavi", "fizyoterap", "rehabilitasyon", "manuel terapi"]),
+    subcat("psikolog", "Psikolog", ["psikolo", "psikoterap", "psikiyatr", "pedagog", "aile danışman"]),
+    subcat("veteriner", "Veteriner", ["veteriner", "hayvan hastane", "evcil hayvan", "pet klini", "pet shop"]),
+  ],
+  dugun: [
+    subcat("dugun-salonu", "Düğün salonu", ["düğün salon", "nikah salon", "davet salon", "kır düğün", "balo salon"]),
+    subcat("organizasyon", "Organizasyon", ["organizasyon", "kına gece", "sünnet", "süsleme", "doğum günü", "parti"]),
+    subcat("gelinlik", "Gelinlik", ["gelinlik", "abiye", "damatlık", "nişanlık", "kınalık", "bindallı"]),
+    subcat("fotograf", "Fotoğraf", ["fotoğraf", "video", "stüdyo", "dış çekim", "drone", "klip"]),
+    subcat("kuafor", "Kuaför", ["kuaför", "gelin saç", "gelin başı", "makyaj", "güzellik salon", "berber"]),
+  ],
+  egitim: [
+    subcat("kurs", "Kurs", ["kurs", "özel ders", "atölye", "dershane", "robotik", "kodlama"], ["sürücü kurs", "ehliyet kurs"]),
+    subcat("dil-okulu", "Dil okulu", ["dil okul", "dil kurs", "yabancı dil", "ingilizce", "almanca", "ielts", "toefl", "yds"]),
+    subcat("etut", "Etüt", ["etüt", "etüd", "ödev", "lgs", "yks", "kpss", "birebir ders"]),
+    subcat("anaokulu", "Anaokulu", ["anaokul", "kreş", "ana sınıf", "anasınıf", "okul öncesi", "gündüz bakım", "montessori"]),
+    subcat("surucu-kursu", "Sürücü kursu", ["sürücü", "ehliyet", "direksiyon"]),
+  ],
+};
+
+/** Normalized words with a leading space ("Diş Kliniği" -> " dis klinigi"), so " kw" only matches at a word start. */
+function wordText(s: string): string {
+  return ` ${trNormalize(s).replace(/[^a-z0-9]+/g, " ").trim()}`;
+}
+
+/** Matcher of one sub-category chip; pass a business' category_label, name and description joined with spaces. */
+export function subcategoryMatcher(sub: VerticalSubcategory): (text: string) => boolean {
+  const keywords = sub.keywords.map(wordText);
+  const exclude = (sub.exclude ?? []).map(wordText);
+  return (text) => {
+    let hay = wordText(text);
+    for (const x of exclude) hay = hay.replaceAll(x, " ");
+    return keywords.some((k) => hay.includes(k));
+  };
 }

@@ -7,6 +7,7 @@ import { SITE_URL } from "@/config/site";
 export const PUBLIC_CACHE_TAGS = [
   "app-settings",
   "content:news",
+  "content:articles",
   "content:announcements",
   "businesses",
   "services",

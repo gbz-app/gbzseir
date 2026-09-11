@@ -6,6 +6,7 @@ import { routes } from "@/core/routes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JsonLd } from "@/components/seo/json-ld";
 import { VERTICAL_INFO, type Vertical } from "@/features/business/lib/verticals";
+import { listPublishedArticles } from "@/features/content/articles/queries";
 import { getNews } from "@/features/content/news/get-news";
 import { HomeHero } from "@/features/home/components/home-hero";
 import { HomeNews } from "@/features/home/components/home-news";
@@ -77,15 +78,19 @@ function AiCard() {
   );
 }
 
+/** Our own articles first (in-app pages), then the RSS headlines. */
 async function NewsSection() {
-  const items = await getNews()
-    .then((r) => r.items)
-    .catch(() => []);
-  if (!items.length) return null;
+  const [articles, items] = await Promise.all([
+    listPublishedArticles(10).catch(() => []),
+    getNews()
+      .then((r) => r.items)
+      .catch(() => []),
+  ]);
+  if (!articles.length && !items.length) return null;
   return (
     <section aria-labelledby="haberler">
       <SectionHeader id="haberler" title="Haberler" href={routes.content.news()} />
-      <HomeNews items={items.slice(0, 40)} />
+      <HomeNews articles={articles} items={items.slice(0, 40)} />
     </section>
   );
 }

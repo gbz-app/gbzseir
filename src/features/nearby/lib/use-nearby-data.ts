@@ -22,6 +22,7 @@ const FILTER_KIND: Record<Exclude<NearbyFilter, "nobetci" | "isletme">, PoiKind>
   cami: "mosque",
   durak: "bus_stop",
   taksi: "taxi",
+  atm: "atm",
   gezilecek: "place",
 };
 
@@ -51,9 +52,9 @@ function poiToItem(r: PoiRow): NearbyItem {
       lines: d.lines,
     };
   }
-  if (r.kind === "taxi") {
-    // No detail page: the card opens the stand in Google Maps.
-    return { ...base, kind: "taxi", href: `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}`, subtitle: hood(r.neighbourhood_name) };
+  if (r.kind === "taxi" || r.kind === "atm") {
+    // No detail page: the card opens the point in Google Maps.
+    return { ...base, kind: r.kind, href: `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}`, subtitle: hood(r.neighbourhood_name) };
   }
   if (r.kind === "place") {
     const d = parsePlaceDetails(r.details);

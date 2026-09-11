@@ -5,13 +5,13 @@
 import type { Json } from "@/lib/database.types";
 import type { ContactSubjectType } from "@/lib/db-contract";
 
-export type PoiKind = "pharmacy" | "mosque" | "bus_stop" | "place" | "taxi";
+export type PoiKind = "pharmacy" | "mosque" | "bus_stop" | "place" | "taxi" | "atm";
 
 /** Chip filters on /yakinimda (?tur=). */
-export type NearbyFilter = "nobetci" | "eczane" | "cami" | "durak" | "taksi" | "gezilecek" | "isletme";
+export type NearbyFilter = "nobetci" | "eczane" | "cami" | "durak" | "taksi" | "atm" | "gezilecek" | "isletme";
 
 /** Visual kind of a map pin / list icon. */
-export type MarkerKind = "duty" | "pharmacy" | "mosque" | "bus_stop" | "taxi" | "place" | "business";
+export type MarkerKind = "duty" | "pharmacy" | "mosque" | "bus_stop" | "taxi" | "atm" | "place" | "business";
 
 export type PlaceCategory = "tarihi" | "park" | "doga" | "muze" | "avm" | "diger";
 

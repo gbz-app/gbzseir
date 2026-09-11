@@ -27,7 +27,7 @@ export function FirmGallery({ photos, name, layout = "strip" }: { photos: Galler
       type="button"
       onClick={() => setIndex(i)}
       aria-label={`Fotoğraf ${i + 1} / ${count}: büyüt`}
-      className={cn("relative block w-full overflow-hidden rounded-2xl bg-muted ring-1 ring-foreground/[0.06] outline-none focus-visible:ring-3 focus-visible:ring-ring/50", className)}
+      className={cn("relative block w-full overflow-hidden rounded-2xl bg-muted outline-none focus-visible:ring-3 focus-visible:ring-ring/50", className)}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={p.url} alt={`${name} fotoğraf ${i + 1}`} loading="lazy" decoding="async" className="size-full object-cover transition-transform duration-300 hover:scale-[1.03]" />

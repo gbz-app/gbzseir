@@ -5,7 +5,7 @@ import { formatServicePrice } from "../lib/verticals";
 /** Public "Hizmetler ve fiyatlar" list of a service firm. Server-safe. */
 export function ServiceList({ services }: { services: BusinessService[] }) {
   return (
-    <ul className="divide-y rounded-3xl bg-card shadow-soft ring-1 ring-foreground/[0.05]">
+    <ul className="divide-y rounded-3xl bg-card">
       {services.map((s) => (
         <li key={s.id} className="flex gap-3 p-3.5">
           {s.photo_url ? (

@@ -13,6 +13,8 @@ export type VerticalCard = {
   photo_url: string | null;
   logo_url: string | null;
   category_label: string | null;
+  /** Description (capped), used by the sub-category chips. */
+  description: string | null;
   neighbourhood_name: string | null;
   lat: number | null;
   lng: number | null;
@@ -36,6 +38,7 @@ type Raw = {
   cover_url: string | null;
   logo_url: string | null;
   category_label: string | null;
+  description: string | null;
   lat: number | null;
   lng: number | null;
   rating_avg: number | string | null;
@@ -130,7 +133,7 @@ export const listVerticalBusinesses = cache(async (vertical: Vertical): Promise<
   const { data, error } = await createPublicClient()
     .from("businesses")
     .select(
-      "id,slug,name,cover_url,logo_url,category_label,lat,lng,rating_avg,rating_count,price_level,star_rating,amenities,vertical,kinds,working_hours,vacation_mode,neighbourhoods!businesses_neighbourhood_id_fkey(name),business_photos(url,sort),business_rooms(price_try,is_available)",
+      "id,slug,name,cover_url,logo_url,category_label,description,lat,lng,rating_avg,rating_count,price_level,star_rating,amenities,vertical,kinds,working_hours,vacation_mode,neighbourhoods!businesses_neighbourhood_id_fkey(name),business_photos(url,sort),business_rooms(price_try,is_available)",
     )
     .eq("status", "approved")
     .eq("vertical", vertical)
@@ -149,6 +152,7 @@ export const listVerticalBusinesses = cache(async (vertical: Vertical): Promise<
       photo_url: b.cover_url ?? photos[0]?.url ?? null,
       logo_url: b.logo_url,
       category_label: b.category_label,
+      description: b.description?.slice(0, 400) ?? null,
       neighbourhood_name: b.neighbourhoods?.name ?? null,
       lat: b.lat,
       lng: b.lng,

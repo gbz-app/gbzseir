@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, Loader2, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, Loader2, RotateCcw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -274,8 +274,15 @@ function WizardInner<T extends object>({
       <HideBottomNav />
       <header className="sticky top-0 z-40 border-b bg-background/95 pt-safe backdrop-blur-md">
         <div className="flex h-(--topbar-h) items-center gap-1 px-2">
-          <Button type="button" variant="ghost" size="icon" className="rounded-full" onClick={back} aria-label={index === 0 ? "Kapat" : "Geri"}>
-            {index === 0 ? <X className="size-5" /> : <ChevronLeft className="size-6" />}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="rounded-full bg-foreground/[0.06] backdrop-blur-md hover:bg-foreground/10"
+            onClick={back}
+            aria-label={index === 0 ? "Kapat" : "Geri"}
+          >
+            {index === 0 ? <X className="size-5" strokeWidth={2.2} /> : <ArrowLeft className="size-5" strokeWidth={2.2} />}
           </Button>
           <div className="min-w-0 flex-1">
             {title ? <p className="truncate text-[15px] leading-tight font-bold">{title}</p> : null}

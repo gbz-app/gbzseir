@@ -76,7 +76,7 @@ function PromoCard({ promo, onDismiss }: { promo: Promo; onDismiss?: () => void 
   const Icon = promo.icon;
   return (
     <section
-      className="relative overflow-hidden rounded-3xl p-6 text-white shadow-card"
+      className="relative flex min-h-[12.125rem] flex-col justify-end overflow-hidden rounded-3xl p-6 text-white shadow-card"
       style={{
         backgroundImage:
           "linear-gradient(135deg, color-mix(in oklch, var(--primary) 38%, black) 0%, color-mix(in oklch, var(--primary) 80%, black) 58%, var(--primary) 100%)",
@@ -117,26 +117,30 @@ function PromoCard({ promo, onDismiss }: { promo: Promo; onDismiss?: () => void 
 export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean }) {
   const router = useRouter();
   const { user, loading, profile, signOut } = useAuth();
-  const { businesses, approved } = useMyBusinesses();
+  const { businesses, approved, loading: businessesLoading } = useMyBusinesses();
   const { count } = useUnreadNotifications();
   const [promoDismissed, setPromoDismissed] = React.useState(() => readString(PROMO_DISMISSED_KEY) === "1");
 
+  // One row: page title on the left, help + settings as plain white circles on the right.
   const header = (
-    <div className="flex h-14 items-center justify-end gap-1">
-      <Link
-        href={routes.content.help()}
-        aria-label="Yardım"
-        className="flex size-11 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-      >
-        <CircleHelp className="size-6" strokeWidth={1.6} aria-hidden />
-      </Link>
-      <Link
-        href={routes.profile.settings()}
-        aria-label="Ayarlar"
-        className="flex size-11 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-      >
-        <Settings className="size-6" strokeWidth={1.6} aria-hidden />
-      </Link>
+    <div className="mt-[5px] flex h-(--topbar-h) items-center justify-between gap-2">
+      <h1 className="text-[1.75rem] font-bold tracking-tight">Profil</h1>
+      <div className="flex items-center gap-2">
+        <Link
+          href={routes.content.help()}
+          aria-label="Yardım"
+          className="flex size-11 items-center justify-center rounded-full bg-card text-foreground transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <CircleHelp className="size-5" strokeWidth={1.75} aria-hidden />
+        </Link>
+        <Link
+          href={routes.profile.settings()}
+          aria-label="Ayarlar"
+          className="flex size-11 items-center justify-center rounded-full bg-card text-foreground transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <Settings className="size-5" strokeWidth={1.75} aria-hidden />
+        </Link>
+      </div>
     </div>
   );
 
@@ -144,7 +148,6 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
     return (
       <div className="flex flex-col px-4 pt-safe pb-6">
         {header}
-        <Skeleton className="h-8 w-28 rounded-lg" />
         <div className="mt-5 flex items-center gap-4">
           <Skeleton className="size-16 rounded-full" />
           <div className="flex-1">
@@ -213,7 +216,6 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
   return (
     <div className="flex flex-col px-4 pt-safe pb-6">
       {header}
-      <h1 className="text-[1.75rem] font-semibold tracking-tight">Profil</h1>
 
       <Link
         href={user ? routes.profile.edit() : routes.auth.login(routes.profile.root())}
@@ -238,7 +240,10 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
         </Link>
       ) : null}
 
-      {promo ? (
+      {user && businessesLoading ? (
+        // Keeps the space while the businesses load, so the card does not jump from "İşletmen mi var?" to the panel.
+        <Skeleton className="mt-5 h-[12.125rem] w-full rounded-3xl" />
+      ) : promo ? (
         <div className="mt-5">
           <PromoCard promo={promo} onDismiss={promo.dismissible ? dismissPromo : undefined} />
         </div>

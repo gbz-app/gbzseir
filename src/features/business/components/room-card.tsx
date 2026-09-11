@@ -1,14 +1,17 @@
-import { BedDouble, Ruler, Users } from "lucide-react";
+import { BedDouble, ChevronRight, Ruler, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/core/format";
 import type { Room } from "../lib/vertical-queries";
 import { roomAmenityList } from "../lib/verticals";
 
-/** Hotel room card: swipeable photos, capacity / bed / size, features and nightly price. Server-safe. */
-export function RoomCard({ room, name }: { room: Room; name: string }) {
+/**
+ * Hotel room card: swipeable photos, capacity / bed / size, features and nightly price. Server-safe.
+ * `interactive` adds a "Detayları gör" hint (the parent opens the room sheet on tap).
+ */
+export function RoomCard({ room, name, interactive }: { room: Room; name: string; interactive?: boolean }) {
   const features = roomAmenityList(room.amenities);
   return (
-    <article className={cn("overflow-hidden rounded-3xl bg-card shadow-soft ring-1 ring-foreground/[0.05]", !room.is_available && "opacity-70")}>
+    <article className={cn("overflow-hidden rounded-3xl bg-card", !room.is_available && "opacity-70")}>
       {room.photos.length ? (
         <div className="relative">
           <div className="no-scrollbar flex aspect-[16/9] snap-x snap-mandatory overflow-x-auto overscroll-x-contain">
@@ -20,7 +23,7 @@ export function RoomCard({ room, name }: { room: Room; name: string }) {
           {room.photos.length > 1 ? (
             <span className="absolute right-3 bottom-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold text-white">{room.photos.length} fotoğraf</span>
           ) : null}
-          {!room.is_available ? <span className="absolute top-3 left-3 rounded-full bg-card px-3 py-1 text-xs font-semibold shadow-soft">Şu an müsait değil</span> : null}
+          {!room.is_available ? <span className="absolute top-3 left-3 rounded-full bg-card px-3 py-1 text-xs font-semibold">Şu an müsait değil</span> : null}
         </div>
       ) : null}
       <div className="p-4">
@@ -48,7 +51,7 @@ export function RoomCard({ room, name }: { room: Room; name: string }) {
             </span>
           ) : null}
         </p>
-        {room.description ? <p className="mt-2 text-sm leading-relaxed">{room.description}</p> : null}
+        {room.description ? <p className={cn("mt-2 text-sm leading-relaxed", interactive && "line-clamp-2")}>{room.description}</p> : null}
         {features.length ? (
           <ul className="mt-3 flex flex-wrap gap-1.5">
             {features.map((f) => (
@@ -58,6 +61,11 @@ export function RoomCard({ room, name }: { room: Room; name: string }) {
               </li>
             ))}
           </ul>
+        ) : null}
+        {interactive ? (
+          <p className="mt-3 inline-flex items-center gap-0.5 text-sm font-semibold text-primary">
+            Detayları gör <ChevronRight className="size-4" aria-hidden />
+          </p>
         ) : null}
       </div>
     </article>

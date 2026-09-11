@@ -55,7 +55,7 @@ export function isRouteActive(pathname: string, base: string): boolean {
 const enc = (v: string | number) => encodeURIComponent(String(v));
 
 export type ListingsTab = "ikinci-el" | "is-ilanlari";
-export type NearbyKind = "eczane" | "nobetci" | "cami" | "durak" | "taksi" | "gezilecek";
+export type NearbyKind = "eczane" | "nobetci" | "cami" | "durak" | "taksi" | "atm" | "gezilecek";
 
 export const routes = {
   home: () => "/",
@@ -155,6 +155,8 @@ export const routes = {
 
   content: {
     news: () => "/haberler",
+    /** Our own article (news_articles.slug) */
+    newsArticle: (slug: string) => `/haberler/${enc(slug)}`,
     announcements: () => "/duyurular",
     /** Acil durum numaraları */
     emergency: () => "/acil-durum",
@@ -187,6 +189,7 @@ export const routes = {
     requests: () => "/admin/talepler",
     users: () => "/admin/kullanicilar",
     news: () => "/admin/haberler",
+    newsArticles: () => "/admin/haber-yazilari",
     announcements: () => "/admin/duyurular",
     places: () => "/admin/yerler",
     data: () => "/admin/veri",

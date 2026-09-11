@@ -14,9 +14,9 @@ function matchScore(pathname: string, tab: MainTab): number {
 }
 
 /**
- * Floating dark tab bar (Anasayfa, Keşfet, Arama, Bildirim, Profil), 20 px above the bottom edge: icon above label
- * for every tab, the active one white and bold, the others muted. Always visible while scrolling (hidden only on
- * full-screen flows); respects the safe area. Total height (bar + bottom gap) matches --bottomnav-h.
+ * Solid dark tab bar attached to the bottom edge, full width (Anasayfa, Keşfet, Arama, Bildirim, Profil): icon above
+ * label, the active tab white and bold. Always visible while scrolling (hidden only on full-screen flows); the safe
+ * area is padded inside the bar. Bar height matches --bottomnav-h.
  */
 export function BottomNav() {
   const pathname = usePathname();
@@ -32,11 +32,8 @@ export function BottomNav() {
   return (
     <>
       <div aria-hidden className="h-[calc(var(--bottomnav-h)+env(safe-area-inset-bottom,0px))] shrink-0" />
-      <nav
-        aria-label="Ana menü"
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-2xl px-3 pb-[calc(env(safe-area-inset-bottom,0px)+20px)]"
-      >
-        <ul className="pointer-events-auto grid grid-cols-5 rounded-[1.75rem] bg-neutral-950 p-1 shadow-float ring-1 ring-white/10 dark:bg-neutral-900">
+      <nav aria-label="Ana menü" className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-2xl">
+        <ul className="grid grid-cols-5 rounded-t-3xl bg-neutral-950 px-1 pt-1 pb-[calc(env(safe-area-inset-bottom,0px)+0.25rem)] dark:bg-neutral-900">
           {MAIN_TABS.map((tab, i) => {
             const active = i === activeIndex;
             const Icon = tab.icon;
@@ -48,7 +45,7 @@ export function BottomNav() {
                   aria-current={active ? "page" : undefined}
                   aria-label={showDot ? `${tab.label}, ${count} okunmamış` : undefined}
                   className={cn(
-                    "flex flex-col items-center gap-1 rounded-3xl px-1 py-1.5 outline-none transition-colors duration-200 focus-visible:ring-3 focus-visible:ring-white/40",
+                    "flex flex-col items-center gap-1 rounded-2xl px-1 py-1.5 outline-none transition-colors duration-200 focus-visible:ring-3 focus-visible:ring-white/40",
                     active ? "text-white" : "text-white/55 hover:text-white/85",
                   )}
                 >
