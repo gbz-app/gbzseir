@@ -13,6 +13,8 @@ import { useAdminAction } from "./use-admin-action";
 
 export type SettingsValues = {
   businessApplications: boolean;
+  /** app_settings.business_max_per_owner (0-20); admins grant extra slots per user. */
+  businessMaxPerOwner: number;
   maintenanceBanner: string;
   supportPhone: string;
   supportEmail: string;
@@ -27,6 +29,10 @@ export type SettingsValues = {
   auditRetentionDays: number;
   /** app_settings.duty_data_mode. */
   dutyDataMode: "demo" | "off" | "live";
+  /** app_settings.popular_searches: one term per line (curated "Popüler aramalar" of the search page). */
+  popularSearches: string;
+  /** app_settings.popular_searches_hidden: words never shown from the logged searches, one per line. */
+  popularSearchesHidden: string;
 };
 
 const DUTY_MODES: Array<{ value: SettingsValues["dutyDataMode"]; label: string }> = [
@@ -51,7 +57,7 @@ function Row({ id, label, help, children }: { id?: string; label: string; help?:
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl bg-card px-4 shadow-soft ring-1 ring-foreground/[0.06]">
+    <section className="rounded-2xl bg-card px-4">
       <h2 className="border-b py-3 font-heading text-base font-bold">{title}</h2>
       {children}
     </section>
@@ -79,6 +85,13 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
             <Switch id="st-apps" checked={v.businessApplications} onCheckedChange={(c) => set("businessApplications", c)} />
             <span className="text-sm">{v.businessApplications ? "Açık" : "Kapalı"}</span>
           </div>
+        </Row>
+        <Row
+          id="st-bizmax"
+          label="Hesap başına işletme sayısı"
+          help="Bir hesap en fazla bu kadar işletme açabilir; sınırdaki kullanıcı yeni işletme için destek ekibine yazar. Ek hakkı Kullanıcılar > kullanıcı sayfasından verirsin. Açılmış işletmeler etkilenmez."
+        >
+          <Input id="st-bizmax" type="number" min={0} max={20} value={v.businessMaxPerOwner} onChange={(e) => set("businessMaxPerOwner", Number(e.target.value))} />
         </Row>
         <Row id="st-banner" label="Duyuru bandı" help="Boş bırakırsan görünmez. Doluysa uygulamanın üstünde tüm kullanıcılara gösterilir (bakım, önemli duyuru).">
           <Textarea id="st-banner" rows={2} maxLength={200} value={v.maintenanceBanner} onChange={(e) => set("maintenanceBanner", e.target.value)} placeholder="ör. Bu gece 02:00-03:00 arası bakım çalışması yapılacak." />
@@ -144,6 +157,37 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
         </Row>
       </Section>
 
+      <Section title="Arama">
+        <Row
+          id="st-popular"
+          label="Popüler aramalar"
+          help="Arama sayfasında 'Popüler aramalar' altında görünür. Her satıra bir arama yaz (en fazla 12). Aynı şeyi yeterince kişi aradığında en çok arananlar öne geçer, bu liste arkasından tamamlar."
+        >
+          <Textarea
+            id="st-popular"
+            rows={6}
+            maxLength={1000}
+            value={v.popularSearches}
+            onChange={(e) => set("popularSearches", e.target.value)}
+            placeholder={"ör. Nöbetçi eczane\nDöner\nKuaför"}
+          />
+        </Row>
+        <Row
+          id="st-popular-hidden"
+          label="Gizlenen aramalar"
+          help="Kullanıcıların aramalarından gelen listede bu kelimeleri içeren aramalar hiç görünmez. Her satıra bir kelime ya da ifade yaz (en fazla 100)."
+        >
+          <Textarea
+            id="st-popular-hidden"
+            rows={3}
+            maxLength={2000}
+            value={v.popularSearchesHidden}
+            onChange={(e) => set("popularSearchesHidden", e.target.value)}
+            placeholder="ör. uygunsuz bir kelime"
+          />
+        </Row>
+      </Section>
+
       <Section title="Veri ve gizlilik">
         <Row id="st-ret" label="Analitik saklama süresi (gün)" help="Sayfa görüntüleme ve oturum kayıtları bu süreden sonra her gece silinir (KVKK).">
           <Input id="st-ret" type="number" min={30} max={730} value={v.analyticsRetentionDays} onChange={(e) => set("analyticsRetentionDays", Number(e.target.value))} />
@@ -154,7 +198,7 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
       </Section>
 
       <div className="sticky bottom-3 z-10 flex justify-end">
-        <Button type="submit" size="lg" disabled={pending || !dirty} className="shadow-float">
+        <Button type="submit" size="lg" disabled={pending || !dirty}>
           {pending ? <Loader2 className="animate-spin" aria-hidden /> : <Save aria-hidden />}
           {dirty ? "Değişiklikleri kaydet" : "Kaydedildi"}
         </Button>

@@ -2,11 +2,10 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { AlignLeft, Banknote, Eye, FileText, Images, LayoutGrid, MapPin, PenLine, Sparkles } from "lucide-react";
 import { routes } from "@/core/routes";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { ImageUploader } from "@/components/shared/image-uploader";
 import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
 import { Wizard, type WizardStep } from "@/components/wizard/wizard";
 import { useAuth } from "@/lib/auth/auth-provider";
@@ -26,8 +25,12 @@ import type { AttributeField, AttributeValue, ListingCategory } from "../types";
 import { categoryPath, describeAttributes, type ClassifiedViewModel } from "../view-models";
 import { digitsInput, type ClassifiedDraft } from "../wizard-drafts";
 import { ChoiceChips } from "./choice-chips";
+import { ClassifiedMediaStep } from "./classified-media-step";
 import { ClassifiedDetailView } from "./detail-views";
-import { CategoryPicker, Field, TextRiskNotice } from "./wizard-bits";
+import { CONDITION_ICONS, attributeIcon, withOptionIcons } from "./listing-icons";
+import { CategoryPicker, Field, SwitchRow, TextRiskNotice } from "./wizard-bits";
+
+const CONDITION_OPTIONS = withOptionIcons(CONDITIONS, CONDITION_ICONS);
 
 const EMPTY: ClassifiedDraft = {
   categoryId: null,
@@ -39,6 +42,7 @@ const EMPTY: ClassifiedDraft = {
   description: "",
   neighbourhoodId: null,
   neighbourhoodName: null,
+  video: null,
 };
 
 /** Listing caps (DB error hints) -> Turkish text. */
@@ -68,17 +72,13 @@ function displayName(fullName: string | null | undefined): string {
 function AttributeInput({ field, value, onChange }: { field: AttributeField; value: AttributeValue | undefined; onChange: (v: AttributeValue | undefined) => void }) {
   const id = `attr-${field.key}`;
   const label = field.required ? field.label : `${field.label} (isteğe bağlı)`;
+  const icon = attributeIcon(field.key, field.type);
   if (field.type === "boolean") {
-    return (
-      <label htmlFor={id} className="flex min-h-12 items-center justify-between gap-3 rounded-xl border bg-card px-4">
-        <span className="text-[15px] font-medium">{field.label}</span>
-        <Switch id={id} checked={value === true} onCheckedChange={(c) => onChange(c ? true : undefined)} />
-      </label>
-    );
+    return <SwitchRow id={id} label={field.label} icon={icon} checked={value === true} onCheckedChange={(c) => onChange(c ? true : undefined)} />;
   }
   if (field.type === "select") {
     return (
-      <Field label={label}>
+      <Field label={label} icon={icon}>
         <ChoiceChips
           options={(field.options ?? []).map((o) => ({ value: o.value, label: o.label }))}
           value={typeof value === "string" ? value : null}
@@ -91,7 +91,7 @@ function AttributeInput({ field, value, onChange }: { field: AttributeField; val
     );
   }
   return (
-    <Field id={id} label={label}>
+    <Field id={id} label={label} icon={icon}>
       <Input
         id={id}
         inputMode={field.type === "number" ? "decimal" : undefined}
@@ -143,6 +143,7 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
       postedAt: new Date().toISOString(),
       listingNo: null,
       images: d.images.map((i) => ({ url: i.url, thumbUrl: i.thumbUrl })),
+      video: d.video ?? null,
       seller: { displayName: displayName(profile?.full_name), memberSince: null },
       business: null,
       state: "live",
@@ -153,6 +154,7 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
     {
       id: "kategori",
       title: "Ne satıyorsun?",
+      icon: LayoutGrid,
       help: BANNED_CATEGORIES_TEXT,
       validate: (d) => (d.categoryId ? null : "Bir kategori seç."),
       hideFooter: (d) => !d.categoryId,
@@ -170,21 +172,24 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
     {
       id: "fotograflar",
       title: "Fotoğraf ekle",
+      icon: Images,
       help: `En az 1, en fazla ${MAX_LISTING_PHOTOS} fotoğraf. İlk fotoğraf kapak olur; sürükleyerek sıralayabilirsin.`,
-      validate: (d) => (uploading ? "Fotoğraflar yükleniyor, biraz bekle." : d.images.length ? null : "En az bir fotoğraf ekle."),
+      validate: (d) => (uploading ? "Yükleme sürüyor, biraz bekle." : d.images.length ? null : "En az bir fotoğraf ekle."),
       render: (ctx) => (
-        <ImageUploader
-          value={ctx.data.images}
-          onChange={(images) => ctx.setData({ images })}
-          max={MAX_LISTING_PHOTOS}
-          folder="listings"
-          onUploadingChange={setUploading}
+        <ClassifiedMediaStep
+          images={ctx.data.images}
+          onImagesChange={(images) => ctx.setData({ images })}
+          video={ctx.data.video ?? null}
+          onVideoChange={(video) => ctx.setData({ video })}
+          persistedVideoUrl={editId ? (initial?.video?.url ?? null) : null}
+          onBusyChange={setUploading}
         />
       ),
     },
     {
       id: "bilgiler",
       title: "İlan bilgileri",
+      icon: FileText,
       help: "Alıcıların merak edeceği her şeyi yaz. Telefon numaranı yazmana gerek yok.",
       validate: (d) => {
         const title = d.title.trim();
@@ -203,10 +208,10 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
         const schema = schemaFor(categories, d.categoryId);
         return (
           <div className="flex flex-col gap-5">
-            <Field id="ilan-baslik" label="Başlık" hint={`${d.title.length}/${TITLE_MAX}`}>
+            <Field id="ilan-baslik" label="Başlık" icon={PenLine} hint={`${d.title.length}/${TITLE_MAX}`}>
               <Input id="ilan-baslik" value={d.title} maxLength={TITLE_MAX} placeholder="Örn. Az kullanılmış çocuk bisikleti" onChange={(e) => ctx.setData({ title: e.target.value })} />
             </Field>
-            <Field id="ilan-fiyat" label="Fiyat">
+            <Field id="ilan-fiyat" label="Fiyat" icon={Banknote}>
               <div className="relative">
                 <Input
                   id="ilan-fiyat"
@@ -219,8 +224,8 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
                 <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm font-semibold text-muted-foreground">TL</span>
               </div>
             </Field>
-            <Field label="Durumu">
-              <ChoiceChips options={CONDITIONS} value={d.condition} onChange={(v) => ctx.setData({ condition: v })} ariaLabel="Ürünün durumu" size="sm" />
+            <Field label="Durumu" icon={Sparkles}>
+              <ChoiceChips options={CONDITION_OPTIONS} value={d.condition} onChange={(v) => ctx.setData({ condition: v })} ariaLabel="Ürünün durumu" size="sm" />
             </Field>
             {schema.map((f) => (
               <AttributeInput
@@ -237,7 +242,7 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
                 }
               />
             ))}
-            <Field id="ilan-aciklama" label="Açıklama" hint={`${d.description.length}/${DESCRIPTION_MAX}`}>
+            <Field id="ilan-aciklama" label="Açıklama" icon={AlignLeft} hint={`${d.description.length}/${DESCRIPTION_MAX}`}>
               <Textarea
                 id="ilan-aciklama"
                 value={d.description}
@@ -255,6 +260,7 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
     {
       id: "konum",
       title: "İlan nerede?",
+      icon: MapPin,
       help: "İlanda sadece mahalle görünür; açık adresin paylaşılmaz.",
       validate: (d) => (d.neighbourhoodId ? null : "Mahalle seç."),
       render: (ctx) => (
@@ -269,6 +275,7 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
     {
       id: "onizleme",
       title: "Önizleme",
+      icon: Eye,
       help: "İlanın böyle görünecek. Her şey doğruysa yayınla.",
       render: (ctx) => (
         <div className="-mx-4 overflow-hidden rounded-3xl">
@@ -321,6 +328,17 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
         p_media: d.images.map((img) => ({ url: img.url, thumb_url: img.thumbUrl || null })),
       });
       if (error) return `İlan kaydedildi ama fotoğraflar ${editId ? "güncellenemedi" : "eklenemedi"}: ${error.message}`;
+    }
+    // Video (set_listing_video): only when it changed; the replaced file is queued for deletion by the DB.
+    const video = d.video ?? null;
+    if ((video?.url ?? null) !== (editId ? (initial?.video?.url ?? null) : null)) {
+      const { error } = await supabase.rpc("set_listing_video", {
+        p_listing_id: id,
+        p_video: video
+          ? { url: video.url, poster_url: video.posterUrl, duration_s: video.durationS, width: video.width ?? null, height: video.height ?? null }
+          : null,
+      });
+      if (error) return `İlan kaydedildi ama video ${video ? "eklenemedi" : "kaldırılamadı"}: ${error.message}`;
     }
     router.push(routes.listings.postDone({ id, tur: "ikinci-el", durum: status ?? undefined }));
   };

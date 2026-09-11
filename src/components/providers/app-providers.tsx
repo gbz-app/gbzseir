@@ -17,7 +17,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <TooltipProvider delayDuration={300}>
           {children}
-          <Toaster position="top-center" closeButton offset={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }} />
+          {/* Look, position and durations live in ui/sonner. Phones dismiss by swipe; the desktop admin keeps an X. */}
+          <Toaster closeButton={IS_ADMIN_SITE} />
           {IS_ADMIN_SITE ? null : <ServiceWorkerRegistrar />}
           <NavigationTracker />
           {IS_ADMIN_SITE ? null : <AnalyticsTracker />}

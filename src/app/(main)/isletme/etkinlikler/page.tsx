@@ -10,7 +10,7 @@ import { getOwnerEvents } from "@/features/events/owner-queries";
 
 export const metadata: Metadata = { title: "Etkinliklerim", robots: { index: false } };
 
-/** H7 - İşletmenin etkinlikleri (her tür işletme). */
+/** H7 - İşletmenin etkinlikleri (her tür işletme). Ekleme ve düzenleme ortak etkinlik sihirbazında. */
 export default async function OwnerEventsPage() {
   await requireProfile(routes.business.events());
   const b = await getOwnerBusiness();
@@ -26,6 +26,7 @@ export default async function OwnerEventsPage() {
           business={{ id: b.id, name: b.name, address: b.address, phone: b.phone, lat: b.lat, lng: b.lng, neighbourhoodId: b.neighbourhood_id }}
           initial={events}
           categories={vocab.eventCategories}
+          wizardCreateHref={routes.events.create({ isletme: b.id })}
         />
       </div>
     </>

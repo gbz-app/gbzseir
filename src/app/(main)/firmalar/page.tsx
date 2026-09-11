@@ -50,6 +50,7 @@ function buildDirectory(businesses: DirectoryBusiness[], categories: ServiceCate
       rating_count: b.rating_count,
       verification_level: b.verification_level,
       vacation_mode: b.vacation_mode,
+      vacation_until: b.vacation_until,
       neighbourhood_name: b.neighbourhood_name,
       is_demo: b.is_demo,
       lat: b.lat,

@@ -21,7 +21,11 @@ const WHAT_IS_DELETED = [
   "Favorilerin ve bildirimlerin silinir.",
 ];
 
-/** G9 - Hesabı sil: explanation -> SMS code to the current phone -> account deleted, then its files (server action). */
+/**
+ * G9 - Hesabı sil: explanation -> SMS code to the current phone -> account deleted, then its files (server action).
+ * The code is verified immediately before the delete call: the DB only accepts a session whose SMS code was verified in
+ * the last 10 minutes. If that check fails, the user is sent back here with a clear message to request a new code.
+ */
 export function AccountDeleteFlow() {
   const router = useRouter();
   const { user, signOut } = useAuth();
@@ -67,11 +71,13 @@ export function AccountDeleteFlow() {
             const { error: verifyError, userId } = await verifyLoginOtp(phone, code);
             if (verifyError) return verifyError;
             if (!userId && !user?.id) return "Oturum doğrulanamadı. Lütfen tekrar dene.";
+            // Delete right away, while the freshly verified code still counts.
             setStage("deleting");
             const res = await deleteMyAccount().catch(() => null);
             if (!res?.ok) {
+              // The used code cannot be reused: back to the first step, where a new code can be requested.
               setStage("info");
-              setError(res?.message ?? "Hesap silinemedi. Lütfen tekrar dene.");
+              setError(res?.message ?? "Hesabın silinemedi. Lütfen tekrar dene.");
               return;
             }
             await signOut();
@@ -110,13 +116,14 @@ export function AccountDeleteFlow() {
         <span className="text-[15px] leading-snug">Okudum, hesabımın ve verilerimin silinmesini istiyorum.</span>
       </label>
       {error ? (
-        <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
-        </p>
+        <div role="alert" className="flex gap-2.5 rounded-2xl bg-destructive/10 p-3.5 text-sm leading-relaxed text-destructive">
+          <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <p>{error}</p>
+        </div>
       ) : null}
       <Button variant="destructive" size="lg" disabled={!agreed || !phone || sending} onClick={sendCode}>
         {sending ? <Loader2 className="animate-spin" /> : <Trash2 />}
-        Doğrulama kodu gönder
+        {error ? "Yeni kod gönder" : "Doğrulama kodu gönder"}
       </Button>
       <p className="text-center text-xs text-muted-foreground">Güvenliğin için silme işlemini telefonuna gelen kodla onaylaman gerekiyor.</p>
     </div>

@@ -9,7 +9,7 @@ import type { ResolvedSearch } from "./filters";
 import { toCardData, type ListingCardData } from "./types";
 
 export const CARD_SELECT =
-  "id,type,title,price_try,published_at,created_at,business_id,attributes,job_work_type,job_salary_min,job_salary_max,job_salary_hidden,job_benefits,job_location_label,job_experience,is_demo,neighbourhoods(name),listing_categories(name,icon),listing_media(url,thumb_url,sort),business:businesses(name,slug,logo_url,verification_level)";
+  "id,type,title,price_try,published_at,created_at,business_id,attributes,job_work_type,job_salary_min,job_salary_max,job_salary_hidden,job_benefits,job_location_label,job_experience,is_demo,neighbourhoods(name),listing_categories(name,icon),listing_media(url,thumb_url,sort),listing_videos(listing_id),business:businesses(name,slug,logo_url,verification_level)";
 
 export type ListingsPage = { items: ListingCardData[]; hasMore: boolean; total: number | null; error: string | null };
 

@@ -37,7 +37,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip static assets, the service worker, manifest and metadata files.
-    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|robots.txt|sitemap.xml|icons/|onboarding/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|woff2?)$).*)",
+    // Skip Next's static output, the real static folders (public/icons, public/images), the service worker, manifest and
+    // metadata files, and ROOT-level files with a static extension only. A nested path such as /firma/x.txt still runs
+    // proxy(), so it cannot skip the admin-site allowlist.
+    "/((?!_next/static|_next/image|icons/|images/|(?:favicon\\.ico|sw\\.js|manifest\\.webmanifest|robots\\.txt|sitemap\\.xml)$|[^/]+\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|woff2?)$).*)",
   ],
 };

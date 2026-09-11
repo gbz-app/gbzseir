@@ -21,6 +21,8 @@ import {
   StatusBadge,
 } from "@/features/admin/components/admin-ui";
 import { ListingActions } from "@/features/admin/components/listing-actions";
+import { ListingVideoActions } from "@/features/admin/components/listing-video-actions";
+import { formatVideoDuration } from "@/lib/media/kinds";
 import { LISTING_FLAGS, LISTING_STATUS, LISTING_TYPE } from "@/features/admin/lib/labels";
 import { oneOf, pageParam, pageRange, searchTerm } from "@/features/admin/lib/params";
 
@@ -44,7 +46,7 @@ const SELECT =
   "id,type,title,description,price_try,status,flags,rejection_reason,created_at,published_at,expires_at,attributes,is_demo," +
   "job_salary_min,job_salary_max,job_salary_hidden,job_location_label," +
   "owner:profiles!listings_owner_id_fkey(id,full_name,phone,trusted_publisher,status)," +
-  "business:businesses(id,name,slug,status),listing_categories(name,slug,is_banned),neighbourhoods(name),listing_media(url,thumb_url,sort)";
+  "business:businesses(id,name,slug,status),listing_categories(name,slug,is_banned),neighbourhoods(name),listing_media(url,thumb_url,sort),listing_videos(url,poster_url,duration_s,size_bytes)";
 
 type ListingRow = {
   id: string;
@@ -69,7 +71,10 @@ type ListingRow = {
   listing_categories: { name: string; slug: string; is_banned: boolean } | null;
   neighbourhoods: { name: string } | null;
   listing_media: Array<{ url: string; thumb_url: string | null; sort: number }>;
+  listing_videos: VideoRow | VideoRow[] | null;
 };
+
+type VideoRow = { url: string; poster_url: string | null; duration_s: number; size_bytes: number };
 
 function attributeText(v: unknown): string {
   if (v === true) return "Evet";
@@ -169,6 +174,7 @@ export default async function AdminListingsPage({ searchParams }: PageProps<"/ad
             const isPublic = l.status === "active" || l.status === "sold" || l.status === "filled";
             const publicHref = isPublic ? publicUrl(l.type === "job" ? routes.listings.job(l.id) : routes.listings.classified(l.id)) : null;
             const media = [...(l.listing_media ?? [])].sort((a, b) => a.sort - b.sort);
+            const video = Array.isArray(l.listing_videos) ? (l.listing_videos[0] ?? null) : l.listing_videos;
             const attrs = l.attributes && typeof l.attributes === "object" && !Array.isArray(l.attributes) ? Object.entries(l.attributes as Record<string, unknown>) : [];
             return (
               <AdminCard key={l.id} as="article">
@@ -217,6 +223,27 @@ export default async function AdminListingsPage({ searchParams }: PageProps<"/ad
                 ) : (
                   <p className="mt-3 text-sm text-muted-foreground">Fotoğraf eklenmemiş.</p>
                 )}
+
+                {video ? (
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
+                    <video
+                      src={video.url}
+                      poster={video.poster_url ?? undefined}
+                      controls
+                      playsInline
+                      preload="none"
+                      aria-label={`${l.title}: video`}
+                      className="aspect-video w-full max-w-sm rounded-xl bg-black"
+                    />
+                    <div className="flex flex-col items-start gap-1">
+                      <p className="text-sm text-muted-foreground tabular-nums">
+                        Video · {formatVideoDuration(Number(video.duration_s))} ·{" "}
+                        {(Number(video.size_bytes) / (1024 * 1024)).toLocaleString("tr-TR", { maximumFractionDigits: 1 })} MB
+                      </p>
+                      <ListingVideoActions listingId={l.id} title={l.title} />
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                   <InfoList>
@@ -282,7 +309,7 @@ export default async function AdminListingsPage({ searchParams }: PageProps<"/ad
                   </details>
                 ) : null}
 
-                <div className="mt-4 border-t pt-4">
+                <div className="mt-4">
                   <ListingActions listingId={l.id} status={l.status} title={l.title} publicHref={publicHref} />
                 </div>
               </AdminCard>

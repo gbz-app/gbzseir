@@ -12,7 +12,7 @@ import { BUSINESS_CACHE_TAG } from "./lib/cache-tags";
  * delete_my_business_review. Expires the cached public firm page so the change shows right away.
  */
 
-export type ReviewFailReason = "login_required" | "restricted" | "invalid_rating" | "not_found" | "own_business" | "invalid" | "error";
+export type ReviewFailReason = "login_required" | "restricted" | "invalid_rating" | "not_found" | "own_business" | "invalid" | "rate_limited" | "error";
 
 export type ReviewActionResult = { ok: true; message: string } | { ok: false; reason: ReviewFailReason; message: string };
 
@@ -23,6 +23,7 @@ const REASON_MESSAGES: Record<ReviewFailReason, string> = {
   not_found: "Bu işletme bulunamadı ya da artık yayında değil.",
   own_business: "Kendi işletmene yorum yazamazsın.",
   invalid: "Bilgileri kontrol edip tekrar dene.",
+  rate_limited: "Kısa sürede çok fazla yorum yaptın. Biraz sonra tekrar dene.",
   error: "İşlem yapılamadı, lütfen tekrar dene.",
 };
 
@@ -64,7 +65,12 @@ export async function submitBusinessReview(input: z.input<typeof submitSchema>):
   const { businessId, rating, comment } = parsed.data;
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("submit_business_review", { p_business_id: businessId, p_rating: rating, p_comment: comment || undefined });
-  if (error) return isLoginError(error) ? fail("login_required") : fail("error", "Yorumun kaydedilemedi, lütfen tekrar dene.");
+  if (error) {
+    if (isLoginError(error)) return fail("login_required");
+    // The 20-reviews-per-24h cap (2026091369_security_hardening.sql) raises with hint 'rate_limited'.
+    if (error.hint === "rate_limited") return fail("rate_limited");
+    return fail("error", "Yorumun kaydedilemedi, lütfen tekrar dene.");
+  }
 
   const res = data as { ok?: boolean; reason?: string } | null;
   if (!res?.ok) {

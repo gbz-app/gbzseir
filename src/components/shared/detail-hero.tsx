@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { canGoBack } from "@/lib/navigation-history";
 import type { FavoriteTargetType } from "@/lib/db-contract";
 import { HideBottomNav } from "@/components/layout/nav-visibility";
+import { BottomDock } from "./bottom-dock";
 import { FavoriteButton } from "./favorite-button";
 import { ShareButton } from "./share-button";
 
@@ -96,12 +97,12 @@ export function DetailSheet({ children, className }: { children: React.ReactNode
   return <div className={cn("relative z-10 -mt-8 rounded-t-[2rem] bg-background px-5 pt-6", className)}>{children}</div>;
 }
 
-/** Fixed bottom action area of detail pages (primary black CTA + secondary buttons). */
+/** Fixed bottom action area of detail pages (primary black CTA + secondary buttons) in the shared BottomDock. */
 export function DetailActions({ children }: { children: React.ReactNode }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-2xl bg-linear-to-t from-background via-background/95 to-background/0 px-4 pt-6 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))]">
+    <BottomDock>
       <div className="flex items-center gap-2">{children}</div>
-    </div>
+    </BottomDock>
   );
 }
 

@@ -61,10 +61,10 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "z-40 pt-safe transition-[background-color,box-shadow,border-color] duration-200",
+        // Plain opaque band, no line or shadow: content scrolling underneath is cut off at its edge.
+        "z-40 pt-safe transition-colors duration-200",
         sticky && "sticky top-0",
-        solid ? "border-b bg-background/90 backdrop-blur-md" : "border-b border-transparent bg-transparent",
-        solid && scrolled && "shadow-soft",
+        solid ? "bg-background" : "bg-transparent",
         className,
       )}
     >

@@ -86,7 +86,7 @@ export const getLatestListings = unstable_cache(
 // ---------------------------------------------------------------------------
 
 const DETAIL_SELECT =
-  "id,type,owner_id,business_id,category_id,title,description,price_try,attributes,neighbourhood_id,status,rejection_reason,expires_at,published_at,created_at,updated_at,view_count,call_count,job_work_type,job_salary_min,job_salary_max,job_salary_hidden,job_experience,job_benefits,job_location_label,is_demo,owner:public_profiles(display_name,created_at),business:businesses(name,phone,slug,logo_url,verification_level),listing_categories(name,slug,parent_id,attributes_schema),neighbourhoods(name),listing_media(id,url,thumb_url,sort)";
+  "id,type,owner_id,business_id,category_id,title,description,price_try,attributes,neighbourhood_id,status,rejection_reason,expires_at,published_at,created_at,updated_at,view_count,call_count,job_work_type,job_salary_min,job_salary_max,job_salary_hidden,job_experience,job_benefits,job_location_label,is_demo,owner:public_profiles(display_name,created_at),business:businesses(name,phone,slug,logo_url,verification_level),listing_categories(name,slug,parent_id,attributes_schema),neighbourhoods(name),listing_media(id,url,thumb_url,sort),listing_videos(url,poster_url,duration_s)";
 
 /** One listing (deduped per request between generateMetadata and the page). Null when missing or not visible. */
 export const getListingDetail = cache(async (id: string): Promise<ListingDetail | null> => {

@@ -172,9 +172,9 @@ export function resolveVertical(vertical: unknown, kinds: readonly string[] | nu
   return "diger";
 }
 
-/** Food businesses get a digital menu + QR menü. */
+/** Food businesses and hotels (restaurant, room service) get a digital menu + QR menü. The DB is type-agnostic. */
 export function hasMenu(v: Vertical | null | undefined): boolean {
-  return v === "yemek" || v === "restoran" || v === "kafe";
+  return v === "yemek" || v === "restoran" || v === "kafe" || v === "otel";
 }
 
 /** Hotels get rooms. */

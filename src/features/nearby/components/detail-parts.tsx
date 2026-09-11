@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BOTTOM_DOCK_SPACE, BottomDock } from "@/components/shared/bottom-dock";
 
 /** Card with the kind icon, eyebrow (type · neighbourhood), big name and badges. Server-safe. */
 export function DetailHero({
@@ -83,19 +84,14 @@ export function DetailSection({
   );
 }
 
-/** Fixed bottom action bar (Ara / Yol tarifi) for detail pages that hide the bottom nav. */
+/** Fixed bottom action bar (Ara / Yol tarifi) for detail pages that hide the bottom nav, in the shared BottomDock. */
 export function StickyActionBar({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-2xl border-t bg-background/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] shadow-float backdrop-blur-md",
-        className,
-      )}
-    >
+    <BottomDock className={className}>
       <div className="flex gap-2 [&>*]:flex-1">{children}</div>
-    </div>
+    </BottomDock>
   );
 }
 
 /** Bottom spacing so content is not hidden behind StickyActionBar. */
-export const STICKY_BAR_SPACE = "pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))]";
+export const STICKY_BAR_SPACE = BOTTOM_DOCK_SPACE;

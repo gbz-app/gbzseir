@@ -24,17 +24,23 @@ type Props = { searchParams: Promise<{ sekme?: string | string[] }> };
 type TabKey = "yeni" | "ilgilendiklerim" | "kapanan";
 type Extra = { summary: string | null; hired: boolean };
 
-function LeadCard({ lead, extra }: { lead: MyLeadRow; extra?: Extra }) {
+function LeadCard({ lead, extra, firmName }: { lead: MyLeadRow; extra?: Extra; firmName?: string }) {
   const unseen = lead.status === "sent" && lead.request_status === "open";
   const meta = leadStatusMeta(lead.status, lead.request_status, extra?.hired);
   return (
     <Link
       href={routes.business.lead(lead.id)}
       className={cn(
-        "block rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06] transition-[box-shadow,transform] outline-none hover:ring-primary/30 focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]",
-        unseen && "bg-brand-soft/40 ring-2 ring-primary/50",
+        "block rounded-2xl bg-card p-4 transition-transform outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]",
+        unseen && "bg-brand-soft",
       )}
     >
+      {firmName ? (
+        <p className="mb-2.5 flex min-w-0 items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+          <Store className="size-3.5 shrink-0" aria-hidden />
+          <span className="truncate">{firmName}</span>
+        </p>
+      ) : null}
       <div className="flex items-start gap-3">
         <ServiceIconBubble name={lead.category_icon} size="sm" />
         <div className="min-w-0 flex-1">
@@ -73,12 +79,12 @@ function LeadCard({ lead, extra }: { lead: MyLeadRow; extra?: Extra }) {
 }
 
 const EMPTY: Record<TabKey, { title: string; description: string }> = {
-  yeni: { title: "Şu an yeni talep yok", description: "Bölgendeki yeni talepler burada ve bildirim olarak görünür." },
+  yeni: { title: "Şu an yeni talep yok", description: "Seçtiğin hizmet kategorilerindeki yeni talepler burada ve bildirim olarak görünür." },
   ilgilendiklerim: { title: "Henüz bir talebe ilgilenmedin", description: "Yeni sekmesindeki talepleri inceleyip 'İlgileniyorum' diyebilirsin." },
   kapanan: { title: "Kapanan talep yok", description: "Dolan, kapanan ya da gizlediğin talepler burada durur." },
 };
 
-/** H4: incoming leads of the caller's approved service business (Yeni · İlgilendiklerim · Kapanan). */
+/** H4: incoming leads across all of the caller's approved service businesses (Yeni · İlgilendiklerim · Kapanan). */
 export default async function BusinessLeadsPage({ searchParams }: Props) {
   const user = await requireAuth(routes.business.leads());
   const gate = await getServiceBusiness();
@@ -92,9 +98,19 @@ export default async function BusinessLeadsPage({ searchParams }: Props) {
     );
   }
 
+  // An owner with several service firms sees the leads of all of them, each card naming its firm.
+  const firmNames = gate.businesses.length > 1 ? new Map(gate.businesses.map((b) => [b.id, b.name])) : null;
   const supabase = await createClient();
   const [{ data, error }, { count: pushSubs }] = await Promise.all([
-    supabase.from("my_leads").select("*").eq("business_id", gate.business.id).order("created_at", { ascending: false }).limit(200),
+    supabase
+      .from("my_leads")
+      .select("*")
+      .in(
+        "business_id",
+        gate.businesses.map((b) => b.id),
+      )
+      .order("created_at", { ascending: false })
+      .limit(200),
     supabase.from(TABLES.pushSubscriptions).select("id", { count: "exact", head: true }).eq("user_id", user.id),
   ]);
   if (error) throw new Error(error.message);
@@ -123,12 +139,12 @@ export default async function BusinessLeadsPage({ searchParams }: Props) {
 
   return (
     <>
-      <PageHeader title="Gelen talepler" subtitle={gate.business.name} backHref={routes.business.root()} />
+      <PageHeader title="Gelen talepler" subtitle={firmNames ? "Tüm hizmet firmaların" : gate.business.name} backHref={routes.business.root()} />
       <div className="px-4 pt-4 pb-nav">
         {pushSubs === 0 ? (
           <PushOptIn
             title="Yeni talepleri anında gör"
-            text="Bölgene yeni bir talep gelince telefonuna bildirim gelsin. Her talebe sınırlı sayıda firma ilgilenebilir, erken davranan kazanır."
+            text="Yeni bir talep gelince telefonuna bildirim gelsin. Her talebe sınırlı sayıda firma ilgilenebilir, erken davranan kazanır."
             dismissKey="business"
             className="mb-4"
           />
@@ -159,7 +175,7 @@ export default async function BusinessLeadsPage({ searchParams }: Props) {
                 <ul className="flex flex-col gap-3">
                   {groups[t.key].map((l) => (
                     <li key={l.id}>
-                      <LeadCard lead={l} extra={extras.get(l.id)} />
+                      <LeadCard lead={l} extra={extras.get(l.id)} firmName={firmNames?.get(l.business_id)} />
                     </li>
                   ))}
                 </ul>

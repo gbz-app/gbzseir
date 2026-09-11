@@ -1,12 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Share2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { notify } from "@/lib/notify";
 import { canGoBack } from "@/lib/navigation-history";
 import { HideBottomNav } from "@/components/layout/nav-visibility";
+import { Button } from "@/components/ui/button";
 import { FavoriteButton } from "@/components/shared/favorite-button";
-import { ShareButton } from "@/components/shared/share-button";
 import { ListingDetailMenu } from "./detail-actions";
+import { logListingShare } from "./stats/log-share";
 
 /** Round translucent (blurred) button on top of the hero, as on the firm page. */
 export const HERO_BUTTON =
@@ -25,6 +28,37 @@ export type ListingHeroBarProps = {
   favorite?: boolean;
 };
 
+/**
+ * Native share sheet with a copy-link fallback (same behaviour as ShareButton). A completed share or copy is counted
+ * in the owner's statistics (fire and forget); a cancelled share sheet is not.
+ */
+function ListingShareButton({ listingId, title }: { listingId: string; title: string }) {
+  const onClick = async () => {
+    const href = window.location.href;
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title, url: href });
+        logListingShare(listingId);
+        return;
+      } catch (e) {
+        if ((e as Error).name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(href);
+      notify.success("Bağlantı kopyalandı");
+      logListingShare(listingId);
+    } catch {
+      notify.info("Bağlantıyı kopyala", href);
+    }
+  };
+  return (
+    <Button type="button" variant="secondary" size="icon" aria-label="Paylaş" className={cn("rounded-full", HERO_BUTTON)} onClick={onClick}>
+      <Share2 />
+    </Button>
+  );
+}
+
 /** Back · share · favorite · ⋯ (report, or the owner's links) on top of a listing hero. Hides the bottom nav. */
 export function ListingHeroBar({ listingId, ownerId, title, backHref, editHref, manageHref, favorite = true }: ListingHeroBarProps) {
   const router = useRouter();
@@ -35,7 +69,7 @@ export function ListingHeroBar({ listingId, ownerId, title, backHref, editHref, 
         <ArrowLeft className="size-5" strokeWidth={2} />
       </button>
       <div className="flex items-center gap-2">
-        <ShareButton title={title} iconOnly variant="secondary" label="Paylaş" className={HERO_BUTTON} />
+        <ListingShareButton listingId={listingId} title={title} />
         {/* "ghost": its only background is a hover, which HERO_BUTTON overrides (overlay would keep a shadow). */}
         {favorite ? <FavoriteButton targetType="listing" targetId={listingId} variant="ghost" className={HERO_BUTTON} /> : null}
         <ListingDetailMenu listingId={listingId} ownerId={ownerId} editHref={editHref} manageHref={manageHref} className={HERO_BUTTON} />

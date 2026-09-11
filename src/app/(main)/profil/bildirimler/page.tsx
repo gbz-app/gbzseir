@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { routes } from "@/core/routes";
-import { ProfilePageHeader } from "@/components/shared/profile-page-header";
 import { requireProfile } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { NotificationsList, type NotificationItem } from "@/features/profile/components/notifications-list";
@@ -28,10 +27,6 @@ export default async function NotificationsPage() {
     read_at: n.read_at ?? null,
     created_at: n.created_at,
   }));
-  return (
-    <>
-      <ProfilePageHeader title="Bildirimler" backHref={routes.profile.root()} />
-      <NotificationsList items={items} />
-    </>
-  );
+  // The list renders the page header too: its "Tümünü okundu yap" action shares the list's optimistic state.
+  return <NotificationsList items={items} />;
 }

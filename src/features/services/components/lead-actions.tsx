@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { BottomDock, BottomDockSpacer } from "@/components/shared/bottom-dock";
 import { BottomSheet } from "@/components/shared/bottom-sheet";
 import { createClient } from "@/lib/supabase/client";
 import { readString, writeString } from "@/lib/storage";
@@ -101,17 +102,17 @@ export function LeadActions({ leadId, acceptedCount, maxProviders }: { leadId: s
 
   return (
     <>
-      <div className="h-24" aria-hidden />
-      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-2xl border-t bg-background/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] shadow-float backdrop-blur-md">
+      <BottomDockSpacer />
+      <BottomDock>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" size="lg" onClick={() => setHideOpen(true)}>
+          <Button type="button" variant="secondary" size="lg" onClick={() => setHideOpen(true)}>
             <EyeOff /> Gizle
           </Button>
           <Button type="button" size="lg" className="flex-1" onClick={() => setAcceptOpen(true)}>
             <Hand /> İlgileniyorum
           </Button>
         </div>
-      </div>
+      </BottomDock>
 
       <BottomSheet
         open={acceptOpen}
@@ -176,7 +177,7 @@ export function LeadActions({ leadId, acceptedCount, maxProviders }: { leadId: s
         description="Gizlediğin talep Kapanan sekmesine taşınır ve bu talep için tekrar ilgilenemezsin."
         footer={
           <div className="flex gap-2">
-            <Button type="button" variant="outline" size="lg" className="flex-1" onClick={() => setHideOpen(false)}>
+            <Button type="button" variant="secondary" size="lg" className="flex-1" onClick={() => setHideOpen(false)}>
               Vazgeç
             </Button>
             <Button type="button" variant="destructive" size="lg" className="flex-1" onClick={decline} disabled={busy}>

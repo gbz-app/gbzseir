@@ -17,7 +17,7 @@ import { resolveVertical, type Vertical } from "./verticals";
  */
 
 const OWNER_COLUMNS =
-  "id,owner_id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,neighbourhood_id,kinds,category_label,working_hours,status,rejection_reason,verification_level,vacation_mode,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at,vertical,price_level,star_rating,amenities,website,instagram";
+  "id,owner_id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,neighbourhood_id,kinds,category_label,working_hours,status,rejection_reason,verification_level,vacation_mode,vacation_until,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at,vertical,price_level,star_rating,amenities,website,instagram";
 
 export type OwnerBusiness = {
   id: string;
@@ -39,6 +39,8 @@ export type OwnerBusiness = {
   rejection_reason: string | null;
   verification_level: number;
   vacation_mode: boolean;
+  /** Tatil modu return date (00:00 Istanbul of the day back), null = open-ended. */
+  vacation_until: string | null;
   rating_avg: number;
   rating_count: number;
   leads_accepted_count: number;

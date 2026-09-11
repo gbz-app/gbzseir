@@ -10,11 +10,8 @@ import {
   Briefcase,
   ChevronRight,
   CircleAlert,
-  CircleCheck,
-  Circle,
   ClipboardList,
   Clock,
-  Gauge,
   ImagePlus,
   MessageSquareText,
   Navigation,
@@ -23,6 +20,7 @@ import {
   Plus,
   SlidersHorizontal,
   Star,
+  Stethoscope,
   Store,
   Wrench,
   type LucideIcon,
@@ -34,12 +32,13 @@ import { PageHeader } from "@/components/shared/page-header";
 import { requireProfile } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { formatRating } from "@/features/business/components/rating";
+import { ProfileStrength } from "@/features/business/components/profile-strength";
 import { VacationToggle } from "@/features/business/components/vacation-toggle";
-import { MIN_PORTFOLIO_PHOTOS, businessChecklist, type ChecklistKey } from "@/features/business/lib/completeness";
-import { KIND_SHORT_LABELS } from "@/features/business/lib/kinds";
 import { BusinessSwitcher } from "@/features/business/components/business-switcher";
+import { hasDoctors } from "@/features/business/components/doctors/doctor-meta";
+import { getOwnerToolCounts, ownerChecklist } from "@/features/business/lib/owner-progress";
 import { getOwnerBusiness, getOwnerBusinessList } from "@/features/business/lib/owner-queries";
-import { hasMenu, hasRooms, resolveVertical } from "@/features/business/lib/verticals";
+import { VERTICAL_INFO, hasMenu, hasRooms, resolveVertical } from "@/features/business/lib/verticals";
 import { getAppSettings } from "@/lib/app-settings";
 import { TABLES } from "@/lib/db-contract";
 import { PushOptIn } from "@/features/profile/components/push-opt-in";
@@ -59,21 +58,12 @@ type Stats = {
   reviews_unreplied?: number;
 };
 
-/** Bento tile surface. */
-const TILE = "relative flex flex-col rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]";
-
-const MINI_LABEL: Record<ChecklistKey, string> = {
-  logo: "Logo",
-  location: "Konum",
-  categories: "Kategori",
-  cover: "Kapak",
-  photos: "Fotoğraf",
-  hours: "Saatler",
-};
+/** Bento tile surface (white card on the lavender ground, no border, no shadow). */
+const TILE = "relative flex flex-col rounded-3xl bg-card p-4";
 
 function ArrowBadge() {
   return (
-    <span className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground ring-1 ring-foreground/15" aria-hidden>
+    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground" aria-hidden>
       <ArrowRight className="size-3.5" />
     </span>
   );
@@ -123,7 +113,7 @@ function MenuRow({ href, icon: Icon, label, badge }: { href: string; icon: Lucid
 
 function StatusCard({ icon: Icon, tone, title, text, action }: { icon: LucideIcon; tone: string; title: string; text: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <section className="flex flex-col items-center gap-3 rounded-3xl bg-card px-5 py-8 text-center shadow-soft ring-1 ring-foreground/[0.06]">
+    <section className="flex flex-col items-center gap-3 rounded-3xl bg-card px-5 py-8 text-center">
       <span className={cn("flex size-16 items-center justify-center rounded-2xl", tone)}>
         <Icon className="size-8" strokeWidth={1.75} aria-hidden />
       </span>
@@ -199,33 +189,18 @@ export default async function BusinessPanelPage() {
   }
 
   const supabase = await createClient();
-  const [{ data }, { count: pushSubs }] = await Promise.all([
+  const [{ data }, { count: pushSubs }, toolCounts] = await Promise.all([
     supabase.rpc("business_panel_stats", { p_business_id: b.id }),
     supabase.from(TABLES.pushSubscriptions).select("id", { count: "exact", head: true }).eq("user_id", user.id),
+    getOwnerToolCounts(b),
   ]);
   const stats = (data ?? {}) as Stats;
   const isService = b.kinds.includes("service");
-  const isEmployer = b.kinds.includes("employer");
   const vertical = resolveVertical(b.vertical, b.kinds);
   const pageHref = routes.businesses.detail(b.slug);
   const unreplied = stats.reviews_unreplied ?? 0;
   const callsPrev = stats.calls_prev_week ?? 0;
-
-  const checklist = businessChecklist({
-    kinds: b.kinds,
-    logo_url: b.logo_url,
-    address: b.address,
-    lat: b.lat,
-    lng: b.lng,
-    cover_url: b.cover_url,
-    working_hours: b.working_hours,
-    categoryCount: b.category_ids.length,
-    photoCount: b.photos.length,
-  });
-  const nextItem = checklist.items.find((i) => !i.done) ?? null;
-  const minis = [...checklist.items.filter((i) => !i.done), ...checklist.items.filter((i) => i.done)].slice(0, 3);
-  const miniValue = (key: ChecklistKey, done: boolean) =>
-    done ? "Tamam" : key === "photos" ? `${Math.min(b.photos.length, MIN_PORTFOLIO_PHOTOS)}/${MIN_PORTFOLIO_PHOTOS}` : "Eksik";
+  const checklist = ownerChecklist(b, toolCounts);
 
   return (
     <>
@@ -237,7 +212,7 @@ export default async function BusinessPanelPage() {
           <Link
             href={routes.business.edit()}
             aria-label="İşletme sayfamı düzenle"
-            className="flex size-10 items-center justify-center rounded-full bg-card shadow-soft ring-1 ring-foreground/[0.06] transition-colors hover:bg-muted"
+            className="flex size-10 items-center justify-center rounded-full bg-card transition-colors hover:bg-muted"
           >
             <SlidersHorizontal className="size-5" strokeWidth={1.75} aria-hidden />
           </Link>
@@ -279,52 +254,7 @@ export default async function BusinessPanelPage() {
           label="Arama"
         />
 
-        <section className={cn(TILE, "col-span-2")} aria-labelledby="profil-gucu">
-          <div className="flex items-start justify-between gap-2">
-            <Gauge className="size-6 text-primary" strokeWidth={1.75} aria-hidden />
-            <span id="profil-gucu" className="text-xs text-muted-foreground">
-              Profil gücü
-            </span>
-          </div>
-          <p className="mt-4 flex items-baseline gap-1.5">
-            <span className="text-[2.2rem] leading-none font-medium tabular-nums">%{checklist.percent}</span>
-            <span className="text-sm text-muted-foreground">{checklist.complete ? "profilin eksiksiz" : `/100 · ${checklist.total - checklist.done} adım kaldı`}</span>
-          </p>
-          <div className="mt-4 flex items-center gap-3">
-            <div
-              className="h-2.5 flex-1 overflow-hidden rounded-full bg-brand-soft"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={checklist.percent}
-              aria-label="Profil gücü"
-            >
-              <div className="h-full rounded-full bg-primary" style={{ width: `${checklist.percent}%` }} />
-            </div>
-            {nextItem ? (
-              <Link
-                href={nextItem.href}
-                aria-label={`${nextItem.label} ekle`}
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-primary ring-1 ring-primary/20 transition-colors hover:bg-primary hover:text-primary-foreground"
-              >
-                <Plus className="size-5" aria-hidden />
-              </Link>
-            ) : null}
-          </div>
-          <ul className="mt-4 grid grid-cols-3 gap-2">
-            {minis.map((item) => (
-              <li key={item.key}>
-                <Link href={item.href} className="block rounded-2xl bg-muted/60 px-3 py-2.5 transition-colors hover:bg-muted">
-                  <span className="flex items-center justify-between gap-1 text-xs text-muted-foreground">
-                    {MINI_LABEL[item.key]}
-                    {item.done ? <CircleCheck className="size-3.5 text-success" aria-hidden /> : <Circle className="size-3.5 text-muted-foreground/60" aria-hidden />}
-                  </span>
-                  <span className="mt-1 block text-[15px] font-semibold tabular-nums">{miniValue(item.key, item.done)}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <ProfileStrength checklist={checklist} className="col-span-2" />
 
         <StatTile
           href={routes.business.reviews()}
@@ -344,12 +274,12 @@ export default async function BusinessPanelPage() {
           <div className="mt-4 flex items-end justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-[1.6rem] leading-tight font-semibold">{b.name}</p>
-              <p className="mt-0.5 truncate text-sm text-muted-foreground">{b.category_label || b.kinds.map((k) => KIND_SHORT_LABELS[k]).join(" · ")}</p>
+              <p className="mt-0.5 truncate text-sm text-muted-foreground">{b.category_label || VERTICAL_INFO[vertical].label}</p>
             </div>
             <span
               className={cn(
-                "shrink-0 rounded-full px-3 py-1 text-sm font-semibold ring-1",
-                b.vacation_mode ? "bg-highlight-soft text-highlight-foreground ring-highlight/30" : "bg-success-soft text-success ring-success/20",
+                "shrink-0 rounded-full px-3 py-1 text-sm font-semibold",
+                b.vacation_mode ? "bg-highlight-soft text-highlight-foreground dark:text-highlight" : "bg-success-soft text-success",
               )}
             >
               {b.vacation_mode ? "Tatilde" : "Yayında"}
@@ -365,21 +295,22 @@ export default async function BusinessPanelPage() {
           </div>
         </Link>
 
-        <section className="col-span-2 overflow-hidden rounded-3xl bg-card shadow-soft ring-1 ring-foreground/[0.05]" aria-label="Yönet">
+        <section className="col-span-2 overflow-hidden rounded-3xl bg-card" aria-label="Yönet">
           <ul className="divide-y">
             {isService ? <MenuRow href={routes.business.leads()} icon={ClipboardList} label="Gelen talepler" badge={stats.leads_waiting} /> : null}
             <MenuRow href={routes.business.edit()} icon={Pencil} label="İşletme sayfamı düzenle" />
             {isService || vertical === "hizmet" ? <MenuRow href={routes.business.services()} icon={Wrench} label="Hizmetlerim ve fiyatlar" /> : null}
             {hasMenu(vertical) ? <MenuRow href={routes.business.menu()} icon={QrCode} label="Menü ve QR menü" /> : null}
             {hasRooms(vertical) ? <MenuRow href={routes.business.rooms()} icon={BedDouble} label="Odalar" /> : null}
+            {hasDoctors(vertical) ? <MenuRow href={routes.business.doctors()} icon={Stethoscope} label="Doktorlar" /> : null}
             <MenuRow href={routes.business.photos()} icon={ImagePlus} label="Fotoğraflar ve galeri" />
             <MenuRow href={routes.business.events()} icon={Ticket} label="Etkinliklerim" />
             <MenuRow href={routes.business.reviews()} icon={Star} label="Yorumlar" badge={unreplied} />
-            {isEmployer ? <MenuRow href={routes.profile.jobs()} icon={Briefcase} label="İş ilanlarım" /> : null}
+            <MenuRow href={routes.profile.jobs()} icon={Briefcase} label="İş ilanlarım" />
             <MenuRow href={routes.content.help("reklam")} icon={Megaphone} label="Reklam ve öne çıkma" />
             {canAdd ? <MenuRow href={routes.business.apply()} icon={Plus} label="Yeni işletme ekle" /> : null}
             <li>
-              <VacationToggle businessId={b.id} initial={b.vacation_mode} />
+              <VacationToggle businessId={b.id} initial={b.vacation_mode} initialUntil={b.vacation_until} isService={isService} />
             </li>
           </ul>
         </section>

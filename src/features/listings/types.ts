@@ -34,6 +34,9 @@ export type NeighbourhoodRef = { id: string; name: string; slug: string };
 
 export type MediaRef = { url: string; thumbUrl: string | null };
 
+/** The listing's optional video (public.listing_videos, one per 2. el listing). */
+export type VideoRef = { url: string; posterUrl: string | null; durationS: number };
+
 export type BusinessRef = {
   name: string;
   slug: string | null;
@@ -65,6 +68,8 @@ export type ListingCardData = {
   business: BusinessRef | null;
   /** Örnek (seed) ilan: kartta "Örnek" etiketi. */
   isDemo: boolean;
+  /** 2. el ilanın videosu var: kartta "Video" etiketi. */
+  hasVideo?: boolean;
 };
 
 /** İlan detay sayfası verisi. */
@@ -100,6 +105,8 @@ export type ListingDetail = {
   business: BusinessRef | null;
   category: { name: string; slug: string; parent_id: string | null; attributes_schema: AttributeField[] } | null;
   media: Array<MediaRef & { id?: string; sort: number }>;
+  /** listing_videos (2. el only). */
+  video?: VideoRef | null;
 };
 
 /** "İlanlarım" satırı. */
@@ -209,6 +216,14 @@ function toMediaList(v: unknown): Array<MediaRef & { id?: string; sort: number }
     .sort((a, b) => a.sort - b.sort);
 }
 
+function toVideo(v: unknown): VideoRef | null {
+  const r = one(v as Row | Row[] | null);
+  if (!r || typeof r !== "object") return null;
+  const url = str(r.url);
+  if (!url) return null;
+  return { url, posterUrl: str(r.poster_url), durationS: num(r.duration_s) ?? 0 };
+}
+
 function toBusiness(v: unknown): BusinessRef | null {
   const b = one(v as Row | Row[] | null);
   if (!b || typeof b !== "object") return null;
@@ -254,6 +269,7 @@ export function toCardData(row: Row): ListingCardData {
     experience: str(row.job_experience),
     business: toBusiness(row.business),
     isDemo: row.is_demo === true,
+    hasVideo: !!one(row.listing_videos as Row | Row[] | null),
   };
 }
 
@@ -300,6 +316,7 @@ export function toListingDetail(row: Row): ListingDetail {
           }
         : null,
     media: toMediaList(row.listing_media),
+    video: toVideo(row.listing_videos),
   };
 }
 

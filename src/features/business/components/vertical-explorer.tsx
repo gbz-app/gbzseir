@@ -17,6 +17,8 @@ import { useApproxLocation } from "@/lib/location/use-approx-location";
 import { openStatusAt, parseWorkingHours, type OpenStatus } from "../lib/hours";
 import type { VerticalCard } from "../lib/vertical-queries";
 import { VERTICAL_INFO, VERTICAL_SUBCATEGORIES, subcategoryMatcher, type Vertical, type VerticalSubcategory } from "../lib/verticals";
+import { DoctorsExplorer, ExploreSegments, useExploreSegment } from "./doctors/doctors-explorer";
+import type { DirectoryDoctor, DoctorBranch } from "./doctors/doctor-meta";
 import { VenueCard, VenuePhotoFallback } from "./venue-card";
 
 type Row = { item: VerticalCard; distance: number | null; open: OpenStatus | null };
@@ -31,14 +33,21 @@ export function VerticalExplorer({
   items,
   applicationsOpen,
   subcategories: chips,
+  doctors,
+  doctorBranches,
 }: {
   vertical: Vertical;
   items: VerticalCard[];
   applicationsOpen: boolean;
   /** Admin-managed chips of the vertical (vocabularies.ts); the built-in list when omitted. */
   subcategories?: readonly VerticalSubcategory[];
+  /** Sağlık only: doctors of the listed clinics; adds the "İşletmeler | Doktorlar" segment. */
+  doctors?: DirectoryDoctor[];
+  doctorBranches?: readonly DoctorBranch[];
 }) {
   const info = VERTICAL_INFO[vertical];
+  const [segment, setSegment] = useExploreSegment(!!doctors);
+  const showDoctors = segment === "doktorlar" && !!doctors;
   const subcategories = chips ?? VERTICAL_SUBCATEGORIES[vertical] ?? NO_SUBCATEGORIES;
   const loc = useApproxLocation();
   const now = useNow();
@@ -53,7 +62,8 @@ export function VerticalExplorer({
       items.map((item) => ({
         item,
         distance: hasPoint && item.lat != null && item.lng != null ? distanceMeters({ lat: pLat, lng: pLng }, { lat: item.lat, lng: item.lng }) : null,
-        open: now && item.vertical !== "otel" ? openStatusAt(parseWorkingHours(item.working_hours), now) : null,
+        // Tatil modu wins over the hours; hotels (no hours shown) only ever carry the tatil state.
+        open: now ? openStatusAt(parseWorkingHours(item.vertical === "otel" ? null : item.working_hours), now, item) : null,
       })),
     [items, hasPoint, pLat, pLng, now],
   );
@@ -82,100 +92,108 @@ export function VerticalExplorer({
     <div className="flex flex-col gap-4 px-4 pb-32">
       <ExploreHeader title={info.plural} subtitle={info.subtitle} />
 
-      <label className="relative block">
-        <span className="sr-only">{info.plural} içinde ara</span>
-        <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={`${info.label} ara: isim, mahalle`}
-          enterKeyHint="search"
-          className="h-12 w-full rounded-full bg-card pr-11 pl-12 text-[15px] shadow-soft ring-1 ring-foreground/[0.06] outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:hidden"
-        />
-        {q ? (
-          <button
-            type="button"
-            onClick={() => setQ("")}
-            aria-label="Aramayı temizle"
-            className="absolute top-1/2 right-1.5 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
-          >
-            <X className="size-4" />
-          </button>
-        ) : null}
-      </label>
+      {doctors ? <ExploreSegments value={segment} onChange={setSegment} counts={{ isletmeler: items.length, doktorlar: doctors.length }} /> : null}
 
-      {subcategories.length > 0 ? (
-        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1" role="group" aria-label="Kategoriler">
-          <FilterChip active={!sub} onClick={() => setSubKey(null)}>
-            Tümü
-          </FilterChip>
-          {subcategories.map((s) => (
-            <FilterChip key={s.key} active={sub?.key === s.key} onClick={() => setSubKey((k) => (k === s.key ? null : s.key))}>
-              {s.label}
-            </FilterChip>
-          ))}
-        </div>
-      ) : null}
-
-      {vertical === "hizmet" ? (
-        <Link
-          href={routes.services.root()}
-          className="flex items-center gap-3 rounded-3xl bg-red-600 p-4 text-white transition-transform outline-none hover:bg-red-700 focus-visible:ring-3 focus-visible:ring-red-600/40 active:scale-[0.99]"
-        >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-            <Wrench className="size-5" aria-hidden />
-          </span>
-          <span className="min-w-0 flex-1 text-sm">
-            <span className="block text-base font-bold">Usta mı arıyorsun?</span>
-            <span>Talebini oluştur, uygun firmalar seni arasın.</span>
-          </span>
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-red-600" aria-hidden>
-            <ArrowUpRight className="size-5" />
-          </span>
-        </Link>
-      ) : null}
-
-      {items.length === 0 ? (
-        <div className="flex flex-col items-center rounded-3xl bg-card px-6 py-10 text-center shadow-soft ring-1 ring-foreground/[0.05]">
-          <span className={cn("flex size-14 items-center justify-center rounded-2xl", info.tone)}>
-            <info.icon className="size-7" strokeWidth={1.75} aria-hidden />
-          </span>
-          <p className="mt-4 font-semibold">Bu kategoride henüz işletme yok</p>
-          <p className="mt-1 text-sm text-muted-foreground">Yeni işletmeler yakında burada listelenecek.</p>
-          {applicationsOpen ? (
-            <Button asChild className="mt-5">
-              <Link href={routes.business.intro()}>
-                <Store /> İşletme sayfası aç
-              </Link>
-            </Button>
-          ) : null}
-        </div>
+      {showDoctors ? (
+        <DoctorsExplorer doctors={doctors} branches={doctorBranches} />
       ) : (
         <>
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            {filtered.length} {noun}
-          </p>
-          {filtered.length === 0 ? (
-            <div className="rounded-3xl bg-card px-6 py-8 text-center shadow-soft ring-1 ring-foreground/[0.05]">
-              <p className="font-semibold">{sub && !needle ? `${sub.label} için henüz ${noun} yok` : `Aramana uygun ${noun} bulunamadı`}</p>
-              <Button variant="outline" className="mt-4" onClick={clearAll}>
-                {sub ? "Tümünü göster" : "Aramayı temizle"}
-              </Button>
+          <label className="relative block">
+            <span className="sr-only">{info.plural} içinde ara</span>
+            <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={`${info.label} ara: isim, mahalle`}
+              enterKeyHint="search"
+              className="h-12 w-full rounded-full bg-card pr-11 pl-12 text-[15px] outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:hidden"
+            />
+            {q ? (
+              <button
+                type="button"
+                onClick={() => setQ("")}
+                aria-label="Aramayı temizle"
+                className="absolute top-1/2 right-1.5 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+              >
+                <X className="size-4" />
+              </button>
+            ) : null}
+          </label>
+
+          {subcategories.length > 0 ? (
+            <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1" role="group" aria-label="Kategoriler">
+              <FilterChip active={!sub} onClick={() => setSubKey(null)}>
+                Tümü
+              </FilterChip>
+              {subcategories.map((s) => (
+                <FilterChip key={s.key} active={sub?.key === s.key} onClick={() => setSubKey((k) => (k === s.key ? null : s.key))}>
+                  {s.label}
+                </FilterChip>
+              ))}
+            </div>
+          ) : null}
+
+          {vertical === "hizmet" ? (
+            <Link
+              href={routes.services.root()}
+              className="flex items-center gap-3 rounded-3xl bg-red-600 p-4 text-white transition-transform outline-none hover:bg-red-700 focus-visible:ring-3 focus-visible:ring-red-600/40 active:scale-[0.99]"
+            >
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                <Wrench className="size-5" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1 text-sm">
+                <span className="block text-base font-bold">Usta mı arıyorsun?</span>
+                <span>Talebini oluştur, uygun firmalar seni arasın.</span>
+              </span>
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-red-600" aria-hidden>
+                <ArrowUpRight className="size-5" />
+              </span>
+            </Link>
+          ) : null}
+
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center rounded-3xl bg-card px-6 py-10 text-center">
+              <span className={cn("flex size-14 items-center justify-center rounded-2xl", info.tone)}>
+                <info.icon className="size-7" strokeWidth={1.75} aria-hidden />
+              </span>
+              <p className="mt-4 font-semibold">Bu kategoride henüz işletme yok</p>
+              <p className="mt-1 text-sm text-muted-foreground">Yeni işletmeler yakında burada listelenecek.</p>
+              {applicationsOpen ? (
+                <Button asChild className="mt-5">
+                  <Link href={routes.business.intro()}>
+                    <Store /> İşletme sayfası aç
+                  </Link>
+                </Button>
+              ) : null}
             </div>
           ) : (
-            <ul className="flex flex-col gap-4">
-              {filtered.map((r, i) => (
-                <li key={r.item.id}>
-                  <VenueCard item={r.item} distance={r.distance} open={r.open} eager={i < 2} />
-                </li>
-              ))}
-            </ul>
+            <>
+              <p className="text-sm text-muted-foreground" aria-live="polite">
+                {filtered.length} {noun}
+              </p>
+              {filtered.length === 0 ? (
+                <div className="rounded-3xl bg-card px-6 py-8 text-center">
+                  <p className="font-semibold">{sub && !needle ? `${sub.label} için henüz ${noun} yok` : `Aramana uygun ${noun} bulunamadı`}</p>
+                  <Button variant="outline" className="mt-4" onClick={clearAll}>
+                    {sub ? "Tümünü göster" : "Aramayı temizle"}
+                  </Button>
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-4">
+                  {filtered.map((r, i) => (
+                    <li key={r.item.id}>
+                      <VenueCard item={r.item} distance={r.distance} open={r.open} eager={i < 2} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </>
       )}
 
-      {mappable.length > 0 ? (
+      {mappable.length > 0 && !showDoctors ? (
         <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--bottomnav-h)+env(safe-area-inset-bottom,0px)+1.5rem)] z-30 flex justify-center">
           <button
             type="button"
@@ -187,7 +205,7 @@ export function VerticalExplorer({
         </div>
       ) : null}
 
-      {mapOpen ? <MapView title={info.plural} rows={mappable} user={loc.coords} onClose={() => setMapOpen(false)} /> : null}
+      {mapOpen && !showDoctors ? <MapView title={info.plural} rows={mappable} user={loc.coords} onClose={() => setMapOpen(false)} /> : null}
     </div>
   );
 }

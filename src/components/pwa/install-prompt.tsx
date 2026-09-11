@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { Bell, ChevronLeft, ChevronRight, Download, EllipsisVertical, Plus, Share, Smartphone, SquarePlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME, STORAGE_KEYS } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/shared/bottom-sheet";
+import { isBottomNavHiddenRoute } from "@/components/layout/nav-config";
 import { useBottomNavHidden } from "@/components/layout/nav-visibility";
 import { useOnboardingActive } from "@/features/onboarding/storage";
 import { closeInstallGuide, openInstallGuide, promptInstall, useInstallState } from "@/lib/pwa/install-store";
@@ -27,7 +29,10 @@ const SHOW_DELAY_MS = 4000;
 export function InstallPrompt() {
   const { canPrompt, installed, guideOpen } = useInstallState();
   const onboardingActive = useOnboardingActive();
-  const navHidden = useBottomNavHidden();
+  // Same rule as BottomNav: routes that hide the nav at render time, plus pages that hide it with HideBottomNav.
+  const pathname = usePathname();
+  const navHiddenByPage = useBottomNavHidden();
+  const navHidden = navHiddenByPage || isBottomNavHiddenRoute(pathname);
   const isClient = useIsClient();
   const [eligible, setEligible] = React.useState(false);
   const [dismissed, setDismissed] = React.useState(false);
@@ -75,7 +80,7 @@ export function InstallPrompt() {
           role="region"
           aria-label="Uygulamayı yükle"
         >
-          <div className="flex items-center gap-3 rounded-2xl bg-card p-3 pr-2 shadow-card ring-1 ring-foreground/[0.06]">
+          <div className="flex items-center gap-3 rounded-2xl bg-card p-3 pr-2">
             <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-primary">
               <Smartphone className="size-6" strokeWidth={1.75} aria-hidden />
             </div>

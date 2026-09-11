@@ -55,12 +55,16 @@ export function isRouteActive(pathname: string, base: string): boolean {
 const enc = (v: string | number) => encodeURIComponent(String(v));
 
 export type ListingsTab = "ikinci-el" | "is-ilanlari";
-export type NearbyKind = "eczane" | "nobetci" | "cami" | "durak" | "taksi" | "atm" | "gezilecek";
+/** One focused screen of the business page editor (/isletme/duzenle/<adim>). */
+export type BusinessEditStep = "temel" | "iletisim" | "konum" | "saatler" | "ozellikler" | "hizmet-alani";
+export type NearbyKind = "eczane" | "nobetci" | "cami" | "durak" | "taksi" | "atm" | "banka" | "akaryakit" | "sarj" | "kurum" | "gezilecek";
 
 export const routes = {
   home: () => "/",
   search: (q?: string) => withQuery("/ara", { q }),
   offline: () => "/offline",
+  /** GebzemAI assistant (public app only). */
+  ai: () => "/gebzemai",
 
   auth: {
     /** /giris?next=... (login = signup) */
@@ -83,6 +87,19 @@ export const routes = {
     stop: (id: string | number) => `/durak/${enc(id)}`,
     places: () => "/gezilecek-yerler",
     place: (slug: string) => `/gezilecek-yerler/${enc(slug)}`,
+  },
+
+  /** Şehir rehberi: resmî kurumlar, ATM / banka, akaryakıt, şarj and the guide place lists (src/features/guide). */
+  guide: {
+    /** Hub */
+    root: () => "/rehber",
+    /**
+     * One list: a GUIDE_SECTIONS slug (kamu, saglik, egitim, atm, akaryakit, tarihi...) or an institution category slug
+     * (nufus, aile-sagligi-merkezi); query: alt, banka, marka, operator, sahiplik, mahalle, q, sayfa (GUIDE_PARAMS).
+     */
+    category: (kategori: string, query?: QueryRecord) => withQuery(`/rehber/${enc(kategori)}`, query),
+    /** Detail of an institution, ATM, bank branch, fuel or EV charging station (places keep /gezilecek-yerler/<slug>). */
+    detail: (slug: string) => `/kurum/${enc(slug)}`,
   },
 
   listings: {
@@ -122,6 +139,12 @@ export const routes = {
   events: {
     root: (query?: QueryRecord) => withQuery("/etkinlikler", query),
     detail: (slug: string) => `/etkinlik/${enc(slug)}`,
+    /** Create / edit wizard (users and businesses): ?duzenle=<id> edits an event, ?isletme=<id> creates it as that business. */
+    create: (query?: { duzenle?: string; isletme?: string }) => withQuery("/etkinlik-olustur", query),
+    /** Events that ended in the last 90 days */
+    past: () => "/etkinlikler/gecmis",
+    /** .ics file of a published event (route handler) */
+    calendar: (slug: string) => `/etkinlik/${enc(slug)}/takvim`,
   },
 
   profile: {
@@ -129,7 +152,11 @@ export const routes = {
     edit: () => "/profil/duzenle",
     listings: () => "/profil/ilanlarim",
     jobs: () => "/profil/is-ilanlarim",
+    /** Owner statistics of one listing (2. el or iş ilanı) */
+    listingStats: (id: string | number) => `/profil/ilanlarim/${enc(id)}/istatistik`,
     requests: () => "/profil/taleplerim",
+    /** Events the user created (not as a business) */
+    events: () => "/profil/etkinliklerim",
     favorites: () => "/profil/favoriler",
     notifications: () => "/profil/bildirimler",
     settings: () => "/profil/ayarlar",
@@ -147,13 +174,18 @@ export const routes = {
     applyDone: () => "/isletme/basvuru/alindi",
     /** Switch the active business (route handler; use a plain <a>, not <Link>) and continue to `next` */
     select: (businessId: string, next?: string) => `/isletme/sec?b=${encodeURIComponent(businessId)}${next ? `&next=${encodeURIComponent(next)}` : ""}`,
+    /** Edit hub: one row per section */
     edit: () => "/isletme/duzenle",
+    /** One section of the editor, saved on its own */
+    editStep: (adim: BusinessEditStep) => `/isletme/duzenle/${adim}`,
     photos: () => "/isletme/fotograflar",
     reviews: () => "/isletme/yorumlar",
     services: () => "/isletme/hizmetlerim",
     menu: () => "/isletme/menu",
     menuQr: () => "/isletme/menu/qr",
     rooms: () => "/isletme/odalar",
+    /** Doctors of a sağlık business */
+    doctors: () => "/isletme/doktorlar",
     events: () => "/isletme/etkinlikler",
     leads: () => "/isletme/talepler",
     lead: (id: string | number) => `/isletme/talepler/${enc(id)}`,
@@ -200,12 +232,22 @@ export const routes = {
     newsArticles: () => "/admin/haber-yazilari",
     announcements: () => "/admin/duyurular",
     places: () => "/admin/yerler",
+    /** Şehir rehberi records: ?tur, durum (dogrulanmis|dogrulanmamis|konumsuz|gizli), kategori, q, sayfa */
+    guide: (query?: QueryRecord) => withQuery("/admin/rehber", query),
+    /** New guide record: ?tur= kind param (kurum, atm, banka, akaryakit, sarj, gezilecek) */
+    guideNew: (query?: QueryRecord) => withQuery("/admin/rehber/yeni", query),
+    /** Edit one guide record: ?konum=1 opens the map pin, sira=konumsuz walks the missing-pin queue */
+    guideItem: (id: string, query?: QueryRecord) => withQuery(`/admin/rehber/${enc(id)}`, query),
+    /** Guide records without a map pin ("Konumu eksik" queue) */
+    guideMissingPins: (query?: QueryRecord) => withQuery("/admin/rehber/konum", query),
     /** Nöbet listesi: ?gun=YYYY-MM-DD (duty day, default the current one) */
     duty: (query?: QueryRecord) => withQuery("/admin/nobet", query),
     data: () => "/admin/veri",
     /** İşlem kaydı (audit_log): ?tur, kim, kullanici, hedef, q, bas, bit, sayfa */
     audit: (query?: QueryRecord) => withQuery("/admin/denetim", query),
     settings: () => "/admin/ayarlar",
+    /** GebzemAI usage and settings */
+    gebzemai: () => "/admin/gebzemai",
     /** The signed-in admin's own account and password */
     account: () => "/admin/hesap",
   },
@@ -220,6 +262,7 @@ export const PUBLIC_STATIC_ROUTES: Array<{ path: string; priority: number; chang
   { path: "/nobetci-eczane", priority: 0.9, changeFrequency: "hourly" },
   { path: "/yakinimda", priority: 0.7, changeFrequency: "weekly" },
   { path: "/gezilecek-yerler", priority: 0.7, changeFrequency: "weekly" },
+  { path: "/rehber", priority: 0.8, changeFrequency: "weekly" },
   { path: "/ilanlar", priority: 0.8, changeFrequency: "hourly" },
   { path: "/is-ilanlari", priority: 0.8, changeFrequency: "hourly" },
   { path: "/hizmetler", priority: 0.8, changeFrequency: "weekly" },

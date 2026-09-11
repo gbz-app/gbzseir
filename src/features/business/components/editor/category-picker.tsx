@@ -47,6 +47,16 @@ export function useServiceCategoryNames(): Map<string, string> {
   return React.useMemo(() => new Map((groups ?? []).flatMap((g) => g.items.map((c) => [c.id, c.name] as const))), [groups]);
 }
 
+/**
+ * FilterChip look without a border: white chip, black when chosen (with a check). On a white surface (EditCard bg-card,
+ * dialog bg-popover) the idle chip turns bg-muted so it still shows.
+ */
+const CHIP =
+  "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+const CHIP_ON = "bg-foreground text-background";
+const CHIP_OFF =
+  "bg-card text-foreground hover:bg-muted in-[.bg-card]:bg-muted in-[.bg-card]:hover:bg-foreground/10 in-[.bg-popover]:bg-muted in-[.bg-popover]:hover:bg-foreground/10";
+
 /** Multi-select of service sub-categories, grouped by their parent (what the business can be dispatched for). */
 export function CategoryPicker({ value, onChange, id }: { value: string[]; onChange: (v: string[]) => void; id?: string }) {
   const [groups, setGroups] = React.useState<Group[] | null>(cache);
@@ -68,11 +78,11 @@ export function CategoryPicker({ value, onChange, id }: { value: string[]; onCha
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-dashed p-5 text-center text-sm text-muted-foreground">
+      <div className="rounded-2xl bg-card p-5 text-center text-sm text-muted-foreground in-[.bg-card]:bg-muted in-[.bg-popover]:bg-muted">
         Kategoriler yüklenemedi.
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="sm"
           className="mt-3"
           onClick={() => {
@@ -140,10 +150,7 @@ export function CategoryPicker({ value, onChange, id }: { value: string[]; onCha
                   role="checkbox"
                   aria-checked={active}
                   onClick={() => toggle(c.id)}
-                  className={cn(
-                    "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                    active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-muted",
-                  )}
+                  className={cn(CHIP, "px-4", active ? CHIP_ON : CHIP_OFF)}
                 >
                   {active ? <Check className="size-4" aria-hidden /> : null}
                   {c.name}

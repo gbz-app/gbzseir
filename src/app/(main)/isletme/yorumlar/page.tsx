@@ -56,13 +56,13 @@ export default async function BusinessReviewsPage() {
         />
       ) : (
         <div className="flex flex-col gap-4 px-4 pt-4 pb-8">
-          <div className="flex items-center justify-between rounded-2xl bg-card px-4 py-3 shadow-soft ring-1 ring-foreground/[0.06]">
+          <div className="flex items-center justify-between rounded-2xl bg-card px-4 py-3">
             <RatingInline avg={b.rating_avg} count={b.rating_count} showCountLabel className="text-[15px] font-semibold" />
             {unreplied ? <span className="text-sm text-muted-foreground">{unreplied} yanıt bekliyor</span> : null}
           </div>
           <ul className="flex flex-col gap-3">
             {reviews.map((r) => (
-              <li key={r.id} className="rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]">
+              <li key={r.id} className="rounded-2xl bg-card p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-semibold">{authorName(r.author)}</span>
                   <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: tr })}</span>

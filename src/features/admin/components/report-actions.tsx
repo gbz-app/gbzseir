@@ -17,6 +17,10 @@ const REMOVE_TEXT: Record<string, { label: string; description: string }> = {
     label: "Kullanıcıyı engelle",
     description: "Kullanıcı giriş yapamaz; işletmeleri, ilanları, etkinlikleri ve yorumları gizlenir. Kullanıcılar ekranından geri alabilirsin.",
   },
+  event: {
+    label: "Etkinliği yayından kaldır",
+    description: "Etkinlik listelerden kalkar; sahibi yeniden yayınlayamaz, yalnızca düzenleyip onaya gönderebilir. Sahibi bildirim alır.",
+  },
 };
 
 function NoteField({ value, onChange }: { value: string; onChange: (v: string) => void }) {

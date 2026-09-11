@@ -104,10 +104,17 @@ export default async function LeadDetailPage({ params }: Props) {
   const accepted = lead.status === "accepted";
   const banner = bannerFor(view, hired);
   const answers = r.answers.filter((a) => a.display).map((a) => ({ label: a.title, value: a.display as string }));
+  // Owners with several service firms see which firm the lead is for.
+  const firmName = gate.businesses.length > 1 ? gate.businesses.find((b) => b.id === lead.business_id)?.name : undefined;
 
   return (
     <>
-      <PageHeader title="Talep detayı" subtitle={r.category.name} backHref={routes.business.leads()} hideBottomNav={view.can_accept} />
+      <PageHeader
+        title="Talep detayı"
+        subtitle={firmName ? `${r.category.name} · ${firmName}` : r.category.name}
+        backHref={routes.business.leads()}
+        hideBottomNav={view.can_accept}
+      />
       <div className={cn("flex flex-col gap-4 px-4 pt-4", view.can_accept ? "pb-4" : "pb-nav")}>
         {view.can_accept ? <LeadTip /> : null}
 

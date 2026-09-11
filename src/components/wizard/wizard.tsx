@@ -2,12 +2,13 @@
 
 import * as React from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Loader2, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, Loader2, RotateCcw, X, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HideBottomNav } from "@/components/layout/nav-visibility";
+import { BottomDock } from "@/components/shared/bottom-dock";
 import { useIsClient } from "@/lib/use-is-client";
 import { clearWizardDraft, readWizardDraft, writeWizardDraft } from "./draft";
 import { StepShell } from "./step-shell";
@@ -33,6 +34,8 @@ export type WizardStep<T> = {
   id: string;
   title: React.ReactNode;
   help?: React.ReactNode;
+  /** Optional Lucide icon shown in a soft chip next to the step title. */
+  icon?: LucideIcon;
   /** Hidden steps are skipped and not counted in the progress bar. */
   isVisible?: (data: T) => boolean;
   /** Return a Turkish error message to block "İleri", or null. May be async. */
@@ -272,13 +275,13 @@ function WizardInner<T extends object>({
   return (
     <div className={cn("flex min-h-dvh flex-col", className)}>
       <HideBottomNav />
-      <header className="sticky top-0 z-40 border-b bg-background/95 pt-safe backdrop-blur-md">
+      <header className="sticky top-0 z-40 bg-background pt-safe">
         <div className="flex h-(--topbar-h) items-center gap-1 px-2">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="rounded-full bg-foreground/[0.06] backdrop-blur-md hover:bg-foreground/10"
+            className="rounded-full bg-foreground/[0.06] hover:bg-foreground/10"
             onClick={back}
             aria-label={index === 0 ? "Kapat" : "Geri"}
           >
@@ -308,7 +311,7 @@ function WizardInner<T extends object>({
         }}
       >
         <div className="flex-1 px-4 pt-6 pb-8">
-          <StepShell key={step.id} title={step.title} help={step.help}>
+          <StepShell key={step.id} title={step.title} help={step.help} icon={step.icon}>
             <StepContent step={step} ctx={ctx} />
           </StepShell>
           {error ? (
@@ -318,17 +321,26 @@ function WizardInner<T extends object>({
           ) : null}
         </div>
         {hideFooter ? null : (
-          <div className="sticky bottom-0 z-30 flex gap-2 border-t bg-background/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] backdrop-blur-md">
-            {index > 0 ? (
-              <Button type="button" variant="outline" size="lg" onClick={back}>
-                Geri
+          // Shared dock, kept in the form's flow and stuck to the bottom: solid bg-background, no blur or line.
+          <BottomDock inFlow className="sticky bottom-0 z-30">
+            <div className="flex gap-2">
+              {index > 0 ? (
+                <Button type="button" variant="secondary" size="lg" onClick={back}>
+                  <ChevronLeft data-icon="inline-start" aria-hidden />
+                  Geri
+                </Button>
+              ) : null}
+              <Button
+                type="submit"
+                size="lg"
+                className="flex-1 bg-foreground text-background shadow-none hover:bg-foreground/90"
+                disabled={submitting || validating}
+              >
+                {submitting || validating ? <Loader2 className="animate-spin" /> : null}
+                {isLast ? completeLabel : (step.nextLabel ?? "İleri")}
               </Button>
-            ) : null}
-            <Button type="submit" size="lg" className="flex-1" disabled={submitting || validating}>
-              {submitting || validating ? <Loader2 className="animate-spin" /> : null}
-              {isLast ? completeLabel : (step.nextLabel ?? "İleri")}
-            </Button>
-          </div>
+            </div>
+          </BottomDock>
         )}
       </form>
     </div>

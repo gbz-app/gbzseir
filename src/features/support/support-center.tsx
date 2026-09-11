@@ -13,7 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { HideBottomNav } from "@/components/layout/nav-visibility";
+import { BottomDock } from "@/components/shared/bottom-dock";
 import { Field } from "@/features/business/components/editor/field";
+import { NEW_BUSINESS_HELP_REASON } from "@/features/business/lib/business-quota";
 import {
   GUEST_STEPS,
   MAX,
@@ -34,6 +36,9 @@ import { MyMessages, type MyMessage } from "./my-messages";
 import { SUPPORT_TOPICS, TOPIC_INFO, type SupportTopic } from "./topics";
 
 const FIELD_ID: Record<FieldKey, string> = { message: "destek-mesaj", phone: "destek-tel", email: "destek-eposta" };
+
+/** Subject of a message sent from the "one business per account" screens (?neden=yeni-isletme). */
+const NEW_BUSINESS_SUBJECT = "Yeni işletme eklemek istiyorum";
 
 type Props = {
   prefill: { name: string; phone: string };
@@ -73,7 +78,16 @@ function SupportFlow({ prefill, loggedIn, messages, children }: Props) {
   const searchParams = useSearchParams();
   const steps = loggedIn ? USER_STEPS : GUEST_STEPS;
 
-  const [draft, setDraft] = React.useState<Draft>(() => ({ subject: "", message: "", business: "", name: prefill.name, phone: prefill.phone, email: "" }));
+  // ?konu=isletme&neden=yeni-isletme (the "one business per account" screens): pre-filled for a new business.
+  const [newBusiness] = React.useState(() => searchParams.get("konu") === "isletme" && searchParams.get("neden") === NEW_BUSINESS_HELP_REASON);
+  const [draft, setDraft] = React.useState<Draft>(() => ({
+    subject: newBusiness ? NEW_BUSINESS_SUBJECT : "",
+    message: "",
+    business: "",
+    name: prefill.name,
+    phone: prefill.phone,
+    email: "",
+  }));
   const [errorState, setErrorState] = React.useState<StepError | null>(null);
   const [busy, setBusy] = React.useState(false);
   const busyRef = React.useRef(false);
@@ -168,6 +182,8 @@ function SupportFlow({ prefill, loggedIn, messages, children }: Props) {
 
   const selectTopic = (t: SupportTopic) => {
     setErrorState(null);
+    // The pre-filled new-business subject belongs to the business topic only.
+    if (t !== "isletme") setDraft((d) => (d.subject === NEW_BUSINESS_SUBJECT ? { ...d, subject: "" } : d));
     pushStep(1, t);
   };
 
@@ -372,7 +388,11 @@ function SupportFlow({ prefill, loggedIn, messages, children }: Props) {
 
       {step === "mesaj" ? (
         <>
-          <TopicCard topic={topic} hint={info.hint ?? info.text} onChange={() => popTo(0)} />
+          <TopicCard
+            topic={topic}
+            hint={newBusiness && topic === "isletme" ? "Yeni işletmenin adını, türünü ve adresini yaz; hesabına ekleyelim." : (info.hint ?? info.text)}
+            onChange={() => popTo(0)}
+          />
           {info.business ? (
             <Field label="İşletme adı" htmlFor="destek-isletme" optional>
               <Input id="destek-isletme" value={draft.business} maxLength={120} onChange={(e) => update({ business: e.target.value })} className={INPUT} />
@@ -395,7 +415,7 @@ function SupportFlow({ prefill, loggedIn, messages, children }: Props) {
               value={draft.message}
               maxLength={MAX}
               onChange={(e) => update({ message: e.target.value })}
-              placeholder={info.messagePlaceholder}
+              placeholder={newBusiness && topic === "isletme" ? "Yeni işletme eklemek istiyorum: ..." : info.messagePlaceholder}
               aria-invalid={error?.field === "message" || undefined}
               aria-describedby="destek-mesaj-sayac"
               className={cn(TEXTAREA, "min-h-40")}
@@ -471,7 +491,7 @@ function SupportFlow({ prefill, loggedIn, messages, children }: Props) {
         </p>
       ) : null}
 
-      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-2xl bg-linear-to-t from-background via-background/95 to-background/0 px-4 pt-6 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))]">
+      <BottomDock>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -497,7 +517,7 @@ function SupportFlow({ prefill, loggedIn, messages, children }: Props) {
             )}
           </button>
         </div>
-      </div>
+      </BottomDock>
     </form>
   );
 }

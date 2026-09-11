@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, UtensilsCrossed } from "lucide-react";
+import { ChevronRight, TreePalm, UtensilsCrossed } from "lucide-react";
 import { HideBottomNav } from "@/components/layout/nav-visibility";
 import { APP_NAME, CITY } from "@/config/site";
 import { routes } from "@/core/routes";
 import { BusinessLogo } from "@/features/business/components/business-logo";
 import { MenuSections, menuItemCount } from "@/features/business/components/menu-view";
 import { OpenNowStatus } from "@/features/business/components/open-now";
-import { hasAnyHours, parseWorkingHours } from "@/features/business/lib/hours";
+import { hasAnyHours, isOnVacation, parseWorkingHours, vacationReturnLabel } from "@/features/business/lib/hours";
 import { getPublicBusinessBySlug } from "@/features/business/lib/queries";
 import { getBusinessMenu } from "@/features/business/lib/vertical-queries";
 
@@ -45,6 +45,10 @@ export default async function PublicMenuPage({ params }: Props) {
   const menu = await getBusinessMenu(b.id).catch(() => []);
   const hours = parseWorkingHours(b.working_hours);
   const count = menuItemCount(menu);
+  const vacation = { vacation_mode: b.vacation_mode, vacation_until: b.vacation_until };
+  // Server time of this (ISR) render; the header status below is re-checked on the client.
+  const onVacation = isOnVacation(vacation);
+  const back = onVacation ? vacationReturnLabel(b.vacation_until) : null;
 
   return (
     <div className="min-h-dvh pb-16">
@@ -55,9 +59,18 @@ export default async function PublicMenuPage({ params }: Props) {
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold tracking-wide text-primary uppercase">Menü</p>
             <h1 className="truncate text-xl leading-tight font-semibold">{b.name}</h1>
-            <div className="mt-0.5 text-sm">{hasAnyHours(hours) ? <OpenNowStatus hours={hours} /> : null}</div>
+            <div className="mt-0.5 text-sm">{hasAnyHours(hours) || b.vacation_mode ? <OpenNowStatus hours={hours} vacation={vacation} /> : null}</div>
           </div>
         </div>
+        {onVacation ? (
+          <div role="note" className="mt-4 flex items-start gap-3 rounded-2xl bg-highlight-soft px-4 py-3 text-sm text-highlight-foreground dark:text-foreground">
+            <TreePalm className="mt-0.5 size-5 shrink-0 text-highlight" aria-hidden />
+            <p>
+              <strong className="block">Şu an tatildeyiz</strong>
+              {back ? `Dönüş tarihimiz: ${back}. ` : null}Menüye yine de göz atabilirsin.
+            </p>
+          </div>
+        ) : null}
       </header>
 
       {menu.length > 1 ? (

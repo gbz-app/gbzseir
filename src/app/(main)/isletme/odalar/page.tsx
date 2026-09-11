@@ -28,7 +28,7 @@ export default async function OwnerRoomsPage() {
           <RoomsManager businessId={b.id} initial={await getBusinessRooms(b.id).catch(() => [])} amenities={(await getVocabularies()).roomAmenities} />
         ) : (
           <WrongVerticalNote
-            text="Oda yönetimi otel işletmeleri içindir. İşletme türünü Otel yaparsan bu bölüm açılır."
+            text="Oda yönetimi otel işletmeleri içindir."
             alternatives={await getOtherOwnedBusinesses(b.id, (x) => hasRooms(x.vertical))}
             next={routes.business.rooms()}
           />

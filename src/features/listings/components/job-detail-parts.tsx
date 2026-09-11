@@ -1,24 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import {
-  BadgeCheck,
-  Banknote,
-  Briefcase,
-  BriefcaseBusiness,
-  Bus,
-  CircleCheck,
-  Clock,
-  Coins,
-  Eye,
-  Factory,
-  MapPin,
-  MapPinned,
-  PhoneCall,
-  RefreshCw,
-  ShieldAlert,
-  ShieldCheck,
-  UtensilsCrossed,
-} from "lucide-react";
+import { BadgeCheck, Banknote, Briefcase, BriefcaseBusiness, Bus, CircleCheck, Clock, Eye, MapPin, PhoneCall, ShieldAlert, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CITY } from "@/config/site";
 import { formatNumber, formatPhoneTR } from "@/core/format";
@@ -28,6 +10,7 @@ import { RelativeTime } from "@/components/shared/relative-time";
 import { JOB_SAFETY_TEXT, jobLocationByLabel, type Option } from "../constants";
 import type { BusinessRef } from "../types";
 import { CompanyLogo } from "./listing-cards";
+import { BENEFIT_ICONS, jobLocationIcon } from "./listing-icons";
 
 // ---------------------------------------------------------------------------
 // Hero + header
@@ -118,10 +101,6 @@ export function JobMetaLine({ place, postedAt, views, isDemo }: { place: string;
 
 type Fact = { key: string; icon: LucideIcon; text: string };
 
-function isOsb(label: string): boolean {
-  return /\bOSB\b|^GOSB$|^TOSB$/i.test(label);
-}
-
 /** Key facts as icon chips: work type, place / OSB, experience, and servis / yemek when offered. */
 export function JobFactChips({
   workTypeLabel,
@@ -138,7 +117,7 @@ export function JobFactChips({
   if (workTypeLabel) facts.push({ key: "calisma", icon: Clock, text: workTypeLabel });
   if (locationLabel) {
     const merkez = jobLocationByLabel(locationLabel)?.key === "merkez";
-    facts.push({ key: "konum", icon: isOsb(locationLabel) ? Factory : MapPinned, text: merkez ? `${CITY.name} merkez` : locationLabel });
+    facts.push({ key: "konum", icon: jobLocationIcon(locationLabel), text: merkez ? `${CITY.name} merkez` : locationLabel });
   }
   facts.push({
     key: "deneyim",
@@ -159,14 +138,6 @@ export function JobFactChips({
     </ul>
   );
 }
-
-const BENEFIT_ICONS: Record<string, LucideIcon> = {
-  servis: Bus,
-  yemek: UtensilsCrossed,
-  sgk: ShieldCheck,
-  prim: Coins,
-  vardiya: RefreshCw,
-};
 
 /** "Yan haklar" as a two-column grid of icon rows. */
 export function BenefitGrid({ benefits }: { benefits: Option[] }) {

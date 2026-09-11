@@ -5,7 +5,7 @@
 import { CONDITIONS, EXPERIENCE_LEVELS, JOB_BENEFITS, WORK_TYPES, optionLabel, type ListingStatus, type Option } from "./constants";
 import { formatMonthYear, isPastExpiry, isSalaryVisible, listingNo, salaryText } from "./format";
 import { splitJobDescription } from "./job-description";
-import type { AttributeField, AttributeValues, BusinessRef, ListingCategory, ListingDetail, MediaRef } from "./types";
+import type { AttributeField, AttributeValues, BusinessRef, ListingCategory, ListingDetail, MediaRef, VideoRef } from "./types";
 
 export type DisplayState = "live" | "sold" | "filled" | "expired" | "paused" | "pending_review" | "rejected" | "draft" | "deleted";
 
@@ -66,6 +66,8 @@ export type ClassifiedViewModel = {
   postedAt: string | null;
   listingNo: string | null;
   images: MediaRef[];
+  /** Optional video: the second slide of the gallery. */
+  video?: VideoRef | null;
   seller: SellerInfo;
   business: BusinessRef | null;
   state: DisplayState;
@@ -89,6 +91,7 @@ export function classifiedModelFromDetail(d: ListingDetail, categories: ListingC
     postedAt: d.published_at ?? d.created_at,
     listingNo: listingNo(d.id),
     images: d.media.map((m) => ({ url: m.url, thumbUrl: m.thumbUrl })),
+    video: d.video,
     seller: { displayName: d.owner?.display_name || "Gebzem kullanıcısı", memberSince: formatMonthYear(d.owner?.created_at) },
     business: d.business_id ? d.business : null,
     state: displayState(d.status, d.expires_at),

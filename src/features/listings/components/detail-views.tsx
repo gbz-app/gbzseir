@@ -1,4 +1,4 @@
-import { BadgeCheck, MapPin } from "lucide-react";
+import { BadgeCheck, CalendarDays, Eye, FileText, Hash, Images, MapPin, MapPinned, SlidersHorizontal, Sparkles, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CITY } from "@/config/site";
 import { formatDate, formatNumber } from "@/core/format";
@@ -19,7 +19,9 @@ import {
   type DetailRow,
   type FactTile,
 } from "./detail-parts";
+import { categoryIconFor } from "./category-icon";
 import { ListingGallery } from "./gallery";
+import { attributeIcon, inferAttributeType } from "./listing-icons";
 import {
   BenefitGrid,
   EmployerCard,
@@ -76,21 +78,28 @@ export function ClassifiedDetailView({ model, notice, footer, preview, isDemo, h
   const Title = preview ? "h2" : "h1";
   const place = model.neighbourhoodName ? `${model.neighbourhoodName} Mah., ${CITY.name}` : CITY.name;
   const hasConditionRow = model.attributes.some((a) => a.key === "durum");
+  const categoryIcon = categoryIconFor(model.categoryIcon);
   const tiles: FactTile[] = [
-    model.conditionLabel ? { label: "durum", value: model.conditionLabel } : { label: "kategori", value: model.categoryName },
-    { label: "ilan tarihi", value: shortDate(model.postedAt) },
-    views != null ? { label: "görüntülenme", value: formatNumber(views) } : { label: "fotoğraf", value: formatNumber(model.images.length) },
+    model.conditionLabel
+      ? { label: "durum", value: model.conditionLabel, icon: Sparkles }
+      : { label: "kategori", value: model.categoryName, icon: categoryIcon },
+    { label: "ilan tarihi", value: shortDate(model.postedAt), icon: CalendarDays },
+    views != null
+      ? { label: "görüntülenme", value: formatNumber(views), icon: Eye }
+      : { label: "fotoğraf", value: formatNumber(model.images.length), icon: Images },
   ];
   const rows: DetailRow[] = [
-    { label: "Kategori", value: model.categoryTrail || model.categoryName },
-    ...(model.conditionLabel && !hasConditionRow ? [{ label: "Durum", value: model.conditionLabel }] : []),
-    ...model.attributes.map((a) => ({ label: a.label, value: a.value })),
-    ...(model.listingNo ? [{ label: "İlan no", value: model.listingNo }] : []),
+    { key: "kategori", label: "Kategori", value: model.categoryTrail || model.categoryName, icon: categoryIcon },
+    ...(model.conditionLabel && !hasConditionRow ? [{ key: "durum", label: "Durum", value: model.conditionLabel, icon: attributeIcon("durum") }] : []),
+    // React key prefixed so a future attribute named "kategori" / "ilan-no" cannot collide with the fixed rows.
+    ...model.attributes.map((a) => ({ key: `attr:${a.key}`, label: a.label, value: a.value, icon: attributeIcon(a.key, inferAttributeType(a.value)) })),
+    ...(model.listingNo ? [{ key: "ilan-no", label: "İlan no", value: model.listingNo, icon: Hash }] : []),
   ];
   return (
     <article className="flex flex-col">
       <ListingGallery
         images={model.images}
+        video={model.video}
         title={model.title}
         ribbon={model.state === "sold" ? "Satıldı" : null}
         placeholderIcon={model.categoryIcon}
@@ -108,12 +117,12 @@ export function ClassifiedDetailView({ model, notice, footer, preview, isDemo, h
         </header>
         {notice}
         <FactTiles tiles={tiles} />
-        <DetailList id="ozellikler" title="Özellikler" rows={rows} />
-        <TextSection id="aciklama" title="Açıklama" text={model.description} />
-        <DetailSection id="satici" title="Satıcı">
+        <DetailList id="ozellikler" title="Özellikler" icon={SlidersHorizontal} rows={rows} />
+        <TextSection id="aciklama" title="Açıklama" icon={FileText} text={model.description} />
+        <DetailSection id="satici" title="Satıcı" icon={UserRound}>
           <SellerCard seller={model.seller} business={model.business} interactive={!preview} />
         </DetailSection>
-        <DetailSection id="konum" title="Konum">
+        <DetailSection id="konum" title="Konum" icon={MapPinned}>
           <LocationCard title={place} note="Kesin adres ilanda paylaşılmaz; buluşma yerini satıcıyla telefonda konuş." />
         </DetailSection>
         <SafetyNotice text={SAFETY_TEXT} />

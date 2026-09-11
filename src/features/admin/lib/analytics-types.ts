@@ -14,7 +14,7 @@ export type DashboardData = {
   generated_at: string;
   users: { total: number; today: number; week: number; business_owners: number; restricted: number; demo: number };
   businesses: { approved: number; pending: number; by_vertical: Record<string, number> };
-  content: { listings_active: number; listings_pending: number; reports_open: number; support_new: number; events_upcoming: number; requests_open: number };
+  content: { listings_active: number; listings_pending: number; reports_open: number; support_new: number; events_upcoming: number; events_pending?: number; requests_open: number };
   live: { online_now: number; online_users: number };
   today: { sessions: number; visitors: number; signed_in: number; avg_duration_s: number };
   page_views_today: number;

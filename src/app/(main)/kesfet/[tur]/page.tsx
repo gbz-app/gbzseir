@@ -6,11 +6,15 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { APP_NAME, CITY, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { VerticalExplorer } from "@/features/business/components/vertical-explorer";
+import { hasDoctors, type DirectoryDoctor } from "@/features/business/components/doctors/doctor-meta";
+import { getDoctorBranches, listSaglikDoctors } from "@/features/business/components/doctors/queries";
 import { listVerticalBusinesses } from "@/features/business/lib/vertical-queries";
 import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { LISTABLE_VERTICALS, VERTICAL_INFO, parseVertical, type Vertical } from "@/features/business/lib/verticals";
 
 export const revalidate = 300;
+/** generateStaticParams lists every LISTABLE_VERTICALS value and listable() accepts nothing else, so any other tur is a real 404. */
+export const dynamicParams = false;
 
 export function generateStaticParams() {
   return LISTABLE_VERTICALS.map((tur) => ({ tur }));
@@ -38,7 +42,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function VerticalPage({ params }: Props) {
   const v = listable((await params).tur);
   if (!v) notFound();
-  const [items, settings, vocab] = await Promise.all([listVerticalBusinesses(v).catch(() => null), getAppSettings(), getVocabularies()]);
+  // Sağlık also lists the clinics' doctors ("İşletmeler | Doktorlar").
+  const withDoctors = hasDoctors(v);
+  const [items, settings, vocab, doctors, doctorBranches] = await Promise.all([
+    listVerticalBusinesses(v).catch(() => null),
+    getAppSettings(),
+    getVocabularies(),
+    withDoctors ? listSaglikDoctors().catch(() => [] as DirectoryDoctor[]) : Promise.resolve(undefined),
+    withDoctors ? getDoctorBranches() : Promise.resolve(undefined),
+  ]);
   if (!items) {
     return (
       <div className="px-4 py-10">
@@ -65,7 +77,14 @@ export default async function VerticalPage({ params }: Props) {
           }}
         />
       ) : null}
-      <VerticalExplorer vertical={v} items={items} applicationsOpen={settings.businessApplications} subcategories={vocab.subcategories[v] ?? []} />
+      <VerticalExplorer
+        vertical={v}
+        items={items}
+        applicationsOpen={settings.businessApplications}
+        subcategories={vocab.subcategories[v] ?? []}
+        doctors={doctors}
+        doctorBranches={doctorBranches}
+      />
     </>
   );
 }

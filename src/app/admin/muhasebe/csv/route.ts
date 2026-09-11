@@ -28,6 +28,14 @@ const cell = (v: string | number | null | undefined) => {
   const s = v === null || v === undefined ? "" : String(v);
   return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
+/**
+ * Free-text cell. Excel runs a value starting with = + - @ TAB or CR as a formula even when it is quoted, and a business
+ * owner controls the business name, so such values get a leading apostrophe. Only for text columns: amounts keep their "-".
+ */
+const text = (v: string | null | undefined) => {
+  const s = v ?? "";
+  return cell(/^[=+\-@\t\r]/.test(s) ? `'${s}` : s);
+};
 
 /** GET /admin/muhasebe/csv?bas=YYYY-MM-DD&bit=YYYY-MM-DD: Excel-friendly CSV (UTF-8 BOM, ";" separated, decimal comma). */
 export async function GET(req: Request) {
@@ -55,22 +63,20 @@ export async function GET(req: Request) {
     const vat = (amount * rate) / (100 + rate);
     const sign = r.kind === "income" ? 1 : -1;
     return [
-      r.occurred_on,
-      r.kind === "income" ? "Gelir" : "Gider",
-      r.finance_categories?.name ?? "",
-      r.description ?? "",
-      r.counterparty ?? "",
-      r.businesses?.name ?? "",
-      PAY[r.payment_method] ?? r.payment_method,
-      num(sign * amount),
-      num(rate),
-      num(sign * vat),
-      num(sign * (amount - vat)),
-      r.document_path ? "Var" : "Yok",
-      r.document_url ?? "",
-    ]
-      .map(cell)
-      .join(";");
+      cell(r.occurred_on),
+      cell(r.kind === "income" ? "Gelir" : "Gider"),
+      text(r.finance_categories?.name),
+      text(r.description),
+      text(r.counterparty),
+      text(r.businesses?.name),
+      text(PAY[r.payment_method] ?? r.payment_method),
+      cell(num(sign * amount)),
+      cell(num(rate)),
+      cell(num(sign * vat)),
+      cell(num(sign * (amount - vat))),
+      cell(r.document_path ? "Var" : "Yok"),
+      text(r.document_url),
+    ].join(";");
   });
   const csv = `﻿${header.join(";")}\r\n${lines.join("\r\n")}\r\n`;
   return new NextResponse(csv.charCodeAt(0) === 0xfeff ? csv : `﻿${csv}`, {

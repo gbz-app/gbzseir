@@ -74,7 +74,8 @@ export default async function JobPage({ params }: Props) {
       <JobActionBar
         listingId={detail.id}
         ownerId={detail.owner_id}
-        phone={detail.business?.phone ?? null}
+        // Sample (demo) numbers never reach the client; the bar shows the grey "Örnek kayıt - aranamaz" pill instead.
+        phone={detail.is_demo ? null : (detail.business?.phone ?? null)}
         state={model.state}
         similarHref={similarHref}
         editHref={editHref}

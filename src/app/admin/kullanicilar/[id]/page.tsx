@@ -34,7 +34,7 @@ import { routes, withQuery } from "@/core/routes";
 import { publicUrl } from "@/config/app-mode";
 import { AdminCard, InfoList, InfoRow, StatTile, StatusBadge } from "@/features/admin/components/admin-ui";
 import { HBarList, formatDuration } from "@/features/admin/components/charts";
-import { UserActions } from "@/features/admin/components/user-actions";
+import { BusinessSlotControl, UserActions } from "@/features/admin/components/user-actions";
 import { BUSINESS_STATUS, PROFILE_STATUS } from "@/features/admin/lib/labels";
 import { DEVICE_LABELS, pathLabel } from "@/features/admin/lib/analytics-types";
 
@@ -60,6 +60,8 @@ type Overview = {
     kvkk_version: string | null;
     neighbourhood: string | null;
     last_sign_in_at: string | null;
+    /** Admin-granted businesses on top of Ayarlar > Hesap başına işletme sayısı (2026091370). */
+    extra_business_slots?: number;
   };
   counts: Record<"listings" | "listings_active" | "reviews" | "requests" | "favorites" | "reports_made" | "reports_against" | "support_messages", number>;
   businesses: Array<{ id: string; name: string; slug: string; status: string; vertical: string | null }>;
@@ -100,6 +102,10 @@ export default async function AdminUserPage({ params }: Props) {
   if (error || !data) notFound();
   const o = data as unknown as Overview;
   const p = o.profile;
+  // Ayarlar > Hesap başına işletme sayısı + the slots granted to this user (2026091370).
+  const { data: maxRow } = await supabase.from("app_settings").select("value").eq("key", "business_max_per_owner").maybeSingle();
+  const extraSlots = p.extra_business_slots ?? 0;
+  const businessLimit = (typeof maxRow?.value === "number" ? maxRow.value : 1) + extraSlots;
 
   return (
     <>
@@ -159,7 +165,13 @@ export default async function AdminUserPage({ params }: Props) {
             <InfoRow label="Hakkında şikayet">
               <span className={o.counts.reports_against ? "font-bold text-destructive" : undefined}>{formatNumber(o.counts.reports_against)}</span>
             </InfoRow>
+            <InfoRow label="İşletme hakkı">
+              {`${formatNumber(o.businesses.length)} / ${formatNumber(businessLimit)}${extraSlots ? ` (${formatNumber(extraSlots)} ek hak)` : ""}`}
+            </InfoRow>
           </InfoList>
+          <div className="mt-3">
+            <BusinessSlotControl userId={p.id} extra={extraSlots} />
+          </div>
           {o.businesses.length ? (
             <div className="mt-4 border-t pt-3">
               <p className="mb-2 text-sm font-semibold">İşletmeleri</p>

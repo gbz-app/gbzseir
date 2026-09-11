@@ -78,7 +78,7 @@ export function BottomSheet({
           {children}
         </div>
         {footer ? (
-          <DrawerFooter className="border-t px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">{footer}</DrawerFooter>
+          <DrawerFooter className="px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">{footer}</DrawerFooter>
         ) : null}
       </DrawerContent>
     </Drawer>

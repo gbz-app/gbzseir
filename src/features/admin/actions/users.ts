@@ -80,3 +80,36 @@ export async function setTrustedPublisherAction(input: z.input<typeof trustedSch
     return ok(null, parsed.data.value ? "Güvenilir yayıncı yapıldı." : "Güvenilir yayıncılık kaldırıldı.");
   });
 }
+
+const slotSchema = z.object({
+  userId: zId,
+  slots: z
+    .number()
+    .int()
+    .min(-10)
+    .max(10)
+    .refine((n) => n !== 0, "Hak sayısı 0 olamaz."),
+});
+
+/**
+ * İşletme hakkı: extra businesses on top of Ayarlar > Hesap başına işletme sayısı (admin_grant_business_slot; audited,
+ * and a + notifies the user with a link to the apply page). A - takes a granted slot back (never below 0).
+ */
+export async function grantBusinessSlotAction(input: z.input<typeof slotSchema>): Promise<ActionResult<{ limit: number; count: number }>> {
+  return withAdmin(async ({ supabase }) => {
+    const parsed = slotSchema.safeParse(input);
+    if (!parsed.success) return fail(firstIssue(parsed.error));
+    const { userId, slots } = parsed.data;
+    // Errors come back as Turkish text with a hint: invalid_slots, not_found.
+    const { data, error } = await supabase.rpc("admin_grant_business_slot", { p_user: userId, p_slots: slots });
+    if (error) return dbFail(error);
+    const res = (data ?? {}) as { changed?: boolean; limit?: number; count?: number };
+    const limit = res.limit ?? 0;
+    revalidateUser(userId);
+    if (!res.changed) return ok({ limit, count: res.count ?? 0 }, "Değişiklik yok.");
+    return ok(
+      { limit, count: res.count ?? 0 },
+      slots > 0 ? `İşletme hakkı verildi: en fazla ${limit} işletme. Kullanıcıya bildirim gitti.` : `İşletme hakkı geri alındı: en fazla ${limit} işletme.`,
+    );
+  });
+}

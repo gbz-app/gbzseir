@@ -10,6 +10,19 @@ import { Switch } from "@/components/ui/switch";
 import { useNeighbourhoods } from "@/lib/neighbourhoods";
 import { trIncludes } from "@/core/tr";
 
+/**
+ * FilterChip look without a border: white chip, black when chosen (with a check). On a white surface (EditCard bg-card,
+ * dialog bg-popover) the idle chip turns bg-muted so it still shows.
+ */
+const CHIP =
+  "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+const CHIP_ON = "bg-foreground text-background";
+const CHIP_OFF =
+  "bg-card text-foreground hover:bg-muted in-[.bg-card]:bg-muted in-[.bg-card]:hover:bg-foreground/10 in-[.bg-popover]:bg-muted in-[.bg-popover]:hover:bg-foreground/10";
+/** The "Tüm Gebze" row: white on the page, muted on a white surface, brand-soft when on. */
+const ALL_ROW =
+  "flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl bg-card px-4 py-3 transition-colors in-[.bg-card]:bg-muted in-[.bg-popover]:bg-muted has-[button[aria-checked=true]]:bg-brand-soft has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50";
+
 /** Neighbourhoods the business travels to; "Tüm Gebze" selects every neighbourhood. */
 export function AreaPicker({ value, onChange, id }: { value: string[]; onChange: (v: string[]) => void; id?: string }) {
   const { neighbourhoods, loading, error, reload } = useNeighbourhoods();
@@ -20,9 +33,9 @@ export function AreaPicker({ value, onChange, id }: { value: string[]; onChange:
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-dashed p-5 text-center text-sm text-muted-foreground">
+      <div className="rounded-2xl bg-card p-5 text-center text-sm text-muted-foreground in-[.bg-card]:bg-muted in-[.bg-popover]:bg-muted">
         {error}
-        <Button type="button" variant="outline" size="sm" className="mt-3" onClick={reload}>
+        <Button type="button" variant="secondary" size="sm" className="mt-3" onClick={reload}>
           Tekrar dene
         </Button>
       </div>
@@ -33,7 +46,7 @@ export function AreaPicker({ value, onChange, id }: { value: string[]; onChange:
 
   return (
     <div id={id} className="flex flex-col gap-3">
-      <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border-2 bg-card px-4 py-3 has-[button[aria-checked=true]]:border-primary has-[button[aria-checked=true]]:bg-brand-soft">
+      <label className={ALL_ROW}>
         <MapPinned className="size-5 shrink-0 text-primary" aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-bold">Tüm Gebze</span>
@@ -79,10 +92,7 @@ export function AreaPicker({ value, onChange, id }: { value: string[]; onChange:
                 role="checkbox"
                 aria-checked={active}
                 onClick={() => toggle(nid)}
-                className={cn(
-                  "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                  active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-muted",
-                )}
+                className={cn(CHIP, active ? CHIP_ON : CHIP_OFF)}
               >
                 {active ? <Check className="size-4" aria-hidden /> : null}
                 {n.name}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, BadgeCheck, Banknote, Clock, MapPin, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, Banknote, Clock, MapPin, Play, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CITY } from "@/config/site";
 import { routes } from "@/core/routes";
@@ -44,6 +44,16 @@ function PhotoTag({ children, className }: { children: React.ReactNode; classNam
   return <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", className)}>{children}</span>;
 }
 
+/** "Video" chip: the listing has a video. */
+function VideoTag() {
+  return (
+    <PhotoTag className="inline-flex items-center gap-0.5 bg-black/65 text-white">
+      <Play className="size-2.5 fill-current" aria-hidden />
+      Video
+    </PhotoTag>
+  );
+}
+
 /** 2. el card of the two-column grid: white card, rounded photo, bold price, title, neighbourhood + time, heart. */
 export function ClassifiedCard({
   item,
@@ -82,10 +92,11 @@ export function ClassifiedCard({
           ) : (
             <ListingPlaceholder icon={item.categoryIcon} />
           )}
-          {item.isDemo || tag ? (
+          {item.isDemo || tag || item.hasVideo ? (
             <div className="pointer-events-none absolute bottom-2 left-2 flex flex-wrap gap-1">
               {item.isDemo ? <DemoBadge label="Örnek" className="h-5 px-1.5 text-[11px]" /> : null}
               {tag}
+              {item.hasVideo ? <VideoTag /> : null}
             </div>
           ) : null}
         </div>
@@ -124,7 +135,12 @@ export function ClassifiedRailCard({ item }: { item: ListingCardData }) {
           ) : (
             <ListingPlaceholder icon={item.categoryIcon} iconClassName="size-9" />
           )}
-          {item.isDemo ? <DemoBadge label="Örnek" className="absolute bottom-2 left-2 h-5 px-1.5 text-[11px]" /> : null}
+          {item.isDemo || item.hasVideo ? (
+            <div className="pointer-events-none absolute bottom-2 left-2 flex flex-wrap gap-1">
+              {item.isDemo ? <DemoBadge label="Örnek" className="h-5 px-1.5 text-[11px]" /> : null}
+              {item.hasVideo ? <VideoTag /> : null}
+            </div>
+          ) : null}
         </div>
         <div className="flex flex-1 flex-col px-1 pt-2 pb-1">
           <p className="text-[15px] leading-tight font-bold tabular-nums">{listingPriceText(item.price)}</p>

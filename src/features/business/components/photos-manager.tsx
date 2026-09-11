@@ -64,7 +64,7 @@ export function PhotosManager({ businessId, cover: initialCover, photos: initial
   return (
     <div className="flex flex-col gap-8 px-4 pt-4 pb-8">
       <section aria-labelledby="kapak">
-        <h2 id="kapak" className="text-base font-bold">
+        <h2 id="kapak" className="scroll-mt-24 text-base font-bold">
           Kapak fotoğrafı
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">İşletme sayfanın en üstünde görünür. Dükkanının dışı ya da en iyi işin olabilir.</p>
@@ -80,7 +80,7 @@ export function PhotosManager({ businessId, cover: initialCover, photos: initial
       </section>
 
       <section aria-labelledby="portfolyo">
-        <h2 id="portfolyo" className="text-base font-bold">
+        <h2 id="portfolyo" className="scroll-mt-24 text-base font-bold">
           İş fotoğrafları
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">

@@ -3,18 +3,29 @@
  */
 import {
   Banknote,
+  Building2,
   Bus,
   CarTaxiFront,
   Castle,
   Cross,
+  Drama,
+  EvCharger,
+  Flower2,
+  Fuel,
   Landmark,
   MoonStar,
   Mountain,
   Pill,
   ShoppingBag,
+  ShoppingBasket,
   Sparkles,
   Store,
+  TentTree,
+  TrainFront,
   Trees,
+  Trophy,
+  Vault,
+  Waves,
   type LucideIcon,
 } from "lucide-react";
 import { routes, withQuery } from "@/core/routes";
@@ -47,6 +58,10 @@ export const NEARBY_FILTERS: FilterMeta[] = [
   { value: "durak", label: "Durak", icon: Bus, marker: "bus_stop", title: "Yakındaki duraklar", noun: "durak" },
   { value: "taksi", label: "Taksi", icon: CarTaxiFront, marker: "taxi", title: "Yakındaki taksi durakları", noun: "taksi durağı" },
   { value: "atm", label: "ATM", icon: Banknote, marker: "atm", title: "Yakındaki ATM'ler", noun: "ATM" },
+  { value: "banka", label: "Banka", icon: Vault, marker: "bank", title: "Yakındaki banka şubeleri", noun: "banka şubesi" },
+  { value: "akaryakit", label: "Akaryakıt", icon: Fuel, marker: "fuel", title: "Yakındaki akaryakıt istasyonları", noun: "akaryakıt istasyonu" },
+  { value: "sarj", label: "Şarj", icon: EvCharger, marker: "ev_charge", title: "Yakındaki şarj istasyonları", noun: "şarj istasyonu" },
+  { value: "kurum", label: "Kurum", icon: Building2, marker: "institution", title: "Yakındaki resmî kurumlar", noun: "resmî kurum" },
   { value: "gezilecek", label: "Gezilecek", icon: Landmark, marker: "place", title: "Gezilecek yerler", noun: "yer" },
   // "isletme" is no longer a chip: ?tur=isletme is not parsed and falls back to the default tab.
 ];
@@ -118,6 +133,34 @@ export const KIND_META: Record<MarkerKind, KindMeta> = {
     glyph: "#FFFFFF",
     tone: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
   },
+  bank: {
+    label: "Banka şubesi",
+    icon: Vault,
+    pin: "#1D4ED8",
+    glyph: "#FFFFFF",
+    tone: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+  },
+  fuel: {
+    label: "Akaryakıt istasyonu",
+    icon: Fuel,
+    pin: "#EA580C",
+    glyph: "#FFFFFF",
+    tone: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
+  },
+  ev_charge: {
+    label: "Şarj istasyonu",
+    icon: EvCharger,
+    pin: "#0891B2",
+    glyph: "#FFFFFF",
+    tone: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+  },
+  institution: {
+    label: "Resmî kurum",
+    icon: Building2,
+    pin: "#4338CA",
+    glyph: "#FFFFFF",
+    tone: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  },
   place: {
     label: "Gezilecek yer",
     icon: Landmark,
@@ -147,22 +190,39 @@ export type PlaceCategoryMeta = {
   gradient: string;
 };
 
-/** Built-in categories (seed of public.place_categories); "diger" is the fallback and stays last. */
+/**
+ * Built-in categories (seed of public.place_categories, 2026091363 + 2026091376), in the seed's sort order;
+ * "diger" is the fallback and stays last.
+ */
 export const PLACE_CATEGORIES: PlaceCategoryMeta[] = [
   { value: "tarihi", label: "Tarihi", icon: Castle, gradient: "from-amber-500 via-orange-500 to-rose-600" },
   { value: "park", label: "Park", icon: Trees, gradient: "from-lime-500 via-emerald-500 to-teal-600" },
+  { value: "tabiat_parki", label: "Tabiat parkı", icon: TentTree, gradient: "from-green-500 via-emerald-600 to-teal-700" },
   { value: "doga", label: "Doğa", icon: Mountain, gradient: "from-teal-400 via-cyan-500 to-sky-700" },
+  { value: "sahil", label: "Sahil", icon: Waves, gradient: "from-cyan-400 via-sky-500 to-blue-600" },
   { value: "muze", label: "Müze", icon: Landmark, gradient: "from-violet-500 via-purple-500 to-indigo-700" },
+  { value: "kultur", label: "Kültür ve sanat", icon: Drama, gradient: "from-fuchsia-500 via-purple-500 to-violet-700" },
+  { value: "spor", label: "Spor", icon: Trophy, gradient: "from-orange-400 via-amber-500 to-yellow-600" },
+  { value: "pazar", label: "Pazar yeri", icon: ShoppingBasket, gradient: "from-lime-400 via-green-500 to-emerald-600" },
+  { value: "mezarlik", label: "Mezarlık", icon: Flower2, gradient: "from-slate-400 via-slate-500 to-slate-700" },
   { value: "avm", label: "AVM", icon: ShoppingBag, gradient: "from-pink-500 via-rose-500 to-red-600" },
+  { value: "ulasim", label: "Ulaşım", icon: TrainFront, gradient: "from-blue-500 via-indigo-500 to-violet-600" },
   { value: "diger", label: "Diğer", icon: Sparkles, gradient: "from-sky-500 via-blue-500 to-indigo-600" },
 ];
 
 const PLACE_ICON_NAMES: Record<BuiltinPlaceCategory, string> = {
   tarihi: "castle",
   park: "trees",
+  tabiat_parki: "tent-tree",
   doga: "mountain",
+  sahil: "waves",
   muze: "landmark",
+  kultur: "drama",
+  spor: "trophy",
+  pazar: "shopping-basket",
+  mezarlik: "flower-2",
   avm: "shopping-bag",
+  ulasim: "train-front",
   diger: "sparkles",
 };
 
@@ -213,8 +273,12 @@ export function poiHref(kind: PoiKind, slug: string): string {
       // No detail page for taxi stands: the list card opens the map view.
       return routes.nearby.root("taksi");
     case "atm":
-      // Same as taxi: no detail page for ATMs.
-      return routes.nearby.root("atm");
+    case "bank":
+    case "fuel":
+    case "ev_charge":
+    case "institution":
+      // City guide detail page (src/features/guide).
+      return routes.guide.detail(slug);
   }
 }
 

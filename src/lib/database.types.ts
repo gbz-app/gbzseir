@@ -658,6 +658,75 @@ export type Database = {
           },
         ]
       }
+      business_staff: {
+        Row: {
+          bio: string | null
+          branch: string
+          business_id: string
+          consent_confirmed_at: string
+          created_at: string
+          days: string[]
+          hours_note: string | null
+          id: string
+          is_active: boolean
+          is_demo: boolean
+          name: string
+          photo_url: string | null
+          sort: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          branch?: string
+          business_id: string
+          consent_confirmed_at: string
+          created_at?: string
+          days?: string[]
+          hours_note?: string | null
+          id?: string
+          is_active?: boolean
+          is_demo?: boolean
+          name: string
+          photo_url?: string | null
+          sort?: number
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          branch?: string
+          business_id?: string
+          consent_confirmed_at?: string
+          created_at?: string
+          days?: string[]
+          hours_note?: string | null
+          id?: string
+          is_active?: boolean
+          is_demo?: boolean
+          name?: string
+          photo_url?: string | null
+          sort?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_staff_branch_fkey"
+            columns: ["branch"]
+            isOneToOne: false
+            referencedRelation: "doctor_branches"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "business_staff_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       businesses: {
         Row: {
           address: string | null
@@ -690,6 +759,7 @@ export type Database = {
           status: string
           updated_at: string
           vacation_mode: boolean
+          vacation_until: string | null
           verification_level: number
           vertical: string | null
           website: string | null
@@ -726,6 +796,7 @@ export type Database = {
           status?: string
           updated_at?: string
           vacation_mode?: boolean
+          vacation_until?: string | null
           verification_level?: number
           vertical?: string | null
           website?: string | null
@@ -762,6 +833,7 @@ export type Database = {
           status?: string
           updated_at?: string
           vacation_mode?: boolean
+          vacation_until?: string | null
           verification_level?: number
           vertical?: string | null
           website?: string | null
@@ -986,6 +1058,39 @@ export type Database = {
         }
         Relationships: []
       }
+      doctor_branches: {
+        Row: {
+          active: boolean
+          created_at: string
+          icon: string | null
+          id: string
+          key: string
+          label: string
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          key: string
+          label: string
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          key?: string
+          label?: string
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       duty_import_runs: {
         Row: {
           actor_id: string | null
@@ -1079,80 +1184,104 @@ export type Database = {
       events: {
         Row: {
           address: string | null
+          admin_hidden: boolean
           business_id: string | null
           category: string
+          contact_phone: string | null
           cover_url: string | null
           created_at: string
           created_by: string | null
           description: string | null
           ends_at: string | null
+          has_contact_phone: boolean | null
           id: string
           is_demo: boolean
           is_free: boolean
           lat: number | null
           lng: number | null
           neighbourhood_id: string | null
+          organizer_name: string | null
           phone: string | null
           price_note: string | null
           price_try: number | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           slug: string | null
           starts_at: string
           status: string
           ticket_url: string | null
           title: string
           updated_at: string
+          venue_business_id: string | null
           venue_name: string | null
         }
         Insert: {
           address?: string | null
+          admin_hidden?: boolean
           business_id?: string | null
           category?: string
+          contact_phone?: string | null
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           ends_at?: string | null
+          has_contact_phone?: boolean | null
           id?: string
           is_demo?: boolean
           is_free?: boolean
           lat?: number | null
           lng?: number | null
           neighbourhood_id?: string | null
+          organizer_name?: string | null
           phone?: string | null
           price_note?: string | null
           price_try?: number | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           slug?: string | null
           starts_at: string
           status?: string
           ticket_url?: string | null
           title: string
           updated_at?: string
+          venue_business_id?: string | null
           venue_name?: string | null
         }
         Update: {
           address?: string | null
+          admin_hidden?: boolean
           business_id?: string | null
           category?: string
+          contact_phone?: string | null
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           ends_at?: string | null
+          has_contact_phone?: boolean | null
           id?: string
           is_demo?: boolean
           is_free?: boolean
           lat?: number | null
           lng?: number | null
           neighbourhood_id?: string | null
+          organizer_name?: string | null
           phone?: string | null
           price_note?: string | null
           price_try?: number | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           slug?: string | null
           starts_at?: string
           status?: string
           ticket_url?: string | null
           title?: string
           updated_at?: string
+          venue_business_id?: string | null
           venue_name?: string | null
         }
         Relationships: [
@@ -1345,6 +1474,42 @@ export type Database = {
           },
         ]
       }
+      institution_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          group_key: string
+          icon: string | null
+          id: string
+          key: string
+          label_tr: string
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          group_key: string
+          icon?: string | null
+          id?: string
+          key: string
+          label_tr: string
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          group_key?: string
+          icon?: string | null
+          id?: string
+          key?: string
+          label_tr?: string
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           accepted_at: string | null
@@ -1523,6 +1688,47 @@ export type Database = {
           },
         ]
       }
+      listing_daily_stats: {
+        Row: {
+          calls: number
+          day: string
+          favorites_added: number
+          listing_id: string
+          phone_reveals: number
+          shares: number
+          unique_views: number
+          views: number
+        }
+        Insert: {
+          calls?: number
+          day: string
+          favorites_added?: number
+          listing_id: string
+          phone_reveals?: number
+          shares?: number
+          unique_views?: number
+          views?: number
+        }
+        Update: {
+          calls?: number
+          day?: string
+          favorites_added?: number
+          listing_id?: string
+          phone_reveals?: number
+          shares?: number
+          unique_views?: number
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_daily_stats_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_media: {
         Row: {
           created_at: string
@@ -1553,6 +1759,53 @@ export type Database = {
             foreignKeyName: "listing_media_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_videos: {
+        Row: {
+          created_at: string
+          duration_s: number
+          height: number | null
+          listing_id: string
+          mime: string
+          poster_url: string | null
+          provider: string
+          size_bytes: number
+          url: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          duration_s: number
+          height?: number | null
+          listing_id: string
+          mime: string
+          poster_url?: string | null
+          provider?: string
+          size_bytes: number
+          url: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          duration_s?: number
+          height?: number | null
+          listing_id?: string
+          mime?: string
+          poster_url?: string | null
+          provider?: string
+          size_bytes?: number
+          url?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_videos_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
             referencedRelation: "listings"
             referencedColumns: ["id"]
           },
@@ -1692,6 +1945,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      media_trash: {
+        Row: {
+          created_at: string
+          owner_id: string | null
+          reason: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          owner_id?: string | null
+          reason?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          owner_id?: string | null
+          reason?: string
+          url?: string
+        }
+        Relationships: []
       }
       neighbourhoods: {
         Row: {
@@ -2028,6 +2302,7 @@ export type Database = {
           key: string
           label: string
           sort: number
+          subkinds: Json
           updated_at: string
         }
         Insert: {
@@ -2038,6 +2313,7 @@ export type Database = {
           key: string
           label: string
           sort?: number
+          subkinds?: Json
           updated_at?: string
         }
         Update: {
@@ -2048,6 +2324,7 @@ export type Database = {
           key?: string
           label?: string
           sort?: number
+          subkinds?: Json
           updated_at?: string
         }
         Relationships: []
@@ -2057,6 +2334,7 @@ export type Database = {
           address: string | null
           created_at: string
           details: Json
+          email: string | null
           hidden: boolean
           id: string
           kind: string
@@ -2074,12 +2352,16 @@ export type Database = {
           slug: string
           source: string
           source_ref: string | null
+          source_urls: string[]
           updated_at: string
+          verified_at: string | null
+          website: string | null
         }
         Insert: {
           address?: string | null
           created_at?: string
           details?: Json
+          email?: string | null
           hidden?: boolean
           id?: string
           kind: string
@@ -2087,7 +2369,7 @@ export type Database = {
           lat?: number | null
           license?: string | null
           lng?: number | null
-          location: unknown
+          location?: unknown
           locked?: boolean
           missing_since?: string | null
           name: string
@@ -2097,12 +2379,16 @@ export type Database = {
           slug: string
           source?: string
           source_ref?: string | null
+          source_urls?: string[]
           updated_at?: string
+          verified_at?: string | null
+          website?: string | null
         }
         Update: {
           address?: string | null
           created_at?: string
           details?: Json
+          email?: string | null
           hidden?: boolean
           id?: string
           kind?: string
@@ -2120,7 +2406,10 @@ export type Database = {
           slug?: string
           source?: string
           source_ref?: string | null
+          source_urls?: string[]
           updated_at?: string
+          verified_at?: string | null
+          website?: string | null
         }
         Relationships: [
           {
@@ -2137,6 +2426,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           email: string | null
+          extra_business_slots: number
           full_name: string | null
           id: string
           is_demo: boolean
@@ -2156,6 +2446,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          extra_business_slots?: number
           full_name?: string | null
           id: string
           is_demo?: boolean
@@ -2175,6 +2466,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          extra_business_slots?: number
           full_name?: string | null
           id?: string
           is_demo?: boolean
@@ -2441,6 +2733,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      search_terms_daily: {
+        Row: {
+          day: string
+          hits: number
+          term: string
+        }
+        Insert: {
+          day: string
+          hits?: number
+          term: string
+        }
+        Update: {
+          day?: string
+          hits?: number
+          term?: string
+        }
+        Relationships: []
       }
       service_categories: {
         Row: {
@@ -2852,6 +3162,7 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_ai_usage: { Args: { p_days?: number }; Returns: Json }
       admin_analytics: { Args: { p_days?: number }; Returns: Json }
       admin_audit_log: {
         Args: {
@@ -2871,8 +3182,19 @@ export type Database = {
       admin_dashboard: { Args: never; Returns: Json }
       admin_data_health: { Args: never; Returns: Json }
       admin_delete_service_category: { Args: { p_id: string }; Returns: Json }
+      admin_event_contacts: {
+        Args: { p_ids: string[] }
+        Returns: {
+          contact_phone: string
+          event_id: string
+        }[]
+      }
       admin_finance_summary: {
         Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
+      admin_grant_business_slot: {
+        Args: { p_slots?: number; p_user: string }
         Returns: Json
       }
       admin_news_sources: {
@@ -2898,6 +3220,10 @@ export type Database = {
         Returns: Json
       }
       admin_refresh_news_now: { Args: never; Returns: Json }
+      admin_remove_listing_video: {
+        Args: { p_listing_id: string; p_reason?: string }
+        Returns: Json
+      }
       admin_request_candidates: {
         Args: { p_request_id: string }
         Returns: {
@@ -2909,6 +3235,10 @@ export type Database = {
       }
       admin_review_business: {
         Args: { p_approve: boolean; p_business_id: string; p_reason?: string }
+        Returns: Json
+      }
+      admin_review_event: {
+        Args: { p_approve: boolean; p_event: string; p_reason?: string }
         Returns: Json
       }
       admin_review_listing: {
@@ -2929,6 +3259,21 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_set_ai_settings: {
+        Args: {
+          p_daily_budget_usd: number
+          p_daily_messages: number
+          p_enabled: boolean
+          p_model: string
+          p_per_minute: number
+          p_provider?: string
+        }
+        Returns: Json
+      }
+      admin_set_business_vertical: {
+        Args: { p_business: string; p_vertical: string }
+        Returns: Json
+      }
       admin_set_duty: {
         Args: { p_day: string; p_poi_ids: string[] }
         Returns: Json
@@ -2938,6 +3283,20 @@ export type Database = {
         Returns: Json
       }
       admin_user_overview: { Args: { p_user: string }; Returns: Json }
+      ai_begin_turn: { Args: never; Returns: Json }
+      ai_finish_turn: {
+        Args: {
+          p_cost_micro_usd?: number
+          p_input: number
+          p_model?: string
+          p_output: number
+          p_status?: string
+          p_tool_calls?: number
+          p_turn: string
+        }
+        Returns: boolean
+      }
+      ai_status: { Args: never; Returns: Json }
       apply_business: {
         Args: {
           p_address?: string
@@ -3060,11 +3419,19 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
+      listing_owner_stats: {
+        Args: { p_days?: number; p_listing: string }
+        Returns: Json
+      }
       log_contact_event: {
         Args: { p_event: string; p_subject_id: string; p_subject_type: string }
         Returns: undefined
       }
+      log_listing_share: { Args: { p_listing: string }; Returns: undefined }
+      log_search: { Args: { p_term: string }; Returns: undefined }
+      mark_all_notifications_read: { Args: never; Returns: number }
       mark_notifications_read: { Args: { p_ids?: string[] }; Returns: number }
+      my_business_quota: { Args: never; Returns: Json }
       my_lead_extras: {
         Args: { p_lead_ids: string[] }
         Returns: {
@@ -3126,11 +3493,35 @@ export type Database = {
         }
         Returns: Json
       }
+      popular_places: {
+        Args: { p_limit?: number }
+        Returns: {
+          category: string
+          id: string
+          image_url: string
+          kind: string
+          label: string
+          name: string
+          neighbourhood_name: string
+          slug: string
+        }[]
+      }
+      popular_searches: { Args: { p_limit?: number }; Returns: string[] }
       renew_listing: { Args: { p_listing_id: string }; Returns: Json }
       reply_review: {
         Args: { p_reply: string; p_review_id: string }
         Returns: Json
       }
+      reserve_media_upload: {
+        Args: {
+          p_content_type: string
+          p_key: string
+          p_kind: string
+          p_size: number
+        }
+        Returns: Json
+      }
+      reveal_event_phone: { Args: { p_event: string }; Returns: Json }
       reveal_listing_phone: { Args: { p_listing_id: string }; Returns: Json }
       roll_demo_duty: { Args: never; Returns: number }
       search_listings: {
@@ -3207,6 +3598,10 @@ export type Database = {
       set_listing_media: {
         Args: { p_listing_id: string; p_media: Json }
         Returns: number
+      }
+      set_listing_video: {
+        Args: { p_listing_id: string; p_video?: Json }
+        Returns: Json
       }
       short_name: { Args: { p_full_name: string }; Returns: string }
       submit_business_review: {

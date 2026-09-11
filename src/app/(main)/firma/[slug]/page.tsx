@@ -36,13 +36,24 @@ import { trCompare } from "@/core/tr";
 import { AddressDirections } from "@/features/business/components/firm/address-directions";
 import { FirmTabs, type FirmTab } from "@/features/business/components/firm/firm-tabs";
 import { ReviewComposer } from "@/features/business/components/firm/review-composer";
+import { DoctorGrid } from "@/features/business/components/doctors/doctor-grid";
+import { hasDoctors, type Doctor, type DoctorBranch } from "@/features/business/components/doctors/doctor-meta";
+import { getBusinessDoctors, getDoctorBranches } from "@/features/business/components/doctors/queries";
 import { RoomList } from "@/features/business/components/firm/room-list";
 import { FirmGallery } from "@/features/business/components/firm-gallery";
 import { FirmMoreMenu } from "@/features/business/components/firm-more-menu";
 import { MenuSections, menuItemCount } from "@/features/business/components/menu-view";
 import { OpenNowStatus, WorkingHoursTable } from "@/features/business/components/open-now";
 import { Stars, formatRating } from "@/features/business/components/rating";
-import { DAY_KEYS, hasAnyHours, openingHoursSpecification, parseWorkingHours, type WorkingHours } from "@/features/business/lib/hours";
+import {
+  DAY_KEYS,
+  hasAnyHours,
+  isOnVacation,
+  openingHoursSpecification,
+  parseWorkingHours,
+  vacationReturnLabel,
+  type WorkingHours,
+} from "@/features/business/lib/hours";
 import {
   getBusinessActiveListings,
   getBusinessReviews,
@@ -259,7 +270,8 @@ export default async function FirmPage({ params }: Props) {
   const vertical = resolveVertical(b.vertical, b.kinds);
   const info = VERTICAL_INFO[vertical];
   const offersServices = b.kinds.includes("service") || vertical === "hizmet";
-  const [reviews, listings, allCategories, totalNeighbourhoods, menu, rooms, events, services, vocab] = await Promise.all([
+  const withDoctors = hasDoctors(vertical);
+  const [reviews, listings, allCategories, totalNeighbourhoods, menu, rooms, events, services, vocab, doctors, doctorBranches] = await Promise.all([
     getBusinessReviews(b.id).catch(() => [] as PublicReview[]),
     getBusinessActiveListings(b.id).catch(() => [] as BusinessListing[]),
     getServiceCategories().catch(() => [] as ServiceCategoryLite[]),
@@ -269,12 +281,19 @@ export default async function FirmPage({ params }: Props) {
     listBusinessEvents(b.id).catch(() => [] as EventItem[]),
     offersServices ? getBusinessServices(b.id).catch(() => [] as BusinessService[]) : Promise.resolve([] as BusinessService[]),
     getVocabularies(),
+    withDoctors ? getBusinessDoctors(b.id).catch(() => [] as Doctor[]) : Promise.resolve([] as Doctor[]),
+    withDoctors ? getDoctorBranches() : Promise.resolve(undefined as readonly DoctorBranch[] | undefined),
   ]);
 
   const url = `${SITE_URL}${routes.businesses.detail(b.slug)}`;
   const hours = parseWorkingHours(b.working_hours);
   const showHours = hasAnyHours(hours);
   const alwaysOpen = showHours && isAlwaysOpen(hours);
+  // Tatil modu (only these two fields go to the client status). The server check is as fresh as this ISR render;
+  // the header status re-checks on the client.
+  const vacation = { vacation_mode: b.vacation_mode, vacation_until: b.vacation_until };
+  const onVacation = isOnVacation(vacation);
+  const vacationBack = onVacation ? vacationReturnLabel(b.vacation_until) : null;
   const isService = offersServices;
   const verified = b.verification_level >= 1;
   const hasLocation = typeof b.lat === "number" && typeof b.lng === "number";
@@ -302,12 +321,14 @@ export default async function FirmPage({ params }: Props) {
     name: b.name,
     url,
     description: b.description ?? undefined,
-    telephone: b.phone ?? undefined,
+    // Sample firms are not callable: their number never goes into the page (JSON-LD included).
+    telephone: isDemo ? undefined : (b.phone ?? undefined),
     image: heroImages.slice(0, 4),
     logo: b.logo_url ?? undefined,
     priceRange: priceLevel?.symbol,
     starRating: b.star_rating ? { "@type": "Rating", ratingValue: b.star_rating } : undefined,
-    hasMenu: itemCount ? `${SITE_URL}${routes.businesses.menu(b.slug)}` : undefined,
+    // schema.org hasMenu belongs to FoodEstablishment; a hotel's menu stays on the page but not in its Hotel JSON-LD.
+    hasMenu: itemCount && vertical !== "otel" ? `${SITE_URL}${routes.businesses.menu(b.slug)}` : undefined,
     address: { "@type": "PostalAddress", streetAddress: b.address ?? undefined, addressLocality: CITY.name, addressRegion: CITY.province, addressCountry: "TR" },
     geo: hasLocation ? { "@type": "GeoCoordinates", latitude: b.lat, longitude: b.lng } : undefined,
     areaServed: isService
@@ -374,6 +395,12 @@ export default async function FirmPage({ params }: Props) {
 
       {showHours && !alwaysOpen ? (
         <Section title="Çalışma saatleri" icon={CalendarDays}>
+          {onVacation ? (
+            <p className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold text-highlight-foreground dark:text-highlight">
+              <TreePalm className="size-4 shrink-0" aria-hidden />
+              İşletme şu an tatilde{vacationBack ? ` · Dönüş: ${vacationBack}` : ""}
+            </p>
+          ) : null}
           <WorkingHoursTable hours={hours} />
         </Section>
       ) : null}
@@ -489,6 +516,17 @@ export default async function FirmPage({ params }: Props) {
       <RoomList rooms={rooms} businessId={b.id} businessName={b.name} phone={isDemo ? null : b.phone} amenities={vocab.roomAmenities} />
       <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
         {isDemo ? "Örnek kayıt: odalar ve fiyatlar gerçek değil, rezervasyon yapılamaz." : "Fiyatlar işletme tarafından girilir; müsaitlik ve rezervasyon için oteli ara."}
+      </p>
+    </div>
+  ) : null;
+
+  // Sağlık: doctors of the clinic; calls always go to the clinic's phone.
+  const doctorsPanel = doctors.length ? (
+    <div>
+      <PanelTitle>Doktorlar</PanelTitle>
+      <DoctorGrid doctors={doctors} branches={doctorBranches} businessId={b.id} businessName={b.name} phone={isDemo ? null : b.phone} isDemo={isDemo} />
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+        {isDemo ? "Örnek kayıt: doktorlar gerçek değil, aranamaz." : "Bilgiler klinik tarafından girilir. Randevu için kliniği ara."}
       </p>
     </div>
   ) : null;
@@ -615,8 +653,11 @@ export default async function FirmPage({ params }: Props) {
   ) : null;
 
   const tabs: FirmTab[] = [{ id: "genel", label: "Genel", content: generalPanel }];
-  if (menuPanel) tabs.push({ id: "menu", label: "Menü", content: menuPanel });
-  if (roomsPanel) tabs.push({ id: "odalar", label: "Odalar", count: rooms.length, content: roomsPanel });
+  if (doctorsPanel) tabs.push({ id: "doktorlar", label: "Doktorlar", count: doctors.length, content: doctorsPanel });
+  const menuTab: FirmTab | null = menuPanel ? { id: "menu", label: "Menü", content: menuPanel } : null;
+  const roomsTab: FirmTab | null = roomsPanel ? { id: "odalar", label: "Odalar", count: rooms.length, content: roomsPanel } : null;
+  // Hotels lead with their rooms; their menu (restaurant, room service) comes next.
+  for (const t of vertical === "otel" ? [roomsTab, menuTab] : [menuTab, roomsTab]) if (t) tabs.push(t);
   if (servicesPanel) tabs.push({ id: "hizmetler", label: "Hizmetler", count: services.length || undefined, content: servicesPanel });
   tabs.push({ id: "yorumlar", label: "Yorumlar", count: b.rating_count, content: reviewsPanel });
   if (eventsPanel) tabs.push({ id: "etkinlikler", label: "Etkinlikler", count: events.length, content: eventsPanel });
@@ -662,7 +703,7 @@ export default async function FirmPage({ params }: Props) {
                 </span>
               ) : null}
             </div>
-            <div className="mt-2">{alwaysOpen ? <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">7/24 açık</span> : showHours ? <OpenNowStatus hours={hours} /> : null}</div>
+            <div className="mt-2">{showHours || b.vacation_mode ? <OpenNowStatus hours={hours} alwaysOpen={alwaysOpen} vacation={vacation} /> : null}</div>
           </header>
 
           <div className="grid grid-cols-3 gap-2">
@@ -686,12 +727,17 @@ export default async function FirmPage({ params }: Props) {
             )}
           </div>
 
-          {b.vacation_mode ? (
+          {onVacation ? (
             <div role="note" className="flex items-start gap-3 rounded-2xl bg-highlight-soft px-4 py-3 text-sm text-highlight-foreground dark:text-foreground">
               <TreePalm className="mt-0.5 size-5 shrink-0 text-highlight" aria-hidden />
               <p>
                 <strong className="block">Bu işletme şu an tatilde.</strong>
-                Yeni talepleri geçici olarak almıyor.{isDemo ? null : " Acil bir durum için arayabilirsin."}
+                {vacationBack ? `Dönüş tarihi: ${vacationBack}. ` : null}
+                {isService
+                  ? `Yeni talepleri geçici olarak almıyor.${b.phone && !isDemo ? " Acil bir durum için arayabilirsin." : ""}`
+                  : b.phone && !isDemo
+                    ? "Gitmeden önce aramanı öneririz."
+                    : null}
               </p>
             </div>
           ) : null}

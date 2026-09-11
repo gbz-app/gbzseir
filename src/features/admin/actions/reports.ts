@@ -125,6 +125,20 @@ export async function removeReportedContentAction(input: z.input<typeof removeSc
         message = "Kullanıcı engellendi.";
         break;
       }
+      case "event": {
+        // Sticky take-down (admin_hidden) with the reason; the creator is notified.
+        const reason = (parsed.data.note ? `Şikayet üzerine: ${parsed.data.note}` : "Şikayet üzerine incelendi").slice(0, 300);
+        const { data, error } = await supabase.rpc("admin_review_event", { p_event: targetId, p_approve: false, p_reason: reason });
+        if (error) return dbFail(error);
+        const res = data as { ok?: boolean; slug?: string | null } | null;
+        if (!res?.ok) return fail("Etkinlik artık yok.", "not_found");
+        await revalidatePublic({
+          tags: ["businesses"],
+          paths: [routes.events.root(), ...(res.slug ? [routes.events.detail(res.slug)] : []), { path: "/firma/[slug]", type: "page" }, routes.home()],
+        });
+        message = "Etkinlik yayından kaldırıldı.";
+        break;
+      }
       default:
         return fail("Bu şikayet türü için kaldırma işlemi yok.");
     }

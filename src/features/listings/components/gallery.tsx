@@ -1,14 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Video, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import type { MediaRef } from "../types";
+import { formatVideoDuration } from "@/lib/media/kinds";
+import type { MediaRef, VideoRef } from "../types";
 import { ListingPlaceholder } from "./listing-cards";
 
 export type ListingGalleryProps = {
   images: MediaRef[];
+  /** Optional listing video: shown as the second slide (the cover stays a photo). */
+  video?: VideoRef | null;
   title: string;
   /** Ribbon on top of the photos, e.g. "Satıldı". */
   ribbon?: string | null;
@@ -19,6 +22,19 @@ export type ListingGalleryProps = {
   overlay?: React.ReactNode;
   className?: string;
 };
+
+type Slide = { kind: "image"; url: string } | { kind: "video"; url: string; posterUrl: string | null; durationS: number };
+
+function buildSlides(images: MediaRef[], video: VideoRef | null | undefined): Slide[] {
+  const slides: Slide[] = images.map((img) => ({ kind: "image", url: img.url }));
+  if (video?.url) slides.splice(Math.min(1, slides.length), 0, { kind: "video", url: video.url, posterUrl: video.posterUrl, durationS: video.durationS });
+  return slides;
+}
+
+function slideLabel(slides: Slide[], i: number): string {
+  const s = slides[i];
+  return s?.kind === "video" ? "Video" : `Fotoğraf ${slides.slice(0, i + 1).filter((x) => x.kind === "image").length}`;
+}
 
 function useSnapIndex(count: number) {
   const ref = React.useRef<HTMLDivElement>(null);
@@ -41,42 +57,67 @@ const arrowClass =
 
 /**
  * Full-bleed swipe hero of a 2. el listing (native scroll-snap; a tap opens the fullscreen viewer). The detail sheet
- * overlaps its bottom edge, so the dots and the ribbon sit 3 rem above it.
+ * overlaps its bottom edge, so the dots and the ribbon sit 3 rem above it. The video (if any) is the second slide:
+ * poster + big play button here, a native <video> (preload none) in the viewer.
  */
-export function ListingGallery({ images, title, ribbon, placeholderIcon, placeholderFallback = "tag", overlay, className }: ListingGalleryProps) {
-  const count = images.length;
+export function ListingGallery({ images, video, title, ribbon, placeholderIcon, placeholderFallback = "tag", overlay, className }: ListingGalleryProps) {
+  const slides = React.useMemo(() => buildSlides(images, video), [images, video]);
+  const count = slides.length;
+  const hasVideo = slides.some((s) => s.kind === "video");
   const { ref, index, onScroll, go } = useSnapIndex(count);
   const [viewer, setViewer] = React.useState<number | null>(null);
+  const label = `${title}: fotoğraflar${hasVideo ? " ve video" : ""}`;
 
   return (
     <div
       className={cn("relative h-[min(56vh,27rem)] min-h-80 w-full overflow-hidden bg-muted", className)}
       role={count ? "region" : undefined}
       aria-roledescription={count ? "carousel" : undefined}
-      aria-label={count ? `${title}: fotoğraflar` : undefined}
+      aria-label={count ? label : undefined}
     >
       {count ? (
         <div ref={ref} onScroll={onScroll} className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain">
-          {images.map((img, i) => (
-            <button
-              key={`${img.url}-${i}`}
-              type="button"
-              onClick={() => setViewer(i)}
-              aria-label={`Fotoğraf ${i + 1} / ${count}: tam ekran aç`}
-              className="relative h-full w-full shrink-0 snap-center snap-always outline-none focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:ring-inset"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img.url}
-                alt={i === 0 ? title : `${title}, fotoğraf ${i + 1}`}
-                loading={i === 0 ? "eager" : "lazy"}
-                fetchPriority={i === 0 ? "high" : undefined}
-                decoding="async"
-                draggable={false}
-                className="size-full object-cover"
-              />
-            </button>
-          ))}
+          {slides.map((s, i) =>
+            s.kind === "video" ? (
+              <button
+                key={`video-${s.url}`}
+                type="button"
+                onClick={() => setViewer(i)}
+                aria-label={`Videoyu oynat${s.durationS > 0 ? `, ${formatVideoDuration(s.durationS)}` : ""}`}
+                className="relative h-full w-full shrink-0 snap-center snap-always bg-black outline-none focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:ring-inset"
+              >
+                {s.posterUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={s.posterUrl} alt="" loading="lazy" decoding="async" draggable={false} className="size-full object-cover" />
+                ) : null}
+                <span className="absolute inset-0 m-auto flex size-18 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md" aria-hidden>
+                  <Play className="size-8 translate-x-0.5 fill-current" />
+                </span>
+                <span className="absolute right-4 bottom-12 inline-flex items-center gap-1 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white tabular-nums" aria-hidden>
+                  <Video className="size-3.5" /> {formatVideoDuration(s.durationS)}
+                </span>
+              </button>
+            ) : (
+              <button
+                key={`${s.url}-${i}`}
+                type="button"
+                onClick={() => setViewer(i)}
+                aria-label={`${slideLabel(slides, i)} / ${count}: tam ekran aç`}
+                className="relative h-full w-full shrink-0 snap-center snap-always outline-none focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:ring-inset"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={s.url}
+                  alt={i === 0 ? title : `${title}, ${slideLabel(slides, i).toLocaleLowerCase("tr-TR")}`}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  fetchPriority={i === 0 ? "high" : undefined}
+                  decoding="async"
+                  draggable={false}
+                  className="size-full object-cover"
+                />
+              </button>
+            ),
+          )}
         </div>
       ) : (
         <>
@@ -89,15 +130,15 @@ export function ListingGallery({ images, title, ribbon, placeholderIcon, placeho
 
       {count > 1 ? (
         <>
-          <button type="button" className={cn(arrowClass, "left-3")} onClick={() => go(index - 1)} disabled={index === 0} aria-label="Önceki fotoğraf">
+          <button type="button" className={cn(arrowClass, "left-3")} onClick={() => go(index - 1)} disabled={index === 0} aria-label="Önceki">
             <ChevronLeft className="size-6" />
           </button>
-          <button type="button" className={cn(arrowClass, "right-3")} onClick={() => go(index + 1)} disabled={index >= count - 1} aria-label="Sonraki fotoğraf">
+          <button type="button" className={cn(arrowClass, "right-3")} onClick={() => go(index + 1)} disabled={index >= count - 1} aria-label="Sonraki">
             <ChevronRight className="size-6" />
           </button>
           <div className="pointer-events-none absolute inset-x-0 bottom-12 flex justify-center gap-1.5" aria-hidden>
-            {images.map((img, i) => (
-              <span key={`${img.url}-${i}`} className={cn("h-1.5 rounded-full bg-white/70 transition-all", i === index ? "w-5 bg-white" : "w-1.5")} />
+            {slides.map((s, i) => (
+              <span key={`${s.kind}-${s.url}-${i}`} className={cn("h-1.5 rounded-full bg-white/70 transition-all", i === index ? "w-5 bg-white" : "w-1.5")} />
             ))}
           </div>
         </>
@@ -118,10 +159,10 @@ export function ListingGallery({ images, title, ribbon, placeholderIcon, placeho
             aria-describedby={undefined}
             className="top-0 left-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none bg-black p-0 text-white ring-0 sm:max-w-none"
           >
-            <DialogTitle className="sr-only">{title}: fotoğraflar</DialogTitle>
+            <DialogTitle className="sr-only">{label}</DialogTitle>
             {viewer !== null ? (
               <ViewerStrip
-                images={images}
+                slides={slides}
                 title={title}
                 startIndex={viewer}
                 onIndexChange={(i) => {
@@ -136,19 +177,29 @@ export function ListingGallery({ images, title, ribbon, placeholderIcon, placeho
   );
 }
 
-function ViewerStrip({ images, title, startIndex, onIndexChange }: { images: MediaRef[]; title: string; startIndex: number; onIndexChange: (i: number) => void }) {
-  const count = images.length;
+function ViewerStrip({ slides, title, startIndex, onIndexChange }: { slides: Slide[]; title: string; startIndex: number; onIndexChange: (i: number) => void }) {
+  const count = slides.length;
   const { ref, index, onScroll, go } = useSnapIndex(count);
+  const videoRefs = React.useRef(new Map<number, HTMLVideoElement>());
 
   React.useLayoutEffect(() => {
     const el = ref.current;
     if (el) el.scrollLeft = startIndex * el.clientWidth;
   }, [ref, startIndex]);
 
+  // Opened by tapping the video slide: start playing (the tap is the user gesture; ignored if the browser refuses).
+  React.useEffect(() => {
+    if (slides[startIndex]?.kind === "video") void videoRefs.current.get(startIndex)?.play().catch(() => undefined);
+    // Only on open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const indexRef = React.useRef(index);
   React.useEffect(() => {
     indexRef.current = index;
     onIndexChange(index);
+    // Swiped away from the video: stop it.
+    for (const [i, el] of videoRefs.current) if (i !== index && !el.paused) el.pause();
   }, [index, onIndexChange]);
 
   React.useEffect(() => {
@@ -173,10 +224,26 @@ function ViewerStrip({ images, title, startIndex, onIndexChange }: { images: Med
         </DialogClose>
       </div>
       <div ref={ref} onScroll={onScroll} className="no-scrollbar flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overscroll-contain">
-        {images.map((img, i) => (
-          <div key={`${img.url}-${i}`} className="flex h-full w-full shrink-0 snap-center snap-always items-center justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={img.url} alt={`${title}, fotoğraf ${i + 1}`} draggable={false} decoding="async" className="max-h-full max-w-full object-contain" />
+        {slides.map((s, i) => (
+          <div key={`${s.kind}-${s.url}-${i}`} className="flex h-full w-full shrink-0 snap-center snap-always items-center justify-center">
+            {s.kind === "video" ? (
+              <video
+                ref={(el) => {
+                  if (el) videoRefs.current.set(i, el);
+                  else videoRefs.current.delete(i);
+                }}
+                src={s.url}
+                poster={s.posterUrl ?? undefined}
+                controls
+                playsInline
+                preload="none"
+                aria-label={`${title}: video`}
+                className="max-h-full max-w-full bg-black"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={s.url} alt={`${title}, ${slideLabel(slides, i).toLocaleLowerCase("tr-TR")}`} draggable={false} decoding="async" className="max-h-full max-w-full object-contain" />
+            )}
           </div>
         ))}
       </div>
@@ -187,7 +254,7 @@ function ViewerStrip({ images, title, startIndex, onIndexChange }: { images: Med
             onClick={() => go(index - 1)}
             disabled={index === 0}
             className="flex size-11 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30"
-            aria-label="Önceki fotoğraf"
+            aria-label="Önceki"
           >
             <ChevronLeft className="size-6" />
           </button>
@@ -196,7 +263,7 @@ function ViewerStrip({ images, title, startIndex, onIndexChange }: { images: Med
             onClick={() => go(index + 1)}
             disabled={index >= count - 1}
             className="flex size-11 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30"
-            aria-label="Sonraki fotoğraf"
+            aria-label="Sonraki"
           >
             <ChevronRight className="size-6" />
           </button>

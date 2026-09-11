@@ -5,16 +5,57 @@
 import type { Json } from "@/lib/database.types";
 import type { ContactSubjectType } from "@/lib/db-contract";
 
-export type PoiKind = "pharmacy" | "mosque" | "bus_stop" | "place" | "taxi" | "atm";
+/**
+ * Every poi.kind (poi_kind_check, 2026091376_city_guide.sql). The guide kinds (institution, fuel, ev_charge, bank, and
+ * atm) open /kurum/<slug>; see src/features/guide/lib.
+ */
+export type PoiKind = "pharmacy" | "mosque" | "bus_stop" | "place" | "taxi" | "atm" | "institution" | "fuel" | "ev_charge" | "bank";
 
 /** Chip filters on /yakinimda (?tur=). */
-export type NearbyFilter = "nobetci" | "eczane" | "cami" | "durak" | "taksi" | "atm" | "gezilecek" | "isletme";
+export type NearbyFilter =
+  | "nobetci"
+  | "eczane"
+  | "cami"
+  | "durak"
+  | "taksi"
+  | "atm"
+  | "banka"
+  | "akaryakit"
+  | "sarj"
+  | "kurum"
+  | "gezilecek"
+  | "isletme";
 
 /** Visual kind of a map pin / list icon. */
-export type MarkerKind = "duty" | "pharmacy" | "mosque" | "bus_stop" | "taxi" | "atm" | "place" | "business";
+export type MarkerKind =
+  | "duty"
+  | "pharmacy"
+  | "mosque"
+  | "bus_stop"
+  | "taxi"
+  | "atm"
+  | "place"
+  | "business"
+  | "institution"
+  | "fuel"
+  | "ev_charge"
+  | "bank";
 
 /** Built-in gezilecek yer categories: seed and fallback of public.place_categories. */
-export type BuiltinPlaceCategory = "tarihi" | "park" | "doga" | "muze" | "avm" | "diger";
+export type BuiltinPlaceCategory =
+  | "tarihi"
+  | "park"
+  | "tabiat_parki"
+  | "doga"
+  | "sahil"
+  | "muze"
+  | "kultur"
+  | "spor"
+  | "pazar"
+  | "mezarlik"
+  | "avm"
+  | "ulasim"
+  | "diger";
 
 /**
  * A place_categories key (admin-managed, 2026091363; format CATEGORY_KEY_RE). placeCategoryMeta shows a key the
@@ -79,10 +120,20 @@ export type PoiDetail = {
   updated_at: string;
 };
 
-export type PlacePhoto = { url: string; alt: string | null; credit: string | null };
+/** A place photo; guide imports (Wikimedia Commons) also carry author, licence and the file page for the credit. */
+export type PlacePhoto = {
+  url: string;
+  alt: string | null;
+  credit: string | null;
+  author?: string | null;
+  licence?: string | null;
+  sourcePage?: string | null;
+};
 
 export type PlaceDetails = {
   category: PlaceCategory;
+  /** place_categories subkind (tarihi: cami, kale, türbe...; ulasim: tren, otogar, iskele), or null. */
+  subkind: string | null;
   description: string | null;
   curated: boolean;
   photos: PlacePhoto[];

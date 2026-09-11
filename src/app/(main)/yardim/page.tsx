@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 const BUSINESS_Q = "İşletmemi nasıl eklerim?";
 /** Answer while business sign-ups are open (app setting); the FAQ entry below is the "paused" answer. */
 const BUSINESS_OPEN_A =
-  "Profil > \"İşletmen mi var?\" kartından ya da İşletme paneli > Yeni işletme ekle adımından birkaç dakikada işletmeni açabilirsin; bilgilerini gönderdiğin anda sayfan yayına girer. Bir hesapla 10 işletmeye kadar (örneğin kafe, otel ve hizmet firması) açabilirsin.";
+  "Profil > \"İşletmen mi var?\" kartından ya da İşletme paneli > Yeni işletme ekle adımından birkaç dakikada işletmeni açabilirsin; bilgilerini gönderdiğin anda sayfan yayına girer. Bir hesapla bir işletme açabilirsin; ikinci bir işletme için destek ekibimize yaz, hesabına ekleyelim.";
 
 const DUTY_Q = "Nöbetçi eczane bilgisi nereden geliyor?";
 /** Answers per duty_data_mode (app setting); the FAQ entry below is the "demo" answer. */

@@ -64,7 +64,7 @@ export function ServicesManager({ businessId, initial }: { businessId: string; i
   return (
     <div className="flex flex-col gap-3">
       {items.length === 0 ? (
-        <div className="flex flex-col items-center rounded-3xl bg-card px-5 py-8 text-center shadow-soft ring-1 ring-foreground/[0.05]">
+        <div className="flex flex-col items-center rounded-3xl bg-card px-5 py-8 text-center">
           <Wrench className="size-10 text-primary/50" strokeWidth={1.5} aria-hidden />
           <p className="mt-3 font-semibold">Henüz hizmet eklemedin</p>
           <p className="mt-1 text-sm text-muted-foreground">Verdiğin hizmetleri fiyatlarıyla ekle; müşteriler sayfanda görüp seni arasın.</p>
@@ -72,7 +72,7 @@ export function ServicesManager({ businessId, initial }: { businessId: string; i
       ) : (
         <ul className="flex flex-col gap-2.5">
           {items.map((s, i) => (
-            <li key={s.id} className="flex items-center gap-2 rounded-3xl bg-card p-2 pr-3 shadow-soft ring-1 ring-foreground/[0.05]">
+            <li key={s.id} className="flex items-center gap-2 rounded-3xl bg-card p-2 pr-3">
               <button type="button" onClick={() => setEditing(s)} className={cn("flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-1 text-left hover:bg-muted/60", !s.is_active && "opacity-55")}>
                 {s.photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -194,7 +194,7 @@ function ServiceForm({
       busy={saving || uploading}
       footerExtra={
         service ? (
-          <Button type="button" variant="outline" size="lg" className="text-destructive" onClick={() => onDelete(service)} aria-label="Hizmeti sil">
+          <Button type="button" variant="destructive" size="lg" onClick={() => onDelete(service)} aria-label="Hizmeti sil">
             <Trash2 />
           </Button>
         ) : null
@@ -229,7 +229,7 @@ function ServiceForm({
         <CharCount value={description} max={500} />
       </Field>
       <BusinessImagePicker value={photo} onChange={setPhoto} onUploadingChange={setUploading} label="Fotoğraf" hint="İsteğe bağlı. Yaptığın bir işin fotoğrafı." prefix="service-" />
-      <label className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
+      <label className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4">
         <span>
           <span className="block font-semibold">Sayfamda görünsün</span>
           <span className="text-sm text-muted-foreground">Kapalıysa hizmet gizlenir ama silinmez.</span>

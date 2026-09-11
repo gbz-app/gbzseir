@@ -11,7 +11,7 @@ import { createPublicClient } from "./public-client";
  */
 
 export const PUBLIC_BUSINESS_COLUMNS =
-  "id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,neighbourhood_id,kinds,category_label,working_hours,verification_level,vacation_mode,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at,vertical,price_level,star_rating,amenities,website,instagram,is_demo";
+  "id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,neighbourhood_id,kinds,category_label,working_hours,verification_level,vacation_mode,vacation_until,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at,vertical,price_level,star_rating,amenities,website,instagram,is_demo";
 
 export type ServiceCategoryLite = {
   id: string;
@@ -39,6 +39,8 @@ export type PublicBusiness = {
   working_hours: unknown;
   verification_level: number;
   vacation_mode: boolean;
+  /** Tatil modu return date; use isOnVacation() (lib/hours) for the active state. */
+  vacation_until: string | null;
   rating_avg: number;
   rating_count: number;
   leads_accepted_count: number;
@@ -126,6 +128,8 @@ export const getPublicBusinessBySlug = cache(async (slug: string): Promise<Busin
 
 export type PublicReview = {
   id: string;
+  /** Author's user id (already public on reviews): lets the page hide "Şikayet et" on the viewer's own review. */
+  author_id: string | null;
   rating: number;
   comment: string | null;
   reply: string | null;
@@ -140,7 +144,7 @@ type RawReview = Omit<PublicReview, "author_name"> & { author: { display_name: s
 export async function getBusinessReviews(businessId: string, limit = 30): Promise<PublicReview[]> {
   const { data, error } = await createPublicClient()
     .from("reviews")
-    .select("id,rating,comment,reply,replied_at,created_at,author:public_profiles!reviews_author_id_fkey(display_name)")
+    .select("id,author_id,rating,comment,reply,replied_at,created_at,author:public_profiles!reviews_author_id_fkey(display_name)")
     .eq("business_id", businessId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -200,6 +204,8 @@ export type DirectoryBusiness = {
   rating_count: number;
   verification_level: number;
   vacation_mode: boolean;
+  /** Tatil modu return date; use isOnVacation() (lib/hours) for the active state. */
+  vacation_until: string | null;
   neighbourhood_name: string | null;
   category_ids: string[];
   photo_count: number;
@@ -222,6 +228,7 @@ type RawDirectory = {
   rating_count: number | null;
   verification_level: number | null;
   vacation_mode: boolean | null;
+  vacation_until: string | null;
   description: string | null;
   working_hours: unknown;
   is_demo: boolean | null;
@@ -235,7 +242,7 @@ export const listApprovedBusinesses = cache(async (limit = 500): Promise<Directo
   const { data, error } = await createPublicClient()
     .from("businesses")
     .select(
-      "id,slug,name,logo_url,cover_url,category_label,kinds,lat,lng,rating_avg,rating_count,verification_level,vacation_mode,description,working_hours,is_demo,neighbourhoods!businesses_neighbourhood_id_fkey(name),business_service_categories(category_id),business_photos(count)",
+      "id,slug,name,logo_url,cover_url,category_label,kinds,lat,lng,rating_avg,rating_count,verification_level,vacation_mode,vacation_until,description,working_hours,is_demo,neighbourhoods!businesses_neighbourhood_id_fkey(name),business_service_categories(category_id),business_photos(count)",
     )
     .eq("status", "approved")
     .order("rating_avg", { ascending: false })
@@ -257,6 +264,7 @@ export const listApprovedBusinesses = cache(async (limit = 500): Promise<Directo
     rating_count: b.rating_count ?? 0,
     verification_level: b.verification_level ?? 0,
     vacation_mode: !!b.vacation_mode,
+    vacation_until: b.vacation_until ?? null,
     neighbourhood_name: b.neighbourhoods?.name ?? null,
     category_ids: (b.business_service_categories ?? []).map((c) => c.category_id),
     photo_count: b.business_photos?.[0]?.count ?? 0,
@@ -265,3 +273,18 @@ export const listApprovedBusinesses = cache(async (limit = 500): Promise<Directo
     is_demo: b.is_demo === true,
   }));
 });
+
+/**
+ * Tatil modu fields of the given approved businesses (id -> fields), for firm lists fed by other features
+ * (e.g. /hizmetler/[kategori]). Empty map on error: the rows then simply show no "Tatilde".
+ */
+export async function getVacationStates(ids: string[]): Promise<Map<string, { vacation_mode: boolean; vacation_until: string | null }>> {
+  const out = new Map<string, { vacation_mode: boolean; vacation_until: string | null }>();
+  if (ids.length === 0) return out;
+  const { data, error } = await createPublicClient().from("businesses").select("id,vacation_mode,vacation_until").in("id", ids);
+  if (error) return out;
+  for (const b of (data ?? []) as unknown as Array<{ id: string; vacation_mode: boolean | null; vacation_until: string | null }>) {
+    out.set(b.id, { vacation_mode: !!b.vacation_mode, vacation_until: b.vacation_until ?? null });
+  }
+  return out;
+}

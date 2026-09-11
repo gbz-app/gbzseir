@@ -11,8 +11,10 @@ import { publicUrl } from "@/config/app-mode";
 import { formatDateTime, formatPhoneTR, formatPrice, formatRelativeTime, truncate } from "@/core/format";
 import { AdminCard, AdminPagination, AdminThumb, EmptyCard, FilterTabs, StatusBadge } from "@/features/admin/components/admin-ui";
 import { ReportActions } from "@/features/admin/components/report-actions";
+import { eventWhenShort } from "@/features/events/format";
 import {
   BUSINESS_STATUS,
+  EVENT_STATUS,
   LISTING_STATUS,
   PROFILE_STATUS,
   REPORT_REASONS,
@@ -27,7 +29,7 @@ export const metadata: Metadata = { title: "Şikayetler" };
 const PAGE_SIZE = 20;
 const STATUSES = ["open", "resolved", "dismissed", "tumu"] as const;
 type StatusTab = (typeof STATUSES)[number];
-const TARGETS = ["tumu", "listing", "business", "review", "user"] as const;
+const TARGETS = ["tumu", "listing", "business", "review", "user", "event"] as const;
 
 type Preview = {
   title: string;
@@ -43,7 +45,7 @@ type Preview = {
 async function loadPreviews(supabase: ServerSupabase, rows: Array<{ target_type: string; target_id: string }>): Promise<Map<string, Preview>> {
   const ids = (t: string) => [...new Set(rows.filter((r) => r.target_type === t).map((r) => r.target_id))];
   const map = new Map<string, Preview>();
-  const [listings, businesses, reviews, users] = await Promise.all([
+  const [listings, businesses, reviews, users, events] = await Promise.all([
     ids("listing").length
       ? supabase
           .from("listings")
@@ -58,6 +60,9 @@ async function loadPreviews(supabase: ServerSupabase, rows: Array<{ target_type:
           .in("id", ids("review"))
       : null,
     ids("user").length ? supabase.from("profiles").select("id,full_name,phone,status,role,created_at").in("id", ids("user")) : null,
+    ids("event").length
+      ? supabase.from("events").select("id,slug,title,status,cover_url,starts_at,ends_at,admin_hidden,organizer_name,businesses(name)").in("id", ids("event"))
+      : null,
   ]);
   for (const l of listings?.data ?? []) {
     const media = [...(l.listing_media ?? [])].sort((a, b) => a.sort - b.sort)[0];
@@ -98,6 +103,30 @@ async function loadPreviews(supabase: ServerSupabase, rows: Array<{ target_type:
       status: u.status,
       href: withQuery(routes.admin.users(), { q: (u.phone ?? "").replace(/^\+90/, "") || u.full_name }),
       isAdmin: u.role === "admin",
+    });
+  }
+  type EventPreviewRow = {
+    id: string;
+    slug: string | null;
+    title: string;
+    status: string;
+    cover_url: string | null;
+    starts_at: string;
+    ends_at: string | null;
+    admin_hidden: boolean;
+    organizer_name: string | null;
+    businesses: { name: string } | null;
+  };
+  for (const e of (events?.data ?? []) as unknown as EventPreviewRow[]) {
+    const isPublic = e.status === "published" && !e.admin_hidden && !!e.slug;
+    map.set(`event:${e.id}`, {
+      title: e.title,
+      subtitle: `${eventWhenShort(e.starts_at, e.ends_at)} · ${e.businesses?.name ?? e.organizer_name ?? "Şehir etkinliği"}`,
+      statusMap: EVENT_STATUS,
+      status: e.status,
+      href: isPublic && e.slug ? publicUrl(routes.events.detail(e.slug)) : withQuery(routes.admin.events(), { sekme: "tumu" }),
+      external: isPublic,
+      thumb: e.cover_url,
     });
   }
   return map;
@@ -207,7 +236,7 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
                 {r.detail ? <p className="mt-2 rounded-xl bg-muted/50 p-3 text-sm leading-relaxed break-words whitespace-pre-line">{r.detail}</p> : null}
 
                 <div className="mt-3 flex items-center gap-3 rounded-xl border p-3">
-                  {r.target_type === "listing" ? <AdminThumb src={p?.thumb} size={56} /> : r.target_type === "review" ? <Star className="size-6 shrink-0 text-highlight" aria-hidden /> : null}
+                  {r.target_type === "listing" || r.target_type === "event" ? <AdminThumb src={p?.thumb} size={56} /> : r.target_type === "review" ? <Star className="size-6 shrink-0 text-highlight" aria-hidden /> : null}
                   <div className="min-w-0 flex-1">
                     {p ? (
                       <>

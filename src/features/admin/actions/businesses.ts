@@ -4,17 +4,20 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
 import { revalidatePublic } from "@/lib/revalidate-public";
+import { BUSINESS_VERTICALS, VERTICAL_INFO, type Vertical } from "@/features/business/lib/verticals";
 import { dbFail, withAdmin, type AdminContext } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { firstIssue, zId } from "../lib/zod";
 
-async function revalidateBusiness(supabase: AdminContext["supabase"], id: string) {
+type PublicTags = NonNullable<Parameters<typeof revalidatePublic>[0]["tags"]>;
+
+async function revalidateBusiness(supabase: AdminContext["supabase"], id: string, extraTags: PublicTags = []) {
   revalidatePath(routes.admin.businesses());
   revalidatePath(routes.admin.root());
   const { data } = await supabase.from("businesses").select("slug").eq("id", id).maybeSingle();
   // Public app is a separate deployment: ask it to expire its business pages (never throws).
   await revalidatePublic({
-    tags: ["businesses"],
+    tags: ["businesses", ...extraTags],
     paths: [
       routes.businesses.root(),
       ...(data?.slug ? [routes.businesses.detail(data.slug), routes.businesses.menu(data.slug)] : []),
@@ -106,6 +109,30 @@ export async function setVerificationLevelAction(input: z.input<typeof levelSche
     if (!data) return fail("İşletme bulunamadı.", "not_found");
     await revalidateBusiness(supabase, parsed.data.businessId);
     return ok(null, `Doğrulama seviyesi ${parsed.data.level} olarak kaydedildi.`);
+  });
+}
+
+const verticalSchema = z.object({
+  businessId: zId,
+  vertical: z.custom<Vertical>((v) => typeof v === "string" && (BUSINESS_VERTICALS as readonly string[]).includes(v), "Geçerli bir işletme türü seç."),
+});
+
+/**
+ * Türünü değiştir: owners cannot change their business type (the write guard refuses it); admin_set_business_vertical
+ * sets vertical + kinds (service for hizmet, shop otherwise), audits it and notifies the owner.
+ */
+export async function setBusinessVerticalAction(input: z.input<typeof verticalSchema>): Promise<ActionResult<null>> {
+  return withAdmin(async ({ supabase }) => {
+    const parsed = verticalSchema.safeParse(input);
+    if (!parsed.success) return fail(firstIssue(parsed.error));
+    const { businessId, vertical } = parsed.data;
+    // Errors come back as Turkish text with a hint: invalid_vertical, not_found.
+    const { data, error } = await supabase.rpc("admin_set_business_vertical", { p_business: businessId, p_vertical: vertical });
+    if (error) return dbFail(error);
+    if (!(data as { changed?: boolean } | null)?.changed) return ok(null, "İşletme zaten bu türde.");
+    // Kinds changed too: the service category pages cache their firm cards under "services".
+    await revalidateBusiness(supabase, businessId, ["services"]);
+    return ok(null, `İşletme türü ${VERTICAL_INFO[vertical].label} olarak değiştirildi; sahibine bildirildi.`);
   });
 }
 

@@ -24,7 +24,7 @@ export function HoursEditor({ value, onChange, id }: { value: WorkingHours; onCh
 
   return (
     <div id={id} className="flex flex-col gap-3">
-      <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
+      <ul className="divide-y overflow-hidden rounded-2xl bg-card">
         {DAY_KEYS.map((key) => {
           const day = value[key];
           const open = day !== null;

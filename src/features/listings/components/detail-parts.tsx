@@ -9,11 +9,12 @@ import type { BusinessRef } from "../types";
 import type { DisplayState, SellerInfo } from "../view-models";
 import { CompanyLogo } from "./listing-cards";
 
-/** Section with a heading (firm page style). */
-export function DetailSection({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+/** Section with a heading (firm page style) and an optional small icon before the title. */
+export function DetailSection({ id, title, icon: Icon, children }: { id: string; title: string; icon?: LucideIcon; children: React.ReactNode }) {
   return (
     <section aria-labelledby={id}>
-      <h2 id={id} className="mb-3 text-lg font-semibold">
+      <h2 id={id} className="mb-3 flex items-center gap-2 text-lg font-semibold">
+        {Icon ? <Icon className="size-5 shrink-0 text-primary" aria-hidden /> : null}
         {title}
       </h2>
       {children}
@@ -109,34 +110,45 @@ export function StatusNotice({
   );
 }
 
-export type FactTile = { label: string; value: React.ReactNode };
+export type FactTile = { label: string; value: React.ReactNode; icon?: LucideIcon };
 
-/** Key facts as three white tiles (the firm page stat tiles): value on top, label below. */
+/** Key facts as three white tiles (the firm page stat tiles): icon, value, label below. */
 export function FactTiles({ tiles }: { tiles: FactTile[] }) {
   return (
     <dl className="grid grid-cols-3 gap-2">
-      {tiles.map((t) => (
-        <div key={t.label} className="flex min-w-0 flex-col-reverse items-center justify-center rounded-2xl bg-card px-2 py-3 text-center">
-          <dt className="mt-1 text-xs text-muted-foreground">{t.label}</dt>
-          <dd className="line-clamp-2 max-w-full text-[15px] leading-tight font-semibold break-words tabular-nums">{t.value}</dd>
+      {tiles.map(({ label, value, icon: Icon }) => (
+        <div key={label} className="flex min-w-0 flex-col-reverse items-center justify-center rounded-2xl bg-card px-2 py-3 text-center">
+          <dt className="mt-1 text-xs text-muted-foreground">{label}</dt>
+          <dd className="flex max-w-full flex-col items-center">
+            {Icon ? <Icon className="mb-1.5 size-5 shrink-0 text-primary" aria-hidden /> : null}
+            <span className="line-clamp-2 max-w-full text-[15px] leading-tight font-semibold break-words tabular-nums">{value}</span>
+          </dd>
         </div>
       ))}
     </dl>
   );
 }
 
-export type DetailRow = { label: string; value: string };
+/** `key`: attribute key (or another stable id) for React; `icon`: shown in a soft chip before the label. */
+export type DetailRow = { key?: string; label: string; value: string; icon?: LucideIcon };
 
 /** Label / value pairs as a clean two-column list on a white card (Özellikler, İş bilgileri). */
-export function DetailList({ id, title, rows }: { id: string; title: string; rows: DetailRow[] }) {
+export function DetailList({ id, title, icon, rows }: { id: string; title: string; icon?: LucideIcon; rows: DetailRow[] }) {
   if (!rows.length) return null;
   return (
-    <DetailSection id={id} title={title}>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-3xl bg-card p-4">
-        {rows.map((r, i) => (
-          <div key={`${r.label}-${i}`} className="min-w-0">
-            <dt className="text-[13px] text-muted-foreground">{r.label}</dt>
-            <dd className="mt-0.5 text-[15px] leading-snug font-semibold break-words">{r.value}</dd>
+    <DetailSection id={id} title={title} icon={icon}>
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-4 rounded-3xl bg-card p-4">
+        {rows.map(({ key, label, value, icon: Icon }, i) => (
+          <div key={key ?? `${label}-${i}`} className={cn("relative min-w-0", Icon && "min-h-9 pl-11")}>
+            <dt className="text-[13px] leading-snug text-muted-foreground">
+              {Icon ? (
+                <span aria-hidden className="absolute top-0 left-0 flex size-9 items-center justify-center rounded-xl bg-brand-soft text-primary">
+                  <Icon className="size-[18px]" />
+                </span>
+              ) : null}
+              {label}
+            </dt>
+            <dd className="mt-0.5 text-[15px] leading-snug font-semibold break-words">{value}</dd>
           </div>
         ))}
       </dl>
@@ -145,10 +157,10 @@ export function DetailList({ id, title, rows }: { id: string; title: string; row
 }
 
 /** Free text section (Açıklama, İş tanımı...). */
-export function TextSection({ id, title, text }: { id: string; title: string; text: string }) {
+export function TextSection({ id, title, icon, text }: { id: string; title: string; icon?: LucideIcon; text: string }) {
   if (!text.trim()) return null;
   return (
-    <DetailSection id={id} title={title}>
+    <DetailSection id={id} title={title} icon={icon}>
       <p className="text-[15px] leading-relaxed break-words whitespace-pre-line text-foreground/90">{text.trim()}</p>
     </DetailSection>
   );

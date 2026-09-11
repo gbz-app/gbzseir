@@ -11,7 +11,9 @@ import { SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { findCategory, getFirmsForCategories, getServiceCatalog } from "@/features/services/data";
 import { COMING_SOON_LABEL } from "@/features/services/labels";
-import { FirmCard, HowItWorks } from "@/features/services/components/bits";
+import { HowItWorks } from "@/features/services/components/bits";
+import { BusinessRow } from "@/features/business/components/business-card";
+import { getVacationStates } from "@/features/business/lib/queries";
 import { ServiceIconBubble } from "@/features/services/components/service-icon";
 
 export const revalidate = 600;
@@ -57,6 +59,8 @@ export default async function ServiceCategoryPage({ params }: Props) {
   if (found.kind === "sub") redirect(routes.services.request(found.category.slug));
   const c = found.category;
   const firms = await getFirmsForCategories([c.id, ...c.children.map((s) => s.id)], 5);
+  // Tatil modu of the listed firms ("Tatilde" on their rows).
+  const vacations = await getVacationStates(firms.map((f) => f.id));
   const url = `${SITE_URL}${routes.services.category(c.slug)}`;
   const description = describe(c.name, c.description, c.children.map((s) => s.name), c.max_providers);
   const firstSub = c.children[0];
@@ -113,11 +117,16 @@ export default async function ServiceCategoryPage({ params }: Props) {
           />
           {firms.length ? (
             <ul className="flex flex-col gap-2.5">
-              {firms.map((f) => (
-                <li key={f.id}>
-                  <FirmCard firm={f} />
-                </li>
-              ))}
+              {firms.map((f) => {
+                const v = vacations.get(f.id);
+                return (
+                  <li key={f.id}>
+                    <BusinessRow
+                      b={{ ...f, rating_avg: f.rating_avg ?? 0, rating_count: f.rating_count ?? 0, vacation_mode: !!v?.vacation_mode, vacation_until: v?.vacation_until ?? null }}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <div className="flex flex-col items-center gap-2 rounded-2xl bg-card px-5 py-7 text-center shadow-soft ring-1 ring-foreground/[0.06]">

@@ -68,8 +68,12 @@ export const CATEGORY_ICON_NAMES = Object.keys(ICONS);
 
 export type CategoryIconProps = Omit<LucideProps, "name"> & { iconName: string | null | undefined; fallback?: "tag" | "briefcase" };
 
+/** The lucide component of a listing category icon name (Tag / Briefcase when unknown). */
+export function categoryIconFor(iconName: string | null | undefined, fallback: "tag" | "briefcase" = "tag"): LucideIcon {
+  return (iconName ? ICONS[iconName] : undefined) ?? (fallback === "briefcase" ? Briefcase : Tag);
+}
+
 /** Renders the lucide icon of a listing category (decorative). */
 export function CategoryIcon({ iconName, fallback = "tag", ...props }: CategoryIconProps) {
-  const icon = (iconName ? ICONS[iconName] : undefined) ?? (fallback === "briefcase" ? Briefcase : Tag);
-  return React.createElement(icon, { "aria-hidden": true, ...props });
+  return React.createElement(categoryIconFor(iconName, fallback), { "aria-hidden": true, ...props });
 }

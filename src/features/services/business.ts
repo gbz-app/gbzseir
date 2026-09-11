@@ -3,14 +3,15 @@ import { getMyBusinesses, getRememberedBusinessId } from "@/lib/auth/server";
 import type { BusinessSummary } from "@/lib/types";
 
 export type ServiceBusinessGate =
-  | { ok: true; business: BusinessSummary }
+  | { ok: true; business: BusinessSummary; businesses: BusinessSummary[] }
   | { ok: false; reason: "no_business" | "not_approved" | "not_service"; business: BusinessSummary | null };
 
 const isService = (b: BusinessSummary) => ((b.kinds ?? []) as string[]).includes("service");
 
 /**
- * The caller's approved service business (H4/H5 guard; call after requireAuth). An owner can have several
- * businesses: the active one wins when it is an approved service firm, else the first approved service firm.
+ * The caller's approved service businesses (H4/H5 guard; call after requireAuth). An owner can have several:
+ * `business` is the active one when it is an approved service firm, else the first approved service firm;
+ * `businesses` lists every approved service firm of the owner (leads are shown across all of them), `business` first.
  */
 export async function getServiceBusiness(): Promise<ServiceBusinessGate> {
   const list = await getMyBusinesses();
@@ -18,9 +19,10 @@ export async function getServiceBusiness(): Promise<ServiceBusinessGate> {
   const approved = list.filter((b) => b.status === "approved");
   if (approved.length === 0) return { ok: false, reason: "not_approved", business: list[0] };
   const remembered = await getRememberedBusinessId();
-  const service = approved.find((b) => b.id === remembered && isService(b)) ?? approved.find(isService);
+  const services = approved.filter(isService);
+  const service = services.find((b) => b.id === remembered) ?? services[0];
   if (!service) return { ok: false, reason: "not_service", business: approved[0] };
-  return { ok: true, business: service };
+  return { ok: true, business: service, businesses: [service, ...services.filter((b) => b.id !== service.id)] };
 }
 
 export const SERVICE_GATE_COPY: Record<Exclude<ServiceBusinessGate, { ok: true }>["reason"], { title: string; description: string }> = {

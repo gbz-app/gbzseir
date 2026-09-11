@@ -204,6 +204,15 @@ export function JobActionBar({
   const { user } = useAuth();
   if (user && user.id === ownerId) return <OwnerBar editHref={editHref} manageHref={manageHref} />;
   const heart = <FavoriteButton targetType="listing" targetId={listingId} variant="ghost" className={ROUND_FAVORITE} />;
+  // Sample ads get no phone from the page (it is kept out of the payload), but still show the "aranamaz" pill.
+  if (state === "live" && isDemo) {
+    return (
+      <DetailActions>
+        {heart}
+        <DemoNoCall />
+      </DetailActions>
+    );
+  }
   if (state !== "live" || !phone) {
     return (
       <DetailActions>
@@ -217,11 +226,7 @@ export function JobActionBar({
   return (
     <DetailActions>
       {heart}
-      {isDemo ? (
-        <DemoNoCall />
-      ) : (
-        <CallButton phone={phone} subjectType="job" subjectId={listingId} label="Ara ve başvur" variant="default" size="lg" className={CTA} />
-      )}
+      <CallButton phone={phone} subjectType="job" subjectId={listingId} label="Ara ve başvur" variant="default" size="lg" className={CTA} />
     </DetailActions>
   );
 }

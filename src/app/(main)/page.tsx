@@ -10,6 +10,8 @@ import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { VERTICAL_INFO, type Vertical } from "@/features/business/lib/verticals";
 import { listPublishedArticles } from "@/features/content/articles/queries";
 import { getNews } from "@/features/content/news/get-news";
+import { EventsRail } from "@/features/events/components/events-rail";
+import { listUpcomingEvents } from "@/features/events/queries";
 import { HomeHero } from "@/features/home/components/home-hero";
 import { HomeNews } from "@/features/home/components/home-news";
 import { HomePlaces } from "@/features/home/components/home-places";
@@ -49,6 +51,7 @@ const CATEGORIES: Tile[] = [
   vertical("saglik"),
   vertical("dugun"),
   vertical("egitim"),
+  vertical("etkinlik"),
 ];
 
 function SectionHeader({ id, title, href }: { id?: string; title: string; href?: string }) {
@@ -66,11 +69,11 @@ function SectionHeader({ id, title, href }: { id?: string; title: string; href?:
   );
 }
 
-/** Wide GebzemAI card on the left of the quick cards: plain white, icon + name only (opens search for now). */
+/** Wide GebzemAI card on the left of the quick cards: plain white, icon + name only (opens GebzemAI). */
 function AiCard() {
   return (
     <Link
-      href={routes.search()}
+      href={routes.ai()}
       aria-label="GebzemAI"
       className="col-span-2 row-span-2 flex flex-col justify-between rounded-3xl bg-card p-4 outline-none transition-transform active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-ring/50"
     >
@@ -108,7 +111,19 @@ async function PlacesSection() {
   );
 }
 
-/** C1 - Ana sayfa: başlık, arama, yapay zeka + hızlı kartlar, kategoriler, gezilecek yerler, haberler. */
+/** "Yaklaşan etkinlikler": shown only when there are upcoming events. */
+async function EventsSection() {
+  const events = await listUpcomingEvents().catch(() => []);
+  if (!events.length) return null;
+  return (
+    <section aria-labelledby="etkinlikler">
+      <SectionHeader id="etkinlikler" title="Yaklaşan etkinlikler" href={routes.events.root()} />
+      <EventsRail events={events.slice(0, 10)} />
+    </section>
+  );
+}
+
+/** C1 - Ana sayfa: başlık, arama, yapay zeka + hızlı kartlar, kategoriler, yaklaşan etkinlikler, gezilecek yerler, haberler. */
 export default function HomePage() {
   return (
     <>
@@ -151,6 +166,10 @@ export default function HomePage() {
           ))}
         </ul>
       </section>
+
+      <Suspense fallback={null}>
+        <EventsSection />
+      </Suspense>
 
       <Suspense fallback={<Skeleton className="h-[26rem] w-full rounded-3xl" />}>
         <PlacesSection />

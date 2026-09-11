@@ -100,6 +100,15 @@ export const REPORT_TARGETS: Record<string, string> = {
   business: "İşletme",
   review: "Yorum",
   user: "Kullanıcı",
+  event: "Etkinlik",
+};
+
+export const EVENT_STATUS: LabelMap = {
+  pending_review: { label: "Onay bekliyor", tone: "warning" },
+  published: { label: "Yayında", tone: "success" },
+  rejected: { label: "Reddedildi", tone: "destructive" },
+  draft: { label: "Taslak", tone: "secondary" },
+  cancelled: { label: "İptal", tone: "outline" },
 };
 
 export const REQUEST_STATUS: LabelMap = {
@@ -174,6 +183,10 @@ export const POI_KINDS: Record<string, string> = {
   place: "Gezilecek yer",
   taxi: "Taksi durağı",
   atm: "ATM",
+  institution: "Resmî kurum",
+  bank: "Banka şubesi",
+  fuel: "Akaryakıt",
+  ev_charge: "Şarj istasyonu",
 };
 
 export const POI_SOURCES: Record<string, string> = {

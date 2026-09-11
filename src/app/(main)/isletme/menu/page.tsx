@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { requireProfile } from "@/lib/auth/server";
-import { MenuManager } from "@/features/business/components/menu-manager";
+import { HOTEL_MENU_SUGGESTIONS, MenuManager } from "@/features/business/components/menu-manager";
 import { WrongVerticalNote } from "@/features/business/components/owner-gate";
 import { getOtherOwnedBusinesses, getOwnerBusiness } from "@/features/business/lib/owner-queries";
 import { qrForUrl } from "@/features/business/lib/qr";
@@ -16,7 +16,7 @@ import { hasMenu, resolveVertical } from "@/features/business/lib/verticals";
 
 export const metadata: Metadata = { title: "Menü ve QR menü", robots: { index: false } };
 
-/** H5 - Menü yönetimi + QR menü (kafe, restoran, yemek). */
+/** H5 - Menü yönetimi + QR menü (yemek, restoran, kafe; otel: restoran ve oda servisi). */
 export default async function OwnerMenuPage() {
   await requireProfile(routes.business.menu());
   const b = await getOwnerBusiness();
@@ -30,7 +30,7 @@ export default async function OwnerMenuPage() {
         <PageHeader title="Menü ve QR menü" subtitle={b.name} backHref={routes.business.root()} />
         <div className="px-4 pt-5">
           <WrongVerticalNote
-            text="Menü ve QR menü; yemek, restoran ve kafe işletmeleri içindir. İşletme türünü değiştirirsen bu bölüm açılır."
+            text="Menü ve QR menü; yemek, restoran, kafe ve otel işletmeleri içindir."
             alternatives={await getOtherOwnedBusinesses(b.id, (x) => hasMenu(x.vertical))}
             next={routes.business.menu()}
           />
@@ -39,6 +39,7 @@ export default async function OwnerMenuPage() {
     );
   }
 
+  const isHotel = vertical === "otel";
   const menuUrl = `${SITE_URL}${routes.businesses.menu(b.slug)}`;
   const [menu, qr] = await Promise.all([getBusinessMenu(b.id).catch(() => []), qrForUrl(menuUrl)]);
 
@@ -46,11 +47,21 @@ export default async function OwnerMenuPage() {
     <>
       <PageHeader title="Menü ve QR menü" subtitle={b.name} backHref={routes.business.root()} />
       <div className="flex flex-col gap-5 px-4 pt-4 pb-10">
-        <section className="flex items-center gap-4 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]" aria-label="QR menü">
-          <div className="size-28 shrink-0 rounded-2xl bg-white p-2 ring-1 ring-foreground/10 [&_svg]:size-full" dangerouslySetInnerHTML={{ __html: qr.svg }} />
+        {isHotel ? (
+          <p className="px-1 text-sm leading-relaxed text-muted-foreground">
+            Restoran ve oda servisi menün burada. Bölüm ekle (ör. Kahvaltı, Oda servisi), ürünleri ve fiyatları gir; misafirlerin QR ile açsın.
+          </p>
+        ) : null}
+
+        <section className="flex items-center gap-4 rounded-3xl bg-card p-4" aria-label="QR menü">
+          <div className="size-28 shrink-0 rounded-2xl bg-white p-2 [&_svg]:size-full" dangerouslySetInnerHTML={{ __html: qr.svg }} />
           <div className="min-w-0">
             <p className="font-semibold">QR menün hazır</p>
-            <p className="mt-0.5 text-sm text-muted-foreground">Masalara koy; müşteri telefon kamerasıyla okutup menüyü açar.</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {isHotel
+                ? "Odalara ve restorana koy; misafir telefon kamerasıyla okutup menüyü açar."
+                : "Masalara koy; müşteri telefon kamerasıyla okutup menüyü açar."}
+            </p>
             <div className="mt-2.5 flex flex-wrap gap-1.5">
               <Button asChild size="sm">
                 <a href={qr.png} download={`${b.slug}-qr-menu.png`}>
@@ -71,7 +82,7 @@ export default async function OwnerMenuPage() {
           </div>
         </section>
 
-        <MenuManager businessId={b.id} initial={menu} />
+        <MenuManager businessId={b.id} initial={menu} suggestions={isHotel ? HOTEL_MENU_SUGGESTIONS : undefined} />
       </div>
     </>
   );

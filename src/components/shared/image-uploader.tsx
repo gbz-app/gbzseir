@@ -11,7 +11,7 @@ import { useCurrentPath } from "@/lib/auth/hooks";
 import { createClient } from "@/lib/supabase/client";
 import { STORAGE_BUCKETS } from "@/lib/db-contract";
 import { useAuth } from "@/lib/auth/auth-provider";
-import { ACCEPTED_IMAGE_TYPES, processImage, uuid } from "@/lib/images";
+import { ACCEPTED_IMAGE_TYPES, processImage, uuid, type ProcessedImage } from "@/lib/images";
 import { routes } from "@/core/routes";
 
 /** One uploaded image (public URLs in the `media` bucket). The first item of a list is the cover. */
@@ -23,6 +23,8 @@ export type UploadedImage = {
   thumbPath: string;
   width?: number;
   height?: number;
+  /** Set when the `upload` override stored it elsewhere (Cloudflare R2); path/thumbPath are then object keys. */
+  provider?: "r2";
 };
 
 export type ImageUploaderProps = {
@@ -41,6 +43,10 @@ export type ImageUploaderProps = {
   disabled?: boolean;
   /** Notified while files are being processed/uploaded (disable submit buttons). */
   onUploadingChange?: (uploading: boolean) => void;
+  /** Optional storage override (media adapter): upload the processed image, or return null for the default Supabase upload. */
+  upload?: (processed: ProcessedImage) => Promise<UploadedImage | null>;
+  /** Deletes images the `upload` override stored (fresh, unsaved ones only). */
+  removeUploaded?: (images: UploadedImage[]) => Promise<void>;
   className?: string;
 };
 
@@ -61,6 +67,8 @@ export function ImageUploader({
   hint,
   disabled,
   onUploadingChange,
+  upload,
+  removeUploaded,
   className,
 }: ImageUploaderProps) {
   const { user, loading: authLoading } = useAuth();
@@ -85,6 +93,8 @@ export function ImageUploader({
 
   const uploadOne = async (file: File): Promise<UploadedImage> => {
     const processed = await processImage(file);
+    const custom = upload ? await upload(processed) : null;
+    if (custom) return custom;
     const id = uuid();
     const path = buildPath(id, processed.full.ext);
     const thumbPath = buildPath(id, processed.thumb.ext, "_thumb");
@@ -137,7 +147,13 @@ export function ImageUploader({
   };
 
   const removeFromStorage = async (imgs: UploadedImage[]) => {
-    const paths = imgs.flatMap((i) => [i.path, i.thumbPath]).filter((p) => user && p.startsWith(`${user.id}/`));
+    // Saved images come back with an empty path and are never deleted from here.
+    const external = imgs.filter((i) => i.provider === "r2" && i.path);
+    if (external.length && removeUploaded) void removeUploaded(external).catch(() => undefined);
+    const paths = imgs
+      .filter((i) => i.provider !== "r2")
+      .flatMap((i) => [i.path, i.thumbPath])
+      .filter((p) => user && p.startsWith(`${user.id}/`));
     if (paths.length) await createClient().storage.from(STORAGE_BUCKETS.media).remove(paths).catch(() => undefined);
   };
 
@@ -182,7 +198,7 @@ export function ImageUploader({
 
   if (!user) {
     return (
-      <div className={cn("rounded-2xl border border-dashed p-4 text-center text-sm text-muted-foreground", className)}>
+      <div className={cn("rounded-2xl bg-card p-4 text-center text-sm text-muted-foreground", className)}>
         Fotoğraf eklemek için{" "}
         <Link className="font-semibold text-primary underline" href={routes.auth.login(currentPath)}>
           giriş yap
@@ -253,7 +269,7 @@ export function ImageUploader({
             }}
             onDragEnd={() => setDragIndex(null)}
             className={cn(
-              "group relative aspect-square overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/5",
+              "group relative aspect-square overflow-hidden rounded-xl bg-muted",
               dragIndex === i && "opacity-50",
             )}
           >
@@ -306,9 +322,9 @@ export function ImageUploader({
               type="button"
               disabled={disabled}
               onClick={() => inputRef.current?.click()}
-              className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-primary/40 bg-brand-soft/50 text-sm font-semibold text-primary transition-colors hover:bg-brand-soft disabled:opacity-50"
+              className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-xl bg-muted text-sm font-semibold text-foreground transition-colors outline-none hover:bg-brand-soft focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
             >
-              <ImagePlus className="size-6" aria-hidden />
+              <ImagePlus className="size-6 text-primary" aria-hidden />
               Fotoğraf ekle
             </button>
           </li>

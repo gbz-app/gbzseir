@@ -3,6 +3,7 @@ import { ChevronRight, TreePalm } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { DemoBadge, VerifiedBadge } from "@/components/shared/badges";
+import { isOnVacation } from "../lib/hours";
 import { BusinessLogo } from "./business-logo";
 import { RatingInline } from "./rating";
 
@@ -15,19 +16,33 @@ export type BusinessRowData = {
   rating_count: number;
   verification_level: number;
   vacation_mode?: boolean;
+  /** Tatil modu return date (the vacation is over from then on). */
+  vacation_until?: string | null;
   neighbourhood_name?: string | null;
   /** Sample (seed) business: small "Örnek" chip. */
   is_demo?: boolean;
 };
 
-/** Directory row card: logo, name + Onaylı, rating, category · neighbourhood, optional distance. Server-safe. */
-export function BusinessRow({ b, distanceLabel, className }: { b: BusinessRowData; distanceLabel?: string | null; className?: string }) {
+/** Directory row card: logo, name + Onaylı, rating, Tatilde, category · neighbourhood, optional distance. Server-safe. */
+export function BusinessRow({
+  b,
+  distanceLabel,
+  now,
+  className,
+}: {
+  b: BusinessRowData;
+  distanceLabel?: string | null;
+  /** Client clock for the tatil check; null before mount (only the raw flag is used), omitted = current time. */
+  now?: Date | null;
+  className?: string;
+}) {
   const meta = [b.category_label, b.neighbourhood_name ? `${b.neighbourhood_name}` : null].filter(Boolean).join(" · ");
+  const vacation = now === null ? !!b.vacation_mode : isOnVacation(b, now);
   return (
     <Link
       href={routes.businesses.detail(b.slug)}
       className={cn(
-        "group flex items-center gap-3 rounded-2xl bg-card p-3 shadow-soft ring-1 ring-foreground/[0.06] transition-[transform,background-color] outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]",
+        "group flex items-center gap-3 rounded-2xl bg-card p-3 transition-[transform,background-color] outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]",
         className,
       )}
     >
@@ -39,7 +54,7 @@ export function BusinessRow({ b, distanceLabel, className }: { b: BusinessRowDat
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <RatingInline avg={b.rating_avg} count={b.rating_count} />
-          {b.vacation_mode ? (
+          {vacation ? (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-highlight-foreground dark:text-highlight">
               <TreePalm className="size-3.5" aria-hidden /> Tatilde
             </span>

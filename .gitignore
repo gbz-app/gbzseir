@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Owner-provided raw open data (imported via scripts, never committed)
+/kocaeli/

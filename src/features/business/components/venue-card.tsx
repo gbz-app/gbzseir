@@ -8,7 +8,7 @@ import { formatDistance } from "@/core/geo";
 import { routes } from "@/core/routes";
 import { DemoBadge } from "@/components/shared/badges";
 import { FavoriteButton } from "@/components/shared/favorite-button";
-import { describeOpenStatus, type OpenStatus } from "../lib/hours";
+import { describeOpenStatus, isVacationStatus, type OpenStatus } from "../lib/hours";
 import type { VerticalCard } from "../lib/vertical-queries";
 import { VERTICAL_INFO, priceLevelInfo } from "../lib/verticals";
 import { formatRating } from "./rating";
@@ -17,7 +17,7 @@ export type VenueCardProps = {
   item: VerticalCard;
   /** Meters from the user's point (null = unknown, hidden). */
   distance: number | null;
-  /** Open/closed now (null until mounted, and for hotels). */
+  /** Open/closed/tatilde now (null until mounted). Hotels only carry the tatil state. */
   open: OpenStatus | null;
   eager?: boolean;
   /** "compact": small card for the two-column grid (Sağlık). */
@@ -42,12 +42,20 @@ function priceLine(item: VerticalCard): { strong: string; rest?: string } | null
   return level ? { strong: level.symbol, rest: ` · ${level.label}` } : null;
 }
 
-/** "Tatilde" / "Kapanış 18:00" and whether the business is open right now. */
-function statusOf(item: VerticalCard, open: OpenStatus | null): { text: string | null; isOpen: boolean } {
-  return {
-    text: item.vacation_mode ? "Tatilde" : open ? describeOpenStatus(open) : null,
-    isOpen: !item.vacation_mode && !!open?.known && open.open,
-  };
+type StatusTone = "open" | "vacation" | "muted";
+
+const STATUS_TONE: Record<StatusTone, string> = {
+  open: "text-emerald-600 dark:text-emerald-400",
+  vacation: "text-highlight-foreground dark:text-highlight",
+  muted: "text-muted-foreground",
+};
+
+/** "Tatilde" / "Açık · Kapanış 18:00" / "Açılış 09:00". Before mount (`open` null) only the tatil flag is known. */
+function statusOf(item: VerticalCard, open: OpenStatus | null): { text: string | null; tone: StatusTone } {
+  if (open ? isVacationStatus(open) : item.vacation_mode) return { text: "Tatilde", tone: "vacation" };
+  if (!open) return { text: null, tone: "muted" };
+  const text = describeOpenStatus(open);
+  return open.known && open.open ? { text: text ? `Açık · ${text}` : "Açık", tone: "open" } : { text, tone: "muted" };
 }
 
 function RatingBadge({ item, small }: { item: VerticalCard; small?: boolean }) {
@@ -73,7 +81,7 @@ export function VenueCard(props: VenueCardProps) {
   const { item, distance, open, eager } = props;
   const price = priceLine(item);
   const where = [item.neighbourhood_name ? `${item.neighbourhood_name} Mah.` : null, distance != null ? formatDistance(distance) : null].filter(Boolean).join(" · ");
-  const { text: status, isOpen } = statusOf(item, open);
+  const status = statusOf(item, open);
 
   return (
     <article className="relative">
@@ -108,7 +116,7 @@ export function VenueCard(props: VenueCardProps) {
                   <span className="truncate">{where}</span>
                 </p>
               ) : null}
-              {price || status || item.star_rating ? (
+              {price || status.text || item.star_rating ? (
                 <p className="mt-1 flex min-w-0 items-center gap-2 text-[13px]">
                   {item.star_rating ? <span className="shrink-0 font-medium text-muted-foreground">{item.star_rating} yıldızlı</span> : null}
                   {price ? (
@@ -117,12 +125,7 @@ export function VenueCard(props: VenueCardProps) {
                       {price.rest ? <span className="text-muted-foreground">{price.rest}</span> : null}
                     </span>
                   ) : null}
-                  {status ? (
-                    <span className={cn("truncate font-medium", isOpen ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
-                      {isOpen ? "Açık · " : ""}
-                      {status}
-                    </span>
-                  ) : null}
+                  {status.text ? <span className={cn("truncate font-medium", STATUS_TONE[status.tone])}>{status.text}</span> : null}
                 </p>
               ) : null}
             </div>
@@ -176,12 +179,7 @@ function CompactVenueCard({ item, distance, open, eager }: VenueCardProps) {
                   <span className="truncate">{where}</span>
                 </p>
               ) : null}
-              {status.text ? (
-                <p className={cn("truncate font-medium", status.isOpen ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
-                  {status.isOpen ? "Açık · " : ""}
-                  {status.text}
-                </p>
-              ) : null}
+              {status.text ? <p className={cn("truncate font-medium", STATUS_TONE[status.tone])}>{status.text}</p> : null}
             </div>
           ) : null}
         </div>

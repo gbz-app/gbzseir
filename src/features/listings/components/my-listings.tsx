@@ -3,9 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Briefcase, CircleCheck, EllipsisVertical, Eye, Pause, Pencil, Phone, Play, RefreshCw, Send, Tag, Trash2 } from "lucide-react";
+import { Briefcase, ChartColumn, ChevronRight, CircleCheck, EllipsisVertical, Eye, Pause, Pencil, Phone, Play, RefreshCw, Send, Tag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatNumber } from "@/core/format";
 import { routes, withQuery } from "@/core/routes";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -15,6 +16,7 @@ import { createClient } from "@/lib/supabase/client";
 import { EDITABLE_STATUSES, type ListingStatus, type ListingType } from "../constants";
 import { daysLeft, effectiveStatus, listingPriceText, salaryText } from "../format";
 import type { MyListingRow } from "../types";
+import { addDays, istanbulToday } from "./stats/stats-data";
 
 type Tab = "yayinda" | "onay" | "red" | "suresi" | "sonuc";
 
@@ -49,12 +51,59 @@ function tabOf(status: ListingStatus): Tab {
 
 type Action = "pause" | "resume" | "done" | "renew" | "resubmit" | "delete";
 
-function ListingRow({ row, type, busy, onAction }: { row: MyListingRow; type: ListingType; busy: boolean; onAction: (row: MyListingRow, action: Action) => void }) {
+type WeekStat = { views: number; calls: number };
+
+/** Last 7 days of views / calls of the owner's published listings (listing_daily_stats; RLS returns own rows only). */
+function useWeekStats(ids: string[]): Map<string, WeekStat> | null {
+  const key = ids.join(",");
+  const [state, setState] = React.useState<{ key: string; map: Map<string, WeekStat> } | null>(null);
+  React.useEffect(() => {
+    if (!key) return;
+    let alive = true;
+    createClient()
+      .from("listing_daily_stats")
+      .select("listing_id,views,calls")
+      .in("listing_id", key.split(","))
+      .gte("day", addDays(istanbulToday(), -6))
+      .then(
+        ({ data }) => {
+          if (!alive || !data) return;
+          const map = new Map<string, WeekStat>();
+          for (const r of data) {
+            const cur = map.get(r.listing_id) ?? { views: 0, calls: 0 };
+            map.set(r.listing_id, { views: cur.views + r.views, calls: cur.calls + r.calls });
+          }
+          setState({ key, map });
+        },
+        () => undefined,
+      );
+    return () => {
+      alive = false;
+    };
+  }, [key]);
+  return state?.key === key ? state.map : null;
+}
+
+function ListingRow({
+  row,
+  type,
+  busy,
+  week,
+  onAction,
+}: {
+  row: MyListingRow;
+  type: ListingType;
+  busy: boolean;
+  /** Last 7 days (null while loading / unavailable). */
+  week: WeekStat | null;
+  onAction: (row: MyListingRow, action: Action) => void;
+}) {
   const status = effectiveStatus(row);
   const meta = STATUS_META[status];
   const isJob = type === "job";
   const detailHref = isJob ? routes.listings.job(row.id) : routes.listings.classified(row.id);
   const editHref = withQuery(isJob ? routes.listings.postJob() : routes.listings.postClassified(), { duzenle: row.id });
+  const statsHref = routes.profile.listingStats(row.id);
   const canEdit = EDITABLE_STATUSES.includes(row.status);
   const priceLine = isJob ? salaryText(row.salaryMin, row.salaryMax, row.salaryHidden) : listingPriceText(row.price);
   const Placeholder = isJob ? Briefcase : Tag;
@@ -95,6 +144,11 @@ function ListingRow({ row, type, busy, onAction }: { row: MyListingRow; type: Li
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-60">
+            <DropdownMenuItem asChild className="min-h-11 px-3 text-[15px]">
+              <Link href={statsHref}>
+                <ChartColumn /> İstatistikler
+              </Link>
+            </DropdownMenuItem>
             {canEdit ? (
               <DropdownMenuItem asChild className="min-h-11 px-3 text-[15px]">
                 <Link href={editHref}>
@@ -134,6 +188,24 @@ function ListingRow({ row, type, busy, onAction }: { row: MyListingRow; type: Li
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      {row.published_at ? (
+        <Link
+          href={statsHref}
+          className="mt-2.5 flex min-h-10 items-center gap-2 rounded-xl bg-muted/70 px-3 text-[13px] outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <ChartColumn className="size-4 shrink-0 text-primary" aria-hidden />
+          <span className="min-w-0 flex-1 truncate tabular-nums">
+            {week ? (
+              <>
+                <span className="text-muted-foreground">Son 7 gün:</span> {formatNumber(week.views)} görüntülenme · {formatNumber(week.calls)} arama
+              </>
+            ) : (
+              "İstatistikleri gör"
+            )}
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </Link>
+      ) : null}
       {status === "rejected" && row.rejection_reason ? (
         <p className="mt-2.5 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">Red nedeni: {row.rejection_reason}</p>
       ) : null}
@@ -146,6 +218,15 @@ export function MyListings({ rows, type, error }: { rows: MyListingRow[]; type: 
   const router = useRouter();
   const isJob = type === "job";
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const publishedIds = React.useMemo(
+    () =>
+      rows
+        .filter((r) => r.published_at)
+        .slice(0, 100)
+        .map((r) => r.id),
+    [rows],
+  );
+  const weekStats = useWeekStats(publishedIds);
 
   const counts = React.useMemo(() => {
     const c: Record<Tab, number> = { yayinda: 0, onay: 0, red: 0, suresi: 0, sonuc: 0 };
@@ -229,7 +310,14 @@ export function MyListings({ rows, type, error }: { rows: MyListingRow[]; type: 
       {visible.length ? (
         <ul className="flex flex-col gap-3 px-4">
           {visible.map((r) => (
-            <ListingRow key={r.id} row={r} type={type} busy={busyId === r.id} onAction={onAction} />
+            <ListingRow
+              key={r.id}
+              row={r}
+              type={type}
+              busy={busyId === r.id}
+              week={weekStats ? (weekStats.get(r.id) ?? { views: 0, calls: 0 }) : null}
+              onAction={onAction}
+            />
           ))}
         </ul>
       ) : (

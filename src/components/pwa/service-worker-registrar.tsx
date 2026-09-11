@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
+import { RefreshCwIcon } from "lucide-react";
 import { initInstallCapture } from "@/lib/pwa/install-store";
 
 /**
@@ -28,10 +29,13 @@ export function ServiceWorkerRegistrar() {
     };
 
     const offerUpdate = (worker: ServiceWorker) => {
-      toast("Yeni sürüm hazır", {
+      toast.info("Yeni sürüm hazır", {
         id: "sw-update",
         description: "En güncel sürümü kullanmak için yenile.",
+        icon: <RefreshCwIcon className="size-5" aria-hidden />,
         duration: Infinity,
+        // It never auto-closes and sits over the header, so it keeps an X even where the Toaster has none.
+        closeButton: true,
         action: {
           label: "Yenile",
           onClick: () => {

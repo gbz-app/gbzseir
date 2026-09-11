@@ -23,7 +23,15 @@ function subscribeHash(onChange: () => void) {
   };
 }
 
-const readHash = () => decodeURIComponent(window.location.hash.slice(1));
+/** A malformed escape (e.g. "#%") must not crash the page: fall back to the raw hash, which matches no tab. */
+const readHash = () => {
+  const raw = window.location.hash.slice(1);
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+};
 const serverHash = () => "";
 
 function writeHash(id: string) {

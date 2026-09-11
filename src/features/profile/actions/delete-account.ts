@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, type AdminSupabase } from "@/lib/supabase/admin";
 import { revalidatePublic, type PublicPath } from "@/lib/revalidate-public";
+import { deleteR2UserFolder } from "@/lib/media/server";
 import { routes } from "@/core/routes";
 
 /**
@@ -12,7 +13,8 @@ import { routes } from "@/core/routes";
  * to the user). A failed delete leaves every file in place.
  */
 
-export type DeleteAccountResult = { ok: true } | { ok: false; message: string };
+/** reauth: the SMS code is older than 10 minutes (or was never verified); the UI asks for a new code. */
+export type DeleteAccountResult = { ok: true } | { ok: false; message: string; reauth?: boolean };
 
 const BUCKETS = ["media", "private-docs"] as const;
 const PAGE = 100;
@@ -66,7 +68,11 @@ async function removeUserFiles(uid: string): Promise<number> {
   return failed;
 }
 
-/** Delete the signed-in user's account (after the SMS code was verified in the browser), then their files. */
+/**
+ * Delete the signed-in user's account, then their files. The browser verifies the SMS code right before this call;
+ * delete_my_account itself refuses (hint reauth_required) unless the session JWT carries an amr "otp" entry from the
+ * last 10 minutes, so a bare session cannot delete the account.
+ */
 export async function deleteMyAccount(): Promise<DeleteAccountResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, message: "Oturumun doğrulanamadı. Lütfen tekrar giriş yap." };
@@ -77,7 +83,10 @@ export async function deleteMyAccount(): Promise<DeleteAccountResult> {
 
   const { error } = await supabase.rpc("delete_my_account");
   if (error) {
-    console.error("[deleteMyAccount] delete_my_account failed", error.code, error.message);
+    console.error("[deleteMyAccount] delete_my_account failed", error.code, error.hint);
+    if (error.hint === "reauth_required") {
+      return { ok: false, reauth: true, message: "Güvenliğin için kodu yeniden doğrulaman gerekiyor. Yeni bir kod iste ve hemen gir." };
+    }
     return {
       ok: false,
       message: error.code === "42501" ? "Oturumun doğrulanamadı. Lütfen tekrar giriş yap." : "Hesabın silinemedi. Lütfen tekrar dene.",
@@ -86,6 +95,9 @@ export async function deleteMyAccount(): Promise<DeleteAccountResult> {
 
   const failed = await removeUserFiles(user.id);
   if (failed) console.error(`[deleteMyAccount] ${failed} storage item(s) could not be removed after an account delete`);
+  // Cloudflare R2 (media adapter): everything under <uid>/ (listing photos, videos, posters). 0 when R2 is not set.
+  const r2Failed = await deleteR2UserFolder(user.id);
+  if (r2Failed) console.error(`[deleteMyAccount] ${r2Failed} R2 object(s) could not be removed after an account delete`);
 
   const paths: PublicPath[] = [
     routes.events.root(),

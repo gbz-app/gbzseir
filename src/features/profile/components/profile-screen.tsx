@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   Bell,
   Briefcase,
+  CalendarDays,
   ChevronRight,
   CircleHelp,
   ClipboardList,
@@ -32,6 +33,9 @@ import { useAuth } from "@/lib/auth/auth-provider";
 import { useMyBusinesses } from "@/lib/auth/hooks";
 import { useUnreadNotifications } from "@/lib/notifications/use-unread-notifications";
 import { readString, writeString } from "@/lib/storage";
+import { createClient } from "@/lib/supabase/client";
+import { BusinessLimitSheet } from "@/features/business/components/business-limit";
+import { fetchBusinessQuota, type BusinessQuota } from "@/features/business/lib/business-quota";
 
 const PROMO_DISMISSED_KEY = "gebzem.profile.businessPromoDismissed";
 
@@ -119,6 +123,21 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
   const { businesses, approved, loading: businessesLoading } = useMyBusinesses();
   const { count } = useUnreadNotifications();
   const [promoDismissed, setPromoDismissed] = React.useState(() => readString(PROMO_DISMISSED_KEY) === "1");
+  // One business per account: once the limit is reached "Yeni işletme ekle" opens a sheet that leads to support.
+  const [quota, setQuota] = React.useState<{ uid: string; value: BusinessQuota | null } | null>(null);
+  const [limitOpen, setLimitOpen] = React.useState(false);
+  const hasBusiness = businesses.length > 0;
+  React.useEffect(() => {
+    if (!user || !hasBusiness) return;
+    let active = true;
+    void fetchBusinessQuota(createClient()).then((value) => {
+      if (active) setQuota({ uid: user.id, value });
+    });
+    return () => {
+      active = false;
+    };
+  }, [user, hasBusiness]);
+  const limitReached = !!user && quota?.uid === user.id && quota.value !== null && !quota.value.canAdd;
 
   // One row: page title on the left, help + settings as plain white circles on the right.
   const header = (
@@ -252,13 +271,21 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
         <ul className="mt-3 divide-y">
           <Row icon={UserRound} label="Kişisel bilgiler" href={routes.profile.edit()} />
           <Row icon={Tag} label="İlanlarım" href={routes.profile.listings()} />
+          <Row icon={CalendarDays} label="Etkinliklerim" href={routes.profile.events()} />
           {approved ? <Row icon={Briefcase} label="İş ilanlarım" href={routes.profile.jobs()} /> : null}
-          {businesses.length > 0 && applicationsOpen && !businesses.some((b) => b.status === "suspended") ? <Row icon={Plus} label="Yeni işletme ekle" href={routes.business.apply()} /> : null}
+          {businesses.length > 0 && applicationsOpen && !businesses.some((b) => b.status === "suspended") ? (
+            limitReached ? (
+              <Row icon={Plus} label="Yeni işletme ekle" onClick={() => setLimitOpen(true)} />
+            ) : (
+              <Row icon={Plus} label="Yeni işletme ekle" href={routes.business.apply()} />
+            )
+          ) : null}
           <Row icon={ClipboardList} label="Hizmet taleplerim" href={routes.profile.requests()} />
           <Row icon={Heart} label="Favorilerim" href={routes.profile.favorites()} />
           <Row icon={Bell} label="Bildirimler" href={routes.profile.notifications()} badge={count} />
         </ul>
       ) : null}
+      {limitReached ? <BusinessLimitSheet open={limitOpen} onOpenChange={setLimitOpen} limit={quota?.value?.limit ?? 1} /> : null}
 
       <p className="mt-6 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Uygulama</p>
       <ul className="divide-y">
@@ -267,7 +294,7 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
       </ul>
 
       {user ? (
-        <ul className="mt-2 border-t">
+        <ul className="mt-4">
           <Row icon={LogOut} label="Çıkış yap" onClick={logout} destructive />
         </ul>
       ) : null}

@@ -2,25 +2,26 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CalendarPlus, ExternalLink, Ticket, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { CalendarPlus, ChevronRight, ExternalLink, Ticket, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { istanbulDateKey } from "@/core/time";
+import { notify } from "@/lib/notify";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { FilterChip } from "@/components/shared/explore-header";
 import { FormScreen } from "@/components/shared/form-screen";
 import { refreshMyBusinessPages } from "@/features/business/actions";
 import { CharCount, Field } from "@/features/business/components/editor/field";
 import { BusinessImagePicker, type PickedImage } from "@/features/business/components/editor/image-picker";
 import { amountInput, istanbulIso, istanbulParts, normalizeUrl, parseAmount } from "@/features/business/lib/form-utils";
-import { DEFAULT_EVENT_CATEGORY, EVENT_CATEGORIES, eventCategoryInfo, parseEventCategory, vocabIcon, type EventCategory, type EventCategoryDef } from "@/features/business/lib/verticals";
+import { DEFAULT_EVENT_CATEGORY, EVENT_CATEGORIES, eventCategoryInfo, vocabIcon, type EventCategory, type EventCategoryDef } from "@/features/business/lib/verticals";
 import { eventPriceLabel, eventWhenShort } from "../format";
-import type { EventStatus, OwnerEvent } from "../owner-queries";
+import { OWNER_EVENT_COLUMNS, toOwnerEvent, type OwnerEvent } from "../owner-event";
+import { EVENT_STATUS_LABELS, EVENT_STATUS_TONES, eventErrorMessage, isEventPast, type EventStatus } from "../status";
+import { EventChip } from "./chip";
 
 export type EventOwnerBusiness = {
   /** null = city event created by an admin (no organizer business). */
@@ -33,90 +34,111 @@ export type EventOwnerBusiness = {
   neighbourhoodId: string | null;
 };
 
-const COLUMNS = "id,slug,title,description,category,starts_at,ends_at,venue_name,address,is_free,price_try,price_note,ticket_url,cover_url,status";
+/** Statuses an admin can pick in the inline form (review states come from the review actions). */
+const FORM_STATUSES: EventStatus[] = ["published", "draft", "cancelled"];
 
-const STATUS_LABELS: Record<EventStatus, string> = { published: "Yayında", draft: "Taslak", cancelled: "İptal edildi" };
-const STATUS_TONES: Record<EventStatus, string> = {
-  published: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
-  draft: "bg-muted text-muted-foreground",
-  cancelled: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
-};
-
-type Raw = Omit<OwnerEvent, "category" | "price_try" | "status"> & { category: string; price_try: unknown; status: string };
-function toEvent(r: Raw): OwnerEvent {
-  const n = r.price_try === null || r.price_try === undefined ? null : Number(r.price_try);
-  return {
-    ...r,
-    category: parseEventCategory(r.category) ?? DEFAULT_EVENT_CATEGORY,
-    price_try: n !== null && Number.isFinite(n) ? n : null,
-    status: r.status === "draft" || r.status === "cancelled" ? r.status : "published",
-  };
-}
-
-const isPast = (e: OwnerEvent, now: number) => new Date(e.ends_at ?? e.starts_at).getTime() < now;
-
-/** Owner events: list (upcoming / past) and add / edit / delete. `categories`: event_categories (vocabularies.ts). */
+/**
+ * Events list (upcoming / past) with add / edit / delete.
+ * - Business panel: pass `wizardCreateHref`; adding and editing open the shared wizard (/etkinlik-olustur).
+ * - Admin city events: without it an inline form is used (admins publish directly).
+ * `categories`: event_categories (vocabularies.ts).
+ */
 export function EventsManager({
   business,
   initial,
   categories = EVENT_CATEGORIES,
+  wizardCreateHref,
 }: {
   business: EventOwnerBusiness;
   initial: OwnerEvent[];
   categories?: readonly EventCategoryDef[];
+  wizardCreateHref?: string;
 }) {
   const [events, setEvents] = React.useState<OwnerEvent[]>(initial);
   const [editing, setEditing] = React.useState<OwnerEvent | "new" | null>(null);
   const [now] = React.useState(() => Date.now());
   const done = () => void refreshMyBusinessPages().catch(() => undefined);
 
-  const upcoming = events.filter((e) => !isPast(e, now)).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
-  const past = events.filter((e) => isPast(e, now));
+  const upcoming = events.filter((e) => !isEventPast(e, now)).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const past = events.filter((e) => isEventPast(e, now));
 
   const remove = async (e: OwnerEvent) => {
-    if (!window.confirm(`"${e.title}" silinsin mi? İptal etmek istersen durumu "İptal edildi" yapabilirsin.`)) return;
+    if (!window.confirm(`"${e.title}" silinsin mi? Bu işlem geri alınamaz.`)) return;
     const { error } = await createClient().from("events").delete().eq("id", e.id);
-    if (error) return toast.error("Etkinlik silinemedi.");
+    if (error) return notify.error("Etkinlik silinemedi.");
     setEvents((all) => all.filter((x) => x.id !== e.id));
     setEditing(null);
-    toast.success("Etkinlik silindi");
+    notify.success("Etkinlik silindi");
     done();
   };
 
-  const row = (e: OwnerEvent) => (
-    <li key={e.id}>
-      <button type="button" onClick={() => setEditing(e)} className="flex w-full items-center gap-3 rounded-3xl bg-card p-2.5 text-left shadow-soft ring-1 ring-foreground/[0.05] hover:bg-muted/40">
-        {e.cover_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={e.cover_url} alt="" className="size-16 shrink-0 rounded-2xl object-cover" />
-        ) : (
-          <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-            <Ticket className="size-6" aria-hidden />
-          </span>
-        )}
-        <span className="min-w-0 flex-1">
-          <span className="block truncate font-semibold">{e.title}</span>
-          <span className="block truncate text-sm text-muted-foreground">
-            {eventWhenShort(e.starts_at, e.ends_at)} · {eventPriceLabel(e)}
-          </span>
-          <span className={cn("mt-1 inline-flex h-6 items-center rounded-full px-2 text-[11px] font-semibold", STATUS_TONES[e.status])}>{STATUS_LABELS[e.status]}</span>
+  const rowBody = (e: OwnerEvent) => (
+    <>
+      {e.cover_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={e.cover_url} alt="" className="size-16 shrink-0 rounded-2xl object-cover" />
+      ) : (
+        <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+          <Ticket className="size-6" aria-hidden />
         </span>
-      </button>
-    </li>
+      )}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-semibold">{e.title}</span>
+        <span className="block truncate text-sm text-muted-foreground">
+          {eventWhenShort(e.starts_at, e.ends_at)} · {eventPriceLabel(e)}
+        </span>
+        <span className={cn("mt-1 inline-flex h-6 items-center rounded-full px-2 text-[11px] font-semibold", EVENT_STATUS_TONES[e.status])}>{EVENT_STATUS_LABELS[e.status]}</span>
+        {e.admin_hidden ? (
+          <span className="mt-1 block text-xs leading-snug text-red-700 dark:text-red-300">
+            Yönetici yayından kaldırdı{e.rejection_reason ? `: ${e.rejection_reason}` : ""}. Düzenleyip onaya gönderebilirsin.
+          </span>
+        ) : null}
+      </span>
+    </>
   );
+
+  const row = (e: OwnerEvent) =>
+    wizardCreateHref ? (
+      <li key={e.id} className="flex items-center gap-1 rounded-3xl bg-card p-2.5">
+        <Link
+          href={routes.events.create({ duzenle: e.id })}
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          {rowBody(e)}
+          <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+        </Link>
+        <Button type="button" variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" aria-label={`${e.title}: sil`} onClick={() => remove(e)}>
+          <Trash2 />
+        </Button>
+      </li>
+    ) : (
+      <li key={e.id}>
+        <button type="button" onClick={() => setEditing(e)} className="flex w-full items-center gap-3 rounded-3xl bg-card p-2.5 text-left hover:bg-muted/40">
+          {rowBody(e)}
+        </button>
+      </li>
+    );
 
   return (
     <div className="flex flex-col gap-5">
-      <Button size="lg" onClick={() => setEditing("new")}>
-        <CalendarPlus /> Etkinlik ekle
-      </Button>
+      {wizardCreateHref ? (
+        <Button asChild size="lg">
+          <Link href={wizardCreateHref}>
+            <CalendarPlus /> Etkinlik ekle
+          </Link>
+        </Button>
+      ) : (
+        <Button size="lg" onClick={() => setEditing("new")}>
+          <CalendarPlus /> Etkinlik ekle
+        </Button>
+      )}
 
       <section>
         <h2 className="mb-2 text-base font-semibold">Yaklaşan ({upcoming.length})</h2>
         {upcoming.length ? (
           <ul className="flex flex-col gap-2.5">{upcoming.map(row)}</ul>
         ) : (
-          <p className="rounded-2xl bg-muted/60 px-4 py-4 text-sm text-muted-foreground">
+          <p className="rounded-2xl bg-card px-4 py-4 text-sm text-muted-foreground">
             Yaklaşan etkinliğin yok. Konser, atölye, tadım günü gibi etkinliklerini ekle; Etkinlikler sayfasında ve işletme sayfanda görünsün.
           </p>
         )}
@@ -129,7 +151,7 @@ export function EventsManager({
         </section>
       ) : null}
 
-      {editing ? (
+      {editing && !wizardCreateHref ? (
         <EventForm
           key={editing === "new" ? "new" : editing.id}
           business={business}
@@ -148,6 +170,7 @@ export function EventsManager({
   );
 }
 
+/** Inline form (admin city events). */
 function EventForm({
   business,
   event,
@@ -166,6 +189,7 @@ function EventForm({
   // Active categories, plus the event's own one if the admin has since turned it off (or the list could not be read).
   const own = event && !categories.some((c) => c.key === event.category) ? [{ ...eventCategoryInfo(event.category, categories), icon: null, active: false }] : [];
   const options: EventCategoryDef[] = [...categories.filter((c) => c.active || c.key === event?.category), ...own];
+  const statuses = event && !FORM_STATUSES.includes(event.status) ? [...FORM_STATUSES, event.status] : FORM_STATUSES;
   const start = event ? istanbulParts(event.starts_at) : null;
   const end = event?.ends_at ? istanbulParts(event.ends_at) : null;
   const [title, setTitle] = React.useState(event?.title ?? "");
@@ -189,20 +213,20 @@ function EventForm({
 
   const submit = async () => {
     const t = title.trim();
-    if (t.length < 3 || t.length > 120) return toast.error("Etkinlik adı 3-120 karakter olmalı.");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast.error("Tarih seç.");
-    if (!/^\d{2}:\d{2}$/.test(time)) return toast.error("Başlangıç saatini seç.");
+    if (t.length < 3 || t.length > 120) return notify.error("Etkinlik adı 3-120 karakter olmalı.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return notify.error("Tarih seç.");
+    if (!/^\d{2}:\d{2}$/.test(time)) return notify.error("Başlangıç saatini seç.");
     const startsAt = istanbulIso(date, time);
     let endsAt: string | null = null;
     if (endTime) {
       endsAt = istanbulIso(endDate || date, endTime);
-      if (new Date(endsAt) < new Date(startsAt)) return toast.error("Bitiş, başlangıçtan önce olamaz.");
+      if (new Date(endsAt) < new Date(startsAt)) return notify.error("Bitiş, başlangıçtan önce olamaz.");
     }
     const amount = isFree ? null : parseAmount(price);
-    if (amount === undefined) return toast.error("Ücreti sayı olarak yaz (ör. 350).");
+    if (amount === undefined) return notify.error("Ücreti sayı olarak yaz (ör. 350).");
     const ticket = normalizeUrl(ticketUrl);
-    if (ticket === undefined) return toast.error("Bilet bağlantısı geçersiz.");
-    if (description.length > 3000) return toast.error("Açıklama en fazla 3000 karakter olabilir.");
+    if (ticket === undefined) return notify.error("Bilet bağlantısı geçersiz.");
+    if (description.length > 3000) return notify.error("Açıklama en fazla 3000 karakter olabilir.");
 
     setSaving(true);
     const values = {
@@ -222,16 +246,16 @@ function EventForm({
     };
     const supabase = createClient();
     const { data, error } = event
-      ? await supabase.from("events").update(values).eq("id", event.id).select(COLUMNS).single()
+      ? await supabase.from("events").update(values).eq("id", event.id).select(OWNER_EVENT_COLUMNS).single()
       : await supabase
           .from("events")
           .insert({ ...values, business_id: business.id, phone: business.phone, lat: business.lat, lng: business.lng, neighbourhood_id: business.neighbourhoodId })
-          .select(COLUMNS)
+          .select(OWNER_EVENT_COLUMNS)
           .single();
     setSaving(false);
-    if (error || !data) return toast.error("Etkinlik kaydedilemedi, tekrar dene.");
-    toast.success(event ? "Etkinlik güncellendi" : "Etkinlik eklendi");
-    onSaved(toEvent(data as unknown as Raw));
+    if (error || !data) return notify.error(eventErrorMessage(error));
+    notify.success(event ? "Etkinlik güncellendi" : "Etkinlik eklendi");
+    onSaved(toOwnerEvent(data as unknown as Parameters<typeof toOwnerEvent>[0]));
   };
 
   return (
@@ -242,7 +266,7 @@ function EventForm({
       busy={saving || uploading}
       footerExtra={
         event ? (
-          <Button type="button" variant="outline" size="lg" className="text-destructive" onClick={() => onDelete(event)} aria-label="Etkinliği sil">
+          <Button type="button" variant="destructive" size="lg" onClick={() => onDelete(event)} aria-label="Etkinliği sil">
             <Trash2 />
           </Button>
         ) : null
@@ -254,9 +278,9 @@ function EventForm({
       <Field label="Kategori">
         <div className="flex flex-wrap gap-2">
           {options.map((c) => (
-            <FilterChip key={c.key} active={category === c.key} onClick={() => setCategory(c.key)} icon={vocabIcon(c.icon, Ticket)}>
+            <EventChip key={c.key} active={category === c.key} onClick={() => setCategory(c.key)} icon={vocabIcon(c.icon, Ticket)}>
               {c.label}
-            </FilterChip>
+            </EventChip>
           ))}
         </div>
       </Field>
@@ -280,7 +304,7 @@ function EventForm({
       <Field label="Adres" htmlFor="etk-adres" optional>
         <Input id="etk-adres" value={address} maxLength={200} onChange={(e) => setAddress(e.target.value)} />
       </Field>
-      <label className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
+      <label className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4">
         <span className="font-semibold">Ücretsiz etkinlik</span>
         <Switch checked={isFree} onCheckedChange={setIsFree} />
       </label>
@@ -295,7 +319,7 @@ function EventForm({
         </div>
       ) : null}
       <Field label="Bilet bağlantısı" htmlFor="etk-bilet" optional hint="Varsa bilet satış sayfası. Yoksa sayfada Ara butonu görünür.">
-        <Input id="etk-bilet" inputMode="url" value={ticketUrl} onChange={(e) => setTicketUrl(e.target.value)} placeholder="biletix.com/..." />
+        <Input id="etk-bilet" inputMode="url" value={ticketUrl} onChange={(e) => setTicketUrl(e.target.value)} placeholder="https://..." />
       </Field>
       <BusinessImagePicker value={cover} onChange={setCover} onUploadingChange={setUploading} label="Kapak fotoğrafı" hint="Yatay bir afiş ya da fotoğraf." prefix="event-" />
       <Field label="Açıklama" htmlFor="etk-aciklama" optional>
@@ -304,10 +328,10 @@ function EventForm({
       </Field>
       <Field label="Durum">
         <div className="flex flex-wrap gap-2">
-          {(Object.keys(STATUS_LABELS) as EventStatus[]).map((s) => (
-            <FilterChip key={s} active={status === s} onClick={() => setStatus(s)}>
-              {STATUS_LABELS[s]}
-            </FilterChip>
+          {statuses.map((s) => (
+            <EventChip key={s} active={status === s} onClick={() => setStatus(s)}>
+              {EVENT_STATUS_LABELS[s]}
+            </EventChip>
           ))}
         </div>
       </Field>

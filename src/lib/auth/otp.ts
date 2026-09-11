@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { RPC, rpcArgs } from "@/lib/db-contract";
+import { toNationalDigits } from "@/core/phone";
 
 /**
  * Phone OTP helpers (login = signup). Phones are always E.164 (+905XXXXXXXXX).
@@ -10,11 +11,23 @@ import { RPC, rpcArgs } from "@/lib/db-contract";
 
 type AuthLikeError = { code?: string; status?: number; message?: string; name?: string } | null | undefined;
 
+/**
+ * Demo accounts use +90555000XXXX. Only these numbers get a code from the Send-SMS hook in prototype mode
+ * (mirrors private.is_demo_otp_phone); every other number is refused until a real SMS provider is connected.
+ */
+export function isDemoOtpPhone(phone: string | null | undefined): boolean {
+  return /^555000\d{4}$/.test(toNationalDigits(phone) ?? "");
+}
+
+/** Message of the Send-SMS hook refusal for non-demo numbers (supabase/migrations/2026091368_otp_lockdown.sql). */
+const HOOK_NO_PROVIDER = "sms provider not configured";
+
 /** Turkish, user-friendly message for Supabase auth errors. */
 export function authErrorMessage(err: AuthLikeError, context: "send" | "verify" = "send"): string {
   if (!err) return "Bir şeyler ters gitti. Lütfen tekrar dene.";
   const code = err.code ?? "";
   const msg = (err.message ?? "").toLowerCase();
+  if (msg.includes(HOOK_NO_PROVIDER)) return "Bu numaraya şu an SMS gönderemiyoruz. Uygulama test aşamasında; destek için bize ulaş.";
   const wait = msg.match(/after (\d+) seconds?/);
   if (wait) return `Yeni kod isteyebilmek için ${wait[1]} saniye beklemelisin.`;
   if (code === "captcha_failed" || msg.includes("captcha")) return "Güvenlik doğrulaması geçilemedi. Sayfayı yenileyip tekrar dene.";
@@ -80,9 +93,11 @@ export async function verifyPhoneChangeOtp(phone: string, token: string): Promis
 
 /**
  * DEMO MODE ONLY: read the last code captured by the Send-SMS hook (rpc get_demo_otp).
- * Tries E.164 and the digits-only form. Returns the 6-digit code or null.
+ * Demo-range numbers only (the RPC returns null for anything else). Tries E.164 and the digits-only form.
+ * Returns the 6-digit code or null.
  */
 export async function fetchDemoOtp(phone: string): Promise<string | null> {
+  if (!isDemoOtpPhone(phone)) return null;
   const supabase = createClient();
   const candidates = Array.from(new Set([phone, phone.replace(/^\+/, "")]));
   for (const p of candidates) {

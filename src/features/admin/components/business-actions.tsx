@@ -1,15 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { Check, ExternalLink, FileText, Loader2, PauseCircle, PlayCircle, X } from "lucide-react";
+import { Check, ExternalLink, FileText, Loader2, PauseCircle, PlayCircle, Shapes, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BUSINESS_VERTICALS, VERTICAL_INFO, parseVertical } from "@/features/business/lib/verticals";
 import {
   getBusinessDocumentUrlAction,
   reviewBusinessAction,
   setBusinessStatusAction,
+  setBusinessVerticalAction,
   setVerificationLevelAction,
 } from "../actions/businesses";
 import { BUSINESS_REJECT_REASONS, VERIFICATION_LEVELS } from "../lib/labels";
@@ -21,12 +23,15 @@ export function BusinessActions({
   businessId,
   name,
   status,
+  vertical,
   verificationLevel,
   publicHref,
 }: {
   businessId: string;
   name: string;
   status: string;
+  /** businesses.vertical (null for old rows). */
+  vertical: string | null;
   verificationLevel: number;
   publicHref: string | null;
 }) {
@@ -109,6 +114,8 @@ export function BusinessActions({
         </div>
       ) : null}
 
+      <BusinessTypeDialog businessId={businessId} name={name} vertical={vertical} disabled={pending} />
+
       {publicHref ? (
         <Button asChild variant="outline">
           {/* Public app page (a separate site): plain link, no client routing. */}
@@ -118,6 +125,56 @@ export function BusinessActions({
         </Button>
       ) : null}
     </div>
+  );
+}
+
+/** "Türünü değiştir": owners cannot change the type themselves; the owner is notified. */
+function BusinessTypeDialog({ businessId, name, vertical, disabled }: { businessId: string; name: string; vertical: string | null; disabled: boolean }) {
+  const { pending, run } = useAdminAction();
+  const current = parseVertical(vertical);
+  const [value, setValue] = React.useState<string>(current ?? "");
+  const selectId = React.useId();
+  const next = parseVertical(value);
+
+  return (
+    <ConfirmDialog
+      title="İşletme türünü değiştir"
+      description={`"${name}" için yeni türü seç. Paneldeki araçlar türe göre değişir (menü, odalar, hizmet talepleri); sahibine bildirim gider.`}
+      confirmLabel="Türü değiştir"
+      confirmDisabled={!next || next === current}
+      onOpenChange={(open) => {
+        if (open) setValue(current ?? "");
+      }}
+      trigger={
+        <Button variant="outline" disabled={disabled || pending}>
+          <Shapes aria-hidden /> Türünü değiştir
+        </Button>
+      }
+      onConfirm={async () => (next ? !!(await run(() => setBusinessVerticalAction({ businessId, vertical: next })))?.ok : false)}
+    >
+      <div className="grid gap-1.5">
+        <Label htmlFor={selectId}>İşletme türü{current ? ` (şu an ${VERTICAL_INFO[current].label})` : ""}</Label>
+        <Select value={value} onValueChange={setValue}>
+          <SelectTrigger id={selectId} className="w-full">
+            <SelectValue placeholder="Tür seç" />
+          </SelectTrigger>
+          <SelectContent>
+            {BUSINESS_VERTICALS.map((v) => (
+              <SelectItem key={v} value={v}>
+                {VERTICAL_INFO[v].label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {next === "hizmet" && current !== "hizmet" ? (
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Hizmet firmaları müşteri talebi alır. İşletme sahibi hizmet kategorilerini ve bölgelerini düzenleme sayfasından seçmeli.
+          </p>
+        ) : current === "hizmet" && next && next !== "hizmet" ? (
+          <p className="text-xs leading-relaxed text-muted-foreground">Hizmet talebi almayı bırakır.</p>
+        ) : null}
+      </div>
+    </ConfirmDialog>
   );
 }
 

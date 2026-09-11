@@ -12,7 +12,7 @@ export default function NewsLoading() {
             <Skeleton key={i} className="h-9 shrink-0 rounded-full" style={{ width: `${w * 4}px` }} />
           ))}
         </div>
-        <div className="rounded-3xl bg-card p-5 shadow-card ring-1 ring-foreground/[0.06]" aria-hidden>
+        <div className="rounded-3xl bg-card p-5" aria-hidden>
           <Skeleton className="h-6 w-28 rounded-full" />
           <Skeleton className="mt-4 h-6 w-full" />
           <Skeleton className="mt-2 h-6 w-4/5" />
@@ -24,7 +24,7 @@ export default function NewsLoading() {
             <Skeleton className="h-10 w-28 rounded-xl" />
           </div>
         </div>
-        <div className="divide-y rounded-2xl bg-card px-4 shadow-soft ring-1 ring-foreground/[0.06]" aria-hidden>
+        <div className="divide-y rounded-2xl bg-card px-4" aria-hidden>
           {[0, 1, 2, 3, 4].map((i) => (
             <div key={i} className="py-4">
               <Skeleton className="h-4 w-full" />

@@ -23,7 +23,7 @@ export function RequestStart({ data }: { data: ServicePickerData }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <HideBottomNav />
-      <header className="sticky top-0 z-40 border-b bg-background/95 pt-safe backdrop-blur-md">
+      <header className="sticky top-0 z-40 bg-background pt-safe">
         <div className="flex h-(--topbar-h) items-center gap-1 px-2">
           <Button type="button" variant="ghost" size="icon" className="rounded-full" onClick={close} aria-label="Kapat">
             <X className="size-5" />

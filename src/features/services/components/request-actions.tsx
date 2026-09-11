@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2, Star, UserMinus } from "lucide-react";
+import { Check, CheckCircle2, Loader2, Star, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,7 @@ export function RemoveLeadButton({ leadId, firmName }: { leadId: string; firmNam
         description="Firma bu talepte artık görünmez; boşalan yere başka bir firma ilgilenebilir."
         footer={
           <div className="flex gap-2">
-            <Button type="button" variant="outline" size="lg" className="flex-1" onClick={() => setOpen(false)}>
+            <Button type="button" variant="secondary" size="lg" className="flex-1" onClick={() => setOpen(false)}>
               Vazgeç
             </Button>
             <Button type="button" variant="destructive" size="lg" className="flex-1" onClick={remove} disabled={busy}>
@@ -95,24 +95,27 @@ export function CloseRequestSheet({ code, providers }: { code: string; providers
     router.refresh();
   };
 
+  // Borderless white rows on the lavender sheet (like the report sheet); the chosen one is brand-soft with a check
+  // (QuestionRenderer look). The radio stays the real control, visually hidden; the row shows its keyboard focus.
   const optionClass = (active: boolean) =>
     cn(
-      "flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border-2 px-4 py-3 text-[15px] leading-snug font-semibold transition-colors",
-      active ? "border-primary bg-brand-soft" : "border-border hover:border-primary/40",
+      "relative flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl bg-card px-4 py-3 text-[15px] leading-snug font-semibold transition-colors hover:bg-muted has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+      active && "bg-brand-soft text-primary hover:bg-brand-soft",
     );
 
   return (
     <>
-      <Button type="button" variant="outline" size="lg" className="w-full" onClick={() => setOpen(true)}>
+      <Button type="button" variant="secondary" size="lg" className="w-full" onClick={() => setOpen(true)}>
         Talebi kapat
       </Button>
       <BottomSheet
         open={open}
         onOpenChange={setOpen}
+        className="bg-background"
         title="Talebi kapat"
         description={providers.length ? "Bir firmayla anlaştıysan seç; sonra değerlendirme yapabilirsin." : "Talebin kapanır ve firmalara artık gösterilmez."}
         footer={
-          <Button type="button" size="lg" onClick={submit} disabled={busy}>
+          <Button type="button" size="lg" className="bg-foreground text-background shadow-none hover:bg-foreground/90" onClick={submit} disabled={busy}>
             {busy ? <Loader2 className="animate-spin" /> : null}
             Talebi kapat
           </Button>
@@ -122,16 +125,22 @@ export function CloseRequestSheet({ code, providers }: { code: string; providers
           {providers.length ? <p className="text-sm font-semibold text-muted-foreground">Anlaştım (hangi firma?)</p> : null}
           {providers.map((p) => (
             <Label key={p.businessId} htmlFor={`kapat-${p.businessId}`} className={optionClass(choice === p.businessId)}>
-              <RadioGroupItem id={`kapat-${p.businessId}`} value={p.businessId} />
+              <span className="sr-only">
+                <RadioGroupItem id={`kapat-${p.businessId}`} value={p.businessId} />
+              </span>
               <span className="min-w-0 flex-1">{p.name} ile anlaştım</span>
+              {choice === p.businessId ? <Check className="size-5 shrink-0 text-primary" strokeWidth={2.6} aria-hidden /> : null}
             </Label>
           ))}
           <Label htmlFor="kapat-vazgec" className={cn(optionClass(choice === "cancel"), providers.length ? "mt-2" : "")}>
-            <RadioGroupItem id="kapat-vazgec" value="cancel" />
+            <span className="sr-only">
+              <RadioGroupItem id="kapat-vazgec" value="cancel" />
+            </span>
             <span className="min-w-0 flex-1">
               Vazgeçtim
               <span className="mt-0.5 block text-xs font-medium text-muted-foreground">Başka yoldan hallettim ya da artık gerek yok</span>
             </span>
+            {choice === "cancel" ? <Check className="size-5 shrink-0 text-primary" strokeWidth={2.6} aria-hidden /> : null}
           </Label>
         </RadioGroup>
       </BottomSheet>
@@ -182,7 +191,7 @@ export function ReviewForm({ code, businessId, businessName, existing }: { code:
             <p className="mt-1 leading-relaxed whitespace-pre-line">{existing.reply}</p>
           </div>
         ) : null}
-        <Button type="button" variant="outline" onClick={() => setEditing(true)}>
+        <Button type="button" variant="secondary" onClick={() => setEditing(true)}>
           Değerlendirmeyi düzenle
         </Button>
       </div>
@@ -255,11 +264,11 @@ export function ReviewForm({ code, businessId, businessName, existing }: { code:
       </div>
       <div className="flex gap-2">
         {existing ? (
-          <Button type="button" variant="outline" size="lg" onClick={() => setEditing(false)}>
+          <Button type="button" variant="secondary" size="lg" onClick={() => setEditing(false)}>
             Vazgeç
           </Button>
         ) : null}
-        <Button type="button" size="lg" className="flex-1" onClick={submit} disabled={busy}>
+        <Button type="button" size="lg" className="flex-1 bg-foreground text-background shadow-none hover:bg-foreground/90" onClick={submit} disabled={busy}>
           {busy ? <Loader2 className="animate-spin" /> : null}
           Değerlendirmeyi gönder
         </Button>

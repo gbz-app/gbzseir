@@ -4,15 +4,17 @@ import { SectionHeader } from "@/components/shared/section-header";
 import { VerifiedBadge } from "@/components/shared/badges";
 import { routes } from "@/core/routes";
 import { listApprovedBusinesses, type DirectoryBusiness } from "./lib/queries";
+import { isOnVacation } from "./lib/hours";
 import { BusinessLogo } from "./components/business-logo";
 import { RatingInline } from "./components/rating";
+import { VacationBadge } from "./components/vacation-badge";
 
-/** Rating (weighted by review count) + profile completeness + verification. */
+/** Rating (weighted by review count) + profile completeness + verification; businesses on vacation drop back. */
 function featuredScore(b: DirectoryBusiness): number {
   const rating = b.rating_count > 0 ? b.rating_avg * Math.min(1, b.rating_count / 3) : 0; // 0..5
   const completeness =
     (b.logo_url ? 1 : 0) + (b.cover_url ? 1 : 0) + Math.min(b.photo_count, 3) / 3 + (b.has_description ? 1 : 0) + (b.has_hours ? 1 : 0); // 0..5
-  return rating * 0.6 + completeness * 0.4 + (b.verification_level >= 2 ? 0.3 : 0) - (b.vacation_mode ? 1 : 0);
+  return rating * 0.6 + completeness * 0.4 + (b.verification_level >= 2 ? 0.3 : 0) - (isOnVacation(b) ? 1 : 0);
 }
 
 export type FeaturedBusinessesRailProps = {
@@ -52,6 +54,7 @@ export async function FeaturedBusinessesRail({ limit = 10, title = "Öne çıkan
                 ) : (
                   <Store className="absolute right-3 bottom-2 size-10 text-primary/15" aria-hidden />
                 )}
+                {isOnVacation(b) ? <VacationBadge className="absolute top-2 left-2" /> : null}
               </div>
               <div className="flex flex-1 flex-col px-3 pb-3">
                 <BusinessLogo name={b.name} url={b.logo_url} size="md" className="-mt-7 ring-4 ring-card" />

@@ -2,9 +2,25 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import {
+  AlignLeft,
+  Briefcase,
+  BriefcaseBusiness,
+  CalendarClock,
+  Clock,
+  Eye,
+  EyeOff,
+  Factory,
+  FileText,
+  Gift,
+  GraduationCap,
+  LayoutGrid,
+  ListChecks,
+  MapPin,
+  Wallet,
+} from "lucide-react";
 import { routes } from "@/core/routes";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
 import { Wizard, type WizardStep } from "@/components/wizard/wizard";
@@ -30,9 +46,18 @@ import { composeJobDescription } from "../job-description";
 import type { BusinessRef, ListingCategory } from "../types";
 import { benefitOptions, type JobViewModel } from "../view-models";
 import { digitsInput, type JobDraft } from "../wizard-drafts";
+import { CategoryIcon } from "./category-icon";
 import { ChoiceChips } from "./choice-chips";
 import { JobDetailView } from "./detail-views";
-import { Field, TextRiskNotice } from "./wizard-bits";
+import { BENEFIT_ICONS, WORK_TYPE_ICONS, jobLocationIcon, withOptionIcons } from "./listing-icons";
+import { Field, SwitchRow, TextRiskNotice } from "./wizard-bits";
+
+const WORK_TYPE_OPTIONS = withOptionIcons(WORK_TYPES, WORK_TYPE_ICONS);
+const BENEFIT_OPTIONS = withOptionIcons(JOB_BENEFITS, BENEFIT_ICONS);
+const LOCATION_OPTIONS = withOptionIcons(
+  JOB_LOCATIONS.map((l) => ({ value: l.key, label: l.label })),
+  Object.fromEntries(JOB_LOCATIONS.map((l) => [l.key, jobLocationIcon(l.label)])),
+);
 
 const EMPTY: JobDraft = {
   sectorId: null,
@@ -102,6 +127,7 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
     {
       id: "pozisyon",
       title: "Hangi pozisyon için arıyorsun?",
+      icon: Briefcase,
       help: `${business.name} adına yayınlanır.`,
       validate: (d) => {
         if (d.title.trim().length < TITLE_MIN) return `Pozisyon adı en az ${TITLE_MIN} karakter olmalı.`;
@@ -110,7 +136,7 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
       },
       render: (ctx) => (
         <div className="flex flex-col gap-5">
-          <Field id="is-pozisyon" label="Pozisyon">
+          <Field id="is-pozisyon" label="Pozisyon" icon={BriefcaseBusiness}>
             <Input
               id="is-pozisyon"
               value={ctx.data.title}
@@ -119,9 +145,9 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
               onChange={(e) => ctx.setData({ title: e.target.value })}
             />
           </Field>
-          <Field label="Sektör">
+          <Field label="Sektör" icon={LayoutGrid}>
             <ChoiceChips
-              options={topSectors.map((s) => ({ value: s.id, label: s.name }))}
+              options={topSectors.map((s) => ({ value: s.id, label: s.name, icon: <CategoryIcon iconName={s.icon} fallback="briefcase" /> }))}
               value={ctx.data.sectorId}
               onChange={(v) => ctx.setData({ sectorId: v })}
               ariaLabel="Sektör"
@@ -134,6 +160,7 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
     {
       id: "kosullar",
       title: "Çalışma koşulları",
+      icon: Clock,
       validate: (d) => {
         if (!d.workType) return "Çalışma şeklini seç.";
         if (!d.salaryHidden) {
@@ -148,11 +175,14 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
         const d = ctx.data;
         return (
           <div className="flex flex-col gap-6">
-            <Field label="Çalışma şekli">
-              <ChoiceChips options={WORK_TYPES} value={d.workType} onChange={(v) => ctx.setData({ workType: v })} ariaLabel="Çalışma şekli" size="sm" />
+            <Field label="Çalışma şekli" icon={CalendarClock}>
+              <ChoiceChips options={WORK_TYPE_OPTIONS} value={d.workType} onChange={(v) => ctx.setData({ workType: v })} ariaLabel="Çalışma şekli" size="sm" />
             </Field>
             <div className="flex flex-col gap-3">
-              <p className="text-[15px] font-semibold">Maaş (aylık, net)</p>
+              <p className="flex items-center gap-2 text-[15px] leading-snug font-semibold">
+                <Wallet className="size-[18px] shrink-0 text-primary" aria-hidden />
+                Maaş (aylık, net)
+              </p>
               {!d.salaryHidden ? (
                 <div className="grid grid-cols-2 gap-3">
                   <Field id="maas-min" label={<span className="text-sm font-medium text-muted-foreground">En az</span>}>
@@ -163,16 +193,19 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
                   </Field>
                 </div>
               ) : null}
-              <label htmlFor="maas-gizli" className="flex min-h-12 items-center justify-between gap-3 rounded-xl border bg-card px-4">
-                <span className="text-[15px] font-medium">Maaşı gösterme (&quot;Görüşülür&quot;)</span>
-                <Switch id="maas-gizli" checked={d.salaryHidden} onCheckedChange={(c) => ctx.setData({ salaryHidden: c })} />
-              </label>
+              <SwitchRow
+                id="maas-gizli"
+                label={<>Maaşı gösterme (&quot;Görüşülür&quot;)</>}
+                icon={EyeOff}
+                checked={d.salaryHidden}
+                onCheckedChange={(c) => ctx.setData({ salaryHidden: c })}
+              />
             </div>
-            <Field label="Deneyim">
+            <Field label="Deneyim" icon={GraduationCap}>
               <ChoiceChips options={EXPERIENCE_LEVELS} value={d.experience} onChange={(v) => ctx.setData({ experience: v })} ariaLabel="Deneyim" size="sm" />
             </Field>
-            <Field label="Yan haklar (isteğe bağlı)">
-              <ChoiceChips multiple options={JOB_BENEFITS} value={d.benefits} onChange={(v) => ctx.setData({ benefits: v })} ariaLabel="Yan haklar" size="sm" />
+            <Field label="Yan haklar (isteğe bağlı)" icon={Gift}>
+              <ChoiceChips multiple options={BENEFIT_OPTIONS} value={d.benefits} onChange={(v) => ctx.setData({ benefits: v })} ariaLabel="Yan haklar" size="sm" />
             </Field>
           </div>
         );
@@ -181,14 +214,15 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
     {
       id: "aciklama",
       title: "İşi anlat",
+      icon: FileText,
       help: "Görevler, çalışma saatleri, vardiya düzeni... Başvuranlar seni telefonla arayacak.",
       validate: (d) => (d.description.trim().length < JOB_DESCRIPTION_MIN ? `İş tanımı en az ${JOB_DESCRIPTION_MIN} karakter olmalı.` : null),
       render: (ctx) => (
         <div className="flex flex-col gap-5">
-          <Field id="is-tanim" label="İş tanımı" hint={`${ctx.data.description.length}/${JOB_DESCRIPTION_MAX}`}>
+          <Field id="is-tanim" label="İş tanımı" icon={AlignLeft} hint={`${ctx.data.description.length}/${JOB_DESCRIPTION_MAX}`}>
             <Textarea id="is-tanim" rows={6} maxLength={JOB_DESCRIPTION_MAX} value={ctx.data.description} onChange={(e) => ctx.setData({ description: e.target.value })} />
           </Field>
-          <Field id="is-nitelik" label="Aranan nitelikler (isteğe bağlı)" hint={`${ctx.data.qualifications.length}/${JOB_QUALIFICATIONS_MAX}`}>
+          <Field id="is-nitelik" label="Aranan nitelikler (isteğe bağlı)" icon={ListChecks} hint={`${ctx.data.qualifications.length}/${JOB_QUALIFICATIONS_MAX}`}>
             <Textarea
               id="is-nitelik"
               rows={4}
@@ -206,19 +240,20 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
     {
       id: "konum",
       title: "İş yeri nerede?",
+      icon: MapPin,
       validate: (d) => (d.locationKey ? null : "Bölge seç."),
       render: (ctx) => (
         <div className="flex flex-col gap-5">
-          <Field label="Bölge / OSB">
+          <Field label="Bölge / OSB" icon={Factory}>
             <ChoiceChips
-              options={JOB_LOCATIONS.map((l) => ({ value: l.key, label: l.label }))}
+              options={LOCATION_OPTIONS}
               value={ctx.data.locationKey}
               onChange={(v) => ctx.setData({ locationKey: v })}
               ariaLabel="Bölge"
               size="sm"
             />
           </Field>
-          <Field label="Mahalle (isteğe bağlı)">
+          <Field label="Mahalle (isteğe bağlı)" icon={MapPin}>
             <NeighbourhoodPicker
               value={ctx.data.neighbourhoodId}
               onChange={(n) => ctx.setData({ neighbourhoodId: n ? String(n.id) : null, neighbourhoodName: n?.name ?? null })}
@@ -232,6 +267,7 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
     {
       id: "onizleme",
       title: "Önizleme",
+      icon: Eye,
       help: "İlanın böyle görünecek. Her şey doğruysa yayınla.",
       render: (ctx) => (
         <div className="-mx-4 overflow-hidden rounded-3xl">

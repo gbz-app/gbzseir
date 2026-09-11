@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChipFilter, type ChipOption } from "@/components/shared/chip-filter";
 import { EmptyState } from "@/components/shared/empty-state";
+import { useNow } from "@/components/shared/explore-header";
 import { distanceMeters, formatDistance } from "@/core/geo";
 import { trIncludes } from "@/core/tr";
 import { useApproxLocation } from "@/lib/location/use-approx-location";
@@ -30,6 +31,8 @@ export function FirmsDirectory({ items, chips }: { items: DirectoryItem[]; chips
   const [sort, setSort] = React.useState<SortMode>(() => (searchParams.get("sirala") === "mesafe" ? "mesafe" : "puan"));
   const [query, setQuery] = React.useState("");
   const loc = useApproxLocation();
+  // Client clock for the "Tatilde" check (null before mount: the rows use the raw flag, same as the server HTML).
+  const now = useNow();
 
   // Keep the URL shareable without a server round trip.
   React.useEffect(() => {
@@ -173,7 +176,7 @@ export function FirmsDirectory({ items, chips }: { items: DirectoryItem[]; chips
         <ul className="flex flex-col gap-2.5">
           {rows.map(({ b, d }) => (
             <li key={b.id}>
-              <BusinessRow b={b} distanceLabel={sort === "mesafe" && d !== null ? formatDistance(d) : null} />
+              <BusinessRow b={b} now={now} distanceLabel={sort === "mesafe" && d !== null ? formatDistance(d) : null} />
             </li>
           ))}
         </ul>

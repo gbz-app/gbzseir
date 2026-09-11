@@ -71,7 +71,7 @@ export function RoomsManager({ businessId, initial, amenities = ROOM_AMENITIES }
   return (
     <div className="flex flex-col gap-3">
       {rooms.length === 0 ? (
-        <div className="flex flex-col items-center rounded-3xl bg-card px-5 py-8 text-center shadow-soft ring-1 ring-foreground/[0.05]">
+        <div className="flex flex-col items-center rounded-3xl bg-card px-5 py-8 text-center">
           <BedDouble className="size-10 text-primary/50" strokeWidth={1.5} aria-hidden />
           <p className="mt-3 font-semibold">Henüz oda eklemedin</p>
           <p className="mt-1 text-sm text-muted-foreground">Oda tiplerini fotoğraf, kapasite ve gecelik fiyatla ekle.</p>
@@ -79,7 +79,7 @@ export function RoomsManager({ businessId, initial, amenities = ROOM_AMENITIES }
       ) : (
         <ul className="flex flex-col gap-2.5">
           {rooms.map((r, i) => (
-            <li key={r.id} className="flex items-center gap-2 rounded-3xl bg-card p-2 pr-3 shadow-soft ring-1 ring-foreground/[0.05]">
+            <li key={r.id} className="flex items-center gap-2 rounded-3xl bg-card p-2 pr-3">
               <button type="button" onClick={() => setEditing(r)} className={cn("flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-1 text-left hover:bg-muted/60", !r.is_available && "opacity-55")}>
                 {r.photos[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -210,7 +210,7 @@ function RoomForm({
       busy={saving || uploading}
       footerExtra={
         room ? (
-          <Button type="button" variant="outline" size="lg" className="text-destructive" onClick={() => onDelete(room)} aria-label="Odayı sil">
+          <Button type="button" variant="destructive" size="lg" onClick={() => onDelete(room)} aria-label="Odayı sil">
             <Trash2 />
           </Button>
         ) : null
@@ -249,7 +249,7 @@ function RoomForm({
       <Field label="Fotoğraflar" optional hint="En fazla 10 fotoğraf. İlk fotoğraf kapak olur.">
         <ImageUploader value={photos} onChange={setPhotos} max={10} folder="rooms" onUploadingChange={setUploading} />
       </Field>
-      <label className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
+      <label className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4">
         <span>
           <span className="block font-semibold">Müsait</span>
           <span className="text-sm text-muted-foreground">Kapalıysa sayfanda &quot;Şu an müsait değil&quot; yazar.</span>

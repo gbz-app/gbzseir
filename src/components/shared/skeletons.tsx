@@ -12,7 +12,7 @@ export type ListSkeletonProps = {
 /** Single card placeholder. */
 export function CardSkeleton({ className, withImage }: { className?: string; withImage?: boolean }) {
   return (
-    <div className={cn("overflow-hidden rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]", className)} aria-hidden>
+    <div className={cn("overflow-hidden rounded-2xl bg-card p-4", className)} aria-hidden>
       {withImage ? <Skeleton className="-mx-4 -mt-4 mb-4 aspect-[4/3] rounded-none" /> : null}
       <Skeleton className="h-4 w-2/3" />
       <Skeleton className="mt-2.5 h-3 w-full" />
@@ -40,7 +40,7 @@ function RowSkeleton() {
 
 function MediaSkeleton() {
   return (
-    <div className="flex gap-3 rounded-2xl bg-card p-3 shadow-soft ring-1 ring-foreground/[0.06]" aria-hidden>
+    <div className="flex gap-3 rounded-2xl bg-card p-3" aria-hidden>
       <Skeleton className="size-24 shrink-0 rounded-xl" />
       <div className="min-w-0 flex-1 py-1">
         <Skeleton className="h-4 w-4/5" />
@@ -69,7 +69,7 @@ export function ListSkeleton({ count = 4, variant = "row", className }: ListSkel
         ) : variant === "media" ? (
           <MediaSkeleton key={i} />
         ) : variant === "grid" ? (
-          <div key={i} className="overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]" aria-hidden>
+          <div key={i} className="overflow-hidden rounded-2xl bg-card" aria-hidden>
             <Skeleton className="aspect-square rounded-none" />
             <div className="p-3">
               <Skeleton className="h-3.5 w-4/5" />

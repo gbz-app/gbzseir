@@ -65,6 +65,7 @@ export default async function AdminDashboardPage() {
     { label: "Açık şikayet", value: d.content.reports_open, href: routes.admin.reports(), icon: Flag },
     { label: "Yeni destek mesajı", value: d.content.support_new, href: routes.admin.support(), icon: LifeBuoy },
     { label: "Açık hizmet talebi", value: d.content.requests_open, href: routes.admin.requests(), icon: ClipboardList },
+    { label: "Onay bekleyen etkinlik", value: d.content.events_pending ?? 0, href: withQuery(routes.admin.events(), { sekme: "onay" }), icon: CalendarDays },
   ];
 
   return (

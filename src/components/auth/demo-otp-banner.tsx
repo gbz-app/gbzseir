@@ -3,7 +3,7 @@
 import * as React from "react";
 import { FlaskConical, Loader2, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { fetchDemoOtp } from "@/lib/auth/otp";
+import { fetchDemoOtp, isDemoOtpPhone } from "@/lib/auth/otp";
 import { createClient } from "@/lib/supabase/client";
 
 export type DemoOtpBannerProps = {
@@ -45,8 +45,13 @@ export function useOtpDemoModeSetting(enabled: boolean): boolean {
 /**
  * PROTOTYPE ONLY (app_settings.otp_demo_mode = true): no SMS is sent; the code captured by the Send-SMS hook
  * is read with rpc('get_demo_otp') and shown in a clearly labelled amber banner.
+ * Demo numbers (+90555000XXXX) only: for any other number nothing is rendered (testers type their own code).
  */
-export function DemoOtpBanner({ phone, nonce = 0, onFill }: DemoOtpBannerProps) {
+export function DemoOtpBanner(props: DemoOtpBannerProps) {
+  return isDemoOtpPhone(props.phone) ? <DemoOtpCode {...props} /> : null;
+}
+
+function DemoOtpCode({ phone, nonce = 0, onFill }: DemoOtpBannerProps) {
   const [state, setState] = React.useState<{ key: string; code: string | null; done: boolean }>({ key: "", code: null, done: false });
   const [retry, setRetry] = React.useState(0);
   const key = `${phone}|${nonce}|${retry}`;

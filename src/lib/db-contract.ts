@@ -20,17 +20,19 @@ export const RPC = {
   logContactEvent: "log_contact_event",
   /** reveal_listing_phone(p_listing_id uuid) -> phone (E.164) ; rate limited + logged server side. */
   revealListingPhone: "reveal_listing_phone",
+  /** reveal_event_phone(p_event uuid) -> phone of a user event (signed-in only; rate limited + logged server side). */
+  revealEventPhone: "reveal_event_phone",
 } as const;
 
 /** Allowed by log_contact_event (p_event). */
 export type ContactEventKind = "call_click" | "phone_reveal" | "directions";
-/** Allowed by log_contact_event (p_subject_type). Pharmacies, mosques, stops and places are all 'poi'. */
-export type ContactSubjectType = "listing" | "job" | "business" | "poi" | "lead";
+/** Allowed by log_contact_event (p_subject_type). Pharmacies, mosques, stops and places are all 'poi'; events without a business are 'event'. */
+export type ContactSubjectType = "listing" | "job" | "business" | "poi" | "lead" | "event";
 
 /** favorites.target_type (check constraint). */
 export type FavoriteTargetType = "listing" | "business" | "poi";
 /** reports.target_type (check constraint). */
-export type ReportTargetType = "listing" | "business" | "review" | "user";
+export type ReportTargetType = "listing" | "business" | "review" | "user" | "event";
 /** reports.reason (check constraint). */
 export type ReportReasonValue = "dolandiricilik" | "yanlis_kategori" | "uygunsuz" | "yaniltici" | "diger";
 

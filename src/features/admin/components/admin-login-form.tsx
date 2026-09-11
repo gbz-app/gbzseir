@@ -1,12 +1,10 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { digitsOnly, formatPhoneInputTR, isValidTRMobile, normalizePhoneTR } from "@/core/phone";
-import { routes } from "@/core/routes";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
@@ -122,13 +120,6 @@ export function AdminLoginForm({ next }: { next: string }) {
           Giriş yap
         </Button>
       </form>
-
-      <p className="mt-6 text-center text-sm text-muted-foreground">
-        Şifren yok mu?{" "}
-        <Link href={routes.auth.login(next)} className="font-semibold text-primary hover:underline">
-          Telefonuna gelen kodla gir
-        </Link>
-      </p>
     </div>
   );
 }

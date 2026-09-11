@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { TABLES, type FavoriteTargetType } from "@/lib/db-contract";
@@ -64,11 +64,19 @@ export function FavoriteButton({ targetType, targetId, initialFavorited, variant
     // 23505 = already favorited (unique violation): treat as success.
     if (error && error.code !== "23505") {
       setFav(!next);
-      toast.error("İşlem yapılamadı, lütfen tekrar dene.");
+      notify.error("Favori güncellenemedi", undefined, { id: "favorite" });
       return;
     }
     onChange?.(next);
-    toast.success(next ? "Favorilere eklendi" : "Favorilerden çıkarıldı");
+    // One shared id: quick toggles replace the toast instead of stacking.
+    if (next) {
+      notify.success("Favorilere eklendi", "Favorilerim'den ulaşabilirsin", {
+        id: "favorite",
+        action: { label: "Gör", onClick: () => router.push(routes.profile.favorites()) },
+      });
+    } else {
+      notify.success("Favorilerden çıkarıldı", undefined, { id: "favorite" });
+    }
   };
 
   return (

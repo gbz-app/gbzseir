@@ -4,6 +4,7 @@
  * A window whose close time is not after its open time runs past midnight (e.g. 18:00 - 02:00).
  * Every "now" calculation uses Europe/Istanbul.
  */
+import { formatDate } from "@/core/format";
 import { istanbulParts } from "@/core/time";
 
 export const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -133,13 +134,44 @@ function shiftKey(key: DayKey, delta: number): DayKey {
   return DAY_KEYS[(i + delta + 7 * 2) % 7];
 }
 
+/** businesses.vacation_mode + vacation_until (start, 00:00 Istanbul, of the day the business is back; null = open-ended). */
+export type VacationInfo = { vacation_mode?: boolean | null; vacation_until?: string | null };
+
+/**
+ * Tatil modu is active: the flag is on and the return date (if any) has not started yet. The one rule every screen
+ * uses; the DB mirrors it (global_search, daily 'gebzem-end-vacations' job).
+ */
+export function isOnVacation(b: VacationInfo | null | undefined, now: Date | number = Date.now()): boolean {
+  if (!b?.vacation_mode) return false;
+  if (!b.vacation_until) return true;
+  const until = Date.parse(b.vacation_until);
+  return Number.isNaN(until) || until > +now;
+}
+
+/** Return date as "14 Eylül" (year only when not this year), null when none is set. */
+export function vacationReturnLabel(until: string | null | undefined): string | null {
+  return until ? formatDate(until, { month: "long" }) || null : null;
+}
+
 export type OpenStatus =
   | { known: false }
   | { known: true; open: true; closesAt: string }
-  | { known: true; open: false; opensAt: string | null; opensDayLabel: string | null };
+  | { known: true; open: false; vacation?: false; opensAt: string | null; opensDayLabel: string | null }
+  /** Tatil modu: overrides the hours (and 7/24). */
+  | { known: true; open: false; vacation: true; returnsAt: string | null };
 
-/** Open/closed at `date` (Istanbul) with the next change. `known: false` when no hours are set at all. */
-export function openStatusAt(hours: WorkingHours, date: Date = new Date()): OpenStatus {
+export type VacationStatus = Extract<OpenStatus, { vacation: true }>;
+
+export function isVacationStatus(status: OpenStatus | null | undefined): status is VacationStatus {
+  return !!status && status.known && !status.open && status.vacation === true;
+}
+
+/**
+ * Open/closed at `date` (Istanbul) with the next change. `known: false` when no hours are set at all.
+ * An active tatil modu (`vacation`) wins over everything, even when no hours are set.
+ */
+export function openStatusAt(hours: WorkingHours, date: Date = new Date(), vacation?: VacationInfo | null): OpenStatus {
+  if (vacation && isOnVacation(vacation, date)) return { known: true, open: false, vacation: true, returnsAt: vacation.vacation_until ?? null };
   if (!hasAnyHours(hours)) return { known: false };
   const p = istanbulParts(date);
   const now = p.hour * 60 + p.minute;
@@ -168,10 +200,14 @@ export function openStatusAt(hours: WorkingHours, date: Date = new Date()): Open
   return { known: true, open: false, opensAt: null, opensDayLabel: null };
 }
 
-/** Short Turkish status line: "Kapanış 18:00" / "Açılış: Yarın 09:00". */
+/** Short Turkish status line: "Kapanış 18:00" / "Açılış: Yarın 09:00" / "Dönüş: 14 Eylül" (tatil modu). */
 export function describeOpenStatus(status: OpenStatus): string | null {
   if (!status.known) return null;
   if (status.open) return `Kapanış ${status.closesAt}`;
+  if (status.vacation) {
+    const back = vacationReturnLabel(status.returnsAt);
+    return back ? `Dönüş: ${back}` : null;
+  }
   if (!status.opensAt) return null;
   return status.opensDayLabel === "Bugün" ? `Açılış ${status.opensAt}` : `Açılış: ${status.opensDayLabel} ${status.opensAt}`;
 }

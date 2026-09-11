@@ -24,21 +24,23 @@ export function KindsPicker({ value, onChange, disabled }: { value: BusinessKind
             disabled={disabled}
             onClick={() => toggle(k)}
             className={cn(
-              "flex min-h-16 w-full items-start gap-3 rounded-2xl border-2 bg-card p-4 text-left transition-[border-color,background-color,transform] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99] disabled:opacity-60",
-              active ? "border-primary bg-brand-soft" : "border-border hover:border-primary/40",
+              // Borderless white row; the chosen one turns brand-soft (same as the wizard's option rows).
+              "flex min-h-16 w-full items-start gap-3 rounded-2xl bg-card p-4 text-left transition-[background-color,transform] outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99] disabled:opacity-60",
+              active && "bg-brand-soft hover:bg-brand-soft",
             )}
           >
-            <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl", active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+            <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl text-primary", active ? "bg-card" : "bg-brand-soft")}>
               <Icon className="size-5" aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-bold">{KIND_LABELS[k]}</span>
+              <span className={cn("block text-[15px] font-bold", active && "text-primary")}>{KIND_LABELS[k]}</span>
               <span className="mt-0.5 block text-sm leading-snug text-muted-foreground">{KIND_DESCRIPTIONS[k]}</span>
             </span>
+            {/* Filled square (no outline) so several picks read as checkboxes. */}
             <span
               className={cn(
-                "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-lg border-2 transition-colors",
-                active ? "border-primary bg-primary text-primary-foreground" : "border-input",
+                "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-lg transition-colors",
+                active ? "bg-primary text-primary-foreground" : "bg-foreground/10",
               )}
               aria-hidden
             >

@@ -68,8 +68,10 @@ function usePhotos(): RequestPhotos {
   return v;
 }
 
+/** Borderless white row; the chosen one turns brand-soft with a check (same as QuestionRenderer's option rows). */
 const optionBase =
-  "flex min-h-16 w-full items-center gap-3 rounded-2xl border-2 bg-card px-4 py-3 text-left transition-[border-color,background-color,transform] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]";
+  "flex min-h-16 w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left transition-[background-color,color,transform] outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]";
+const optionActive = "bg-brand-soft hover:bg-brand-soft";
 
 type RequestWizardProps = {
   category: WizardCategory;
@@ -390,19 +392,16 @@ function WhenStep({ ctx }: { ctx: Ctx }) {
               role="radio"
               aria-checked={active}
               onClick={() => choose(o.value)}
-              className={cn(optionBase, active ? "border-primary bg-brand-soft" : "border-border hover:border-primary/40")}
+              className={cn(optionBase, active && optionActive)}
             >
               <span
-                className={cn(
-                  "flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors",
-                  active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
-                )}
+                className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl text-primary transition-colors", active ? "bg-card" : "bg-brand-soft")}
                 aria-hidden
               >
                 <Icon className="size-5" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-semibold">{o.label}</span>
+                <span className={cn("block text-[15px] font-semibold", active && "text-primary")}>{o.label}</span>
                 <span className="block text-xs font-medium text-muted-foreground">{o.description}</span>
               </span>
               {active ? <Check className="size-5 shrink-0 text-primary" aria-hidden /> : null}
@@ -421,8 +420,8 @@ function WhenStep({ ctx }: { ctx: Ctx }) {
                 aria-pressed={d.whenDate === q.key}
                 onClick={() => ctx.setData({ whenDate: q.key })}
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center rounded-2xl border-2 bg-card px-2 text-sm font-bold transition-colors",
-                  d.whenDate === q.key ? "border-primary bg-brand-soft" : "border-border hover:border-primary/40",
+                  "flex min-h-14 flex-col items-center justify-center rounded-2xl bg-card px-2 text-sm font-bold transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
+                  d.whenDate === q.key && "bg-brand-soft text-primary hover:bg-brand-soft",
                 )}
               >
                 {q.label}
@@ -514,7 +513,7 @@ function PhotoPicker({ ctx }: { ctx: Ctx }) {
       />
       <ul className="grid grid-cols-3 gap-2">
         {ids.map((id, i) => (
-          <li key={id} className="relative aspect-square overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/[0.06]">
+          <li key={id} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photos.previews[id]} alt={`Fotoğraf ${i + 1}`} className="size-full object-cover" />
             <button
@@ -537,9 +536,9 @@ function PhotoPicker({ ctx }: { ctx: Ctx }) {
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-primary/40 bg-brand-soft/50 text-sm font-semibold text-primary transition-colors hover:bg-brand-soft"
+              className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-xl bg-muted text-sm font-semibold text-foreground transition-colors outline-none hover:bg-brand-soft focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              <ImagePlus className="size-6" aria-hidden />
+              <ImagePlus className="size-6 text-primary" aria-hidden />
               Fotoğraf ekle
             </button>
           </li>
@@ -569,7 +568,7 @@ function SummaryStep({ ctx, schema }: { ctx: Ctx; schema: FlowSchema }) {
   const rows = summarizeAnswers(schema, d.answers ?? {});
   const photoIds = (d.photoIds ?? []).filter((id) => photos.previews[id]);
   return (
-    <ul className="divide-y overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]">
+    <ul className="divide-y overflow-hidden rounded-2xl bg-card">
       {rows.map((r) => (
         <SummaryRow key={r.stepId} title={r.title} onEdit={() => ctx.goTo(`q_${r.stepId}`)}>
           {r.answer}
@@ -613,7 +612,7 @@ function ContactStep({ ctx, category, loginNext }: { ctx: Ctx; category: WizardC
     <div className="flex flex-col gap-4">
       <label
         htmlFor="talep-gizli-numara"
-        className="flex min-h-16 cursor-pointer items-start gap-3 rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]"
+        className="flex min-h-16 cursor-pointer items-start gap-3 rounded-2xl bg-card p-4"
       >
         <span className="min-w-0 flex-1">
           <span className="block font-semibold">Numaram gizli kalsın, firmaları ben arayayım</span>
@@ -648,12 +647,17 @@ function ContactStep({ ctx, category, loginNext }: { ctx: Ctx; category: WizardC
           </p>
         ) : null
       ) : (
-        <div className="rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]">
+        <div className="rounded-2xl bg-card p-4">
           <p className="font-semibold">Göndermek için giriş yap</p>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             Telefon numaranla saniyeler içinde giriş yap. Cevapların bu cihazda kayıtlı; giriş yaptıktan sonra buraya dönüp talebini gönderebilirsin.
           </p>
-          <Button type="button" size="lg" className="mt-3 w-full" onClick={() => router.push(routes.auth.login(loginNext))}>
+          <Button
+            type="button"
+            size="lg"
+            className="mt-3 w-full bg-foreground text-background shadow-none hover:bg-foreground/90"
+            onClick={() => router.push(routes.auth.login(loginNext))}
+          >
             <LogIn /> Giriş yap ve gönder
           </Button>
         </div>

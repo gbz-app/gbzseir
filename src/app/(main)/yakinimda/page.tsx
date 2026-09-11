@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { routes } from "@/core/routes";
 import { CITY } from "@/config/site";
+import { GuideEntryPill } from "@/features/guide/components/guide-entry-pill";
 import { NearbyExplorer } from "@/features/nearby/components/nearby-explorer";
 import { NearbyExplorerSkeleton } from "@/features/nearby/components/nearby-explorer-skeleton";
 import { getDutyMode } from "@/features/nearby/server/queries";
@@ -23,9 +24,13 @@ export default async function NearbyPage() {
       <h1 className="sr-only">Yakınımda</h1>
       {/* Keeps the map below the status bar / notch now that the page has no top bar. */}
       <div aria-hidden className="pt-safe" />
-      <Suspense fallback={<NearbyExplorerSkeleton />}>
-        <NearbyExplorer dutyMode={dutyMode} />
-      </Suspense>
+      {/* relative: anchors the floating "Şehir rehberi" card; the explorer's own height and layers are unchanged. */}
+      <div className="relative">
+        <Suspense fallback={<NearbyExplorerSkeleton />}>
+          <NearbyExplorer dutyMode={dutyMode} />
+        </Suspense>
+        <GuideEntryPill className="absolute top-[4.5rem] left-4 z-20" />
+      </div>
     </>
   );
 }

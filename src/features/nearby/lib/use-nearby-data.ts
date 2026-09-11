@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import { distanceMeters, type LatLng } from "@/core/geo";
 import { routes } from "@/core/routes";
 import type { Json } from "@/lib/database.types";
+import { INSTITUTION_CATEGORY_DEFS, guideCategoryLabel, isGuideDetailKind } from "@/features/guide/lib/constants";
+import { parseGuideDetails, toInstitutionCategoryDefs } from "@/features/guide/lib/details";
+import type { InstitutionCategoryDef } from "@/features/guide/lib/types";
 import { PLACE_CATEGORY_DEFS, displayStopName, placeCategoryMeta, poiHref, type PlaceCategoryDef } from "../config";
 import { parsePlaceDetails, parseStopDetails } from "./details";
 import type { DutyRow, DutyWindowIso, NearbyFilter, NearbyItem, PoiKind, PoiRow } from "../types";
@@ -23,6 +26,10 @@ const FILTER_KIND: Record<Exclude<NearbyFilter, "nobetci" | "isletme">, PoiKind>
   durak: "bus_stop",
   taksi: "taxi",
   atm: "atm",
+  banka: "bank",
+  akaryakit: "fuel",
+  sarj: "ev_charge",
+  kurum: "institution",
   gezilecek: "place",
 };
 
@@ -30,8 +37,10 @@ function hood(name: string | null | undefined): string | null {
   return name ? `${name} Mah.` : null;
 }
 
-/** `placeCategories`: place_categories rows for the admin's labels (places only). */
-function poiToItem(r: PoiRow, placeCategories: readonly PlaceCategoryDef[] = PLACE_CATEGORY_DEFS): NearbyItem {
+type Labels = { placeCategories: readonly PlaceCategoryDef[]; institutionCategories: readonly InstitutionCategoryDef[] };
+
+/** `labels`: the admin's place / institution category labels (the built-in lists when they cannot be read). */
+function poiToItem(r: PoiRow, labels: Labels = { placeCategories: PLACE_CATEGORY_DEFS, institutionCategories: INSTITUTION_CATEGORY_DEFS }): NearbyItem {
   const base = {
     id: r.id,
     name: r.name,
@@ -53,13 +62,18 @@ function poiToItem(r: PoiRow, placeCategories: readonly PlaceCategoryDef[] = PLA
       lines: d.lines,
     };
   }
-  if (r.kind === "taxi" || r.kind === "atm") {
+  if (r.kind === "taxi") {
     // No detail page: the card opens the point in Google Maps.
     return { ...base, kind: r.kind, href: `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}`, subtitle: hood(r.neighbourhood_name) };
   }
+  if (isGuideDetailKind(r.kind)) {
+    // City guide rows (ATM, banka, akaryakıt, şarj, resmî kurum): "<what it is> · <mahalle>", detail page /kurum/<slug>.
+    const label = guideCategoryLabel(r.kind, parseGuideDetails(r.details, r.phone), labels.institutionCategories);
+    return { ...base, kind: r.kind, subtitle: [label, hood(r.neighbourhood_name)].filter(Boolean).join(" · ") || null };
+  }
   if (r.kind === "place") {
     const d = parsePlaceDetails(r.details);
-    return { ...base, kind: "place", subtitle: [placeCategoryMeta(d.category, placeCategories).label, r.neighbourhood_name].filter(Boolean).join(" · ") };
+    return { ...base, kind: "place", subtitle: [placeCategoryMeta(d.category, labels.placeCategories).label, r.neighbourhood_name].filter(Boolean).join(" · ") };
   }
   return { ...base, kind: r.kind, subtitle: hood(r.neighbourhood_name) };
 }
@@ -143,20 +157,27 @@ export async function loadNearby(filter: NearbyFilter, point: LatLng): Promise<N
   if (filter === "isletme") return loadBusinesses(point);
 
   const kind = FILTER_KIND[filter];
-  const [pois, duty, cats] = await Promise.all([
+  const [pois, duty, cats, instCats] = await Promise.all([
     supabase.rpc("nearby_pois", { p_kind: kind, ...at, p_radius_m: RADIUS_M, p_limit: LIMIT }),
     kind === "pharmacy" ? supabase.rpc("duty_pharmacies_now", at) : Promise.resolve(null),
     // Admin labels of the place categories (public read); the built-in list when they cannot be read.
     kind === "place" ? supabase.from("place_categories").select("key,label,icon,active").order("sort").order("label") : Promise.resolve(null),
+    // Same for the institution categories.
+    kind === "institution"
+      ? supabase.from("institution_categories").select("key,label_tr,group_key,icon,sort,active").order("sort").order("label_tr")
+      : Promise.resolve(null),
   ]);
   if (pois.error) throw new Error(pois.error.message);
-  const placeCategories = cats && !cats.error && cats.data?.length ? cats.data : PLACE_CATEGORY_DEFS;
+  const labels: Labels = {
+    placeCategories: cats && !cats.error && cats.data?.length ? cats.data : PLACE_CATEGORY_DEFS,
+    institutionCategories: instCats && !instCats.error ? toInstitutionCategoryDefs(instCats.data) : INSTITUTION_CATEGORY_DEFS,
+  };
   const dutyByPoi = new Map<string, DutyWindowIso>();
   if (duty && !duty.error) for (const r of (duty.data ?? []) as DutyRow[]) dutyByPoi.set(r.poi_id, { start: r.duty_start, end: r.duty_end });
   return ((pois.data ?? []) as PoiRow[])
     .filter((r) => typeof r.lat === "number" && typeof r.lng === "number")
     .map((r) => {
-      const item = poiToItem(r, placeCategories);
+      const item = poiToItem(r, labels);
       const d = dutyByPoi.get(r.id);
       return d ? { ...item, duty: d } : item;
     });

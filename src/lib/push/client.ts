@@ -58,7 +58,11 @@ export async function isPushSubscribed(): Promise<boolean> {
   return error ? true : !!data;
 }
 
-/** Ask permission (user gesture!), subscribe and save the subscription to push_subscriptions. */
+/**
+ * Ask permission (user gesture!), subscribe and save the subscription to push_subscriptions. A new row fires the DB
+ * trigger push_subscriptions_flush: the user's notifications of the last 24 h that could not be pushed yet (no
+ * subscription at the time) are sent once, right away.
+ */
 export async function subscribePush(): Promise<SubscribeResult> {
   const state = getPushState();
   if (state === "ios-needs-install")

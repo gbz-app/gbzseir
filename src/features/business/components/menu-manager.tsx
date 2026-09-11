@@ -21,6 +21,8 @@ import { BusinessImagePicker, type PickedImage } from "./editor/image-picker";
 
 const ITEM_COLUMNS = "id,name,description,price_try,photo_url,tags,is_available,sort";
 const SUGGESTED = ["Çorbalar", "Ana yemekler", "Tatlılar", "İçecekler", "Kahvaltı", "Sıcak kahveler"];
+/** Section ideas for a hotel's menu (restaurant and room service). */
+export const HOTEL_MENU_SUGGESTIONS = ["Kahvaltı", "Oda servisi", "Restoran", "İçecekler", "Minibar", "Tatlılar"];
 
 type RawItem = Omit<MenuItem, "price_try" | "tags"> & { price_try: unknown; tags: string[] | null };
 const toItem = (r: RawItem): MenuItem => {
@@ -31,7 +33,16 @@ const toItem = (r: RawItem): MenuItem => {
 const ICON_BTN = "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:opacity-30";
 
 /** Owner menu editor: sections and items are saved immediately (RLS: owner write). */
-export function MenuManager({ businessId, initial }: { businessId: string; initial: MenuSection[] }) {
+export function MenuManager({
+  businessId,
+  initial,
+  suggestions = SUGGESTED,
+}: {
+  businessId: string;
+  initial: MenuSection[];
+  /** Section name chips shown while the menu is empty. */
+  suggestions?: readonly string[];
+}) {
   const [sections, setSections] = React.useState<MenuSection[]>(initial);
   const [newSection, setNewSection] = React.useState("");
   const [rename, setRename] = React.useState<{ id: string; name: string } | null>(null);
@@ -137,12 +148,12 @@ export function MenuManager({ businessId, initial }: { businessId: string; initi
   return (
     <div className="flex flex-col gap-4">
       {sections.length === 0 ? (
-        <div className="flex flex-col items-center rounded-3xl bg-card px-5 py-8 text-center shadow-soft ring-1 ring-foreground/[0.05]">
+        <div className="flex flex-col items-center rounded-3xl bg-card px-5 py-8 text-center">
           <UtensilsCrossed className="size-10 text-primary/50" strokeWidth={1.5} aria-hidden />
           <p className="mt-3 font-semibold">Menün henüz boş</p>
           <p className="mt-1 text-sm text-muted-foreground">Önce bir bölüm ekle, sonra ürünlerini fiyatlarıyla gir.</p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {SUGGESTED.map((s) => (
+            {suggestions.map((s) => (
               <FilterChip key={s} active={false} onClick={() => addSection(s)} icon={Plus}>
                 {s}
               </FilterChip>
@@ -152,8 +163,8 @@ export function MenuManager({ businessId, initial }: { businessId: string; initi
       ) : null}
 
       {sections.map((s, si) => (
-        <section key={s.id} className="overflow-hidden rounded-3xl bg-card shadow-soft ring-1 ring-foreground/[0.05]" aria-label={s.name}>
-          <div className="flex items-center gap-1 border-b py-2 pr-2 pl-4">
+        <section key={s.id} className="overflow-hidden rounded-3xl bg-card" aria-label={s.name}>
+          <div className="flex items-center gap-1 pt-2 pr-2 pb-1 pl-4">
             {rename?.id === s.id ? (
               <form
                 className="flex min-w-0 flex-1 items-center gap-2"
@@ -335,7 +346,7 @@ function ItemForm({
       busy={saving || uploading}
       footerExtra={
         item ? (
-          <Button type="button" variant="outline" size="lg" className="text-destructive" onClick={() => onDelete(item)} aria-label="Ürünü sil">
+          <Button type="button" variant="destructive" size="lg" onClick={() => onDelete(item)} aria-label="Ürünü sil">
             <Trash2 />
           </Button>
         ) : null
@@ -361,7 +372,7 @@ function ItemForm({
           ))}
         </div>
       </Field>
-      <label className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
+      <label className="flex items-center justify-between gap-3 rounded-2xl bg-card p-4">
         <span>
           <span className="block font-semibold">Satışta</span>
           <span className="text-sm text-muted-foreground">Kapalıysa menüde &quot;Tükendi&quot; olarak görünür.</span>

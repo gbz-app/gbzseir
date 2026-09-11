@@ -39,8 +39,19 @@ export function QuestionRenderer({ step, value, onChange, onAutoAdvance, error, 
   }
 }
 
+/** Borderless white row; the chosen one turns brand-soft with a check (same as the listing wizard's category rows). */
 const optionBase =
-  "flex min-h-14 w-full items-center gap-3 rounded-2xl border-2 bg-card px-4 py-3 text-left text-[15px] font-semibold transition-[border-color,background-color,transform] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]";
+  "flex min-h-14 w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left text-[15px] font-semibold transition-[background-color,color,transform] outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]";
+const optionActive = "bg-brand-soft text-primary hover:bg-brand-soft";
+
+function OptionText({ label, description }: { label: string; description?: string }) {
+  return (
+    <span className="min-w-0 flex-1 break-words">
+      {label}
+      {description ? <span className="mt-0.5 block text-xs font-medium text-muted-foreground">{description}</span> : null}
+    </span>
+  );
+}
 
 function SingleChoice({ step, value, onChange, onAutoAdvance }: { step: FlowStep; value: string | null; onChange: (v: string) => void; onAutoAdvance?: () => void }) {
   const timer = React.useRef<number | null>(null);
@@ -65,21 +76,10 @@ function SingleChoice({ step, value, onChange, onAutoAdvance }: { step: FlowStep
                 timer.current = window.setTimeout(onAutoAdvance, 220);
               }
             }}
-            className={cn(optionBase, active ? "border-primary bg-brand-soft" : "border-border hover:border-primary/40")}
+            className={cn(optionBase, active && optionActive)}
           >
-            <span
-              className={cn(
-                "flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                active ? "border-primary bg-primary text-primary-foreground" : "border-input",
-              )}
-              aria-hidden
-            >
-              {active ? <Check className="size-3.5" strokeWidth={3} /> : null}
-            </span>
-            <span className="min-w-0 flex-1">
-              {o.label}
-              {o.description ? <span className="mt-0.5 block text-xs font-medium text-muted-foreground">{o.description}</span> : null}
-            </span>
+            <OptionText label={o.label} description={o.description} />
+            {active ? <Check className="size-5 shrink-0 text-primary" strokeWidth={2.6} aria-hidden /> : null}
           </button>
         );
       })}
@@ -106,20 +106,18 @@ function MultiChoice({ step, value, onChange }: { step: FlowStep; value: string[
               aria-checked={active}
               disabled={atMax}
               onClick={() => toggle(o.value)}
-              className={cn(optionBase, active ? "border-primary bg-brand-soft" : "border-border hover:border-primary/40", atMax && "opacity-50")}
+              className={cn(optionBase, active && optionActive, atMax && "opacity-50")}
             >
+              <OptionText label={o.label} description={o.description} />
+              {/* Filled square (no outline) so several picks read as checkboxes. */}
               <span
                 className={cn(
-                  "flex size-6 shrink-0 items-center justify-center rounded-lg border-2 transition-colors",
-                  active ? "border-primary bg-primary text-primary-foreground" : "border-input",
+                  "flex size-6 shrink-0 items-center justify-center rounded-lg transition-colors",
+                  active ? "bg-primary text-primary-foreground" : "bg-foreground/10",
                 )}
                 aria-hidden
               >
                 {active ? <Check className="size-3.5" strokeWidth={3} /> : null}
-              </span>
-              <span className="min-w-0 flex-1">
-                {o.label}
-                {o.description ? <span className="mt-0.5 block text-xs font-medium text-muted-foreground">{o.description}</span> : null}
               </span>
             </button>
           );
@@ -128,6 +126,10 @@ function MultiChoice({ step, value, onChange }: { step: FlowStep; value: string[
     </div>
   );
 }
+
+/** Round-cornered white stepper button, no border. */
+const STEPPER =
+  "flex size-12 shrink-0 items-center justify-center rounded-xl bg-card transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50";
 
 function NumberQuestion({
   step,
@@ -151,7 +153,7 @@ function NumberQuestion({
   };
   return (
     <div className="flex items-center gap-2">
-      <button type="button" onClick={() => inc(-1)} aria-label="Azalt" className="flex size-12 shrink-0 items-center justify-center rounded-xl border bg-card hover:bg-muted">
+      <button type="button" onClick={() => inc(-1)} aria-label="Azalt" className={STEPPER}>
         <Minus className="size-5" />
       </button>
       <div className="relative flex-1">
@@ -169,7 +171,7 @@ function NumberQuestion({
         />
         {step.unit ? <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sm font-semibold text-muted-foreground">{step.unit}</span> : null}
       </div>
-      <button type="button" onClick={() => inc(1)} aria-label="Artır" className="flex size-12 shrink-0 items-center justify-center rounded-xl border bg-card hover:bg-muted">
+      <button type="button" onClick={() => inc(1)} aria-label="Artır" className={STEPPER}>
         <Plus className="size-5" />
       </button>
     </div>
@@ -220,8 +222,8 @@ function DateQuestion({ step, value, onChange, invalid }: { step: FlowStep; valu
             aria-pressed={value === q.key}
             onClick={() => onChange(q.key)}
             className={cn(
-              "flex min-h-14 flex-col items-center justify-center rounded-2xl border-2 bg-card px-2 text-sm font-bold transition-colors",
-              value === q.key ? "border-primary bg-brand-soft" : "border-border hover:border-primary/40",
+              "flex min-h-14 flex-col items-center justify-center rounded-2xl bg-card px-2 text-sm font-bold transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
+              value === q.key && optionActive,
             )}
           >
             {q.label}

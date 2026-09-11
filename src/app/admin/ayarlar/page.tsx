@@ -23,6 +23,11 @@ export default async function AdminSettingsPage() {
   const lastUpdate = (data ?? []).reduce<string | null>((max, r) => (!max || r.updated_at > max ? r.updated_at : max), null);
   const n = (k: string, d: number) => (typeof m.get(k) === "number" ? (m.get(k) as number) : d);
   const s = (k: string, d: string) => (typeof m.get(k) === "string" ? (m.get(k) as string) : d);
+  // A jsonb string array as one entry per line (textarea).
+  const lines = (k: string) => {
+    const v = m.get(k);
+    return (Array.isArray(v) ? v : []).filter((t): t is string => typeof t === "string").join("\n");
+  };
   // Placeholder contacts show as empty (unset).
   const phone = supportContact(m.get("support_phone"));
   const duty = s("duty_data_mode", DEFAULT_SETTINGS.dutyDataMode);
@@ -34,6 +39,7 @@ export default async function AdminSettingsPage() {
         <SettingsForm
           initial={{
             businessApplications: m.get("feature_business_applications") === true,
+            businessMaxPerOwner: n("business_max_per_owner", 1),
             maintenanceBanner: s("maintenance_banner", ""),
             supportPhone: phone.startsWith("+90") ? displayTrPhone(phone) : phone,
             supportEmail: supportContact(m.get("support_email")),
@@ -46,6 +52,8 @@ export default async function AdminSettingsPage() {
             analyticsRetentionDays: n("analytics_retention_days", DEFAULT_SETTINGS.analyticsRetentionDays),
             auditRetentionDays: n("audit_retention_days", DEFAULT_SETTINGS.auditRetentionDays),
             dutyDataMode: duty === "off" || duty === "live" ? duty : "demo",
+            popularSearches: lines("popular_searches"),
+            popularSearchesHidden: lines("popular_searches_hidden"),
           }}
         />
         <div className="grid content-start gap-4">

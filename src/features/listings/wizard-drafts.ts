@@ -17,6 +17,17 @@ export type ClassifiedDraft = {
   description: string;
   neighbourhoodId: string | null;
   neighbourhoodName: string | null;
+  /** Optional video (R2). Missing in drafts saved before video existed. */
+  video?: ClassifiedVideoDraft | null;
+};
+
+/** A video uploaded in the wizard (public URLs only; never a blob: URL). */
+export type ClassifiedVideoDraft = {
+  url: string;
+  posterUrl: string | null;
+  durationS: number;
+  width?: number | null;
+  height?: number | null;
 };
 
 export type JobDraft = {
@@ -59,6 +70,7 @@ export function classifiedDraftFromDetail(d: ListingDetail): ClassifiedDraft {
     description: d.description,
     neighbourhoodId: d.neighbourhood_id,
     neighbourhoodName: d.neighbourhoodName,
+    video: d.video ? { url: d.video.url, posterUrl: d.video.posterUrl, durationS: d.video.durationS } : null,
   };
 }
 

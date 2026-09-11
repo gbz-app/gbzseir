@@ -23,6 +23,7 @@ import {
 import { BusinessActions, DocumentButton } from "@/features/admin/components/business-actions";
 import { BUSINESS_DOC_KINDS, BUSINESS_KINDS, BUSINESS_STATUS } from "@/features/admin/lib/labels";
 import { oneOf, pageParam, pageRange, searchTerm } from "@/features/admin/lib/params";
+import { VERTICAL_INFO, resolveVertical } from "@/features/business/lib/verticals";
 
 export const metadata: Metadata = { title: "İşletmeler" };
 
@@ -32,7 +33,7 @@ const STATUSES = ["tumu", "approved", "suspended", "rejected", "pending"] as con
 type StatusFilter = (typeof STATUSES)[number];
 
 const SELECT =
-  "id,slug,name,kinds,category_label,phone,address,description,status,rejection_reason,verification_level,vacation_mode,logo_url,cover_url,working_hours,lat,lng,rating_avg,rating_count,leads_accepted_count,is_demo,created_at,updated_at,approved_at," +
+  "id,slug,name,kinds,vertical,category_label,phone,address,description,status,rejection_reason,verification_level,vacation_mode,logo_url,cover_url,working_hours,lat,lng,rating_avg,rating_count,leads_accepted_count,is_demo,created_at,updated_at,approved_at," +
   "owner:profiles!businesses_owner_id_fkey(id,full_name,phone,status),neighbourhoods!businesses_neighbourhood_id_fkey(name)," +
   "business_service_categories(service_categories(id,name)),business_service_areas(neighbourhoods(id,name)),business_documents(id,kind,path,created_at),business_photos(url,sort)";
 
@@ -41,6 +42,7 @@ type BusinessRow = {
   slug: string;
   name: string;
   kinds: string[];
+  vertical: string | null;
   category_label: string | null;
   phone: string | null;
   address: string | null;
@@ -323,7 +325,7 @@ export default async function AdminBusinessesPage({ searchParams }: PageProps<"/
                     </div>
                     <h2 className="mt-1.5 text-lg leading-snug font-bold break-words">{b.name}</h2>
                     <p className="text-sm text-muted-foreground">
-                      {b.kinds.map((k) => BUSINESS_KINDS[k] ?? k).join(", ")} · {"Açılış "}
+                      {VERTICAL_INFO[resolveVertical(b.vertical, b.kinds)].label} · {"Açılış "}
                       {formatRelativeTime(b.created_at)}
                     </p>
                   </div>
@@ -343,7 +345,14 @@ export default async function AdminBusinessesPage({ searchParams }: PageProps<"/
                 </div>
 
                 <div className="mt-4 border-t pt-4">
-                  <BusinessActions businessId={b.id} name={b.name} status={b.status} verificationLevel={b.verification_level} publicHref={publicHref} />
+                  <BusinessActions
+                    businessId={b.id}
+                    name={b.name}
+                    status={b.status}
+                    vertical={b.vertical}
+                    verificationLevel={b.verification_level}
+                    publicHref={publicHref}
+                  />
                 </div>
               </AdminCard>
             );

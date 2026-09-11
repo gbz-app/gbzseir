@@ -1,45 +1,50 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { DEFAULT_EVENT_CATEGORY, parseEventCategory, type EventCategory } from "@/features/business/lib/verticals";
+import { RPC, type RevealPhoneResult } from "@/lib/db-contract";
+import { OWNER_EVENT_COLUMNS, toOwnerEvent, type OwnerEvent } from "./owner-event";
 
-export type EventStatus = "draft" | "published" | "cancelled";
+export { OWNER_EVENT_COLUMNS, toOwnerEvent, type OwnerEvent } from "./owner-event";
+export type { EventStatus } from "./status";
 
-export type OwnerEvent = {
-  id: string;
-  slug: string;
-  title: string;
-  description: string | null;
-  category: EventCategory;
-  starts_at: string;
-  ends_at: string | null;
-  venue_name: string | null;
-  address: string | null;
-  is_free: boolean;
-  price_try: number | null;
-  price_note: string | null;
-  ticket_url: string | null;
-  cover_url: string | null;
-  status: EventStatus;
-};
+type Raw = Parameters<typeof toOwnerEvent>[0];
 
-export const OWNER_EVENT_COLUMNS = "id,slug,title,description,category,starts_at,ends_at,venue_name,address,is_free,price_try,price_note,ticket_url,cover_url,status";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type Raw = Omit<OwnerEvent, "category" | "price_try" | "status"> & { category: string; price_try: unknown; status: string };
-
-export function toOwnerEvent(r: Raw): OwnerEvent {
-  const price = r.price_try === null || r.price_try === undefined ? null : Number(r.price_try);
-  return {
-    ...r,
-    category: parseEventCategory(r.category) ?? DEFAULT_EVENT_CATEGORY,
-    price_try: price !== null && Number.isFinite(price) ? price : null,
-    status: r.status === "draft" || r.status === "cancelled" ? r.status : "published",
-  };
-}
-
-/** All events of the owner's business (drafts and cancelled included; RLS lets the owner read them). */
+/** All events of the owner's business (every status; RLS lets the owner read them). */
 export async function getOwnerEvents(businessId: string): Promise<OwnerEvent[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("events").select(OWNER_EVENT_COLUMNS).eq("business_id", businessId).order("starts_at", { ascending: false }).limit(200);
   if (error) throw new Error(error.message);
   return ((data ?? []) as unknown as Raw[]).map(toOwnerEvent);
+}
+
+/** Events the user created in their own name (not as a business). */
+export async function getMyUserEvents(userId: string): Promise<OwnerEvent[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select(OWNER_EVENT_COLUMNS)
+    .eq("created_by", userId)
+    .is("business_id", null)
+    .order("starts_at", { ascending: false })
+    .limit(100);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as Raw[]).map(toOwnerEvent);
+}
+
+/** One event the signed-in user may edit (RLS: creator, owner of its business, admin). null = not found. */
+export async function getEditableEvent(id: string): Promise<OwnerEvent | null> {
+  if (!UUID.test(id)) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("events").select(OWNER_EVENT_COLUMNS).eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? toOwnerEvent(data as unknown as Raw) : null;
+}
+
+/** Contact phone of the user's own event (the column is not readable through the API; the owner's reveal is not logged). */
+export async function getOwnEventContactPhone(id: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(RPC.revealEventPhone, { p_event: id });
+  const res = data as RevealPhoneResult | null;
+  return !error && res?.ok ? res.phone : null;
 }

@@ -14,6 +14,7 @@ const int = (min: number, max: number, label: string) =>
 
 const schema = z.object({
   businessApplications: z.boolean(),
+  businessMaxPerOwner: int(0, 20, "Hesap başına işletme sayısı"),
   maintenanceBanner: z.string().trim().max(200, "Duyuru bandı en fazla 200 karakter olabilir."),
   // Empty = unset: the contact card is hidden on the public pages.
   supportPhone: z.string().trim().max(30, "Destek telefonu çok uzun."),
@@ -31,6 +32,36 @@ const schema = z.object({
   analyticsRetentionDays: int(30, 730, "Saklama süresi"),
   auditRetentionDays: int(30, 3650, "İşlem kaydı saklama süresi"),
   dutyDataMode: z.enum(["demo", "off", "live"], { message: "Nöbet listesi verisi için bir seçenek seç." }),
+  // One term per line -> JSON array (duplicates ignored, case-insensitive); read by rpc popular_searches.
+  popularSearches: z
+    .string()
+    .max(1000, "Popüler aramalar çok uzun.")
+    .transform((s) => [
+      ...new Map(
+        s
+          .split(/\r?\n/)
+          .map((t) => t.replace(/\s+/g, " ").trim())
+          .filter(Boolean)
+          .map((t) => [t.toLocaleLowerCase("tr-TR"), t] as const),
+      ).values(),
+    ])
+    .refine((a) => a.every((t) => t.length >= 2 && t.length <= 40), "Popüler aramalar: her satır 2-40 karakter olmalı.")
+    .refine((a) => a.length <= 12, "Popüler aramalar en fazla 12 satır olabilir."),
+  // Words / phrases never shown from the logged searches (rpc popular_searches); one per line.
+  popularSearchesHidden: z
+    .string()
+    .max(2000, "Gizlenen aramalar çok uzun.")
+    .transform((s) => [
+      ...new Map(
+        s
+          .split(/\r?\n/)
+          .map((t) => t.replace(/\s+/g, " ").trim())
+          .filter(Boolean)
+          .map((t) => [t.toLocaleLowerCase("tr-TR"), t] as const),
+      ).values(),
+    ])
+    .refine((a) => a.every((t) => t.length >= 2 && t.length <= 60), "Gizlenen aramalar: her satır 2-60 karakter olmalı.")
+    .refine((a) => a.length <= 100, "Gizlenen aramalar en fazla 100 satır olabilir."),
 });
 
 /** Saves the editable app settings and refreshes every cached page that reads them. */
@@ -48,6 +79,7 @@ export async function saveSettingsAction(input: z.input<typeof schema>): Promise
     const now = new Date().toISOString();
     const rows = [
       ["feature_business_applications", v.businessApplications],
+      ["business_max_per_owner", v.businessMaxPerOwner],
       ["maintenance_banner", v.maintenanceBanner],
       ["support_phone", phone],
       ["support_email", email],
@@ -60,6 +92,8 @@ export async function saveSettingsAction(input: z.input<typeof schema>): Promise
       ["analytics_retention_days", v.analyticsRetentionDays],
       ["audit_retention_days", v.auditRetentionDays],
       ["duty_data_mode", v.dutyDataMode],
+      ["popular_searches", v.popularSearches],
+      ["popular_searches_hidden", v.popularSearchesHidden],
     ] as const;
     const { error } = await supabase.from("app_settings").upsert(rows.map(([key, value]) => ({ key, value, updated_at: now })));
     if (error) return dbFail(error);

@@ -84,7 +84,13 @@ function sourceFor(filter: NearbyFilter, dutyMode: DutyMode): { source: string; 
     case "taksi":
       return { source: OSM_SOURCE, sourceUrl: OSM_COPYRIGHT_URL, callAhead: true, note: "Telefonlar herkese açık rehber ve harita kayıtlarından alındı." };
     case "atm":
+    case "banka":
+    case "akaryakit":
       return { source: OSM_SOURCE, sourceUrl: OSM_COPYRIGHT_URL };
+    case "sarj":
+      return { source: OSM_SOURCE, sourceUrl: OSM_COPYRIGHT_URL, note: "Soket ve müsaitlik bilgisini operatörün uygulamasından kontrol et." };
+    case "kurum":
+      return { source: `Resmî kurum siteleri, ${OSM_SOURCE}`, sourceUrl: OSM_COPYRIGHT_URL, callAhead: true, note: "Telefon ve adresler kurum sitelerinden ve harita kayıtlarından derlendi." };
     case "gezilecek":
       return { source: `${KBB_SOURCE}, ${OSM_SOURCE}` };
     case "isletme":
