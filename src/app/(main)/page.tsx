@@ -129,8 +129,8 @@ export default async function HomePage() {
                 image={c.image}
                 icon={c.icon}
                 tone={c.tone}
-                imageClassName={c.imageClassName}
-                sizes="(max-width: 672px) 33vw, 220px"
+                imageClassName={`mx-auto w-4/5 ${c.imageClassName ?? ""}`}
+                sizes="(max-width: 672px) 27vw, 176px"
               />
             </li>
           ))}
