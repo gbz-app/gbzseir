@@ -1,16 +1,14 @@
-import { BadgeCheck, Briefcase, Check, MapPin, PhoneCall } from "lucide-react";
+import { BadgeCheck, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CITY } from "@/config/site";
 import { formatDate, formatNumber } from "@/core/format";
 import { BusinessBadge, DemoBadge } from "@/components/shared/badges";
 import { DetailSheet } from "@/components/shared/detail-hero";
 import { RelativeTime } from "@/components/shared/relative-time";
-import { JOB_SAFETY_TEXT, SAFETY_TEXT } from "../constants";
+import { SAFETY_TEXT, WORK_TYPES, optionLabel } from "../constants";
 import { listingPriceText } from "../format";
-import type { BusinessRef } from "../types";
 import type { ClassifiedViewModel, JobViewModel } from "../view-models";
 import {
-  CompanyCard,
   DetailList,
   DetailSection,
   FactTiles,
@@ -22,7 +20,17 @@ import {
   type FactTile,
 } from "./detail-parts";
 import { ListingGallery } from "./gallery";
-import { CompanyLogo } from "./listing-cards";
+import {
+  BenefitGrid,
+  EmployerCard,
+  JobApplyInfo,
+  JobFactChips,
+  JobHeroBand,
+  JobLogoNotch,
+  JobMetaLine,
+  SalaryPill,
+} from "./job-detail-parts";
+import { JobRichText } from "./job-rich-text";
 
 type DetailViewProps<M> = {
   model: M;
@@ -115,108 +123,84 @@ export function ClassifiedDetailView({ model, notice, footer, preview, isDemo, h
   );
 }
 
-/** Purple hero of a job ad with the company logo in a white circle. */
-function JobHero({ company, overlay }: { company: BusinessRef | null; overlay?: React.ReactNode }) {
-  return (
-    <div className="relative h-[calc(env(safe-area-inset-top,0px)+16.5rem)] w-full overflow-hidden bg-primary">
-      <span aria-hidden className="absolute -top-20 -right-16 size-64 rounded-full bg-white/10" />
-      <span aria-hidden className="absolute -bottom-24 -left-14 size-60 rounded-full bg-white/10" />
-      <div className="absolute inset-x-0 top-0 bottom-8 flex items-center justify-center px-6 pt-[calc(env(safe-area-inset-top,0px)+2.75rem)]">
-        {company ? (
-          <CompanyLogo name={company.name} logoUrl={company.logo_url} className="size-24 bg-card text-3xl" />
-        ) : (
-          <span aria-hidden className="flex size-24 items-center justify-center rounded-full bg-card text-primary">
-            <Briefcase className="size-10" strokeWidth={1.75} />
-          </span>
-        )}
-      </div>
-      {overlay ? <div className="absolute inset-x-0 top-0 px-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)]">{overlay}</div> : null}
-    </div>
-  );
-}
+type JobDetailViewProps = DetailViewProps<JobViewModel> & {
+  /** Employer extras for the "İşveren" card (neighbourhood, other open job ads); none in the preview. */
+  employer?: { neighbourhoodName: string | null; openJobs: number | null } | null;
+  /** Business phone shown as text in "Başvurmadan önce" (the page passes it for live, non-demo ads only). */
+  applyPhone?: string | null;
+};
 
 /**
- * E4 (firm-detail style): logo hero, white sheet with sector, position, company, salary, fact tiles, job facts,
- * benefits, description, company, location and how to apply. Used by /is-ilani/[id] and by the wizard preview.
+ * E4: short purple band, company logo in a notch on the sheet edge, big title, company + tick, salary pill and a
+ * small meta line; key fact chips, benefits grid, rich job text, employer card and one calm "Başvurmadan önce"
+ * card. Used by /is-ilani/[id] and by the wizard preview.
  */
-export function JobDetailView({ model, notice, footer, preview, isDemo, heroBar, views, sheetClassName }: DetailViewProps<JobViewModel>) {
+export function JobDetailView({ model, notice, footer, preview, isDemo, heroBar, views, sheetClassName, employer, applyPhone }: JobDetailViewProps) {
   const Title = preview ? "h2" : "h1";
-  const place = [model.locationLabel, model.neighbourhoodName ? `${model.neighbourhoodName} Mah.` : null].filter(Boolean).join(" · ") || CITY.name;
+  const place = model.neighbourhoodName ? `${model.neighbourhoodName} Mah., ${CITY.name}` : CITY.name;
   const verified = (model.company?.verification_level ?? 0) >= 1;
-  const tiles: FactTile[] = [
-    { label: "çalışma şekli", value: model.workTypeLabel ?? "Belirtilmemiş" },
-    { label: "deneyim", value: model.experienceLabel ?? "Fark etmez" },
-    views != null ? { label: "görüntülenme", value: formatNumber(views) } : { label: "ilan tarihi", value: shortDate(model.postedAt) },
-  ];
-  const rows: DetailRow[] = [
-    ...(model.sectorName ? [{ label: "Sektör", value: model.sectorName }] : []),
-    { label: "Maaş", value: model.salaryVisible ? model.salaryText : "Görüşülür" },
-    { label: "Konum", value: place },
-    { label: "İlan tarihi", value: model.postedAt ? formatDate(model.postedAt, { month: "long" }) : "Bugün" },
-    ...(model.listingNo ? [{ label: "İlan no", value: model.listingNo }] : []),
-  ];
+  const postedLong = model.postedAt ? formatDate(model.postedAt, { month: "long" }) : null;
+  const daily = model.workTypeLabel != null && model.workTypeLabel === optionLabel(WORK_TYPES, "gunluk");
+  /** Filled / expired / removed: no "call to apply" text (the preview model is always live). */
+  const closed = model.state === "filled" || model.state === "expired" || model.state === "deleted";
   return (
     <article className="flex flex-col">
-      <JobHero company={model.company} overlay={heroBar} />
-      <DetailSheet className={cn("flex flex-col gap-6 pb-8", sheetClassName)}>
+      <JobHeroBand overlay={heroBar} />
+      <DetailSheet className={cn("flex flex-col gap-7 pb-8", sheetClassName)}>
         <header>
-          <p className="text-sm font-semibold text-primary">{model.sectorName ?? "İş ilanı"}</p>
-          <Title className={TITLE}>{model.title}</Title>
+          <JobLogoNotch company={model.company} />
+          <p className="mt-4 text-sm font-semibold text-primary">{model.sectorName ?? "İş ilanı"}</p>
+          <Title className="mt-1 text-[1.75rem] leading-[1.15] font-semibold tracking-tight text-balance break-words">{model.title}</Title>
           {model.company ? (
-            <p className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[15px] font-medium text-muted-foreground">
+            <p className="mt-2 flex min-w-0 items-center gap-1.5 text-[15px] font-medium text-foreground/75">
               <span className="truncate">{model.company.name}</span>
-              {verified ? <BadgeCheck className="size-4 shrink-0 text-primary" aria-label="Onaylı işletme" /> : null}
+              {verified ? <BadgeCheck className="size-[18px] shrink-0 text-primary" role="img" aria-label="Onaylı işletme" /> : null}
             </p>
           ) : null}
-          <p className="mt-3 text-[1.5rem] leading-tight font-bold tabular-nums">{model.salaryVisible ? model.salaryText : "Maaş görüşülür"}</p>
-          <MetaLine place={place} postedAt={model.postedAt}>
-            {isDemo ? <DemoBadge /> : null}
-          </MetaLine>
+          <div className="mt-4">
+            <SalaryPill visible={model.salaryVisible} text={model.salaryText} daily={daily} />
+          </div>
+          <JobMetaLine place={place} postedAt={model.postedAt} views={views} isDemo={isDemo} />
         </header>
         {notice}
-        <FactTiles tiles={tiles} />
-        <DetailList id="is-bilgileri" title="İş bilgileri" rows={rows} />
+        <JobFactChips
+          workTypeLabel={model.workTypeLabel}
+          locationLabel={model.locationLabel}
+          experienceLabel={model.experienceLabel}
+          benefits={model.benefits}
+        />
         {model.benefits.length ? (
           <DetailSection id="yan-haklar" title="Yan haklar">
-            <ul className="flex flex-wrap gap-2">
-              {model.benefits.map((b) => (
-                <li key={b.value} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-card px-3 text-sm font-medium">
-                  <Check className="size-4 text-primary" aria-hidden />
-                  {b.label}
-                </li>
-              ))}
-            </ul>
+            <BenefitGrid benefits={model.benefits} />
           </DetailSection>
         ) : null}
-        <TextSection id="is-tanimi" title="İş tanımı" text={model.description} />
-        <TextSection id="aranan-nitelikler" title="Aranan nitelikler" text={model.qualifications} />
+        {model.description.trim() ? (
+          <DetailSection id="is-tanimi" title="İş tanımı">
+            <JobRichText text={model.description} />
+          </DetailSection>
+        ) : null}
+        {model.qualifications.trim() ? (
+          <DetailSection id="aranan-nitelikler" title="Aranan nitelikler">
+            <JobRichText text={model.qualifications} />
+          </DetailSection>
+        ) : null}
         {model.company ? (
           <DetailSection id="isveren" title="İşveren">
-            <CompanyCard company={model.company} interactive={!preview} />
+            <EmployerCard company={model.company} neighbourhoodName={employer?.neighbourhoodName} openJobs={employer?.openJobs} interactive={!preview} />
           </DetailSection>
         ) : null}
-        <DetailSection id="konum" title="Konum">
-          <LocationCard title={place} note="Tam adresi işverenle telefonda görüşürken öğrenebilirsin." />
-        </DetailSection>
-        <div className="flex gap-3 rounded-3xl bg-info-soft p-4">
-          <PhoneCall className="mt-0.5 size-5 shrink-0 text-info" aria-hidden />
-          <div className="text-sm leading-relaxed">
-            <p className="font-bold">Nasıl başvurulur?</p>
-            <p className="mt-0.5 text-muted-foreground">
-              {isDemo
-                ? "Bu bir örnek ilan, başvuru alınmıyor. Gerçek ilanlarda işletmeyi telefonla arayarak başvurursun."
-                : "Başvurmak için işletmeyi telefonla ara. Gebzem üzerinden CV gönderilmez; görüşme bilgisini işletme sana verir."}
-            </p>
+        <JobApplyInfo isDemo={isDemo} verified={verified} phone={applyPhone} closed={closed} />
+        {model.listingNo || footer ? (
+          <div className="flex flex-col items-center gap-1">
+            {model.listingNo ? (
+              <p className="text-xs text-muted-foreground tabular-nums">
+                İlan no {model.listingNo}
+                {postedLong ? ` · ${postedLong}` : null}
+              </p>
+            ) : null}
+            {footer}
           </div>
-        </div>
-        {verified ? (
-          <p className="-mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <BadgeCheck className="size-4 shrink-0 text-primary" aria-hidden />
-            Bu ilan, ekibimizin onayladığı bir işletme hesabından verildi.
-          </p>
         ) : null}
-        <SafetyNotice title="Dikkat" text={JOB_SAFETY_TEXT} />
-        {footer}
       </DetailSheet>
     </article>
   );

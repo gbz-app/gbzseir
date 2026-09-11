@@ -40,12 +40,12 @@ export function WorkingHoursTable({ hours, className }: { hours: WorkingHours; c
   const isClient = useIsClient();
   const today = isClient ? dayKeyOf(new Date()) : null;
   return (
-    <dl className={cn("divide-y overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]", className)}>
+    <dl className={cn("rounded-2xl bg-card p-1.5", className)}>
       {DAY_KEYS.map((key) => {
         const isToday = key === today;
         const day = hours[key];
         return (
-          <div key={key} className={cn("flex items-center justify-between gap-3 px-4 py-2.5 text-sm", isToday && "bg-brand-soft/60 font-bold text-primary")}>
+          <div key={key} className={cn("flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm", isToday && "bg-brand-soft font-bold text-primary")}>
             <dt>
               {DAY_LABELS[key]}
               {isToday ? <span className="ml-1.5 text-xs font-semibold">(Bugün)</span> : null}

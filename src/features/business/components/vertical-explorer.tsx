@@ -23,12 +23,9 @@ type Row = { item: VerticalCard; distance: number | null; open: OpenStatus | nul
 
 const NOUN: Partial<Record<Vertical, string>> = { hizmet: "firma", otel: "otel", magaza: "mağaza", saglik: "işletme", dugun: "işletme", egitim: "kurum" };
 
-/** Verticals listed as a two-column grid of compact cards. */
-const COMPACT: readonly Vertical[] = ["saglik"];
-
 const NO_SUBCATEGORIES: readonly VerticalSubcategory[] = [];
 
-/** /kesfet/[tur]: search, sub-category chips, photo cards (compact grid for Sağlık) and a map view of one vertical. */
+/** /kesfet/[tur]: search, sub-category chips, one-column photo cards and a map view of one vertical. */
 export function VerticalExplorer({
   vertical,
   items,
@@ -80,7 +77,6 @@ export function VerticalExplorer({
 
   const mappable = filtered.filter((r) => r.item.lat != null && r.item.lng != null);
   const noun = NOUN[vertical] ?? "mekan";
-  const compact = COMPACT.includes(vertical);
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-32">
@@ -168,10 +164,10 @@ export function VerticalExplorer({
               </Button>
             </div>
           ) : (
-            <ul className={compact ? "grid grid-cols-2 gap-3" : "flex flex-col gap-4"}>
+            <ul className="flex flex-col gap-4">
               {filtered.map((r, i) => (
                 <li key={r.item.id}>
-                  <VenueCard item={r.item} distance={r.distance} open={r.open} eager={i < (compact ? 4 : 2)} variant={compact ? "compact" : "default"} />
+                  <VenueCard item={r.item} distance={r.distance} open={r.open} eager={i < 2} />
                 </li>
               ))}
             </ul>

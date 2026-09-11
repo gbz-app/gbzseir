@@ -6,6 +6,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { EDITABLE_STATUSES } from "@/features/listings/constants";
 import { jobPostingJsonLd } from "@/features/listings/seo";
 import { getListingDetail, safeCategories } from "@/features/listings/server/queries";
+import { getJobEmployerInfo } from "@/features/listings/server/job-employer";
 import { displayState, jobModelFromDetail } from "@/features/listings/view-models";
 import { JobDetailView } from "@/features/listings/components/detail-views";
 import { StatusNotice } from "@/features/listings/components/detail-parts";
@@ -28,14 +29,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** E4 - İş ilanı detay (firm-detail style; phone visible without login, no CV / apply form). */
+/** E4 - İş ilanı detay (logo-notch hero, fact chips; phone visible without login, no CV / apply form). */
 export default async function JobPage({ params }: Props) {
   const { id } = await params;
   const detail = await getListingDetail(id);
   if (!detail) notFound();
   if (detail.type !== "job") redirect(routes.listings.classified(detail.id));
 
-  const categories = await safeCategories();
+  const [categories, employer] = await Promise.all([
+    safeCategories(),
+    detail.business_id ? getJobEmployerInfo(detail.business_id, detail.id) : Promise.resolve(null),
+  ]);
   const model = jobModelFromDetail(detail, categories);
   const editHref = (EDITABLE_STATUSES as readonly string[]).includes(detail.status)
     ? withQuery(routes.listings.postJob(), { duzenle: detail.id })
@@ -51,6 +55,8 @@ export default async function JobPage({ params }: Props) {
         isDemo={detail.is_demo}
         views={detail.view_count}
         sheetClassName="pb-36"
+        employer={employer}
+        applyPhone={model.state === "live" && !detail.is_demo ? (detail.business?.phone ?? null) : null}
         heroBar={
           <ListingHeroBar
             listingId={detail.id}
@@ -59,6 +65,7 @@ export default async function JobPage({ params }: Props) {
             backHref={routes.listings.jobs()}
             editHref={editHref}
             manageHref={manageHref}
+            favorite={false}
           />
         }
         notice={<StatusNotice state={model.state} kind="job" rejectionReason={detail.rejection_reason} />}

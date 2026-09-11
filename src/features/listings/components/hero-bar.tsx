@@ -21,10 +21,12 @@ export type ListingHeroBarProps = {
   backHref: string;
   editHref: string | null;
   manageHref: string;
+  /** Heart on the hero (default). Job ads opt out: their heart sits in the bottom bar. */
+  favorite?: boolean;
 };
 
 /** Back · share · favorite · ⋯ (report, or the owner's links) on top of a listing hero. Hides the bottom nav. */
-export function ListingHeroBar({ listingId, ownerId, title, backHref, editHref, manageHref }: ListingHeroBarProps) {
+export function ListingHeroBar({ listingId, ownerId, title, backHref, editHref, manageHref, favorite = true }: ListingHeroBarProps) {
   const router = useRouter();
   return (
     <div className="flex items-center justify-between gap-2">
@@ -35,7 +37,7 @@ export function ListingHeroBar({ listingId, ownerId, title, backHref, editHref, 
       <div className="flex items-center gap-2">
         <ShareButton title={title} iconOnly variant="secondary" label="Paylaş" className={HERO_BUTTON} />
         {/* "ghost": its only background is a hover, which HERO_BUTTON overrides (overlay would keep a shadow). */}
-        <FavoriteButton targetType="listing" targetId={listingId} variant="ghost" className={HERO_BUTTON} />
+        {favorite ? <FavoriteButton targetType="listing" targetId={listingId} variant="ghost" className={HERO_BUTTON} /> : null}
         <ListingDetailMenu listingId={listingId} ownerId={ownerId} editHref={editHref} manageHref={manageHref} className={HERO_BUTTON} />
       </div>
     </div>

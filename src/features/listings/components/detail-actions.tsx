@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CallButton } from "@/components/shared/call-button";
 import { DetailActions, PRIMARY_CTA } from "@/components/shared/detail-hero";
+import { FavoriteButton } from "@/components/shared/favorite-button";
 import { ReportSheet } from "@/components/shared/report-sheet";
 import { RevealPhoneButton } from "@/components/shared/reveal-phone-button";
 import { useAuth } from "@/lib/auth/auth-provider";
@@ -175,7 +176,14 @@ export function ClassifiedActionBar({
   );
 }
 
-/** E4 bottom bar: phone visible without login (İŞKUR rule) + black "Ara" (CallButton logs call_click). Demo: not callable. */
+/** Round white heart next to the job CTA (the job hero has no heart). */
+const ROUND_FAVORITE = "size-14 bg-card text-foreground hover:bg-muted";
+
+/**
+ * E4 bottom bar: round heart + black "Ara ve başvur" (CallButton logs call_click; the number itself is shown without
+ * login in the "Başvurmadan önce" card). Closed ads / no phone: heart + "Diğer iş ilanlarına göz at". Demo: not callable.
+ * Owner: management buttons.
+ */
 export function JobActionBar({
   listingId,
   ownerId,
@@ -195,16 +203,24 @@ export function JobActionBar({
 } & OwnerLinks) {
   const { user } = useAuth();
   if (user && user.id === ownerId) return <OwnerBar editHref={editHref} manageHref={manageHref} />;
-  if (state !== "live" || !phone) return <BrowseBar href={similarHref} label="Diğer iş ilanlarına göz at" />;
+  const heart = <FavoriteButton targetType="listing" targetId={listingId} variant="ghost" className={ROUND_FAVORITE} />;
+  if (state !== "live" || !phone) {
+    return (
+      <DetailActions>
+        {heart}
+        <Button asChild size="lg" className={CTA}>
+          <Link href={similarHref}>Diğer iş ilanlarına göz at</Link>
+        </Button>
+      </DetailActions>
+    );
+  }
   return (
     <DetailActions>
+      {heart}
       {isDemo ? (
         <DemoNoCall />
       ) : (
-        <>
-          <BarInfo label="Başvuru için ara" value={formatPhoneTR(phone)} />
-          <CallButton phone={phone} subjectType="job" subjectId={listingId} label="Ara" variant="default" size="lg" className={CTA} />
-        </>
+        <CallButton phone={phone} subjectType="job" subjectId={listingId} label="Ara ve başvur" variant="default" size="lg" className={CTA} />
       )}
     </DetailActions>
   );
