@@ -10,15 +10,14 @@ import { PlaceVisual } from "@/features/nearby/components/place-card";
 import type { PlaceSummary } from "@/features/nearby/types";
 
 /**
- * Home "Gezilecek Yerler": category tabs, tall photo cards with a white info card, then small "Öne çıkan" cards.
+ * Home "Gezilecek Yerler": category tabs and tall photo cards with a white info card.
  * Layout follows the travel-app reference the user sent.
  */
 export function HomePlaces({ places }: { places: PlaceSummary[] }) {
   const [tab, setTab] = React.useState<string>("tumu");
   const categories = PLACE_CATEGORIES.filter((c) => places.some((p) => p.details.category === c.value));
   const shown = tab === "tumu" ? places : places.filter((p) => p.details.category === tab);
-  const big = shown.slice(0, 8);
-  const small = places.filter((p) => !big.includes(p)).slice(0, 6);
+  const big = shown.slice(0, 10);
 
   return (
     <div>
@@ -83,28 +82,6 @@ export function HomePlaces({ places }: { places: PlaceSummary[] }) {
           );
         })}
       </ul>
-
-      {small.length ? (
-        <>
-          <h3 className="mt-5 text-base font-semibold">Öne çıkan yerler</h3>
-          <ul className="no-scrollbar -mx-4 mt-2.5 flex snap-x gap-2.5 overflow-x-auto scroll-px-4 px-4 pb-1">
-            {small.map((p) => (
-              <li key={p.id} className="w-[13.5rem] shrink-0 snap-start">
-                <Link
-                  href={routes.nearby.place(p.slug)}
-                  className="flex items-center gap-3 rounded-3xl bg-card p-2 pr-3 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  <PlaceVisual category={p.details.category} photo={p.details.photos[0]} name={p.name} sizes="64px" className="size-16 shrink-0 rounded-2xl" iconClassName="size-7" />
-                  <span className="min-w-0">
-                    <span className="line-clamp-2 text-sm leading-snug font-semibold">{p.name}</span>
-                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">{p.neighbourhoodName ?? "Gebze"}</span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : null}
     </div>
   );
 }

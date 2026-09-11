@@ -8,10 +8,11 @@ import { trNormalize } from "@/core/tr";
 
 export const NEWS_SUMMARY_MAX = 280;
 
-export type NewsCategory = "gundem" | "belediye" | "spor" | "etkinlik" | "duyuru";
+export type NewsCategory = "gundem" | "siyaset" | "belediye" | "spor" | "etkinlik" | "duyuru";
 
 export const NEWS_CATEGORY_LABELS: Record<NewsCategory, string> = {
   gundem: "Gündem",
+  siyaset: "Siyaset",
   belediye: "Belediye",
   spor: "Spor",
   etkinlik: "Etkinlik",
@@ -19,7 +20,7 @@ export const NEWS_CATEGORY_LABELS: Record<NewsCategory, string> = {
 };
 
 /** Display order of the category chips. */
-export const NEWS_CATEGORY_ORDER: NewsCategory[] = ["gundem", "belediye", "spor", "etkinlik", "duyuru"];
+export const NEWS_CATEGORY_ORDER: NewsCategory[] = ["gundem", "siyaset", "belediye", "spor", "etkinlik", "duyuru"];
 
 export type NewsSourceRef = {
   id: string;
@@ -245,6 +246,7 @@ const SPOR_STEMS = ["spor", "futbol", "basketbol", "voleybol", "hentbol", "sampi
 const SPOR_WORDS = new Set(["mac", "maci", "macta", "macinda", "maca", "lig", "ligi", "ligde", "gol", "golle", "golu", "derbi", "derbide"]);
 const ETKINLIK_STEMS = ["konser", "festival", "etkinlik", "tiyatro", "sergi", "soylesi", "fuar", "sahne", "gosteri", "senlik", "panel", "atolye", "sinema", "kermes", "yarisma", "dinleti", "imza gunu"];
 const BELEDIYE_STEMS = ["belediye", "buyuksehir", "baskan", "meclis", "zabita", "muhtar", "kaymakam", "valilik"];
+const SIYASET_STEMS = ["milletvekil", "secim", "parti", "chp", "mhp", "akp", "tbmm", "cumhurbaskan", "bakan", "muhalefet", "iktidar", "siyaset", "siyasi"];
 const LOCAL_WORDS = ["gebze", "darica", "cayirova", "dilovasi"];
 
 function hasStem(words: string[], stems: string[]): boolean {
@@ -260,6 +262,7 @@ export function inferCategory(title: string, feedCategory: string, sourceName: s
   if (cat.includes("spor") || hasStem(words, SPOR_STEMS) || words.some((w) => SPOR_WORDS.has(w))) return "spor";
   if (cat.includes("kultur") || cat.includes("sanat") || cat.includes("etkinlik") || ETKINLIK_STEMS.some((s) => (s.includes(" ") ? norm.includes(s) : hasStem(words, [s]))))
     return "etkinlik";
+  if (cat.includes("siyaset") || cat.includes("politika") || hasStem(words, SIYASET_STEMS)) return "siyaset";
   if (cat.includes("belediye") || hasStem(words, BELEDIYE_STEMS) || titleKey(sourceName).includes("belediye")) return "belediye";
   return "gundem";
 }

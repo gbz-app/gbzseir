@@ -1,22 +1,22 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Briefcase, Bus, ChevronRight, Map as MapIcon, MoonStar, Store, Tag, type LucideIcon } from "lucide-react";
+import { ArrowRight, Briefcase, Bus, ChevronRight, Map as MapIcon, MoonStar, Siren, Sparkles, Store, Tag, type LucideIcon } from "lucide-react";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JsonLd } from "@/components/seo/json-ld";
 import { VERTICAL_INFO, type Vertical } from "@/features/business/lib/verticals";
+import { getNews } from "@/features/content/news/get-news";
 import { HomeHero } from "@/features/home/components/home-hero";
+import { HomeNews } from "@/features/home/components/home-news";
 import { HomePlaces } from "@/features/home/components/home-places";
 import { HomeSearch } from "@/features/home/components/home-search";
-import { HomeSlider } from "@/features/home/components/home-slider";
 import { ImageTile } from "@/features/home/components/image-tile";
-import { buildDutyView } from "@/features/nearby/lib/duty-view";
-import { getDutyData, getPlaces, renderNow } from "@/features/nearby/server/queries";
+import { getPlaces } from "@/features/nearby/server/queries";
 
 export const revalidate = 300;
 
-type Tile = { href: string; label: string; sub?: string; image?: string; icon?: LucideIcon; tone?: string; imageClassName?: string };
+type Tile = { href: string; label: string; image?: string; icon?: LucideIcon; tone?: string; imageClassName?: string };
 
 const vertical = (v: Vertical, label?: string): Tile => ({
   href: v === "etkinlik" ? routes.events.root() : routes.businesses.vertical(v),
@@ -25,7 +25,15 @@ const vertical = (v: Vertical, label?: string): Tile => ({
   tone: VERTICAL_INFO[v].tone,
 });
 
-/** Kategoriler: picture cards with the name underneath (3 columns). */
+/** Right of the AI card: 2 x 2 quick cards. */
+const QUICK: Tile[] = [
+  { href: routes.nearby.dutyPharmacies(), label: "Nöbetçi Eczane", image: "/images/home/eczane.webp", imageClassName: "bg-card" },
+  { href: routes.nearby.root("durak"), label: "Durak", icon: Bus, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" },
+  { href: routes.nearby.root(), label: "Şehir Rehberi", icon: MapIcon, tone: "bg-brand-soft text-primary" },
+  { href: routes.content.emergency(), label: "Acil Durum", icon: Siren, tone: "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-300" },
+];
+
+/** Category cards, 4 per row. */
 const CATEGORIES: Tile[] = [
   { href: routes.search("taksi"), label: "Taksi", image: "/images/home/taksi.webp", imageClassName: "bg-card" },
   vertical("yemek"),
@@ -34,8 +42,11 @@ const CATEGORIES: Tile[] = [
   vertical("otel"),
   vertical("hizmet", "Hizmetler"),
   vertical("etkinlik"),
+  vertical("magaza"),
   { href: routes.listings.root("ikinci-el"), label: "İkinci El", icon: Tag, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" },
   { href: routes.listings.root("is-ilanlari"), label: "İş İlanı", icon: Briefcase, tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300" },
+  { href: routes.nearby.root("cami"), label: "Cami", icon: MoonStar, tone: "bg-teal-100 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300" },
+  { href: routes.businesses.root(), label: "Firmalar", icon: Store, tone: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300" },
 ];
 
 function SectionHeader({ id, title, href }: { id?: string; title: string; href?: string }) {
@@ -53,6 +64,42 @@ function SectionHeader({ id, title, href }: { id?: string; title: string; href?:
   );
 }
 
+/** Wide AI card on the left of the quick cards (search for now; the assistant comes later). */
+function AiCard() {
+  return (
+    <Link
+      href={routes.search()}
+      className="relative col-span-2 row-span-2 flex flex-col justify-between overflow-hidden rounded-3xl bg-linear-to-br from-violet-500 via-primary to-fuchsia-500 p-4 text-white outline-none transition-transform active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      <span className="absolute -top-8 -right-8 size-28 rounded-full bg-white/15" aria-hidden />
+      <span className="absolute -bottom-10 -left-6 size-24 rounded-full bg-black/10" aria-hidden />
+      <span className="relative flex size-10 items-center justify-center rounded-2xl bg-white/20">
+        <Sparkles className="size-5" aria-hidden />
+      </span>
+      <span className="relative mt-3 block">
+        <span className="block text-[17px] leading-tight font-bold">Yapay zekaya sor</span>
+        <span className="mt-1 block text-xs leading-snug text-white/85">Eczane, usta, etkinlik… ne arıyorsan yaz</span>
+      </span>
+      <span className="relative mt-3 inline-flex w-fit items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-primary">
+        Sor <ArrowRight className="size-3.5" aria-hidden />
+      </span>
+    </Link>
+  );
+}
+
+async function NewsSection() {
+  const items = await getNews()
+    .then((r) => r.items)
+    .catch(() => []);
+  if (!items.length) return null;
+  return (
+    <section aria-labelledby="haberler">
+      <SectionHeader id="haberler" title="Haberler" href={routes.content.news()} />
+      <HomeNews items={items.slice(0, 40)} />
+    </section>
+  );
+}
+
 async function PlacesSection() {
   const places = await getPlaces().catch(() => []);
   if (!places.length) return null;
@@ -64,25 +111,8 @@ async function PlacesSection() {
   );
 }
 
-/** C1 - Ana sayfa: başlık, arama, slider, Şehir Rehberi, Kategoriler, Gezilecek Yerler. */
-export default async function HomePage() {
-  const duty = await getDutyData().catch(() => null);
-  const dutyCount = duty ? buildDutyView(duty.rows, renderNow()).current.length : 0;
-
-  const guide: Tile[] = [
-    {
-      href: routes.nearby.dutyPharmacies(),
-      label: "Nöbetçi Eczane",
-      sub: dutyCount ? `Şu an ${dutyCount} açık` : "Bugün kim nöbette?",
-      image: "/images/home/eczane.webp",
-      imageClassName: "bg-card",
-    },
-    { href: routes.nearby.root("cami"), label: "Cami", sub: "Namaz vakitleri", icon: MoonStar, tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300" },
-    { href: routes.nearby.root("durak"), label: "Durak", sub: "Duraklar ve hatlar", icon: Bus, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" },
-    { href: routes.nearby.root(), label: "Harita", sub: "Yakınındakiler", icon: MapIcon, tone: "bg-brand-soft text-primary" },
-    { href: routes.businesses.root(), label: "Firmalar", sub: "Onaylı işletmeler", icon: Store, tone: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300" },
-  ];
-
+/** C1 - Ana sayfa: başlık, arama, yapay zeka + hızlı kartlar, kategoriler, haberler, gezilecek yerler. */
+export default function HomePage() {
   return (
     <div className="flex flex-col gap-6 px-4 pt-2 pb-8">
       <JsonLd
@@ -104,38 +134,28 @@ export default async function HomePage() {
       <div className="flex flex-col gap-4">
         <HomeHero />
         <HomeSearch />
-        <HomeSlider />
       </div>
 
-      <section aria-labelledby="sehir-rehberi" className="-mt-2">
-        <SectionHeader id="sehir-rehberi" title="Şehir Rehberi" href={routes.nearby.root()} />
-        <ul className="no-scrollbar -mx-4 mt-2 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-1">
-          {guide.map((g) => (
-            <li key={g.label} className="w-[7.75rem] shrink-0 snap-start">
-              <ImageTile href={g.href} label={g.label} sub={g.sub} image={g.image} icon={g.icon} tone={g.tone} imageClassName={g.imageClassName} sizes="124px" />
+      <section aria-label="Hızlı erişim" className="grid grid-cols-4 gap-x-3 gap-y-3">
+        <AiCard />
+        {QUICK.map((q) => (
+          <ImageTile key={q.label} href={q.href} label={q.label} image={q.image} icon={q.icon} tone={q.tone} imageClassName={q.imageClassName} sizes="80px" />
+        ))}
+      </section>
+
+      <section aria-label="Kategoriler">
+        <ul className="grid grid-cols-4 gap-x-3 gap-y-3">
+          {CATEGORIES.map((c) => (
+            <li key={c.label}>
+              <ImageTile href={c.href} label={c.label} image={c.image} icon={c.icon} tone={c.tone} imageClassName={c.imageClassName} sizes="80px" />
             </li>
           ))}
         </ul>
       </section>
 
-      <section aria-labelledby="kategoriler">
-        <SectionHeader id="kategoriler" title="Kategoriler" />
-        <ul className="mt-2 grid grid-cols-3 gap-x-3 gap-y-4">
-          {CATEGORIES.map((c) => (
-            <li key={c.label}>
-              <ImageTile
-                href={c.href}
-                label={c.label}
-                image={c.image}
-                icon={c.icon}
-                tone={c.tone}
-                imageClassName={`mx-auto w-4/5 ${c.imageClassName ?? ""}`}
-                sizes="(max-width: 672px) 27vw, 176px"
-              />
-            </li>
-          ))}
-        </ul>
-      </section>
+      <Suspense fallback={<Skeleton className="h-[26rem] w-full rounded-3xl" />}>
+        <NewsSection />
+      </Suspense>
 
       <Suspense fallback={<Skeleton className="h-[26rem] w-full rounded-3xl" />}>
         <PlacesSection />

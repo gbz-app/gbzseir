@@ -74,7 +74,7 @@ function HomeAvatar() {
   return (
     <Avatar className="size-11">
       {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt="" /> : null}
-      <AvatarFallback className="bg-card text-foreground/25">
+      <AvatarFallback className="bg-card text-foreground/70">
         <UserRound className="size-5" strokeWidth={1.75} aria-hidden />
       </AvatarFallback>
     </Avatar>
@@ -98,7 +98,7 @@ export function TopBar() {
   if (pathname === "/") {
     return (
       <header className="pt-safe">
-        <div className="flex h-(--topbar-h) items-center gap-3 px-4">
+        <div className="mt-[5px] flex h-(--topbar-h) items-center gap-3 px-4">
           <Link
             href={profileHref}
             aria-label={user ? "Profilim" : "Giriş yap"}
