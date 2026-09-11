@@ -26,7 +26,7 @@ export function PhoneField({
   return (
     <div
       className={cn(
-        "flex h-12 items-center overflow-hidden rounded-xl border border-input bg-card transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30",
+        "flex h-12 items-center overflow-hidden rounded-card border border-input bg-card transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30",
         invalid && "border-destructive ring-3 ring-destructive/20",
       )}
     >

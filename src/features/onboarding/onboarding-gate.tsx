@@ -135,8 +135,8 @@ function SplashContent() {
   return (
     <div className="flex flex-col items-center">
       <span className="relative flex size-20 items-center justify-center">
-        <span className="absolute inset-0 rounded-[1.75rem] bg-primary/40 opacity-0 motion-safe:animate-ob-halo" aria-hidden />
-        <span className="relative flex size-full items-center justify-center rounded-[1.75rem] bg-primary text-primary-foreground motion-safe:animate-ob-mark">
+        <span className="absolute inset-0 rounded-media bg-primary/40 opacity-0 motion-safe:animate-ob-halo" aria-hidden />
+        <span className="relative flex size-full items-center justify-center rounded-media bg-primary text-primary-foreground motion-safe:animate-ob-mark">
           <MapPin className="size-10" strokeWidth={2.25} aria-hidden />
         </span>
       </span>

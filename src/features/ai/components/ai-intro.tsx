@@ -6,7 +6,7 @@ export function AiIntroArt({ className }: { className?: string }) {
   const bubble = "absolute flex size-10 items-center justify-center rounded-full bg-card text-primary";
   return (
     <div className={cn("relative mx-auto size-40", className)} aria-hidden>
-      <div className="absolute inset-6 flex items-center justify-center rounded-[2rem] bg-card">
+      <div className="absolute inset-6 flex items-center justify-center rounded-media bg-card">
         <div className="flex size-20 items-center justify-center rounded-3xl bg-brand-soft">
           <Sparkles className="size-10 text-primary" strokeWidth={1.7} />
         </div>

@@ -6,8 +6,9 @@ import { getPublishedLegalText } from "@/features/legal/queries";
 import { listPublishedArticles } from "./articles/queries";
 
 /**
- * Sitemap entries of the content module (news, announcements, help, sources, legal pages). Registered in
+ * Sitemap entries of the content module (news, announcements, help, legal pages). Registered in
  * src/config/sitemap-extra.ts; these paths are not in PUBLIC_STATIC_ROUTES (app/sitemap.ts also dedupes by url).
+ * /kaynaklar (the RSS source list) stays reachable but is not listed: the app's news are only our own articles.
  */
 export async function sitemapEntries(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -27,7 +28,6 @@ export async function sitemapEntries(): Promise<MetadataRoute.Sitemap> {
     { url: url(routes.content.news()), lastModified: newsModified, changeFrequency: "hourly", priority: 0.6 },
     { url: url(routes.content.announcements()), lastModified: now, changeFrequency: "daily", priority: 0.5 },
     { url: url(routes.content.help()), changeFrequency: "monthly", priority: 0.3 },
-    { url: url(routes.content.sources()), changeFrequency: "monthly", priority: 0.3 },
     ...legal.map(({ slug, text }) => ({
       url: url(LEGAL_PATHS[slug]),
       ...(text ? { lastModified: new Date(text.publishedAt) } : {}),

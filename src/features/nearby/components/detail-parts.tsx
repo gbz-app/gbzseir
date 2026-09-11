@@ -19,7 +19,7 @@ export function DetailHero({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]", className)}>
+    <section className={cn("rounded-card bg-card p-4", className)}>
       <div className="flex items-start gap-3.5">
         {icon}
         <div className="min-w-0 flex-1">
@@ -35,7 +35,7 @@ export function DetailHero({
 
 /** Definition list container for address / phone / hours rows. */
 export function InfoList({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <dl className={cn("divide-y overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]", className)}>{children}</dl>;
+  return <dl className={cn("divide-y overflow-hidden rounded-card bg-card", className)}>{children}</dl>;
 }
 
 export function InfoRow({

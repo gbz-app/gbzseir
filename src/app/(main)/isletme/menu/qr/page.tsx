@@ -24,7 +24,7 @@ export default async function OwnerMenuQrPage() {
         <PageHeader title="QR menü yazdır" subtitle={b.name} backHref={routes.business.menu()} hideBottomNav />
       </div>
       <div className="flex flex-col items-center gap-6 px-4 pt-6 pb-16">
-        <article className="flex w-full max-w-sm flex-col items-center rounded-[2rem] bg-white p-8 text-center text-[#15121f] shadow-card ring-1 ring-black/10 print:shadow-none print:ring-0">
+        <article className="flex w-full max-w-sm flex-col items-center rounded-media bg-white p-8 text-center text-[#15121f]">
           <p className="text-sm font-semibold tracking-[0.2em] text-[#6d4fd8] uppercase">Menü</p>
           <h1 className="mt-2 text-2xl leading-tight font-semibold text-balance">{b.name}</h1>
           <div className="mt-6 w-full max-w-[16rem] [&_svg]:h-auto [&_svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />

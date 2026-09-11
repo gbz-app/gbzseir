@@ -23,7 +23,7 @@ export function NearbyExplorerSkeleton() {
         <Skeleton className="mt-2 h-3 w-1/3" />
         <div className="mt-4 flex flex-col gap-3">
           {[0, 1].map((i) => (
-            <div key={i} className="rounded-[1.75rem] bg-card p-4">
+            <div key={i} className="rounded-card bg-card p-4">
               <div className="flex gap-3">
                 <Skeleton className="size-10 rounded-xl" />
                 <div className="flex-1">

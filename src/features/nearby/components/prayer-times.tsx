@@ -42,7 +42,7 @@ export function PrayerTimesPanel({ days, serverNow, className }: PrayerTimesProp
   const highlight = next && !next.isTomorrow ? next.key : null;
 
   return (
-    <section aria-labelledby="namaz-vakitleri" className={cn("rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]", className)}>
+    <section aria-labelledby="namaz-vakitleri" className={cn("rounded-card bg-card p-4", className)}>
       <h2 id="namaz-vakitleri" className="text-base font-bold">
         Bugünkü namaz vakitleri
       </h2>

@@ -16,18 +16,30 @@ const REASONS: Record<string, string> = {
   rate_limited: "Bugün çok fazla numara görüntüledin. Yarın tekrar dene.",
   not_found: "Bu etkinlik artık yayında değil.",
   no_phone: "Bu etkinlik için numara eklenmemiş.",
-  demo: "Örnek kayıt, aranamaz.",
+  demo: "Bu etkinlik için numara paylaşılmıyor.",
 };
 
 /**
  * "Numarayı göster" for an event created by a normal user: signed-in users only (guests go to login and come back).
  * rpc reveal_event_phone logs the reveal and applies the daily cap; then a call button with the number is shown.
+ * `demo` (sample event): renders nothing, like CallButton; if the RPC still answers "demo", the control disappears.
  */
-export function EventPhoneReveal({ eventId, size = "lg", className }: { eventId: string; size?: "default" | "lg"; className?: string }) {
+export function EventPhoneReveal({
+  eventId,
+  size = "lg",
+  className,
+  demo,
+}: {
+  eventId: string;
+  size?: "default" | "lg";
+  className?: string;
+  demo?: boolean;
+}) {
   const router = useRouter();
   const { user } = useAuth();
   const [phone, setPhone] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [hidden, setHidden] = React.useState(false);
 
   const toLogin = () => {
     notify.info("Numarayı görmek için giriş yap");
@@ -43,11 +55,16 @@ export function EventPhoneReveal({ eventId, size = "lg", className }: { eventId:
     if (error || !res) return notify.error("Numara şu an gösterilemiyor. Tekrar dene.");
     if (!res.ok) {
       if (res.reason === "login_required") return toLogin();
+      if (res.reason === "demo") {
+        setHidden(true);
+        return notify.info(REASONS.demo);
+      }
       return notify.error(REASONS[res.reason] ?? "Numara şu an gösterilemiyor.");
     }
     setPhone(res.phone);
   };
 
+  if (demo || hidden) return null;
   if (phone) {
     return <CallButton phone={phone} subjectType="event" subjectId={eventId} showNumber variant="default" size={size} className={className} />;
   }

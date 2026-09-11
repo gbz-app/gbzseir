@@ -269,8 +269,8 @@ export const routes = {
 } as const;
 
 /**
- * Public, indexable static routes (used by sitemap.ts). Haberler, duyurular, yardım, kaynaklar and /yasal/* come from
- * the content module's sitemap source (src/features/content/sitemap.ts, real lastModified dates) instead.
+ * Public, indexable static routes (used by sitemap.ts). Haberler, duyurular, yardım and /yasal/* come from the content
+ * module's sitemap source (src/features/content/sitemap.ts, real lastModified dates) instead; /kaynaklar is not listed.
  */
 export const PUBLIC_STATIC_ROUTES: Array<{ path: string; priority: number; changeFrequency: "hourly" | "daily" | "weekly" | "monthly" | "yearly" }> = [
   { path: "/", priority: 1, changeFrequency: "daily" },

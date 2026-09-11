@@ -13,7 +13,6 @@ import { describeOpenStatus, openStatusAt, parseWorkingHours, type OpenStatus } 
 import { BUSINESS_VERTICALS, LISTABLE_VERTICALS, VERTICAL_INFO, parseVertical, resolveVertical, type Vertical } from "@/features/business/lib/verticals";
 import { listUpcomingEvents } from "@/features/events/queries";
 import { listPublishedArticles } from "@/features/content/articles/queries";
-import { getNews } from "@/features/content/news/get-news";
 import type { AiCard, AiCardIcon } from "../lib/types";
 import type { AgentTool as ApiTool } from "./agent";
 
@@ -307,7 +306,6 @@ async function isletmeAra(input: Record<string, unknown>): Promise<AiToolOutput>
     title: r.name,
     subtitle: [r.category_label || VERTICAL_INFO[vt].label, nb, status.known ? (status.open ? "Açık" : status.vacation ? "Tatilde" : "Kapalı") : null].filter(Boolean).join(" · "),
     href: routes.businesses.detail(r.slug),
-    badge: r.is_demo ? "Örnek" : undefined,
     call: r.phone && !r.is_demo ? { phone: r.phone, subjectType: "business", subjectId: r.id } : undefined,
   }));
   for (const s of services) {
@@ -515,7 +513,6 @@ async function etkinlikler(input: Record<string, unknown>): Promise<AiToolOutput
       title: e.title,
       subtitle: [when(e.starts_at), e.venue_name].filter(Boolean).join(" · "),
       href: routes.events.detail(e.slug),
-      badge: e.is_demo ? "Örnek" : undefined,
       call: phone && !sample ? { phone, subjectType: "event", subjectId: e.id } : undefined,
     };
   });
@@ -555,58 +552,31 @@ async function taksiDuraklari(input: Record<string, unknown>): Promise<AiToolOut
 // ---------------------------------------------------------------------------------------------------------------------------
 // 6) son_haberler
 // ---------------------------------------------------------------------------------------------------------------------------
+/** Only our own published articles (news_articles), like /haberler; RSS headlines from other sites are never used. */
 async function sonHaberler(input: Record<string, unknown>): Promise<AiToolOutput> {
   const n = int(input.adet, 1, MAX_ITEMS, 5);
-  const [articles, news] = await Promise.all([listPublishedArticles(n).catch(() => []), getNews().catch(() => null)]);
-  const feed = news?.items ?? [];
-  const local = feed.filter((i) => i.local);
-  const headlines = (local.length ? local : feed).slice(0, Math.max(0, n - articles.length));
+  const articles = await listPublishedArticles(n).catch(() => []);
   const data = {
-    haberler: [
-      ...articles.map((a) =>
-        compact({
-          baslik: a.title,
-          ozet: a.summary ? truncate(a.summary, 140) : undefined,
-          kaynak: "Gebzem",
-          tarih: formatDate(a.publishedAt, { month: "long" }),
-          sayfa: routes.content.newsArticle(a.slug),
-        }),
-      ),
-      ...headlines.map((h) =>
-        compact({
-          baslik: h.title,
-          ozet: h.summary ? truncate(h.summary, 140) : undefined,
-          kaynak: h.sourceName,
-          tarih: h.publishedAt ? formatDate(h.publishedAt, { month: "long" }) : undefined,
-          sayfa: routes.content.news(),
-        }),
-      ),
-    ],
-    not: articles.length || headlines.length ? undefined : "Şu an haber alınamadı.",
+    haberler: articles.map((a) =>
+      compact({
+        baslik: a.title,
+        ozet: a.summary ? truncate(a.summary, 140) : undefined,
+        kaynak: "Gebzem",
+        tarih: formatDate(a.publishedAt, { month: "long" }),
+        sayfa: routes.content.newsArticle(a.slug),
+      }),
+    ),
+    not: articles.length ? undefined : "Gebzem'de şu an yayında haber yok.",
     tumu: routes.content.news(),
   };
-  const cards: AiCard[] = [
-    ...articles.map<AiCard>((a) => ({
-      id: `article:${a.id}`,
-      icon: "news",
-      title: a.title,
-      subtitle: `Gebzem · ${formatDate(a.publishedAt)}`,
-      href: routes.content.newsArticle(a.slug),
-    })),
-    ...headlines.map<AiCard>((h) => {
-      // Headlines open the source site (https only); anything else opens our news page.
-      const external = /^https:\/\//i.test(h.url);
-      return {
-        id: `news:${h.id}`,
-        icon: "news",
-        title: h.title,
-        subtitle: [h.sourceName, h.publishedAt ? formatDate(h.publishedAt) : null].filter(Boolean).join(" · "),
-        href: external ? h.url : routes.content.news(),
-        external: external || undefined,
-      };
-    }),
-  ];
-  return result(data, cards.length ? cards : [{ id: "page:news", icon: "news", title: "Haberler", subtitle: "Gebze gündemi", href: routes.content.news() }]);
+  const cards: AiCard[] = articles.map<AiCard>((a) => ({
+    id: `article:${a.id}`,
+    icon: "news",
+    title: a.title,
+    subtitle: `Gebzem · ${formatDate(a.publishedAt)}`,
+    href: routes.content.newsArticle(a.slug),
+  }));
+  return result(data, cards.length ? cards : [{ id: "page:news", icon: "news", title: "Haberler", subtitle: "Gebzem haberleri", href: routes.content.news() }]);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
@@ -675,7 +645,7 @@ export const AI_TOOLS: ApiTool[] = [
   },
   {
     name: "son_haberler",
-    description: "Gebze'den son haberleri verir: uygulamanın kendi haberleri ve yerel haber sitelerinin başlıkları.",
+    description: "Gebzem'in kendi yayımladığı son haberleri verir: başlık, özet, tarih ve sayfa. Başka haber sitelerinin başlıkları yoktur.",
     input_schema: {
       type: "object",
       properties: { adet: { type: "integer", minimum: 1, maximum: 10, description: "Kaç haber (varsayılan 5)." } },

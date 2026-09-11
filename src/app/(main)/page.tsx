@@ -10,7 +10,6 @@ import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { VERTICAL_INFO, type Vertical } from "@/features/business/lib/verticals";
 import { HomeCinemaSection } from "@/features/cinema/components/home-cinema-section";
 import { listPublishedArticles } from "@/features/content/articles/queries";
-import { getNews } from "@/features/content/news/get-news";
 import { EventsRail } from "@/features/events/components/events-rail";
 import { listUpcomingEvents } from "@/features/events/queries";
 import { HomeHero } from "@/features/home/components/home-hero";
@@ -84,19 +83,14 @@ function AiCard() {
   );
 }
 
-/** Our own articles first (in-app pages), then the RSS headlines. */
+/** "Haberler": only the stories our team publishes (in-app pages, no RSS); hidden while there are none. */
 async function NewsSection() {
-  const [articles, items] = await Promise.all([
-    listPublishedArticles(10).catch(() => []),
-    getNews()
-      .then((r) => r.items)
-      .catch(() => []),
-  ]);
-  if (!articles.length && !items.length) return null;
+  const articles = await listPublishedArticles(10).catch(() => []);
+  if (!articles.length) return null;
   return (
     <section aria-labelledby="haberler">
       <SectionHeader id="haberler" title="Haberler" href={routes.content.news()} />
-      <HomeNews articles={articles} items={items.slice(0, 40)} />
+      <HomeNews articles={articles} />
     </section>
   );
 }
@@ -180,7 +174,8 @@ export default function HomePage() {
         <PlacesSection />
       </Suspense>
 
-      <Suspense fallback={<Skeleton className="h-[26rem] w-full rounded-3xl" />}>
+      {/* No skeleton: the section is hidden while there are no published stories. */}
+      <Suspense fallback={null}>
         <NewsSection />
       </Suspense>
     </div>

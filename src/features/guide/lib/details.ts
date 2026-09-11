@@ -35,13 +35,25 @@ const key = (v: Json | undefined) => {
 
 const isHttp = (u: string) => /^https?:\/\//i.test(u);
 
-/** details.photos: plain URLs or {url, alt, credit, author, licence, licence_url, source_page}. */
+/** An http(s) URL string of at most `max` characters, else null. */
+function httpUrl(v: Json | undefined, max: number): string | null {
+  const u = str(v, max);
+  return u && isHttp(u) ? u : null;
+}
+
+/** Pixel size: a positive number, else null. */
+function dim(v: Json | undefined): number | null {
+  const n = num(v);
+  return n !== null && n > 0 ? Math.round(n) : null;
+}
+
+/** details.photos: plain URLs or {url, alt, credit, author, licence, licence_url, source_page, thumb_url, width, height}. */
 export function parseGuidePhotos(v: Json | undefined): GuidePhoto[] {
   if (!Array.isArray(v)) return [];
   const out: GuidePhoto[] = [];
   for (const p of v) {
     if (typeof p === "string") {
-      if (isHttp(p)) out.push({ url: p, alt: null, credit: null, author: null, licence: null, licenceUrl: null, sourcePage: null });
+      if (isHttp(p)) out.push({ url: p, alt: null, credit: null, author: null, licence: null, licenceUrl: null, sourcePage: null, thumbUrl: null, width: null, height: null });
       continue;
     }
     const o = obj(p);
@@ -49,7 +61,6 @@ export function parseGuidePhotos(v: Json | undefined): GuidePhoto[] {
     if (!url || !isHttp(url)) continue;
     const author = str(o.author, 200);
     const licence = str(o.licence, 80) ?? str(o.license, 80);
-    const sourcePage = str(o.source_page, 1000);
     const credit = str(o.credit, 300) ?? str(o.attribution, 300) ?? ([author, licence].filter(Boolean).join(" · ") || null);
     out.push({
       url,
@@ -57,11 +68,11 @@ export function parseGuidePhotos(v: Json | undefined): GuidePhoto[] {
       credit,
       author,
       licence,
-      licenceUrl: (() => {
-        const u = str(o.licence_url, 500);
-        return u && isHttp(u) ? u : null;
-      })(),
-      sourcePage: sourcePage && isHttp(sourcePage) ? sourcePage : null,
+      licenceUrl: httpUrl(o.licence_url, 500),
+      sourcePage: httpUrl(o.source_page, 1000),
+      thumbUrl: httpUrl(o.thumb_url, 1000),
+      width: dim(o.width),
+      height: dim(o.height),
     });
   }
   return out;

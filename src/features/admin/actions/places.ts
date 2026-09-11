@@ -5,7 +5,7 @@ import { z } from "zod";
 import { normalizePhoneTR } from "@/core/phone";
 import { routes } from "@/core/routes";
 import { slugifyTr } from "@/core/tr";
-import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
+import type { Json, TablesInsert, TablesUpdate } from "@/lib/database.types";
 import { revalidatePublic, type PublicCacheTag } from "@/lib/revalidate-public";
 import { CATEGORY_KEY_RE } from "@/features/business/lib/category-visuals";
 import type { PoiKind } from "@/features/nearby/types";
@@ -14,11 +14,43 @@ import { fail, ok, type ActionResult } from "../lib/action-result";
 import { POI_KIND_VALUES, poiDeletable, poiPublicPath } from "../lib/poi-kinds";
 import { firstIssue, zId } from "../lib/zod";
 
+// alt / credit up to 300 like the guide form: Commons credit lines (author · licence) can be longer than 160.
+const httpsUrl = z.string().trim().url().max(500).refine((u) => /^https:\/\//.test(u), "Fotoğraf adresi https olmalı.");
 const photo = z.object({
-  url: z.string().trim().url().max(500).refine((u) => /^https:\/\//.test(u), "Fotoğraf adresi https olmalı."),
-  alt: z.string().trim().max(160).nullable().optional(),
-  credit: z.string().trim().max(160).nullable().optional(),
+  url: httpsUrl,
+  alt: z.string().trim().max(300).nullable().optional(),
+  credit: z.string().trim().max(300).nullable().optional(),
+  /** The upload's small variant (new uploads only); a saved photo keeps its stored thumb_url. */
+  thumbUrl: httpsUrl.nullable().optional(),
 });
+
+type PhotoInput = z.infer<typeof photo>;
+type JsonObject = Record<string, Json | undefined>;
+
+const jsonObject = (v: Json | null | undefined): JsonObject => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+
+/**
+ * details.photos to store. Each photo keeps every key of the saved photo with the same url (Commons author, licence,
+ * licence_url, source_page, credit, the 1024 px thumb_url, width, height), so an admin save never strips CC
+ * attribution. The dialog only sets url, alt and credit; an empty alt / credit keeps the saved one.
+ */
+function photosJson(saved: Json | undefined, photos: PhotoInput[]): Json[] {
+  const byUrl = new Map<string, JsonObject>();
+  for (const s of Array.isArray(saved) ? saved : []) {
+    const o = jsonObject(s);
+    if (typeof o.url === "string") byUrl.set(o.url, o);
+  }
+  return photos.map((p) => {
+    const prev = byUrl.get(p.url) ?? {};
+    const out: Record<string, Json> = {};
+    for (const [k, val] of Object.entries(prev)) if (val !== undefined) out[k] = val;
+    out.url = p.url;
+    out.alt = p.alt || (typeof prev.alt === "string" ? prev.alt : null);
+    out.credit = p.credit || (typeof prev.credit === "string" ? prev.credit : null);
+    if (p.thumbUrl && p.thumbUrl !== p.url) out.thumb_url = p.thumbUrl;
+    return out;
+  });
+}
 
 /** Gezilecek yer texts and photos, stored in poi.details (kind 'place' only). */
 const placeFields = z.object({
@@ -88,6 +120,8 @@ export async function savePlaceAction(input: z.input<typeof schema>): Promise<Ac
     if (v.kind === "place" && !v.place) return fail("Yer bilgileri eksik.");
     const phone = v.phone ? poiPhone(v.phone) : null;
     if (v.phone && !phone) return fail("Telefonu 0262 123 45 67 ya da 444 1 234 biçiminde yaz.");
+    // Photos are merged with the saved ones below (photosJson), so they are not part of these fields.
+    const placePhotos = v.kind === "place" && v.place ? v.place.photos : null;
     const place =
       v.kind === "place" && v.place
         ? {
@@ -96,7 +130,6 @@ export async function savePlaceAction(input: z.input<typeof schema>): Promise<Ac
             hours: v.place.hours || null,
             fee: v.place.fee || null,
             curated: v.place.curated,
-            photos: v.place.photos.map((p) => ({ url: p.url, alt: p.alt || null, credit: p.credit || null })),
           }
         : null;
     const point = v.lat !== null && v.lng !== null ? { lat: v.lat, lng: v.lng } : null;
@@ -114,9 +147,9 @@ export async function savePlaceAction(input: z.input<typeof schema>): Promise<Ac
         locked: v.locked,
         updated_at: new Date().toISOString(),
       };
-      if (place) {
-        const base = current.details && typeof current.details === "object" && !Array.isArray(current.details) ? current.details : {};
-        patch.details = { ...base, ...place };
+      if (place && placePhotos) {
+        const base = jsonObject(current.details);
+        patch.details = { ...base, ...place, photos: photosJson(base.photos, placePhotos) };
       }
       // Only a moved pin is written, with its neighbourhood.
       if (point && location && (current.lat !== point.lat || current.lng !== point.lng)) {
@@ -140,7 +173,7 @@ export async function savePlaceAction(input: z.input<typeof schema>): Promise<Ac
       phone,
       location,
       neighbourhood_id: await neighbourhoodAt(supabase, point.lat, point.lng),
-      details: place ?? {},
+      details: place && placePhotos ? { ...place, photos: photosJson(undefined, placePhotos) } : {},
       source: "manual",
       license: null,
       hidden: v.hidden,

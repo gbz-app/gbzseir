@@ -6,13 +6,7 @@ import { HomeNewsTabs } from "./home-news-tabs";
  * Home "Haberler": only the stories our team publishes (news_articles). Server wrapper that reads the news categories
  * (admin order and labels; cached, built-in fallback) for the client tabs and cards in home-news-tabs.tsx.
  */
-export async function HomeNews({
-  articles = [],
-}: {
-  articles?: ArticleSummary[];
-  /** Ignored: RSS headlines are no longer shown in the app (kept so older callers still compile). */
-  items?: readonly unknown[];
-}) {
+export async function HomeNews({ articles = [] }: { articles?: ArticleSummary[] }) {
   const { newsCategories } = await getVocabularies();
   return <HomeNewsTabs articles={articles} categories={newsCategories} />;
 }

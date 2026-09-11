@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, Banknote, CalendarDays, CalendarPlus, ChevronRight, ExternalLink, MapPin, PhoneOff, Ticket, UserRound, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Banknote, CalendarDays, CalendarPlus, ChevronRight, ExternalLink, MapPin, Ticket, UserRound, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DemoBadge } from "@/components/shared/badges";
@@ -95,19 +95,18 @@ export default async function EventPage({ params }: Props) {
   const organizerName = e.business ? null : (e.organizer_name ?? (revealable ? "Etkinlik sahibi" : null));
 
   // Bottom bar: the primary CTA depends on the event; "Takvime ekle" and "Yol tarifi" are round buttons next to it.
-  const primary: "ticket" | "reveal" | "demo" | "call" | "calendar" | "directions" | null = ticket
+  // A sample (demo) event's number is a placeholder: no call control at all, the bar falls back to calendar / directions.
+  const primary: "ticket" | "reveal" | "call" | "calendar" | "directions" | null = ticket
     ? "ticket"
     : revealable
       ? "reveal"
-      : phone && e.is_demo
-        ? "demo"
-        : phone
-          ? "call"
-          : !past
-            ? "calendar"
-            : hasLocation
-              ? "directions"
-              : null;
+      : phone && !e.is_demo
+        ? "call"
+        : !past
+          ? "calendar"
+          : hasLocation
+            ? "directions"
+            : null;
   const roundCalendar = !past && primary !== "calendar";
   const roundDirections = hasLocation && primary !== "directions";
 
@@ -301,11 +300,6 @@ export default async function EventPage({ params }: Props) {
             </Button>
           ) : primary === "reveal" ? (
             <EventPhoneReveal eventId={e.id} className={CTA} />
-          ) : primary === "demo" ? (
-            <p className="flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-muted px-4 text-[15px] font-semibold text-muted-foreground">
-              <PhoneOff className="size-5 shrink-0" aria-hidden />
-              <span className="truncate">Örnek kayıt - aranamaz</span>
-            </p>
           ) : primary === "call" ? (
             <CallButton
               phone={phone!}

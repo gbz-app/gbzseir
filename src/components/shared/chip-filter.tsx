@@ -31,6 +31,12 @@ export type ChipFilterProps<T extends string = string> = BaseProps<T> &
     | { multiple: true; value: T[]; onChange: (value: T[]) => void; allowDeselect?: never }
   );
 
+/**
+ * Idle chip fill without a border: white on the page background, muted grey when the chip sits on a white surface
+ * (a bg-card card or a bg-popover dialog), where a white chip would lose its shape. Shared with FilterChip.
+ */
+export const IDLE_CHIP_BG = "bg-card hover:bg-muted in-[.bg-card,.bg-popover]:bg-muted in-[.bg-card,.bg-popover]:hover:bg-muted/70";
+
 /** Horizontally scrolling filter chips (single or multi select). */
 export function ChipFilter<T extends string = string>(props: ChipFilterProps<T>) {
   const { options, ariaLabel, bleed = true, size = "md", centerSelected = false, className } = props;
@@ -87,18 +93,17 @@ export function ChipFilter<T extends string = string>(props: ChipFilterProps<T>)
             disabled={o.disabled}
             onClick={() => toggle(o.value)}
             className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 rounded-full border font-semibold whitespace-nowrap transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
+              // Same look as FilterChip / EventChip: no border or shadow; white when idle, black (foreground) when on.
+              "inline-flex shrink-0 items-center gap-1.5 rounded-full font-semibold whitespace-nowrap transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
               !centerSelected && "snap-start",
               size === "sm" ? "h-9 px-3 text-[13px]" : "h-10 px-4 text-sm",
-              active
-                ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                : "border-border bg-card text-foreground hover:bg-muted",
+              active ? "bg-foreground text-background" : cn("text-foreground", IDLE_CHIP_BG),
             )}
           >
             {Icon ? <Icon className="size-4" aria-hidden /> : null}
             {o.label}
             {typeof o.count === "number" ? (
-              <span className={cn("text-xs font-medium", active ? "text-primary-foreground/80" : "text-muted-foreground")}>{o.count}</span>
+              <span className={cn("text-xs font-medium", active ? "text-background/75" : "text-muted-foreground")}>{o.count}</span>
             ) : null}
           </button>
         );

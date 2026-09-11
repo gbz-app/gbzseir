@@ -44,14 +44,14 @@ export function WeatherButton({ className }: { className?: string }) {
           {data ? <span className="text-sm font-semibold tabular-nums">{round(data.now.temperature)}°</span> : null}
         </button>
       </DrawerTrigger>
-      <DrawerContent className="mx-auto max-w-2xl border-0 bg-background data-[vaul-drawer-direction=bottom]:max-h-[92dvh] data-[vaul-drawer-direction=bottom]:rounded-t-[1.75rem]">
+      <DrawerContent className="mx-auto max-w-2xl border-0 bg-background data-[vaul-drawer-direction=bottom]:max-h-[92dvh] data-[vaul-drawer-direction=bottom]:rounded-t-card">
         <DrawerHeader className="px-5 pt-3 pb-2 text-left">
           <DrawerTitle className="text-xl font-semibold">{CITY.name} hava durumu</DrawerTitle>
           <DrawerDescription>5 günlük tahmin</DrawerDescription>
         </DrawerHeader>
         <div className="no-scrollbar overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]">
           {error ? (
-            <div className="flex flex-col items-center rounded-3xl bg-card px-6 py-8 text-center shadow-soft ring-1 ring-foreground/[0.05]">
+            <div className="flex flex-col items-center rounded-card bg-card px-6 py-8 text-center">
               <p className="font-semibold">Hava durumu şu an alınamadı</p>
               <Button variant="outline" className="mt-4" onClick={reload}>
                 <RefreshCw /> Tekrar dene
@@ -81,7 +81,7 @@ function ForecastBody({ data }: { data: Forecast }) {
   return (
     <div className="flex flex-col gap-4">
       <section className="flex items-center gap-4 rounded-3xl bg-linear-to-br from-sky-100 via-brand-soft to-amber-50 p-5 dark:from-sky-500/15 dark:via-brand-soft dark:to-amber-500/10">
-        <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-sky-600 shadow-soft dark:bg-white/10 dark:text-sky-300">
+        <span className="flex size-16 shrink-0 items-center justify-center rounded-card bg-white/70 text-sky-600 dark:bg-white/10 dark:text-sky-300">
           <info.icon className="size-9" strokeWidth={1.5} aria-hidden />
         </span>
         <div className="min-w-0">
@@ -107,7 +107,7 @@ function ForecastBody({ data }: { data: Forecast }) {
         </div>
       </section>
 
-      <ul className="divide-y rounded-3xl bg-card shadow-soft ring-1 ring-foreground/[0.05]" aria-label="5 günlük tahmin">
+      <ul className="divide-y rounded-card bg-card" aria-label="5 günlük tahmin">
         {data.days.map((d) => (
           <DayRow key={d.date} day={d} lo={lo} span={span} />
         ))}

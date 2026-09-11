@@ -81,7 +81,7 @@ export function FlowPreview({ steps, focusId, focusNonce }: { steps: FlowStep[];
         </Button>
       </header>
       <div className="p-4">
-        <div className="mx-auto max-w-sm rounded-[1.75rem] border-8 border-foreground/10 bg-background p-4">
+        <div className="mx-auto max-w-sm rounded-media border-8 border-foreground/10 bg-background p-4">
           {schema.steps.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">Önizleme için soru ekle.</p>
           ) : finished ? (

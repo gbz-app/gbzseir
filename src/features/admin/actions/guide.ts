@@ -116,8 +116,15 @@ function verifiedAt(v: Pick<Values, "verified" | "verifiedDate">, current: strin
   return `${day}T12:00:00+03:00`;
 }
 
-function photoJson(p: Values["photos"][number]): Json {
-  const o: Record<string, Json> = { url: p.url };
+/**
+ * One photo for poi.details. It starts from the saved photo with the same url, so keys the form does not edit
+ * (thumb_url, width, height, any source data) are kept, then writes the form's non-empty fields on top. An empty
+ * form field never removes a saved credit, author or licence: an admin save cannot strip CC attribution.
+ */
+function photoJson(p: Values["photos"][number], saved: Obj | undefined): Json {
+  const o: Record<string, Json> = {};
+  for (const [k, val] of Object.entries(saved ?? {})) if (val !== undefined) o[k] = val;
+  o.url = p.url;
   if (p.alt) o.alt = p.alt;
   if (p.credit) o.credit = p.credit;
   if (p.author) o.author = p.author;
@@ -125,6 +132,16 @@ function photoJson(p: Values["photos"][number]): Json {
   if (p.licenceUrl) o.licence_url = p.licenceUrl;
   if (p.sourcePage) o.source_page = p.sourcePage;
   return o;
+}
+
+/** The form's photos (in its order), each merged with the saved photo of the same url (see photoJson). */
+function photosJson(saved: Json | undefined, photos: Values["photos"]): Json[] {
+  const byUrl = new Map<string, Obj>();
+  for (const s of Array.isArray(saved) ? saved : []) {
+    const o = objectOf(s);
+    if (typeof o.url === "string") byUrl.set(o.url, o);
+  }
+  return photos.map((p) => photoJson(p, byUrl.get(p.url)));
 }
 
 /** poi.details: the row's keys plus the edited ones of its kind (empty values remove the key). */
@@ -144,7 +161,7 @@ function buildDetails(base: Json | null, v: Values, phones: string[], fax: strin
   put("phones", phones);
   put("hours", v.hours || null);
   put("description", v.description || null);
-  put("photos", v.photos.map(photoJson));
+  put("photos", photosJson(d.photos, v.photos));
   switch (v.kind) {
     case "institution":
       put("category", v.category ?? INSTITUTION_FALLBACK_CATEGORY);

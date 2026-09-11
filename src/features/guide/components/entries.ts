@@ -95,7 +95,8 @@ export function toEntry(item: GuideItem, labels: Labels): GuideEntry {
     lat: item.lat,
     lng: item.lng,
     verified: !!item.verifiedAt,
-    photo: d.photos[0]?.url ?? null,
+    // List thumbnail: the 1024 px variant when there is one, not the original.
+    photo: d.photos[0]?.thumbUrl || d.photos[0]?.url || null,
     icon: item.kind === "institution" ? institutionIconName(cat, labels.institution) : item.kind === "place" ? placeIconName(cat, labels.place) : null,
     q: trNormalize([item.name, type, item.neighbourhoodName, item.address].filter(Boolean).join(" ")),
   };

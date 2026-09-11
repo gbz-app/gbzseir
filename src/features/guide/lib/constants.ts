@@ -165,9 +165,10 @@ export const INSTITUTION_CATEGORY_DEFS: readonly InstitutionCategoryDef[] = (
     ["universite", "Üniversite", "egitim", "graduation-cap"],
     ["egitim_kurumu", "Eğitim kurumu", "egitim", "presentation"],
     ["kutuphane", "Kütüphane", "egitim", "library"],
+    ["milli_egitim", "Milli eğitim müdürlüğü", "egitim", "landmark"],
     ["ptt", "PTT", "iletisim", "mail"],
   ] as const
-).map(([key, label, group, icon], i) => ({ key, label, group, icon, sort: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 200, 210, 220, 300, 310, 320, 400, 410, 420, 430, 440, 450, 500, 510, 520, 530, 540, 550, 560, 570, 600][i], active: true }));
+).map(([key, label, group, icon], i) => ({ key, label, group, icon, sort: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 200, 210, 220, 300, 310, 320, 400, 410, 420, 430, 440, 450, 500, 510, 520, 530, 540, 550, 560, 570, 575, 600][i], active: true }));
 
 /** Lucide icons of the guide vocabularies (institution and guide place category icon names). */
 const GUIDE_ICONS: Record<string, LucideIcon> = {

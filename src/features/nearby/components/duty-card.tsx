@@ -26,7 +26,7 @@ export type DutyCardProps = {
 /** Pharmacy card for duty lists: name, neighbourhood, address, window, Ara + Yol tarifi. */
 export function DutyCard({ row, distance, windowText, onDuty, demo, className }: DutyCardProps) {
   return (
-    <article className={cn("relative rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]", className)}>
+    <article className={cn("relative rounded-card bg-card p-4", className)}>
       <div className="flex items-start gap-3">
         <KindIcon kind="duty" />
         <div className="min-w-0 flex-1">

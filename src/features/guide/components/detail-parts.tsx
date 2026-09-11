@@ -21,7 +21,7 @@ export function GuideHeroArt({ icon: Icon, gradient = "from-violet-500 via-prima
       <span className="absolute -right-12 -bottom-24 size-72 rounded-full bg-black/10" />
       <Icon className="absolute right-2 bottom-10 size-40 -rotate-12 text-white/10" strokeWidth={1.25} />
       <span className="absolute inset-0 flex items-center justify-center pb-6">
-        <span className="flex size-24 items-center justify-center rounded-[1.75rem] bg-white/15 text-white backdrop-blur-sm">
+        <span className="flex size-24 items-center justify-center rounded-media bg-white/15 text-white backdrop-blur-sm">
           <Icon className="size-12" strokeWidth={1.5} />
         </span>
       </span>

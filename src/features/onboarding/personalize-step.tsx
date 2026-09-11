@@ -174,7 +174,7 @@ function Row({ icon: Icon, title, sub, subTone = "muted", state = "idle", action
       ) : null}
     </>
   );
-  const cls = cn("flex min-h-[4.5rem] w-full items-center gap-3 rounded-[1.375rem] bg-card px-3.5 py-3 text-left", e.className);
+  const cls = cn("flex min-h-[4.5rem] w-full items-center gap-3 rounded-card bg-card px-3.5 py-3 text-left", e.className);
 
   if (!onClick) {
     return (

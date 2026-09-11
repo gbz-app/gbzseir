@@ -9,8 +9,8 @@ function Bone({ className }: { className?: string }) {
 /** Card skeleton: white surface, rounded photo and three text lines (like EventCard). */
 function CardBone() {
   return (
-    <div className="rounded-[1.75rem] bg-card p-2" aria-hidden>
-      <Bone className="aspect-[16/10] w-full rounded-[1.35rem]" />
+    <div className="rounded-media bg-card p-2" aria-hidden>
+      <Bone className="aspect-[16/10] w-full rounded-card" />
       <div className="px-2.5 pt-3 pb-2">
         <Bone className="h-3.5 w-28 rounded-md" />
         <Bone className="mt-2.5 h-5 w-4/5 rounded-md" />

@@ -33,11 +33,11 @@ export function JobHeroBand({ overlay }: { overlay?: React.ReactNode }) {
  */
 export function JobLogoNotch({ company }: { company: BusinessRef | null }) {
   return (
-    <div className="relative -mt-[4.25rem] w-fit rounded-[1.6rem] bg-background p-1.5">
+    <div className="relative -mt-[4.25rem] w-fit rounded-media bg-background p-1.5">
       {company ? (
-        <CompanyLogo name={company.name} logoUrl={company.logo_url} className="size-20 rounded-[1.25rem] bg-card text-2xl" />
+        <CompanyLogo name={company.name} logoUrl={company.logo_url} className="size-20 rounded-card bg-card text-2xl" />
       ) : (
-        <span aria-hidden className="flex size-20 items-center justify-center rounded-[1.25rem] bg-card text-primary">
+        <span aria-hidden className="flex size-20 items-center justify-center rounded-card bg-card text-primary">
           <Briefcase className="size-9" strokeWidth={1.75} />
         </span>
       )}
@@ -244,7 +244,7 @@ export function JobApplyInfo({ isDemo, verified, phone, closed }: { isDemo?: boo
       <ul className="mt-3.5 flex flex-col gap-4">
         <InfoRow icon={PhoneCall} title={closed && !isDemo ? "Başvuru kapandı" : "Nasıl başvurulur?"}>
           {isDemo ? (
-            "Bu bir örnek ilan, başvuru alınmıyor. Gerçek ilanlarda işletmeyi telefonla arayarak başvurursun."
+            "Bu ilan için başvuru şu an kapalı. Diğer iş ilanlarına göz atabilirsin."
           ) : closed ? (
             "Bu ilan artık başvuru almıyor. Diğer iş ilanlarına göz atabilirsin."
           ) : (

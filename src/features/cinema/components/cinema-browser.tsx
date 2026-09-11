@@ -24,7 +24,7 @@ function FilmRow({ entry, tab, now, venueUrl }: { entry: FilmEntry; tab: CinemaT
     <li className="rounded-3xl bg-card p-3">
       <div className="flex gap-3">
         <Link href={href} tabIndex={-1} aria-hidden className="w-[5.5rem] shrink-0 self-start">
-          <FilmPoster url={film.posterUrl} width={255} className="rounded-[1.1rem]" />
+          <FilmPoster url={film.posterUrl} width={255} className="rounded-chip" />
         </Link>
         <div className="min-w-0 flex-1 pt-0.5">
           <Link href={href} className="line-clamp-2 text-base leading-snug font-semibold outline-none hover:underline focus-visible:underline">

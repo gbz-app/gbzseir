@@ -128,14 +128,30 @@ export async function getPharmacyDuties(poiId: string): Promise<PharmacyDuty[]> 
 
 const CATEGORY_ORDER = new Map(PLACE_CATEGORIES.map((c, i) => [c.value, i]));
 
-/** All places (curated first, then by category and name). */
+/**
+ * Categories listed as "gezilecek yer": the built-in place_categories (tarihi, park, tabiat_parki, doga, sahil, muze,
+ * kultur, spor, pazar, mezarlik, avm, ulasim, diger). Utility places stored as kind 'place' under their own categories
+ * (kocaelikart, toplanma_alani, otopark) are left out, so importing them never pushes curated places out of the list.
+ */
+const GEZILECEK_CATEGORIES = PLACE_CATEGORIES.map((c) => c.value);
+/** A place saved without a category (the guide form allows it; the trigger accepts null) shows as "Diğer", so it stays. */
+const GEZILECEK_FILTER = `details->>category.is.null,details->>category.in.(${GEZILECEK_CATEGORIES.join(",")})`;
+const PLACES_LIMIT = 500;
+
+/**
+ * Places to visit (the gezilecek categories above): curated first, then by category and name. The database orders
+ * curated rows first and then by name before the limit, so the cap can only drop the tail, never a curated place.
+ */
 export async function getPlaces(): Promise<PlaceSummary[]> {
   const supabase = createPublicClient(3600, ["nearby", "poi"]);
   const { data, error } = await supabase
     .from("poi")
     .select("id,slug,name,address,lat,lng,details,neighbourhoods(name)")
     .eq("kind", "place")
-    .limit(500);
+    .or(GEZILECEK_FILTER)
+    .order("details->curated", { ascending: false, nullsFirst: false })
+    .order("name", { ascending: true })
+    .limit(PLACES_LIMIT);
   if (error) throw new Error(`places query failed: ${error.message}`);
   const list: PlaceSummary[] = (data ?? []).map((row) => {
     const n = row.neighbourhoods as { name: string } | { name: string }[] | null;

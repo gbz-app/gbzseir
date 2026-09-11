@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Briefcase, CalendarDays, ChevronRight, Newspaper, Store, Tag, Wrench, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Briefcase, CalendarDays, ChevronRight, Newspaper, Stethoscope, Store, Tag, Wrench, type LucideIcon } from "lucide-react";
 import { formatDate } from "@/core/format";
 import { routes, withQuery } from "@/core/routes";
 import { cn } from "@/lib/utils";
@@ -10,17 +10,23 @@ import { VacationBadge } from "@/features/business/components/vacation-badge";
 import { isOnVacation } from "@/features/business/lib/hours";
 import { newsCategoryLabel, toArticleCategory, type NewsCategoryDef } from "@/features/content/articles/meta";
 import { eventWhenShort } from "@/features/events/format";
+import { guideIcon, institutionCategoryMeta } from "@/features/guide/lib/constants";
 import { listingPriceText } from "@/features/listings/format";
 import { KindIcon } from "@/features/nearby/components/kind-icon";
 import { KIND_META, displayStopName, placeCategoryMeta, poiHref, type PlaceCategoryDef } from "@/features/nearby/config";
 import type { SearchShortcut } from "../categories";
-import { SEARCH_GROUP_LABEL, toSearchResults, type SearchGroup, type SearchResults } from "../query";
+import { POI_GROUPS, SEARCH_GROUP_LABEL, poiGroup, toSearchResults, type PoiGroup, type SearchGroup, type SearchPoi, type SearchResults } from "../query";
 
 /** Rows per group in the "all results" view; "Tümünü gör" opens the rest. */
 const PER_GROUP = 4;
 const EMPTY = toSearchResults(null);
 
 const ROW = "flex min-h-16 items-center gap-3 px-4 py-2.5 outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60";
+
+/** Where a row is: the ilçe when the RPC sends it (Kocaeli-wide data), otherwise the mahalle. */
+function area(r: { district_name?: string | null; neighbourhood_name?: string | null }): string | null {
+  return r.district_name || r.neighbourhood_name || null;
+}
 
 function Thumb({ url, icon: Icon }: { url: string | null; icon: LucideIcon }) {
   return (
@@ -71,6 +77,28 @@ function Group({ title, moreHref, onPick, children }: { title: string; moreHref?
   );
 }
 
+/**
+ * One poi row: kind icon (place / institution category icon when known), name, then "type · ilçe". Guide kinds
+ * (kurum, ATM, banka, akaryakıt, şarj) open /kurum/<slug> through poiHref.
+ */
+function PoiRow({ p, placeCategories, onPick }: { p: SearchPoi; placeCategories?: readonly PlaceCategoryDef[]; onPick?: () => void }) {
+  const place = p.kind === "place" ? placeCategoryMeta(p.category, placeCategories) : null;
+  const inst = p.kind === "institution" ? institutionCategoryMeta(p.category) : null;
+  const icon = place?.icon ?? (inst ? (p.category_icon ? guideIcon(p.category_icon, inst.icon) : inst.icon) : undefined);
+  const type = place?.label ?? (inst ? p.category_label || inst.label : KIND_META[p.kind]?.label);
+  return (
+    <li>
+      <Link href={poiHref(p.kind, p.slug)} onClick={onPick} className={ROW}>
+        <KindIcon kind={p.kind} icon={icon} size="sm" className="size-11 rounded-2xl" />
+        <Text
+          title={p.kind === "bus_stop" ? displayStopName(p.name, p.neighbourhood_name) : p.name}
+          sub={[type, area(p) ?? p.address].filter(Boolean).join(" · ")}
+        />
+      </Link>
+    </li>
+  );
+}
+
 export type SearchResultsListProps = {
   q: string;
   /** null: only the shortcuts (results still loading). */
@@ -84,19 +112,29 @@ export type SearchResultsListProps = {
   onPick?: () => void;
 };
 
-/** Grouped search results: shortcuts, işletmeler, hizmetler, yerler, ilanlar, iş ilanları, etkinlikler, haberler. */
+/**
+ * Grouped search results: shortcuts, işletmeler, doktorlar, hizmetler, yerler, resmî kurumlar, bankalar ve ATM'ler,
+ * akaryakıt, şarj istasyonları, ilanlar, iş ilanları, etkinlikler, haberler.
+ */
 export function SearchResultsList({ q, data, focus, shortcuts = [], newsCategories, placeCategories, onPick }: SearchResultsListProps) {
   const d = data ?? EMPTY;
   const classifieds = d.listings.filter((l) => l.type !== "job");
   const jobs = d.listings.filter((l) => l.type === "job");
+  const pois: Record<PoiGroup, SearchPoi[]> = { yerler: [], kurumlar: [], bankalar: [], akaryakit: [], sarj: [] };
+  for (const p of d.pois) pois[poiGroup(p.kind)].push(p);
   const cut = <T,>(rows: T[]): T[] => (focus ? rows : rows.slice(0, PER_GROUP));
   const more = (g: SearchGroup) => (focus ? undefined : groupHref(g, q));
   const show = (g: SearchGroup, n: number) => n > 0 && (!focus || focus === g);
 
   const counts: Record<SearchGroup, number> = {
     isletmeler: d.businesses.length,
+    doktorlar: d.doctors.length,
     hizmetler: d.services.length,
-    yerler: d.pois.length,
+    yerler: pois.yerler.length,
+    kurumlar: pois.kurumlar.length,
+    bankalar: pois.bankalar.length,
+    akaryakit: pois.akaryakit.length,
+    sarj: pois.sarj.length,
     ilanlar: classifieds.length,
     "is-ilanlari": jobs.length,
     etkinlikler: d.events.length,
@@ -133,8 +171,21 @@ export function SearchResultsList({ q, data, focus, shortcuts = [], newsCategori
             <li key={b.id}>
               <Link href={routes.businesses.detail(b.slug)} onClick={onPick} className={ROW}>
                 <Thumb url={b.logo_url} icon={Store} />
-                <Text title={b.name} sub={[b.category_label, b.neighbourhood_name].filter(Boolean).join(" · ")} />
+                <Text title={b.name} sub={[b.category_label, area(b)].filter(Boolean).join(" · ")} />
                 {isOnVacation(b) ? <VacationBadge className="shrink-0" /> : null}
+              </Link>
+            </li>
+          ))}
+        </Group>
+      ) : null}
+
+      {show("doktorlar", counts.doktorlar) ? (
+        <Group title={SEARCH_GROUP_LABEL.doktorlar} moreHref={more("doktorlar")} onPick={onPick}>
+          {cut(d.doctors).map((doc) => (
+            <li key={doc.id}>
+              <Link href={routes.doctors.detail(doc.slug)} onClick={onPick} className={ROW}>
+                <Thumb url={doc.photo_url} icon={Stethoscope} />
+                <Text title={doc.display_name || `${doc.title} ${doc.name}`} sub={[doc.branch_label, doc.clinic_name].filter(Boolean).join(" · ")} />
               </Link>
             </li>
           ))}
@@ -154,24 +205,15 @@ export function SearchResultsList({ q, data, focus, shortcuts = [], newsCategori
         </Group>
       ) : null}
 
-      {show("yerler", counts.yerler) ? (
-        <Group title={SEARCH_GROUP_LABEL.yerler} moreHref={more("yerler")} onPick={onPick}>
-          {cut(d.pois).map((p) => {
-            const place = p.kind === "place" ? placeCategoryMeta(p.category, placeCategories) : null;
-            return (
-              <li key={p.id}>
-                <Link href={poiHref(p.kind, p.slug)} onClick={onPick} className={ROW}>
-                  <KindIcon kind={p.kind} icon={place?.icon} size="sm" className="size-11 rounded-2xl" />
-                  <Text
-                    title={p.kind === "bus_stop" ? displayStopName(p.name, p.neighbourhood_name) : p.name}
-                    sub={[place?.label ?? KIND_META[p.kind]?.label, p.neighbourhood_name ?? p.address].filter(Boolean).join(" · ")}
-                  />
-                </Link>
-              </li>
-            );
-          })}
-        </Group>
-      ) : null}
+      {POI_GROUPS.map((g) =>
+        show(g, counts[g]) ? (
+          <Group key={g} title={SEARCH_GROUP_LABEL[g]} moreHref={more(g)} onPick={onPick}>
+            {cut(pois[g]).map((p) => (
+              <PoiRow key={p.id} p={p} placeCategories={placeCategories} onPick={onPick} />
+            ))}
+          </Group>
+        ) : null,
+      )}
 
       {show("ilanlar", counts.ilanlar) ? (
         <Group title={SEARCH_GROUP_LABEL.ilanlar} moreHref={more("ilanlar")} onPick={onPick}>
@@ -179,7 +221,7 @@ export function SearchResultsList({ q, data, focus, shortcuts = [], newsCategori
             <li key={l.id}>
               <Link href={routes.listings.classified(l.id)} onClick={onPick} className={ROW}>
                 <Thumb url={l.thumb_url} icon={Tag} />
-                <Text title={l.title} sub={[l.category_name, l.neighbourhood_name].filter(Boolean).join(" · ")} />
+                <Text title={l.title} sub={[l.category_name, area(l)].filter(Boolean).join(" · ")} />
                 <span className="shrink-0 text-sm font-semibold tabular-nums">{listingPriceText(l.price_try)}</span>
               </Link>
             </li>
@@ -193,7 +235,7 @@ export function SearchResultsList({ q, data, focus, shortcuts = [], newsCategori
             <li key={l.id}>
               <Link href={routes.listings.job(l.id)} onClick={onPick} className={ROW}>
                 <Thumb url={l.thumb_url} icon={Briefcase} />
-                <Text title={l.title} sub={[l.category_name, l.job_location_label].filter(Boolean).join(" · ")} />
+                <Text title={l.title} sub={[l.category_name, l.job_location_label || l.district_name].filter(Boolean).join(" · ")} />
               </Link>
             </li>
           ))}
@@ -206,7 +248,7 @@ export function SearchResultsList({ q, data, focus, shortcuts = [], newsCategori
             <li key={e.id}>
               <Link href={routes.events.detail(e.slug)} onClick={onPick} className={ROW}>
                 <Thumb url={e.cover_url} icon={CalendarDays} />
-                <Text title={e.title} sub={[eventWhenShort(e.starts_at, e.ends_at), e.venue_name ?? e.neighbourhood_name].filter(Boolean).join(" · ")} />
+                <Text title={e.title} sub={[eventWhenShort(e.starts_at, e.ends_at), e.venue_name ?? area(e)].filter(Boolean).join(" · ")} />
               </Link>
             </li>
           ))}

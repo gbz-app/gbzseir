@@ -52,7 +52,7 @@ export default async function CinemaFilmPage({ params }: Props) {
       <div className="flex flex-col gap-3 px-4 pt-2 pb-8">
         <section className="flex gap-4 rounded-3xl bg-card p-4">
           <div className="w-28 shrink-0">
-            <FilmPoster url={film.posterUrl} width={342} eager className="rounded-[1.1rem]" />
+            <FilmPoster url={film.posterUrl} width={342} eager className="rounded-chip" />
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-xl leading-tight font-bold">{film.title}</h2>

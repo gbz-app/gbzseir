@@ -107,7 +107,13 @@ export function PlaceDialog({
                 hours,
                 fee,
                 curated,
-                photos: photos.map((p) => ({ url: p.url, alt: credits.get(p.url)?.alt ?? name, credit: credits.get(p.url)?.credit ?? null })),
+                // Saved photos have thumbUrl = url here (the action keeps their stored thumb_url); new uploads send theirs.
+                photos: photos.map((p) => ({
+                  url: p.url,
+                  alt: credits.get(p.url)?.alt ?? name,
+                  credit: credits.get(p.url)?.credit ?? null,
+                  thumbUrl: p.thumbUrl && p.thumbUrl !== p.url ? p.thumbUrl : null,
+                })),
               }
             : undefined,
         }),

@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Clock, MapPin, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
+import { parseMediaUrl } from "@/lib/media/kinds";
 import { orderByDefs } from "@/features/business/lib/category-visuals";
 import { PLACE_CATEGORY_DEFS, placeCategoryMeta, type PlaceCategoryDef } from "@/features/nearby/config";
 import { PlaceVisual } from "@/features/nearby/components/place-card";
@@ -47,23 +49,27 @@ export function HomePlaces({ places, categories = PLACE_CATEGORY_DEFS }: { place
       </div>
 
       <ul className="no-scrollbar -mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
-        {big.map((p, i) => {
+        {big.map((p) => {
           const meta = placeCategoryMeta(p.details.category, categories);
+          const photo = p.details.photos[0];
+          // The 1024 px variant first (as PlaceVisual does), and whichever candidate is in our stores gets resized.
+          const candidates = photo ? [photo.thumbUrl, photo.url].filter((u): u is string => !!u) : [];
+          const src = candidates.find((u) => parseMediaUrl(u)) ?? candidates[0];
           return (
             <li key={p.id} className="w-[15.5rem] shrink-0 snap-start">
               <Link
                 href={routes.nearby.place(p.slug)}
-                className="group relative block h-[21rem] overflow-hidden rounded-[1.75rem] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="group relative block h-[21rem] overflow-hidden rounded-media outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               >
-                <PlaceVisual
-                  category={p.details.category}
-                  categories={categories}
-                  photo={p.details.photos[0]}
-                  name={p.name}
-                  sizes="248px"
-                  priority={i === 0}
-                  className="absolute inset-0"
-                />
+                {photo && src ? (
+                  // Our stores (R2, Supabase media) go through the next/image resizer: a 248px card gets a ~750px
+                  // WebP instead of the 1920-2560px original (up to 1.7 MB each). Lazy, async decode, no preload.
+                  <span className="absolute inset-0 overflow-hidden bg-muted">
+                    <Image src={src} alt={photo.alt ?? p.name} fill sizes="248px" unoptimized={!parseMediaUrl(src)} className="object-cover" />
+                  </span>
+                ) : (
+                  <PlaceVisual category={p.details.category} categories={categories} photo={null} name={p.name} className="absolute inset-0" />
+                )}
                 <span className="absolute top-3 right-3 inline-flex h-7 items-center gap-1 rounded-full bg-white/95 px-2.5 text-xs font-semibold text-neutral-900">
                   <meta.icon className="size-3.5" aria-hidden />
                   {meta.label}

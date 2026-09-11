@@ -99,15 +99,16 @@ export function HomeCinema({
 
       {entries.length ? (
         <ul className="no-scrollbar -mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
-          {entries.map((e, i) => {
+          {entries.map((e) => {
             const meta = filmMetaLine(e.film);
             return (
               <li key={e.film.id} className="w-[9.5rem] shrink-0 snap-start">
                 <Link
                   href={routes.cinema.film(e.film.slug)}
-                  className="block h-full rounded-[1.4rem] bg-card p-1.5 outline-none transition-transform focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]"
+                  className="block h-full rounded-media bg-card p-1.5 outline-none transition-transform focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]"
                 >
-                  <FilmPoster url={e.film.posterUrl} width={342} eager={i < 2} className="rounded-[1.05rem]" />
+                  {/* Below the fold: every poster is lazy, so none competes with the first paint. */}
+                  <FilmPoster url={e.film.posterUrl} width={342} className="rounded-card" />
                   <span className="block px-1.5 pt-2 pb-1.5">
                     <span className="line-clamp-2 text-sm leading-snug font-semibold">{e.film.title}</span>
                     {meta ? <span className="mt-0.5 block truncate text-xs text-muted-foreground">{meta}</span> : null}

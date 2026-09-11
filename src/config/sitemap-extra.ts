@@ -23,7 +23,7 @@ export type SitemapExtraSource = () => Promise<MetadataRoute.Sitemap>;
 const MAX_SITEMAP_URLS = 50_000;
 
 const SOURCES: SitemapExtraSource[] = [
-  // Haberler, duyurular, yardım, kaynaklar and /yasal/* (with the live legal_texts published_at); first so the cut never drops them.
+  // Haberler, duyurular, yardım and /yasal/* (with the live legal_texts published_at); first so the cut never drops them.
   contentSitemapEntries,
   serviceSitemapEntries,
   businessSitemapEntries,

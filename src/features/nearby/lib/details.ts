@@ -18,6 +18,14 @@ function str(v: Json | undefined): string | null {
   return null;
 }
 
+const httpUrl = (v: string | null): string | null => (v && /^https?:\/\//.test(v) ? v : null);
+
+/** Pixel size: a positive number (or numeric string), else null. */
+function dim(v: Json | undefined): number | null {
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : NaN;
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+}
+
 function parsePhotos(v: Json | undefined): PlacePhoto[] {
   if (!Array.isArray(v)) return [];
   const out: PlacePhoto[] = [];
@@ -27,17 +35,20 @@ function parsePhotos(v: Json | undefined): PlacePhoto[] {
       const o = p as Record<string, Json | undefined>;
       const url = str(o.url) ?? str(o.src);
       if (!url || !/^https?:\/\//.test(url)) continue;
-      // Guide imports (Wikimedia Commons) carry author, licence and the file page next to the credit line.
+      // Guide imports (Wikimedia Commons) carry author, licence, its link and the file page next to the credit line.
       const author = str(o.author);
       const licence = str(o.licence) ?? str(o.license);
-      const page = str(o.source_page);
       out.push({
         url,
         alt: str(o.alt) ?? str(o.caption),
         credit: str(o.credit) ?? str(o.attribution) ?? ([author, licence].filter(Boolean).join(" · ") || null),
         author,
         licence,
-        sourcePage: page && /^https?:\/\//.test(page) ? page : null,
+        licenceUrl: httpUrl(str(o.licence_url)),
+        sourcePage: httpUrl(str(o.source_page)),
+        thumbUrl: httpUrl(str(o.thumb_url)),
+        width: dim(o.width),
+        height: dim(o.height),
       });
     }
   }

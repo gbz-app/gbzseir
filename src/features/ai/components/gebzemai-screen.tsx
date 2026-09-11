@@ -209,7 +209,7 @@ function ChatGate(props: { initialLimit: AiLimitState | null; initialRemaining: 
         <PageHeader title={<Title />} backHref={routes.home()} />
         <div className="flex-1" />
         <BottomDock inFlow className="sticky bottom-0 z-30">
-          <div className="h-[52px] rounded-[1.75rem] bg-card" />
+          <div className="h-[52px] rounded-card bg-card" />
           <p className="mt-2 text-center text-[11px] leading-snug text-muted-foreground">{PRIVACY}</p>
         </BottomDock>
       </>
@@ -489,7 +489,7 @@ function Chat({ initialLimit, initialRemaining, onInactive }: { initialLimit: Ai
           {!limit && remaining !== null && remaining <= 5 ? (
             <p className="mb-1.5 text-center text-xs text-muted-foreground">{remaining > 0 ? `Bugün ${remaining} soru hakkın kaldı` : "Bugünlük son sorunu sordun"}</p>
           ) : null}
-          <div className="flex items-end gap-2 rounded-[1.75rem] bg-card p-1.5 pl-4 has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring/40">
+          <div className="flex items-end gap-2 rounded-card bg-card p-1.5 pl-4 has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring/40">
             <label htmlFor="gebzemai-input" className="sr-only">
               GebzemAI&apos;ye sor
             </label>

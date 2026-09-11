@@ -46,7 +46,7 @@ export function HoursEditor({ value, onChange, id }: { value: WorkingHours; onCh
                     value={day.open}
                     onChange={(e) => e.target.value && set(key, { open: e.target.value })}
                     aria-label={`${DAY_LABELS[key]} açılış saati`}
-                    className="h-11 w-[6.5rem] rounded-xl border border-input bg-background px-2.5 text-center text-base font-semibold tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                    className="h-11 w-[6.5rem] rounded-card border border-input bg-background px-2.5 text-center text-base font-semibold tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                   />
                   <span className="text-muted-foreground" aria-hidden>
                     –
@@ -57,7 +57,7 @@ export function HoursEditor({ value, onChange, id }: { value: WorkingHours; onCh
                     value={day.close}
                     onChange={(e) => e.target.value && set(key, { close: e.target.value })}
                     aria-label={`${DAY_LABELS[key]} kapanış saati`}
-                    className="h-11 w-[6.5rem] rounded-xl border border-input bg-background px-2.5 text-center text-base font-semibold tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                    className="h-11 w-[6.5rem] rounded-card border border-input bg-background px-2.5 text-center text-base font-semibold tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                   />
                 </div>
               ) : (

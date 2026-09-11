@@ -41,7 +41,7 @@ export function NearbyCard({ item, now, showDistance, selected, demoDuty, onShow
   return (
     <article
       id={`yakin-${item.id}`}
-      className={cn("relative rounded-[1.75rem] bg-card p-4 transition-shadow", selected && "ring-2 ring-primary")}
+      className={cn("relative rounded-card bg-card p-4 transition-shadow", selected && "ring-2 ring-primary")}
     >
       <div className="flex items-start gap-3">
         <KindIcon kind={item.kind === "pharmacy" && onDuty ? "duty" : item.kind} size="sm" />
@@ -50,7 +50,7 @@ export function NearbyCard({ item, now, showDistance, selected, demoDuty, onShow
             <h3 className="min-w-0 text-base leading-snug font-semibold break-words">
               <Link
                 href={item.href}
-                className="rounded-md outline-none after:absolute after:inset-0 after:rounded-[1.75rem] focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="rounded-md outline-none after:absolute after:inset-0 after:rounded-card focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 {item.name}
               </Link>

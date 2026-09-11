@@ -43,6 +43,10 @@ export type GuidePhoto = {
   licenceUrl: string | null;
   /** File page the image comes from (link it next to the credit). */
   sourcePage: string | null;
+  /** 1024 px variant (details.photos[].thumb_url) for list cards; `url` stays the original. */
+  thumbUrl?: string | null;
+  width?: number | null;
+  height?: number | null;
 };
 
 /** One EV socket type with its count (details.sockets). */

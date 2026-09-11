@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Bell, UserRound } from "lucide-react";
+import { Bell, CloudSun, UserRound } from "lucide-react";
 import { routes } from "@/core/routes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth/auth-provider";
@@ -37,6 +37,37 @@ function useGreeting(): string {
   return greeting;
 }
 
+/**
+ * False on the server, during hydration and in the commit that mounts the page; true once the page has painted
+ * (a frame, then a task). Used to mount the weather sheet late: its drawer (vaul) reads window.scrollY while mounting,
+ * and on history.back() that read forced a synchronous style + layout of the whole freshly inserted home page inside
+ * the navigation commit (about 1 s at 4x CPU throttling in a trace, against about 0.15 s when the browser does the
+ * same work in its normal frame).
+ */
+function usePainted(): boolean {
+  const [painted, setPainted] = React.useState(false);
+  React.useEffect(() => {
+    let timer = 0;
+    const frame = window.requestAnimationFrame(() => {
+      timer = window.setTimeout(() => setPainted(true), 0);
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, []);
+  return painted;
+}
+
+/** Same size and look as WeatherButton before its data arrives (icon only), shown until the page has painted. */
+function WeatherPlaceholder() {
+  return (
+    <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-full bg-card text-foreground">
+      <CloudSun className="size-5" strokeWidth={1.75} />
+    </span>
+  );
+}
+
 function NotificationBell() {
   const { count } = useUnreadNotifications();
   const label = count > 0 ? `Bildirimler, ${count} okunmamış` : "Bildirimler";
@@ -68,6 +99,7 @@ function HomeAvatar() {
 export function TopBar() {
   const { user, profile } = useAuth();
   const greeting = useGreeting();
+  const painted = usePainted();
   const profileHref = user ? routes.profile.root() : routes.auth.login(routes.home());
 
   return (
@@ -87,7 +119,7 @@ export function TopBar() {
           </span>
         </Link>
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          <WeatherButton className="shadow-none ring-0" />
+          {painted ? <WeatherButton className="shadow-none ring-0" /> : <WeatherPlaceholder />}
           {user ? (
             <NotificationBell />
           ) : (

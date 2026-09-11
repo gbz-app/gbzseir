@@ -19,7 +19,7 @@ export default function OfflinePage() {
         <span className="font-heading text-lg font-bold tracking-tight">{APP_NAME}</span>
       </header>
       <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
-        <div className="flex size-24 items-center justify-center rounded-[2rem] bg-brand-soft text-primary">
+        <div className="flex size-24 items-center justify-center rounded-media bg-brand-soft text-primary">
           <CloudOff className="size-11" strokeWidth={1.8} aria-hidden />
         </div>
         <h1 className="mt-6 text-2xl font-extrabold">İnternet bağlantın yok</h1>
@@ -28,7 +28,7 @@ export default function OfflinePage() {
         </p>
         <OfflineRetry />
 
-        <div className="mt-10 w-full rounded-2xl bg-card p-4 text-left shadow-soft ring-1 ring-foreground/[0.06]">
+        <div className="mt-10 w-full rounded-card bg-card p-4 text-left">
           <p className="flex items-center gap-2 font-bold">
             <Cross className="size-4 text-highlight" aria-hidden /> Nöbetçi eczane mi arıyorsun?
           </p>

@@ -1,6 +1,6 @@
 /**
  * Search page data shapes and query helpers (pure TS, client and server safe).
- * Result shapes mirror rpc global_search (2026091373_search.sql); missing groups read as empty.
+ * Result shapes mirror rpc global_search (2026091385_search_kinds_audit.sql); missing groups and fields read as empty.
  */
 import type { PoiKind } from "@/features/nearby/types";
 
@@ -9,7 +9,10 @@ export const SEARCH_MAX = 80;
 /** Live search waits this long after the last keystroke. */
 export const SEARCH_DEBOUNCE_MS = 250;
 
-export type SearchListing = {
+/** İlçe of a row (Kocaeli districts, 2026091380); missing on an older RPC. */
+type WithDistrict = { district_id?: string | null; district_name?: string | null };
+
+export type SearchListing = WithDistrict & {
   id: string;
   type: "classified" | "job";
   title: string;
@@ -20,7 +23,7 @@ export type SearchListing = {
   thumb_url: string | null;
 };
 
-export type SearchBusiness = {
+export type SearchBusiness = WithDistrict & {
   id: string;
   slug: string;
   name: string;
@@ -34,18 +37,21 @@ export type SearchBusiness = {
 
 export type SearchService = { id: string; slug: string; name: string; parent_id: string | null; parent_name: string | null };
 
-export type SearchPoi = {
+export type SearchPoi = WithDistrict & {
   id: string;
   kind: PoiKind;
   slug: string;
   name: string;
   address: string | null;
   neighbourhood_name: string | null;
-  /** Place category (kind 'place'). */
+  /** Place category (kind 'place') or institution category key (kind 'institution'). */
   category: string | null;
+  /** institution_categories label and lucide icon name (kind 'institution'). */
+  category_label?: string | null;
+  category_icon?: string | null;
 };
 
-export type SearchEvent = {
+export type SearchEvent = WithDistrict & {
   id: string;
   slug: string;
   title: string;
@@ -58,6 +64,21 @@ export type SearchEvent = {
 
 export type SearchArticle = { id: string; slug: string; title: string; category: string; cover_url: string | null; published_at: string };
 
+/** An active doctor of a public sağlık business (business_staff); the page is /doktor/<slug>. */
+export type SearchDoctor = WithDistrict & {
+  id: string;
+  slug: string;
+  title: string;
+  name: string;
+  /** Title + name ("Uzm. Dr. Ayşe Yılmaz"; the "Diğer" title is left out). */
+  display_name: string;
+  branch: string;
+  branch_label: string | null;
+  photo_url: string | null;
+  clinic_name: string;
+  neighbourhood_name: string | null;
+};
+
 export type SearchResults = {
   listings: SearchListing[];
   businesses: SearchBusiness[];
@@ -65,6 +86,7 @@ export type SearchResults = {
   pois: SearchPoi[];
   events: SearchEvent[];
   articles: SearchArticle[];
+  doctors: SearchDoctor[];
 };
 
 /** A finished search: the query it answers and its results (null = the request failed). */
@@ -82,25 +104,66 @@ export function toSearchResults(data: unknown): SearchResults {
     pois: list<SearchPoi>(d.pois),
     events: list<SearchEvent>(d.events),
     articles: list<SearchArticle>(d.articles),
+    doctors: list<SearchDoctor>(d.doctors),
   };
 }
 
 export function resultCount(r: SearchResults): number {
-  return r.listings.length + r.businesses.length + r.services.length + r.pois.length + r.events.length + r.articles.length;
+  return (
+    r.listings.length + r.businesses.length + r.services.length + r.pois.length + r.events.length + r.articles.length + r.doctors.length
+  );
 }
 
 /** Result groups: ?tur= of /ara ("Tümünü gör" of one group). İlanlar / iş ilanları open their own list pages instead. */
-export type SearchGroup = "hizmetler" | "isletmeler" | "yerler" | "ilanlar" | "is-ilanlari" | "etkinlikler" | "haberler";
+export type SearchGroup =
+  | "hizmetler"
+  | "isletmeler"
+  | "doktorlar"
+  | "yerler"
+  | "kurumlar"
+  | "bankalar"
+  | "akaryakit"
+  | "sarj"
+  | "ilanlar"
+  | "is-ilanlari"
+  | "etkinlikler"
+  | "haberler";
 
 export const SEARCH_GROUP_LABEL: Record<SearchGroup, string> = {
   isletmeler: "İşletmeler",
+  doktorlar: "Doktorlar",
   hizmetler: "Hizmetler",
   yerler: "Yerler",
+  kurumlar: "Resmî kurumlar",
+  bankalar: "Bankalar ve ATM'ler",
+  akaryakit: "Akaryakıt",
+  sarj: "Şarj istasyonları",
   ilanlar: "İlanlar",
   "is-ilanlari": "İş ilanları",
   etkinlikler: "Etkinlikler",
   haberler: "Haberler",
 };
+
+/** The groups poi rows are split into (the RPC returns up to p_limit rows for each). */
+export const POI_GROUPS = ["yerler", "kurumlar", "bankalar", "akaryakit", "sarj"] as const satisfies readonly SearchGroup[];
+export type PoiGroup = (typeof POI_GROUPS)[number];
+
+/** Group of a poi row: the city guide kinds get their own sections, the rest are "Yerler". */
+export function poiGroup(kind: PoiKind): PoiGroup {
+  switch (kind) {
+    case "institution":
+      return "kurumlar";
+    case "atm":
+    case "bank":
+      return "bankalar";
+    case "fuel":
+      return "akaryakit";
+    case "ev_charge":
+      return "sarj";
+    default:
+      return "yerler";
+  }
+}
 
 export function parseSearchGroup(v: unknown): SearchGroup | undefined {
   return typeof v === "string" && v in SEARCH_GROUP_LABEL ? (v as SearchGroup) : undefined;

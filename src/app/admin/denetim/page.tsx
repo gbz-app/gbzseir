@@ -21,6 +21,7 @@ import {
   Smartphone,
   Sparkles,
   Star,
+  Stethoscope,
   Store,
   Tag,
   Ticket,
@@ -55,9 +56,21 @@ const GROUPS = {
   // + Keşfet alt kategorileri, olanaklar, etkinlik kategorileri (2026091351_vocabularies.sql).
   kategoriler: {
     label: "Kategoriler",
-    prefixes: ["service_category.", "listing_category.", "flow.", "subcategory.", "amenity.", "event_category."],
+    prefixes: [
+      "service_category.",
+      "listing_category.",
+      "flow.",
+      "subcategory.",
+      "amenity.",
+      "event_category.",
+      "news_category.",
+      "place_category.",
+      "institution_category.",
+    ],
     icon: FolderTree,
   },
+  // business_staff rows (doctors) and the doctor branch list (2026091385_search_kinds_audit.sql).
+  doktor: { label: "Doktorlar", prefixes: ["doctor.", "doctor_branch."], icon: Stethoscope },
   icerik: { label: "Haber, duyuru, yer", prefixes: ["news_article.", "announcement.", "place."], icon: Newspaper },
   yasal: { label: "Yasal metinler", prefixes: ["legal_text."], icon: Scale },
   nobet: { label: "Nöbetçi eczane", prefixes: ["duty."], icon: Pill },
@@ -118,6 +131,11 @@ const ENTITY_LABELS: Record<string, string> = {
   subcategory: "Keşfet alt kategorisi",
   amenity: "Olanak",
   event_category: "Etkinlik kategorisi",
+  news_category: "Haber kategorisi",
+  place_category: "Yer kategorisi",
+  institution_category: "Kurum kategorisi",
+  doctor: "Doktor",
+  doctor_branch: "Doktor branşı",
 };
 
 const DETAIL_LABELS: Record<string, string> = {

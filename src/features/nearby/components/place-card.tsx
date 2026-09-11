@@ -27,7 +27,10 @@ export function isOptimizable(url: string): boolean {
   }
 }
 
-/** Photo, or a category gradient with a large icon when the place has no photo. Server-safe. */
+/**
+ * Photo, or a category gradient with a large icon when the place has no photo. Server-safe. Every user is a list or rail
+ * card, so it shows the photo's 1024 px variant (thumbUrl) when there is one instead of the 2560 px original.
+ */
 export function PlaceVisual({
   category,
   categories,
@@ -50,15 +53,16 @@ export function PlaceVisual({
   const meta = placeCategoryMeta(category, categories);
   const Icon = meta.icon;
   if (photo) {
+    const src = photo.thumbUrl || photo.url;
     return (
       <div className={cn("relative overflow-hidden bg-muted", className)}>
         <Image
-          src={photo.url}
+          src={src}
           alt={photo.alt ?? name}
           fill
           sizes={sizes}
           priority={priority}
-          unoptimized={!isOptimizable(photo.url)}
+          unoptimized={!isOptimizable(src)}
           className="object-cover"
         />
       </div>

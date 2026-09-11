@@ -16,7 +16,8 @@ import { GuidePhoto } from "./guide-photo";
 
 const ALL = "tumu";
 const PAGE_SIZE = 24;
-const TILE_MEDIA = "aspect-[4/3] w-full rounded-[1.15rem]";
+/** Photo inside the card's p-1.5 pad: chip radius (card 16 px minus the 6 px pad). */
+const TILE_MEDIA = "aspect-[4/3] w-full rounded-chip";
 
 /** Photo card of a place: photo (or category art), category, name and district. White surface, no shadow or ring. */
 function PlaceTile({
@@ -36,11 +37,11 @@ function PlaceTile({
   return (
     <Link
       href={routes.nearby.place(place.slug)}
-      className="group flex h-full flex-col rounded-3xl bg-card p-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="group flex h-full flex-col rounded-card bg-card p-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       {photo ? (
-        // alt="": the place name is already the link text.
-        <GuidePhoto src={photo.url} alt="" sizes="(max-width: 672px) 50vw, 224px" priority={priority} className={TILE_MEDIA} />
+        // alt="": the place name is already the link text. The 1024 px variant when there is one, not the original.
+        <GuidePhoto src={photo.thumbUrl || photo.url} alt="" sizes="(max-width: 672px) 50vw, 224px" priority={priority} className={TILE_MEDIA} />
       ) : (
         <PlaceVisual category={place.details.category} categories={categories} name={place.name} className={TILE_MEDIA} iconClassName="size-10" />
       )}

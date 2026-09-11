@@ -35,13 +35,14 @@ const CSP_ENFORCED = "object-src 'none'; base-uri 'self'; frame-ancestors 'self'
  * - Maps: Google Maps JavaScript API only (no OpenStreetMap / OpenFreeMap tiles since 2026-09-11): scripts, tiles and
  *   fonts from *.googleapis.com / *.gstatic.com, some requests to *.google.com. Google's CSP guide also lists
  *   'unsafe-eval' for a few map features: decide on it (security trade-off) before this policy is enforced.
+ * - Cinema posters (img-src) from the Marsgate CDN, cdn-web.marsgate.tr.
  * - Cloudflare Turnstile (script + iframe), Open-Meteo, Vercel preview toolbar (vercel.live).
  */
 const CSP_REPORT_ONLY = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' blob: https://challenges.cloudflare.com https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com https://vercel.live",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  `img-src 'self' data: blob: ${supabaseOrigin} ${mediaSources} https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://*.google.com`,
+  `img-src 'self' data: blob: ${supabaseOrigin} ${mediaSources} https://cdn-web.marsgate.tr https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://*.google.com`,
   "font-src 'self' data: https://fonts.gstatic.com",
   `connect-src 'self' ${supabaseOrigin} wss://${supabaseHost} https://*.r2.cloudflarestorage.com https://api.open-meteo.com https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com https://*.google.com https://challenges.cloudflare.com https://vercel.live`,
   "worker-src 'self' blob:",

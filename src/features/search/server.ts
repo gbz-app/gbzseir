@@ -65,7 +65,7 @@ export async function getPopularPlaces(limit = 10): Promise<PopularPlace[]> {
       name: p.name,
       category: p.details.category,
       label: null,
-      imageUrl: p.details.photos[0]?.url ?? null,
+      imageUrl: p.details.photos[0]?.thumbUrl || p.details.photos[0]?.url || null,
       neighbourhoodName: p.neighbourhoodName,
     }));
   } catch {

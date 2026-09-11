@@ -53,10 +53,10 @@ export function EventCard({
   const badge = dateBadge(event.starts_at);
   const where = eventPlaceLine(event);
   const price = event.is_free ? "Ücretsiz" : event.price_try != null ? eventPriceLabel(event) : null;
-  const cls = cn("group block h-full rounded-[1.75rem] bg-card p-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50", className);
+  const cls = cn("group block h-full rounded-media bg-card p-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50", className);
   const body = (
     <>
-      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[1.35rem] bg-muted">
+      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-card bg-muted">
         {event.cover_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

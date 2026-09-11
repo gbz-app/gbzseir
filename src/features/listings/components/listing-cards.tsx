@@ -79,7 +79,7 @@ export function ClassifiedCard({
         href={routes.listings.classified(item.id)}
         className="group flex h-full flex-col rounded-3xl bg-card p-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
-        <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-[1.1rem] bg-muted">
+        <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-chip bg-muted">
           {item.cover ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -128,7 +128,7 @@ export function ClassifiedRailCard({ item }: { item: ListingCardData }) {
         href={routes.listings.classified(item.id)}
         className="group flex h-full flex-col rounded-3xl bg-card p-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
-        <div className="relative aspect-square overflow-hidden rounded-[1.1rem] bg-muted">
+        <div className="relative aspect-square overflow-hidden rounded-chip bg-muted">
           {item.cover ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={item.cover.thumbUrl ?? item.cover.url} alt="" loading="lazy" decoding="async" className="size-full object-cover" />

@@ -337,19 +337,19 @@ export function PersonalizeArt() {
       <M idle="breathe" className="absolute top-1/2 left-1/2 -mt-16 -ml-16 size-32 rounded-full bg-primary/[0.08]" />
       <div className="relative flex items-center">
         <M enter="pop" d={140} idle="float" i={900} style={vars({ "--ob-fy": "-4px" })}>
-          <span className="flex size-14 -rotate-6 items-center justify-center rounded-[1.1rem] bg-card text-primary">
+          <span className="flex size-14 -rotate-6 items-center justify-center rounded-card bg-card text-primary">
             <MapPin className="size-6" strokeWidth={2} aria-hidden />
           </span>
         </M>
         <M enter="pop" d={40} className="relative z-10 -mx-2">
-          <span className="flex size-[4.5rem] items-center justify-center rounded-[1.4rem] bg-primary text-primary-foreground">
+          <span className="flex size-[4.5rem] items-center justify-center rounded-media bg-primary text-primary-foreground">
             <M idle="ring" i={800} className="origin-[50%_12%]">
               <BellRing className="size-8" strokeWidth={2} aria-hidden />
             </M>
           </span>
         </M>
         <M enter="pop" d={220} idle="float" i={1500} style={vars({ "--ob-fy": "-4px" })}>
-          <span className="flex size-14 rotate-6 items-center justify-center rounded-[1.1rem] bg-card text-primary">
+          <span className="flex size-14 rotate-6 items-center justify-center rounded-card bg-card text-primary">
             <LocateFixed className="size-6" strokeWidth={2} aria-hidden />
           </span>
         </M>

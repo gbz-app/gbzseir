@@ -66,7 +66,7 @@ export function PlacesBrowser({ places, categories = PLACE_CATEGORY_DEFS }: { pl
             <h2 id="diger-yerler" className="mb-2.5 text-lg font-bold">
               {featured.length > 0 ? "Diğer yerler" : "Yerler"}
             </h2>
-            <ul className="divide-y overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]">
+            <ul className="divide-y overflow-hidden rounded-card bg-card">
               {others.map((p) => (
                 <li key={p.id}>
                   <PlaceRow place={p} categories={categories} />

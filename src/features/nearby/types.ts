@@ -120,14 +120,21 @@ export type PoiDetail = {
   updated_at: string;
 };
 
-/** A place photo; guide imports (Wikimedia Commons) also carry author, licence and the file page for the credit. */
+/**
+ * A place photo; guide imports (Wikimedia Commons) also carry author, licence, licence link and the file page for the
+ * credit. `thumbUrl`: the 1024 px variant (details.photos[].thumb_url) for list and rail cards; `url` is the original.
+ */
 export type PlacePhoto = {
   url: string;
   alt: string | null;
   credit: string | null;
   author?: string | null;
   licence?: string | null;
+  licenceUrl?: string | null;
   sourcePage?: string | null;
+  thumbUrl?: string | null;
+  width?: number | null;
+  height?: number | null;
 };
 
 export type PlaceDetails = {

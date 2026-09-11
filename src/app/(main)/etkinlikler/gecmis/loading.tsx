@@ -21,8 +21,8 @@ export default function Loading() {
         <Bone className="mt-2 h-4 w-48 rounded-md" />
       </div>
       <Bone className="h-4 w-20 rounded-md" />
-      <Bone className="aspect-[5/4] max-h-[20.8rem] w-full rounded-[1.75rem]" />
-      <Bone className="aspect-[5/4] max-h-[20.8rem] w-full rounded-[1.75rem]" />
+      <Bone className="aspect-[5/4] max-h-[20.8rem] w-full rounded-media" />
+      <Bone className="aspect-[5/4] max-h-[20.8rem] w-full rounded-media" />
       <p role="status" className="sr-only">
         Yükleniyor…
       </p>

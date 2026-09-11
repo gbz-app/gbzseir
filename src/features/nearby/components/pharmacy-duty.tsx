@@ -43,7 +43,7 @@ export function PharmacyDutySchedule({ duties, serverNow, mode }: { duties: Phar
         <p className="rounded-2xl bg-muted/70 px-4 py-3 text-sm text-muted-foreground">Önümüzdeki günlerde kayıtlı nöbeti görünmüyor.</p>
       ) : (
         <>
-          <ul className="divide-y overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]">
+          <ul className="divide-y overflow-hidden rounded-card bg-card">
             {upcoming.map((d) => {
               const active = isDutyActive(d.duty_start, d.duty_end, now);
               return (

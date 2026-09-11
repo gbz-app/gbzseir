@@ -13,8 +13,8 @@ export default function Loading() {
         <Skeleton className="h-9 w-28 shrink-0 rounded-full" />
         <Skeleton className="h-9 w-28 shrink-0 rounded-full" />
       </div>
-      <Skeleton className="aspect-[5/4] max-h-[20.8rem] w-full rounded-[1.75rem]" />
-      <Skeleton className="aspect-[5/4] max-h-[20.8rem] w-full rounded-[1.75rem]" />
+      <Skeleton className="aspect-[5/4] max-h-[20.8rem] w-full rounded-media" />
+      <Skeleton className="aspect-[5/4] max-h-[20.8rem] w-full rounded-media" />
     </div>
   );
 }

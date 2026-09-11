@@ -57,7 +57,7 @@ export function RoomList({ rooms, businessId, businessName, phone, amenities }: 
       </ul>
 
       <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent className="mx-auto max-w-2xl border-0 bg-background data-[vaul-drawer-direction=bottom]:max-h-[92dvh] data-[vaul-drawer-direction=bottom]:rounded-t-[1.75rem]">
+        <DrawerContent className="mx-auto max-w-2xl border-0 bg-background data-[vaul-drawer-direction=bottom]:max-h-[92dvh] data-[vaul-drawer-direction=bottom]:rounded-t-card">
           {room ? <RoomDetail key={room.id} room={room} businessId={businessId} businessName={businessName} phone={phone} amenities={amenities} /> : null}
         </DrawerContent>
       </Drawer>
