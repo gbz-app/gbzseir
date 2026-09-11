@@ -9,6 +9,9 @@ import { SITE_URL } from "./site";
 
 export const IS_ADMIN_SITE = process.env.NEXT_PUBLIC_APP_MODE === "admin";
 
+/** Origin of the separate admin site. The public app forwards /admin there. */
+export const ADMIN_SITE_URL = (process.env.NEXT_PUBLIC_ADMIN_SITE_URL || "https://gbzsehir-admin.vercel.app").replace(/\/+$/, "");
+
 /** URL of a public app page, usable from both deployments (absolute on the admin site). */
 export function publicUrl(path: string): string {
   return IS_ADMIN_SITE ? `${SITE_URL}${path}` : path;
