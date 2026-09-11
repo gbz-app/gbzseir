@@ -2,9 +2,8 @@
  * Safe parsers for poi.details (jsonb). Unknown shapes never throw.
  */
 import type { Json } from "@/lib/database.types";
-import type { PlaceCategory, PlaceDetails, PlacePhoto, StopDetails } from "../types";
-
-const CATEGORIES: PlaceCategory[] = ["tarihi", "park", "doga", "muze", "avm", "diger"];
+import { CATEGORY_KEY_RE } from "@/features/business/lib/category-visuals";
+import type { PlaceDetails, PlacePhoto, StopDetails } from "../types";
 
 function obj(details: Json | null | undefined): Record<string, Json | undefined> {
   return details && typeof details === "object" && !Array.isArray(details) ? (details as Record<string, Json | undefined>) : {};
@@ -37,7 +36,8 @@ export function parsePlaceDetails(details: Json | null | undefined): PlaceDetail
   const d = obj(details);
   const cat = str(d.category);
   return {
-    category: CATEGORIES.includes(cat as PlaceCategory) ? (cat as PlaceCategory) : "diger",
+    // Any well-formed key, admin-added ones too (the poi_place_category trigger checks it exists); "diger" otherwise.
+    category: cat && CATEGORY_KEY_RE.test(cat) ? cat : "diger",
     description: str(d.description),
     curated: d.curated === true,
     photos: parsePhotos(d.photos),

@@ -13,7 +13,14 @@ export type NearbyFilter = "nobetci" | "eczane" | "cami" | "durak" | "taksi" | "
 /** Visual kind of a map pin / list icon. */
 export type MarkerKind = "duty" | "pharmacy" | "mosque" | "bus_stop" | "taxi" | "atm" | "place" | "business";
 
-export type PlaceCategory = "tarihi" | "park" | "doga" | "muze" | "avm" | "diger";
+/** Built-in gezilecek yer categories: seed and fallback of public.place_categories. */
+export type BuiltinPlaceCategory = "tarihi" | "park" | "doga" | "muze" | "avm" | "diger";
+
+/**
+ * A place_categories key (admin-managed, 2026091363; format CATEGORY_KEY_RE). placeCategoryMeta shows a key the
+ * vocabulary does not know as "Diğer".
+ */
+export type PlaceCategory = string;
 
 /** Row of rpc nearby_pois. */
 export type PoiRow = {

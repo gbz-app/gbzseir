@@ -3,6 +3,7 @@ import { Newspaper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SectionHeader } from "@/components/shared/section-header";
 import { routes } from "@/core/routes";
+import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { getNews } from "./news/get-news";
 import { NewsRow } from "./news/news-ui";
 import { getActiveAnnouncements } from "./announcements/get-announcements";
@@ -13,7 +14,8 @@ import { AnnouncementsStripClient } from "./announcements/announcements-strip";
  * Shares the cached feed data with /haberler. Shows a small note instead of failing when feeds are down.
  */
 export async function LatestNewsList({ limit = 4, className }: { limit?: number; className?: string }) {
-  const { items } = await getNews();
+  // Admin labels of the news categories (cached; built-in labels when they cannot be read).
+  const [{ items }, { newsCategories }] = await Promise.all([getNews(), getVocabularies()]);
   const top = items.slice(0, Math.min(5, Math.max(3, limit)));
 
   return (
@@ -23,7 +25,7 @@ export async function LatestNewsList({ limit = 4, className }: { limit?: number;
         <ul className="mt-2 divide-y rounded-2xl bg-card px-4 shadow-soft ring-1 ring-foreground/[0.06]">
           {top.map((item) => (
             <li key={item.id}>
-              <NewsRow item={item} compact />
+              <NewsRow item={item} categories={newsCategories} compact />
             </li>
           ))}
         </ul>

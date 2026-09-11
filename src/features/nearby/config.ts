@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { routes, withQuery } from "@/core/routes";
 import { categoryIcon, gradientFor, type CategoryDef } from "@/features/business/lib/category-visuals";
-import type { MarkerKind, NearbyFilter, PlaceCategory, PoiKind } from "./types";
+import type { BuiltinPlaceCategory, MarkerKind, NearbyFilter, PlaceCategory, PoiKind } from "./types";
 
 /** Kocaeli Eczacı Odası: official source for real duty lists. */
 export const ECZACI_ODASI_URL = "https://www.kocaelieo.org.tr";
@@ -157,7 +157,7 @@ export const PLACE_CATEGORIES: PlaceCategoryMeta[] = [
   { value: "diger", label: "Diğer", icon: Sparkles, gradient: "from-sky-500 via-blue-500 to-indigo-600" },
 ];
 
-const PLACE_ICON_NAMES: Record<PlaceCategory, string> = {
+const PLACE_ICON_NAMES: Record<BuiltinPlaceCategory, string> = {
   tarihi: "castle",
   park: "trees",
   doga: "mountain",
@@ -173,7 +173,7 @@ export type PlaceCategoryDef = CategoryDef;
 export const PLACE_CATEGORY_DEFS: readonly PlaceCategoryDef[] = PLACE_CATEGORIES.map((c) => ({
   key: c.value,
   label: c.label,
-  icon: PLACE_ICON_NAMES[c.value as PlaceCategory] ?? null,
+  icon: PLACE_ICON_NAMES[c.value as BuiltinPlaceCategory] ?? null,
   active: true,
 }));
 
@@ -182,9 +182,11 @@ const PLACE_GRADIENTS = PLACE_CATEGORIES.map((c) => c.gradient);
 
 /**
  * Label, icon and gradient of a place category. With `categories` (getVocabularies().placeCategories) the admin's label
- * and icon win and admin-added keys resolve too; keys nobody knows show as "Diğer".
+ * and icon win and admin-added keys resolve too (icon: the admin's, else Diğer's; gradient: a stable palette pick).
+ * Keys nobody knows (e.g. the vocabulary could not be read) show as "Diğer": `value` is then "diger", so lists can
+ * group by it.
  */
-export function placeCategoryMeta(c: PlaceCategory | string | null | undefined, categories: readonly PlaceCategoryDef[] = PLACE_CATEGORY_DEFS): PlaceCategoryMeta {
+export function placeCategoryMeta(c: PlaceCategory | null | undefined, categories: readonly PlaceCategoryDef[] = PLACE_CATEGORY_DEFS): PlaceCategoryMeta {
   const key = c && (categories.some((x) => x.key === c) || PLACE_CATEGORIES.some((x) => x.value === c)) ? c : PLACE_FALLBACK.value;
   const builtin = PLACE_CATEGORIES.find((x) => x.value === key);
   const def = categories.find((x) => x.key === key);

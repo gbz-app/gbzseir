@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { PUBLIC_STATIC_ROUTES } from "@/core/routes";
 import { sitemapEntries as businessSitemapEntries } from "@/features/business/sitemap";
 import { articleSitemapEntries } from "@/features/content/articles/sitemap";
+import { sitemapEntries as contentSitemapEntries } from "@/features/content/sitemap";
 import { eventSitemapEntries } from "@/features/events/sitemap";
 import { listingSitemapEntries } from "@/features/listings/sitemap";
 import { poiSitemapEntries } from "@/features/nearby/sitemap";
@@ -21,6 +22,8 @@ export type SitemapExtraSource = () => Promise<MetadataRoute.Sitemap>;
 const MAX_SITEMAP_URLS = 50_000;
 
 const SOURCES: SitemapExtraSource[] = [
+  // Haberler, duyurular, yardım, kaynaklar and /yasal/* (with the live legal_texts published_at); first so the cut never drops them.
+  contentSitemapEntries,
   serviceSitemapEntries,
   businessSitemapEntries,
   poiSitemapEntries,

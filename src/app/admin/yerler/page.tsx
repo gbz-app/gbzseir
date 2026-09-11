@@ -10,12 +10,13 @@ import { Button } from "@/components/ui/button";
 import { formatPhoneTR, formatRelativeTime } from "@/core/format";
 import { routes, withQuery } from "@/core/routes";
 import { publicUrl } from "@/config/app-mode";
+import { DEFAULT_VOCABULARIES, loadVocabularies } from "@/features/business/lib/vocabularies";
 import { KindIcon } from "@/features/nearby/components/kind-icon";
 import { parsePlaceDetails } from "@/features/nearby/lib/details";
 import type { PoiKind } from "@/features/nearby/types";
 import { AdminThumb, EmptyCard, FilterTabs, SearchBox } from "@/features/admin/components/admin-ui";
 import { PlaceDialog, type PlaceValue } from "@/features/admin/components/place-dialog";
-import { PLACE_CATEGORIES, POI_SOURCES } from "@/features/admin/lib/labels";
+import { POI_SOURCES } from "@/features/admin/lib/labels";
 import { POI_KIND_META, POI_KIND_VALUES, poiKindFromParam, poiKindParam, poiPublicPath } from "@/features/admin/lib/poi-kinds";
 import { one, oneOf, searchTerm } from "@/features/admin/lib/params";
 
@@ -79,10 +80,14 @@ export default async function AdminPlacesPage({ searchParams }: Props) {
     .order("name");
   if (ref) query = UUID_RE.test(ref) ? query.eq("id", ref) : query.eq("slug", ref);
   else if (q) query = query.ilike("name", `%${q}%`);
-  const [{ data, error }, ...kindCounts] = await Promise.all([
+  const [{ data, error }, vocab, ...kindCounts] = await Promise.all([
     query.limit(2000),
+    // Fresh read (the admin site's own cache is not expired by revalidatePublic): admin-added categories show at once.
+    loadVocabularies(supabase).catch(() => DEFAULT_VOCABULARIES),
     ...POI_KIND_VALUES.map((k) => supabase.from("poi").select("id", { count: "exact", head: true }).eq("kind", k)),
   ]);
+  const categories = vocab.placeCategories;
+  const categoryLabel = (key: string) => categories.find((c) => c.key === key)?.label ?? key;
 
   const all: Item[] = (data ?? []).map((p) => {
     const d = parsePlaceDetails(p.details);
@@ -123,6 +128,7 @@ export default async function AdminPlacesPage({ searchParams }: Props) {
           <PlaceDialog
             key={kind}
             kind={kind}
+            categories={categories}
             trigger={
               <Button>
                 <Plus /> Yeni yer
@@ -203,7 +209,7 @@ export default async function AdminPlacesPage({ searchParams }: Props) {
                       </p>
                       <p className="text-xs break-words text-muted-foreground">
                         {isPlace
-                          ? `${PLACE_CATEGORIES[p.category] ?? p.category} · ${p.photos.length} fotoğraf`
+                          ? `${categoryLabel(p.category)} · ${p.photos.length} fotoğraf`
                           : `${p.phone ? formatPhoneTR(p.phone) : "Telefon yok"} · ${p.address ?? "Adres yok"}`}{" "}
                         · {POI_SOURCES[p.source] ?? p.source} · {formatRelativeTime(p.updated_at)}
                       </p>
@@ -222,6 +228,7 @@ export default async function AdminPlacesPage({ searchParams }: Props) {
                     <PlaceDialog
                       kind={kind}
                       value={p}
+                      categories={categories}
                       defaultOpen={!!ref && rows.length === 1}
                       trigger={
                         <Button variant="ghost" size="icon" aria-label={`${p.name} düzenle`}>

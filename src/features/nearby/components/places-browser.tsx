@@ -17,10 +17,12 @@ type CategoryFilter = string;
 /** D6: header with category chips (admin order, labels, icons), large cards for curated places, compact rows for the rest. */
 export function PlacesBrowser({ places, categories = PLACE_CATEGORY_DEFS }: { places: PlaceSummary[]; categories?: readonly PlaceCategoryDef[] }) {
   const [cat, setCat] = React.useState<CategoryFilter>("tumu");
+  // Resolved key: one the vocabulary does not know (it could not be read) groups under "diger", never a second "Diğer" chip.
+  const keyOf = React.useCallback((p: PlaceSummary) => placeCategoryMeta(p.details.category, categories).value, [categories]);
 
   const options = React.useMemo<ChipOption<CategoryFilter>[]>(() => {
     const counts = new Map<string, number>();
-    for (const p of places) counts.set(p.details.category, (counts.get(p.details.category) ?? 0) + 1);
+    for (const p of places) counts.set(keyOf(p), (counts.get(keyOf(p)) ?? 0) + 1);
     return [
       { value: "tumu", label: "Tümü", count: places.length },
       ...orderByDefs(counts.keys(), categories).map((key) => {
@@ -28,9 +30,9 @@ export function PlacesBrowser({ places, categories = PLACE_CATEGORY_DEFS }: { pl
         return { value: key, label: meta.label, icon: meta.icon, count: counts.get(key) };
       }),
     ];
-  }, [places, categories]);
+  }, [places, categories, keyOf]);
 
-  const filtered = cat === "tumu" ? places : places.filter((p) => p.details.category === cat);
+  const filtered = cat === "tumu" ? places : places.filter((p) => keyOf(p) === cat);
   const featured = filtered.filter((p) => p.details.curated);
   const others = filtered.filter((p) => !p.details.curated);
 
@@ -52,7 +54,7 @@ export function PlacesBrowser({ places, categories = PLACE_CATEGORY_DEFS }: { pl
             <ul className="grid gap-4 sm:grid-cols-2">
               {featured.map((p, i) => (
                 <li key={p.id}>
-                  <PlaceCard place={p} priority={i === 0} />
+                  <PlaceCard place={p} categories={categories} priority={i === 0} />
                 </li>
               ))}
             </ul>
@@ -67,7 +69,7 @@ export function PlacesBrowser({ places, categories = PLACE_CATEGORY_DEFS }: { pl
             <ul className="divide-y overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]">
               {others.map((p) => (
                 <li key={p.id}>
-                  <PlaceRow place={p} />
+                  <PlaceRow place={p} categories={categories} />
                 </li>
               ))}
             </ul>

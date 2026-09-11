@@ -4,6 +4,7 @@ import { Clock, MapPin, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { CITY } from "@/config/site";
+import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { PageHeader } from "@/components/shared/page-header";
 import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
@@ -44,11 +45,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /** D7 - Gezilecek yer detay. */
 export default async function PlacePage({ params }: Props) {
   const { slug } = await params;
-  const poi = await getPoi("place", slug);
+  const [poi, { placeCategories }] = await Promise.all([getPoi("place", slug), getVocabularies()]);
   if (!poi) notFound();
 
   const details = parsePlaceDetails(poi.details);
-  const category = placeCategoryMeta(details.category);
+  const category = placeCategoryMeta(details.category, placeCategories);
   const hasPoint = typeof poi.lat === "number" && typeof poi.lng === "number";
   const nearby = hasPoint ? await getNearbyPois({ kind: "place", lat: poi.lat as number, lng: poi.lng as number, excludeId: poi.id, radiusM: 10000 }) : [];
   const path = routes.nearby.place(poi.slug);

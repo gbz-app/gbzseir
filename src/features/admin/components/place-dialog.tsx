@@ -12,9 +12,9 @@ import { ImageUploader, type UploadedImage } from "@/components/shared/image-upl
 import { formatPhoneTR } from "@/core/format";
 import type { LatLng } from "@/core/geo";
 import { LocationPicker } from "@/features/business/components/editor/location-picker";
+import { pickerDefs, type CategoryDef } from "@/features/business/lib/category-visuals";
 import type { PoiKind } from "@/features/nearby/types";
 import { deletePlaceAction, savePlaceAction } from "../actions/places";
-import { PLACE_CATEGORIES } from "../lib/labels";
 import { POI_KIND_META, poiDeletable } from "../lib/poi-kinds";
 import { ConfirmDialog } from "./confirm-dialog";
 import { useAdminAction } from "./use-admin-action";
@@ -40,6 +40,7 @@ export type PlaceValue = {
 };
 
 const SELECT = "h-10 w-full rounded-md border bg-background px-3 text-sm";
+const DEFAULT_CATEGORY = "tarihi";
 
 /**
  * Add / edit a poi of any kind: name, phone, address, map location and hidden. Gezilecek yerler also get texts,
@@ -48,16 +49,21 @@ const SELECT = "h-10 w-full rounded-md border bg-background px-3 text-sm";
 export function PlaceDialog({
   kind,
   value,
+  categories,
   trigger,
   defaultOpen = false,
 }: {
   kind: PoiKind;
   value?: PlaceValue;
+  /** place_categories in admin order (loadVocabularies): the picker lists the active ones plus the place's own. */
+  categories: readonly CategoryDef[];
   trigger: React.ReactElement;
   /** Open on mount (deep link from a support message). */
   defaultOpen?: boolean;
 }) {
   const isPlace = kind === "place";
+  const options = pickerDefs(categories, isPlace ? value?.category : null);
+  const fallbackCategory = options.some((c) => c.key === DEFAULT_CATEGORY) ? DEFAULT_CATEGORY : (options[0]?.key ?? "diger");
   const synced = value?.source === "osm" || value?.source === "kbb";
   const meta = POI_KIND_META[kind];
   const { pending, run } = useAdminAction();
@@ -65,7 +71,7 @@ export function PlaceDialog({
   const [name, setName] = React.useState(value?.name ?? "");
   const [phone, setPhone] = React.useState(value?.phone ? formatPhoneTR(value.phone) : "");
   const [address, setAddress] = React.useState(value?.address ?? "");
-  const [category, setCategory] = React.useState(value?.category ?? "tarihi");
+  const [category, setCategory] = React.useState(value?.category ?? fallbackCategory);
   const [description, setDescription] = React.useState(value?.description ?? "");
   const [hours, setHours] = React.useState(value?.hours ?? "");
   const [fee, setFee] = React.useState(value?.fee ?? "");
@@ -94,7 +100,7 @@ export function PlaceDialog({
           lng: location?.lng ?? null,
           place: isPlace
             ? {
-                category: category as "tarihi",
+                category,
                 description,
                 hours,
                 fee,
@@ -142,9 +148,9 @@ export function PlaceDialog({
                   Kategori
                 </Label>
                 <select id={ids.cat} value={category} onChange={(e) => setCategory(e.target.value)} className={SELECT}>
-                  {Object.entries(PLACE_CATEGORIES).map(([k, l]) => (
-                    <option key={k} value={k}>
-                      {l}
+                  {options.map((c) => (
+                    <option key={c.key} value={c.key}>
+                      {c.active ? c.label : `${c.label} (pasif)`}
                     </option>
                   ))}
                 </select>

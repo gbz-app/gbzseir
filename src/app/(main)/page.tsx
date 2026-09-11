@@ -5,6 +5,7 @@ import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JsonLd } from "@/components/seo/json-ld";
+import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { VERTICAL_INFO, type Vertical } from "@/features/business/lib/verticals";
 import { listPublishedArticles } from "@/features/content/articles/queries";
 import { getNews } from "@/features/content/news/get-news";
@@ -96,12 +97,12 @@ async function NewsSection() {
 }
 
 async function PlacesSection() {
-  const places = await getPlaces().catch(() => []);
+  const [places, { placeCategories }] = await Promise.all([getPlaces().catch(() => []), getVocabularies()]);
   if (!places.length) return null;
   return (
     <section aria-labelledby="gezilecek">
       <SectionHeader id="gezilecek" title="Gezilecek Yerler" href={routes.nearby.places()} />
-      <HomePlaces places={places.slice(0, 20)} />
+      <HomePlaces places={places.slice(0, 20)} categories={placeCategories} />
     </section>
   );
 }

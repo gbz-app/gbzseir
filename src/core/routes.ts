@@ -203,7 +203,10 @@ export const routes = {
   },
 } as const;
 
-/** Public, indexable static routes (used by sitemap.ts). */
+/**
+ * Public, indexable static routes (used by sitemap.ts). Haberler, duyurular, yardım, kaynaklar and /yasal/* come from
+ * the content module's sitemap source (src/features/content/sitemap.ts, real lastModified dates) instead.
+ */
 export const PUBLIC_STATIC_ROUTES: Array<{ path: string; priority: number; changeFrequency: "hourly" | "daily" | "weekly" | "monthly" | "yearly" }> = [
   { path: "/", priority: 1, changeFrequency: "daily" },
   { path: "/nobetci-eczane", priority: 0.9, changeFrequency: "hourly" },
@@ -218,13 +221,4 @@ export const PUBLIC_STATIC_ROUTES: Array<{ path: string; priority: number; chang
   { path: "/kesfet/otel", priority: 0.7, changeFrequency: "daily" },
   { path: "/kesfet/hizmet", priority: 0.6, changeFrequency: "daily" },
   { path: "/etkinlikler", priority: 0.7, changeFrequency: "daily" },
-  { path: "/haberler", priority: 0.6, changeFrequency: "hourly" },
-  { path: "/duyurular", priority: 0.5, changeFrequency: "daily" },
-  { path: "/yardim", priority: 0.3, changeFrequency: "monthly" },
-  { path: "/kaynaklar", priority: 0.3, changeFrequency: "monthly" },
-  { path: "/yasal/kvkk", priority: 0.2, changeFrequency: "yearly" },
-  { path: "/yasal/acik-riza", priority: 0.2, changeFrequency: "yearly" },
-  { path: "/yasal/gizlilik", priority: 0.2, changeFrequency: "yearly" },
-  { path: "/yasal/kosullar", priority: 0.2, changeFrequency: "yearly" },
-  { path: "/yasal/cerez", priority: 0.2, changeFrequency: "yearly" },
 ];

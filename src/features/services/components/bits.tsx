@@ -83,21 +83,25 @@ export function FirmCard({ firm, className }: { firm: FirmCardData; className?: 
   );
 }
 
-const STEPS = [
-  { title: "Soruları cevapla", text: "İhtiyacını birkaç kısa soruyla anlat. 2 dakika sürer, ücretsizdir." },
-  { title: "Firmalar ilgilensin", text: "Talebin uygun en fazla 5 firmaya iletilir. İlgilenen her firma için bildirim alırsın." },
-  { title: "Profillere bak, ara", text: "Puanlara, yorumlara ve fiyat tahminlerine bak; dilediğin firmayı tek dokunuşla ara." },
-];
+/** The 3 steps; `maxProviders` (the category's max_providers) names the limit, otherwise the copy stays neutral. */
+function howItWorksSteps(maxProviders?: number) {
+  const reach = maxProviders && maxProviders > 0 ? `en fazla ${maxProviders} uygun firmaya` : "uygun firmalara";
+  return [
+    { title: "Soruları cevapla", text: "İhtiyacını birkaç kısa soruyla anlat. 2 dakika sürer, ücretsizdir." },
+    { title: "Firmalar ilgilensin", text: `Talebin ${reach} iletilir. İlgilenen her firma için bildirim alırsın.` },
+    { title: "Profillere bak, ara", text: "Puanlara, yorumlara ve fiyat tahminlerine bak; dilediğin firmayı tek dokunuşla ara." },
+  ];
+}
 
 /** "Nasıl çalışır?" card (3 steps). */
-export function HowItWorks({ className }: { className?: string }) {
+export function HowItWorks({ maxProviders, className }: { maxProviders?: number; className?: string }) {
   return (
     <section aria-labelledby="nasil-calisir" className={cn("rounded-3xl bg-card p-5 shadow-soft ring-1 ring-foreground/[0.06]", className)}>
       <h2 id="nasil-calisir" className="text-lg font-bold">
         Nasıl çalışır?
       </h2>
       <ol className="mt-4 flex flex-col gap-4">
-        {STEPS.map((s, i) => (
+        {howItWorksSteps(maxProviders).map((s, i) => (
           <li key={s.title} className="flex gap-3">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-extrabold text-primary-foreground" aria-hidden>
               {i + 1}

@@ -54,14 +54,14 @@ export function NewsFeed({ items, categories = NEWS_CATEGORIES }: { items: NewsI
         />
       ) : null}
 
-      {headline ? <HeadlineCard item={headline} /> : null}
+      {headline ? <HeadlineCard item={headline} categories={categories} /> : null}
 
       {shown.length ? (
         <section aria-label="Diğer başlıklar">
           <ul className="divide-y rounded-2xl bg-card px-4 shadow-soft ring-1 ring-foreground/[0.06]">
             {shown.map((item) => (
               <li key={item.id}>
-                <NewsRow item={item} showCategory={filter === "all"} />
+                <NewsRow item={item} categories={categories} showCategory={filter === "all"} />
               </li>
             ))}
           </ul>

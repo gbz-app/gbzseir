@@ -5,24 +5,27 @@ import Link from "next/link";
 import { Clock, MapPin, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
-import { PLACE_CATEGORIES, placeCategoryMeta } from "@/features/nearby/config";
+import { orderByDefs } from "@/features/business/lib/category-visuals";
+import { PLACE_CATEGORY_DEFS, placeCategoryMeta, type PlaceCategoryDef } from "@/features/nearby/config";
 import { PlaceVisual } from "@/features/nearby/components/place-card";
 import type { PlaceSummary } from "@/features/nearby/types";
 
 /**
- * Home "Gezilecek Yerler": category tabs and tall photo cards with a white info card.
- * Layout follows the travel-app reference the user sent.
+ * Home "Gezilecek Yerler": category tabs (admin order, labels and icons of place_categories) and tall photo cards with
+ * a white info card. Layout follows the travel-app reference the user sent.
  */
-export function HomePlaces({ places }: { places: PlaceSummary[] }) {
+export function HomePlaces({ places, categories = PLACE_CATEGORY_DEFS }: { places: PlaceSummary[]; categories?: readonly PlaceCategoryDef[] }) {
   const [tab, setTab] = React.useState<string>("tumu");
-  const categories = PLACE_CATEGORIES.filter((c) => places.some((p) => p.details.category === c.value));
-  const shown = tab === "tumu" ? places : places.filter((p) => p.details.category === tab);
+  // Resolved key: one the vocabulary does not know groups under "diger" (see placeCategoryMeta).
+  const keyOf = (p: PlaceSummary) => placeCategoryMeta(p.details.category, categories).value;
+  const tabs = orderByDefs(places.map(keyOf), categories).map((key) => placeCategoryMeta(key, categories));
+  const shown = tab === "tumu" ? places : places.filter((p) => keyOf(p) === tab);
   const big = shown.slice(0, 10);
 
   return (
     <div>
       <div role="tablist" aria-label="Yer türü" className="no-scrollbar -mx-4 mt-1 flex gap-5 overflow-x-auto px-4">
-        {[{ value: "tumu", label: "Tümü" }, ...categories].map((c) => {
+        {[{ value: "tumu", label: "Tümü" }, ...tabs].map((c) => {
           const active = tab === c.value;
           return (
             <button
@@ -45,14 +48,22 @@ export function HomePlaces({ places }: { places: PlaceSummary[] }) {
 
       <ul className="no-scrollbar -mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
         {big.map((p, i) => {
-          const meta = placeCategoryMeta(p.details.category);
+          const meta = placeCategoryMeta(p.details.category, categories);
           return (
             <li key={p.id} className="w-[15.5rem] shrink-0 snap-start">
               <Link
                 href={routes.nearby.place(p.slug)}
                 className="group relative block h-[21rem] overflow-hidden rounded-[1.75rem] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               >
-                <PlaceVisual category={p.details.category} photo={p.details.photos[0]} name={p.name} sizes="248px" priority={i === 0} className="absolute inset-0" />
+                <PlaceVisual
+                  category={p.details.category}
+                  categories={categories}
+                  photo={p.details.photos[0]}
+                  name={p.name}
+                  sizes="248px"
+                  priority={i === 0}
+                  className="absolute inset-0"
+                />
                 <span className="absolute top-3 right-3 inline-flex h-7 items-center gap-1 rounded-full bg-white/95 px-2.5 text-xs font-semibold text-neutral-900">
                   <meta.icon className="size-3.5" aria-hidden />
                   {meta.label}

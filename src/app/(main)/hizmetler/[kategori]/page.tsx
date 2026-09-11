@@ -133,7 +133,7 @@ export default async function ServiceCategoryPage({ params }: Props) {
           )}
         </section>
 
-        <HowItWorks />
+        <HowItWorks maxProviders={c.max_providers} />
       </div>
 
       <JsonLd

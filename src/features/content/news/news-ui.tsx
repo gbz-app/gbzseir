@@ -1,9 +1,11 @@
 import { ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RelativeTime } from "@/components/shared/relative-time";
-import { NEWS_CATEGORY_LABELS, type NewsCategory, type NewsItem } from "./parse";
+import { newsCategoryLabel, type NewsCategoryDef } from "../articles/meta";
+import type { NewsCategory, NewsItem } from "./parse";
 
-// Presentational news pieces (no hooks): used by the client feed and by the server home widget.
+// Presentational news pieces (no hooks): used by the client feed and by the server home widget. `categories` =
+// news_categories (getVocabularies) for the admin's labels; without it the built-in labels are used.
 
 const SOURCE_TONES = [
   "bg-brand-soft text-primary",
@@ -46,10 +48,10 @@ export function NewsMeta({ item, className }: { item: NewsItem; className?: stri
   );
 }
 
-export function CategoryTag({ category, className }: { category: NewsCategory; className?: string }) {
+export function CategoryTag({ category, categories, className }: { category: NewsCategory; categories?: readonly NewsCategoryDef[]; className?: string }) {
   return (
     <span className={cn("inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-xs font-semibold text-muted-foreground", className)}>
-      {NEWS_CATEGORY_LABELS[category]}
+      {newsCategoryLabel(category, categories)}
     </span>
   );
 }
@@ -57,7 +59,7 @@ export function CategoryTag({ category, className }: { category: NewsCategory; c
 const externalHint = <span className="sr-only"> (kaynak sitede, yeni sekmede açılır)</span>;
 
 /** Big first card ("Manşet"): title, summary, source and a clear "Kaynağa git" call to action. */
-export function HeadlineCard({ item }: { item: NewsItem }) {
+export function HeadlineCard({ item, categories }: { item: NewsItem; categories?: readonly NewsCategoryDef[] }) {
   return (
     <a
       href={item.url}
@@ -67,7 +69,7 @@ export function HeadlineCard({ item }: { item: NewsItem }) {
     >
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex h-6 items-center rounded-full bg-primary px-2.5 text-xs font-bold text-primary-foreground">Manşet</span>
-        <CategoryTag category={item.category} />
+        <CategoryTag category={item.category} categories={categories} />
       </div>
       <h2 className="mt-3 text-xl leading-snug font-extrabold text-balance decoration-2 underline-offset-4 group-hover:underline">{item.title}</h2>
       {item.summary ? <p className="mt-2 line-clamp-5 text-[15px] leading-relaxed text-muted-foreground">{item.summary}</p> : null}
@@ -84,7 +86,17 @@ export function HeadlineCard({ item }: { item: NewsItem }) {
 }
 
 /** List row: optional category eyebrow, title, 2-line summary, source + time and "Kaynağa git". */
-export function NewsRow({ item, showCategory = true, compact }: { item: NewsItem; showCategory?: boolean; compact?: boolean }) {
+export function NewsRow({
+  item,
+  categories,
+  showCategory = true,
+  compact,
+}: {
+  item: NewsItem;
+  categories?: readonly NewsCategoryDef[];
+  showCategory?: boolean;
+  compact?: boolean;
+}) {
   return (
     <a
       href={item.url}
@@ -93,7 +105,7 @@ export function NewsRow({ item, showCategory = true, compact }: { item: NewsItem
       className="group flex flex-col gap-1.5 py-3.5 outline-none focus-visible:rounded-lg focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       {showCategory && item.category !== "gundem" ? (
-        <span className="text-[11px] font-bold tracking-wide text-primary uppercase">{NEWS_CATEGORY_LABELS[item.category]}</span>
+        <span className="text-[11px] font-bold tracking-wide text-primary uppercase">{newsCategoryLabel(item.category, categories)}</span>
       ) : null}
       <h3 className={cn("text-[15px] leading-snug font-bold underline-offset-2 group-hover:underline", compact ? "line-clamp-2" : "line-clamp-3")}>{item.title}</h3>
       {item.summary && !compact ? <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{item.summary}</p> : null}

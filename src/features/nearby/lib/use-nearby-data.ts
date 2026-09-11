@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { distanceMeters, type LatLng } from "@/core/geo";
 import { routes } from "@/core/routes";
 import type { Json } from "@/lib/database.types";
-import { displayStopName, placeCategoryMeta, poiHref } from "../config";
+import { PLACE_CATEGORY_DEFS, displayStopName, placeCategoryMeta, poiHref, type PlaceCategoryDef } from "../config";
 import { parsePlaceDetails, parseStopDetails } from "./details";
 import type { DutyRow, DutyWindowIso, NearbyFilter, NearbyItem, PoiKind, PoiRow } from "../types";
 
@@ -30,7 +30,8 @@ function hood(name: string | null | undefined): string | null {
   return name ? `${name} Mah.` : null;
 }
 
-function poiToItem(r: PoiRow): NearbyItem {
+/** `placeCategories`: place_categories rows for the admin's labels (places only). */
+function poiToItem(r: PoiRow, placeCategories: readonly PlaceCategoryDef[] = PLACE_CATEGORY_DEFS): NearbyItem {
   const base = {
     id: r.id,
     name: r.name,
@@ -58,7 +59,7 @@ function poiToItem(r: PoiRow): NearbyItem {
   }
   if (r.kind === "place") {
     const d = parsePlaceDetails(r.details);
-    return { ...base, kind: "place", subtitle: [placeCategoryMeta(d.category).label, r.neighbourhood_name].filter(Boolean).join(" · ") };
+    return { ...base, kind: "place", subtitle: [placeCategoryMeta(d.category, placeCategories).label, r.neighbourhood_name].filter(Boolean).join(" · ") };
   }
   return { ...base, kind: r.kind, subtitle: hood(r.neighbourhood_name) };
 }
@@ -142,17 +143,20 @@ export async function loadNearby(filter: NearbyFilter, point: LatLng): Promise<N
   if (filter === "isletme") return loadBusinesses(point);
 
   const kind = FILTER_KIND[filter];
-  const [pois, duty] = await Promise.all([
+  const [pois, duty, cats] = await Promise.all([
     supabase.rpc("nearby_pois", { p_kind: kind, ...at, p_radius_m: RADIUS_M, p_limit: LIMIT }),
     kind === "pharmacy" ? supabase.rpc("duty_pharmacies_now", at) : Promise.resolve(null),
+    // Admin labels of the place categories (public read); the built-in list when they cannot be read.
+    kind === "place" ? supabase.from("place_categories").select("key,label,icon,active").order("sort").order("label") : Promise.resolve(null),
   ]);
   if (pois.error) throw new Error(pois.error.message);
+  const placeCategories = cats && !cats.error && cats.data?.length ? cats.data : PLACE_CATEGORY_DEFS;
   const dutyByPoi = new Map<string, DutyWindowIso>();
   if (duty && !duty.error) for (const r of (duty.data ?? []) as DutyRow[]) dutyByPoi.set(r.poi_id, { start: r.duty_start, end: r.duty_end });
   return ((pois.data ?? []) as PoiRow[])
     .filter((r) => typeof r.lat === "number" && typeof r.lng === "number")
     .map((r) => {
-      const item = poiToItem(r);
+      const item = poiToItem(r, placeCategories);
       const d = dutyByPoi.get(r.id);
       return d ? { ...item, duty: d } : item;
     });

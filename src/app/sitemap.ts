@@ -17,6 +17,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: r.priority,
   }));
   const extras = await Promise.allSettled(sitemapExtraSources.map((source) => source()));
-  for (const result of extras) if (result.status === "fulfilled") base.push(...result.value);
-  return base;
+  // One entry per URL: a source that repeats a static path replaces it in place (it knows the real lastModified).
+  const byUrl = new Map(base.map((entry) => [entry.url, entry]));
+  for (const result of extras) if (result.status === "fulfilled") for (const entry of result.value) byUrl.set(entry.url, entry);
+  return [...byUrl.values()];
 }

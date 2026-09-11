@@ -166,15 +166,6 @@ export const ANNOUNCEMENT_KINDS: LabelMap = {
   genel: { label: "Genel", tone: "secondary" },
 };
 
-export const PLACE_CATEGORIES: Record<string, string> = {
-  tarihi: "Tarihi yer",
-  muze: "Müze",
-  park: "Park",
-  doga: "Doğa",
-  avm: "AVM",
-  diger: "Diğer",
-};
-
 /** Short poi kind labels; the /admin/yerler editor uses POI_KIND_META (./poi-kinds.ts). */
 export const POI_KINDS: Record<string, string> = {
   pharmacy: "Eczane",

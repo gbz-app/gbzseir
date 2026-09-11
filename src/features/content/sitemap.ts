@@ -6,8 +6,8 @@ import { getPublishedLegalText } from "@/features/legal/queries";
 import { getNews } from "./news/get-news";
 
 /**
- * Sitemap entries of the content module (news, announcements, help, sources, legal pages).
- * NOTE: these paths are also listed in PUBLIC_STATIC_ROUTES; wire only one of the two (or dedupe by url).
+ * Sitemap entries of the content module (news, announcements, help, sources, legal pages). Registered in
+ * src/config/sitemap-extra.ts; these paths are not in PUBLIC_STATIC_ROUTES (app/sitemap.ts also dedupes by url).
  */
 export async function sitemapEntries(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();

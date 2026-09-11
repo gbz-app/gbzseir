@@ -37,6 +37,13 @@ export function gradientFor(key: string, palette: readonly string[]): string {
   return palette[h % palette.length];
 }
 
+/** Picker options (admin editors): the active categories in order, plus `current` when it is turned off or not listed. */
+export function pickerDefs(defs: readonly CategoryDef[], current?: string | null): CategoryDef[] {
+  const list = defs.filter((d) => d.active || d.key === current);
+  if (current && !list.some((d) => d.key === current)) list.push({ key: current, label: current, icon: null, active: false });
+  return list;
+}
+
 /** Distinct keys in the vocabulary's (admin) order; keys it does not list go last, in their given order. */
 export function orderByDefs(keys: Iterable<string>, defs: readonly CategoryDef[]): string[] {
   const rank = new Map(defs.map((d, i) => [d.key, i]));

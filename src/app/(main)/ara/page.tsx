@@ -6,8 +6,8 @@ import { routes } from "@/core/routes";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { createClient } from "@/lib/supabase/server";
-import { toArticleCategory } from "@/features/content/articles/meta";
-import { NEWS_CATEGORY_LABELS } from "@/features/content/news/parse";
+import { getVocabularies } from "@/features/business/lib/vocabularies";
+import { newsCategoryLabel, toArticleCategory, type NewsCategoryDef } from "@/features/content/articles/meta";
 import { eventWhenShort } from "@/features/events/format";
 import { listingPriceText } from "@/features/listings/format";
 import { KindIcon } from "@/features/nearby/components/kind-icon";
@@ -76,9 +76,12 @@ export default async function SearchPage({ searchParams }: Props) {
   const q = typeof raw === "string" ? raw.trim().slice(0, 80) : "";
   let res: SearchResult | null = null;
   let failed = false;
+  // Admin labels of the news categories (cached; built-in labels when it cannot be read).
+  let newsCategories: readonly NewsCategoryDef[] | undefined;
   if (q.length >= 2) {
     const supabase = await createClient();
-    const { data, error } = await supabase.rpc("global_search", { p_q: q, p_limit: 8 });
+    const [{ data, error }, vocab] = await Promise.all([supabase.rpc("global_search", { p_q: q, p_limit: 8 }), getVocabularies()]);
+    newsCategories = vocab.newsCategories;
     if (error) failed = true;
     else {
       // Missing groups (an older RPC without events / articles) read as empty.
@@ -215,7 +218,7 @@ export default async function SearchPage({ searchParams }: Props) {
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[15px] font-medium">{a.title}</span>
                         <span className="block truncate text-xs text-muted-foreground">
-                          {[NEWS_CATEGORY_LABELS[toArticleCategory(a.category)], formatDate(a.published_at)].join(" · ")}
+                          {[newsCategoryLabel(toArticleCategory(a.category), newsCategories), formatDate(a.published_at)].join(" · ")}
                         </span>
                       </span>
                     </Link>

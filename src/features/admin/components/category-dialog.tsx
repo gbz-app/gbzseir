@@ -275,6 +275,8 @@ function DeleteCategory({ category, onDone }: { category: ServiceCategoryValue; 
       const res = await deleteServiceCategoryAction({ id: category.id });
       if (res.ok) {
         toast.success(res.message ?? "Kategori silindi.");
+        // Deleted, but e.g. the public app could not be refreshed (same as useAdminAction).
+        if (res.warning) toast.warning(res.warning, { duration: 8000 });
         onDone();
         router.refresh();
         return true;
@@ -300,6 +302,7 @@ function DeleteCategory({ category, onDone }: { category: ServiceCategoryValue; 
         return false;
       }
       toast.success("Kategori pasif yapıldı; sitede artık görünmez.");
+      if (res.warning) toast.warning(res.warning, { duration: 8000 });
       onDone();
       router.refresh();
       return true;

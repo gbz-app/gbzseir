@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ImageUploader, type UploadedImage } from "@/components/shared/image-uploader";
 import { formatNumber } from "@/core/format";
 import { routes } from "@/core/routes";
-import { NEWS_CATEGORY_LABELS, NEWS_CATEGORY_ORDER, type NewsCategory } from "@/features/content/news/parse";
+import { pickerDefs } from "@/features/business/lib/category-visuals";
+import type { ArticleCategory, NewsCategoryDef } from "@/features/content/articles/meta";
 import { deleteNewsArticleAction, saveNewsArticleAction } from "../actions/news-articles";
 import { ConfirmDialog } from "./confirm-dialog";
 import { useAdminAction } from "./use-admin-action";
@@ -22,24 +23,36 @@ export type NewsArticleValue = {
   title: string;
   summary: string | null;
   body: string;
-  category: NewsCategory;
+  category: ArticleCategory;
   cover_url: string | null;
   status: "draft" | "published";
   published_at: string | null;
 };
 
 const SELECT = "h-10 w-full rounded-md border bg-background px-3 text-sm";
+const DEFAULT_CATEGORY = "gundem";
 const SUMMARY_MAX = 300;
 const BODY_MAX = 20000;
 
 const toImages = (url: string | null | undefined): UploadedImage[] => (url ? [{ url, thumbUrl: url, path: "", thumbPath: "" }] : []);
 
 /** Add / edit one of our own news stories: title, category, summary, body, cover photo and the publish switch. */
-export function NewsArticleDialog({ value, trigger }: { value?: NewsArticleValue; trigger: React.ReactElement }) {
+export function NewsArticleDialog({
+  value,
+  categories,
+  trigger,
+}: {
+  value?: NewsArticleValue;
+  /** news_categories in admin order (loadVocabularies): the picker lists the active ones plus the story's own. */
+  categories: readonly NewsCategoryDef[];
+  trigger: React.ReactElement;
+}) {
+  const options = pickerDefs(categories, value?.category);
+  const fallbackCategory = options.some((c) => c.key === DEFAULT_CATEGORY) ? DEFAULT_CATEGORY : (options[0]?.key ?? DEFAULT_CATEGORY);
   const { pending, run } = useAdminAction();
   const [open, setOpen] = React.useState(false);
   const [title, setTitle] = React.useState(value?.title ?? "");
-  const [category, setCategory] = React.useState<NewsCategory>(value?.category ?? "gundem");
+  const [category, setCategory] = React.useState<ArticleCategory>(value?.category ?? fallbackCategory);
   const [summary, setSummary] = React.useState(value?.summary ?? "");
   const [body, setBody] = React.useState(value?.body ?? "");
   const [cover, setCover] = React.useState<UploadedImage[]>(() => toImages(value?.cover_url));
@@ -49,7 +62,7 @@ export function NewsArticleDialog({ value, trigger }: { value?: NewsArticleValue
 
   const reset = () => {
     setTitle("");
-    setCategory("gundem");
+    setCategory(fallbackCategory);
     setSummary("");
     setBody("");
     setCover([]);
@@ -99,10 +112,10 @@ export function NewsArticleDialog({ value, trigger }: { value?: NewsArticleValue
               <Label htmlFor={ids.cat} className="mb-1 block text-xs font-semibold">
                 Kategori
               </Label>
-              <select id={ids.cat} value={category} onChange={(e) => setCategory(e.target.value as NewsCategory)} className={SELECT}>
-                {NEWS_CATEGORY_ORDER.map((c) => (
-                  <option key={c} value={c}>
-                    {NEWS_CATEGORY_LABELS[c]}
+              <select id={ids.cat} value={category} onChange={(e) => setCategory(e.target.value)} className={SELECT}>
+                {options.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.active ? c.label : `${c.label} (pasif)`}
                   </option>
                 ))}
               </select>

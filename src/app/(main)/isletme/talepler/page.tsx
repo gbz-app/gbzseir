@@ -152,7 +152,7 @@ export default async function BusinessLeadsPage({ searchParams }: Props) {
             <TabsContent key={t.key} value={t.key} className="flex flex-col gap-3">
               {t.key === "yeni" && groups.yeni.length ? (
                 <p className="rounded-xl bg-info-soft px-3.5 py-2.5 text-xs leading-relaxed">
-                  Bir talebe en fazla 5 firma ilgilenebilir. &quot;İlgileniyorum&quot; dediğinde müşterinin iletişim bilgileri açılır.
+                  Bir talebe sınırlı sayıda firma ilgilenebilir; yer dolunca talep kapanır. &quot;İlgileniyorum&quot; dediğinde müşterinin iletişim bilgileri açılır.
                 </p>
               ) : null}
               {groups[t.key].length ? (

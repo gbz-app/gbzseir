@@ -13,8 +13,8 @@ import { AdminCard, AdminThumb, EmptyCard, FilterTabs, StatusBadge } from "@/fea
 import { NewsArticleDialog, type NewsArticleValue } from "@/features/admin/components/news-article-dialog";
 import type { LabelMap } from "@/features/admin/lib/labels";
 import { oneOf } from "@/features/admin/lib/params";
-import { toArticleCategory } from "@/features/content/articles/meta";
-import { NEWS_CATEGORY_LABELS } from "@/features/content/news/parse";
+import { DEFAULT_VOCABULARIES, loadVocabularies } from "@/features/business/lib/vocabularies";
+import { newsCategoryLabel, toArticleCategory } from "@/features/content/articles/meta";
 
 export const metadata: Metadata = { title: "Haber yazıları" };
 
@@ -39,7 +39,12 @@ export default async function AdminNewsArticlesPage({ searchParams }: Props) {
   let query = supabase.from("news_articles").select("id,slug,title,summary,body,category,cover_url,status,published_at,is_demo,updated_at");
   if (tab === "yayinda") query = query.eq("status", "published");
   else if (tab === "taslak") query = query.eq("status", "draft");
-  const { data, error } = await query.order("updated_at", { ascending: false }).limit(100);
+  const [{ data, error }, vocab] = await Promise.all([
+    query.order("updated_at", { ascending: false }).limit(100),
+    // Fresh read (the admin site's own cache is not expired by revalidatePublic): admin-added categories show at once.
+    loadVocabularies(supabase).catch(() => DEFAULT_VOCABULARIES),
+  ]);
+  const categories = vocab.newsCategories;
   const rows = (data ?? []).map((r) => ({
     ...r,
     category: toArticleCategory(r.category),
@@ -53,6 +58,7 @@ export default async function AdminNewsArticlesPage({ searchParams }: Props) {
         description="Gebzem'in kendi haberleri. Yayındakiler ana sayfada ve Haberler sayfasında kaynak haberlerinden önce görünür."
         actions={
           <NewsArticleDialog
+            categories={categories}
             trigger={
               <Button>
                 <Plus /> Yeni haber
@@ -84,7 +90,7 @@ export default async function AdminNewsArticlesPage({ searchParams }: Props) {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <StatusBadge map={ARTICLE_STATUS} value={a.status} />
-                      <span className="text-xs font-semibold text-muted-foreground">{NEWS_CATEGORY_LABELS[a.category]}</span>
+                      <span className="text-xs font-semibold text-muted-foreground">{newsCategoryLabel(a.category, categories)}</span>
                       {a.is_demo ? <DemoBadge /> : null}
                     </div>
                     <h2 className="mt-1.5 font-bold break-words">{a.title}</h2>
@@ -104,6 +110,7 @@ export default async function AdminNewsArticlesPage({ searchParams }: Props) {
                     ) : null}
                     <NewsArticleDialog
                       value={value}
+                      categories={categories}
                       trigger={
                         <Button variant="outline" size="sm">
                           <Pencil /> Düzenle
