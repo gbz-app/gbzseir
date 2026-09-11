@@ -19,22 +19,27 @@ const statusSchema = z.object({ reportId: zId, status: z.enum(["open", "resolved
 
 /** Çözüldü / Yoksay / Yeniden aç. */
 export async function setReportStatusAction(input: z.input<typeof statusSchema>): Promise<ActionResult<null>> {
-  return withAdmin(async ({ supabase }) => {
+  return withAdmin(async ({ supabase, userId }) => {
     const parsed = statusSchema.safeParse(input);
     if (!parsed.success) return fail(firstIssue(parsed.error));
     const { reportId, status, note } = parsed.data;
     const { data, error } = await supabase
       .from("reports")
-      .update({
-        status,
-        resolved_at: status === "open" ? null : new Date().toISOString(),
-        ...(note !== undefined ? { admin_note: note || null } : {}),
-      })
+      .update({ status, resolved_at: status === "open" ? null : new Date().toISOString() })
       .eq("id", reportId)
       .select("id")
       .maybeSingle();
+    // One open report per reporter and target (reports_reporter_target_uidx).
+    if (error?.code === "23505") return fail("Bu kişinin aynı içerik için zaten açık bir şikayeti var.", "duplicate");
     if (error) return dbFail(error);
     if (!data) return fail("Şikayet bulunamadı.", "not_found");
+    if (note !== undefined) {
+      // Admin-only notes (the reporter can read their own reports row).
+      const res = note
+        ? await supabase.from("report_notes").upsert({ report_id: reportId, note, updated_by: userId }, { onConflict: "report_id" })
+        : await supabase.from("report_notes").delete().eq("report_id", reportId);
+      if (res.error) return dbFail(res.error, "Durum kaydedildi ama not kaydedilemedi.");
+    }
     revalidateReports();
     return ok(null, status === "resolved" ? "Şikayet çözüldü olarak kapatıldı." : status === "dismissed" ? "Şikayet yoksayıldı." : "Şikayet yeniden açıldı.");
   });
@@ -122,13 +127,22 @@ export async function removeReportedContentAction(input: z.input<typeof removeSc
         return fail("Bu şikayet türü için kaldırma işlemi yok.");
     }
 
-    const { error: closeErr } = await supabase
+    const { data: closed, error: closeErr } = await supabase
       .from("reports")
-      .update({ status: "resolved", resolved_at: new Date().toISOString(), admin_note: parsed.data.note || "İçerik kaldırıldı." })
+      .update({ status: "resolved", resolved_at: new Date().toISOString() })
       .eq("target_type", report.target_type)
       .eq("target_id", targetId)
-      .eq("status", "open");
+      .eq("status", "open")
+      .select("id");
     if (closeErr) return dbFail(closeErr, "İçerik kaldırıldı ama şikayetler kapatılamadı.");
+    if (closed?.length) {
+      const note = parsed.data.note || "İçerik kaldırıldı.";
+      const { error: noteErr } = await supabase.from("report_notes").upsert(
+        closed.map((c) => ({ report_id: c.id, note, updated_by: userId })),
+        { onConflict: "report_id" },
+      );
+      if (noteErr) return dbFail(noteErr, "İçerik kaldırıldı ama şikayet notu kaydedilemedi.");
+    }
     revalidateReports();
     return ok({ targetType: report.target_type }, message);
   });

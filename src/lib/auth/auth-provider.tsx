@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { User } from "@supabase/supabase-js";
+import { unsubscribePush } from "@/lib/push/client";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 
@@ -64,6 +65,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshProfile = React.useCallback(() => loadProfile(currentUid.current), [loadProfile]);
 
   const signOut = React.useCallback(async () => {
+    // Stop this account's pushes on this device first: the RLS delete of the row needs the session.
+    try {
+      await Promise.race([unsubscribePush(), new Promise((r) => setTimeout(r, 3000))]);
+    } catch {
+      /* never block sign-out */
+    }
     await supabase.auth.signOut();
     // Forget pages/data cached by the service worker on this device.
     try {

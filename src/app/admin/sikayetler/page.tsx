@@ -111,7 +111,7 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
   const page = pageParam(sp.sayfa);
   const supabase = await createClient();
 
-  let query = supabase.from("reports").select("*, reporter:profiles!reports_reporter_id_fkey(full_name,phone)", { count: "exact" });
+  let query = supabase.from("reports").select("*, reporter:profiles!reports_reporter_id_fkey(full_name,phone), report_notes(note)", { count: "exact" });
   if (status !== "tumu") query = query.eq("status", status);
   if (target !== "tumu") query = query.eq("target_type", target);
   const { from, to } = pageRange(page, PAGE_SIZE);
@@ -198,7 +198,8 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
                   ) : null}
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  {r.reporter?.full_name ? `${r.reporter.full_name} (${formatPhoneTR(r.reporter.phone)})` : "Misafir kullanıcı"} ·{" "}
+                  {/* No reporter row = the account was deleted (reporter_id -> null). */}
+                  {r.reporter ? `${r.reporter.full_name ?? "İsimsiz kullanıcı"} (${formatPhoneTR(r.reporter.phone)})` : "Silinmiş hesap"} ·{" "}
                   <time dateTime={r.created_at} title={formatDateTime(r.created_at)}>
                     {formatRelativeTime(r.created_at)}
                   </time>
@@ -236,9 +237,9 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
                   ) : null}
                 </div>
 
-                {r.admin_note ? (
+                {r.report_notes?.note ? (
                   <p className="mt-3 text-sm">
-                    <span className="font-semibold">Yönetici notu:</span> {r.admin_note}
+                    <span className="font-semibold">Yönetici notu:</span> {r.report_notes.note}
                   </p>
                 ) : null}
                 {r.resolved_at ? <p className="mt-1 text-xs text-muted-foreground">Kapatıldı: {formatDateTime(r.resolved_at)}</p> : null}

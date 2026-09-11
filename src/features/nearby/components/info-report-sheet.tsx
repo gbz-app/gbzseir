@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BottomSheet } from "@/components/shared/bottom-sheet";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/lib/auth/auth-provider";
 
+const MIN = 10;
 const MAX = 1500;
 
 export type InfoReportSheetProps = {
@@ -22,27 +22,36 @@ export type InfoReportSheetProps = {
 };
 
 /**
- * "Bilgi hatalı mı? Bildir": a correction note for a place (pois are not a `reports` target), stored in
- * contact_messages. Works for guests too (anonymous insert; no .select() after it).
+ * "Bilgi hatalı mı? Bildir": a correction note for a place (pois are not a `reports` target), sent to the support inbox
+ * via submit_contact_message (topic 'bilgi_duzeltme'). Guests may send it without phone / e-mail; the RPC rate-limits.
  */
 export function InfoReportSheet({ subject, path, className }: InfoReportSheetProps) {
-  const { user } = useAuth();
   const [open, setOpen] = React.useState(false);
   const [text, setText] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const id = React.useId();
-  const valid = text.trim().length >= 3;
+  // Count characters like the RPC (char_length), not UTF-16 units.
+  const length = Array.from(text.trim()).length;
+  const valid = length >= MIN;
 
   const submit = async () => {
     if (!valid || busy) return;
     setBusy(true);
-    const message = `[Yer bilgisi düzeltme] ${subject}\nSayfa: ${path}\n\n${text.trim()}`.slice(0, 2000);
-    const { error } = await createClient()
-      .from("contact_messages")
-      .insert({ user_id: user?.id ?? null, message });
+    const { data, error } = await createClient().rpc("submit_contact_message", {
+      p_topic: "bilgi_duzeltme",
+      p_subject: subject,
+      p_message: text.trim(),
+      p_page_path: path,
+    });
     setBusy(false);
-    if (error) {
-      toast.error("Bildirimin gönderilemedi, lütfen tekrar dene.");
+    if (error || !data) {
+      toast.error(
+        error?.hint === "rate_limited"
+          ? "Çok fazla bildirim gönderildi, biraz sonra tekrar dene."
+          : error?.hint === "invalid_message"
+            ? `En az ${MIN} karakter yaz.`
+            : "Bildirimin gönderilemedi, lütfen tekrar dene.",
+      );
       return;
     }
     toast.success("Teşekkürler! Bildirimini aldık, kontrol edip düzelteceğiz.");
@@ -81,7 +90,7 @@ export function InfoReportSheet({ subject, path, className }: InfoReportSheetPro
           className="min-h-28"
         />
         <div className="mt-1 flex justify-between gap-2 text-xs text-muted-foreground">
-          <span>Kişisel bilgi paylaşma.</span>
+          <span>{length > 0 && !valid ? `En az ${MIN} karakter yaz.` : "Kişisel bilgi paylaşma."}</span>
           <span>
             {text.length}/{MAX}
           </span>

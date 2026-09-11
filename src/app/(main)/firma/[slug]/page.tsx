@@ -26,6 +26,7 @@ import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
 import { DetailActions, DetailHero, DetailSheet, PRIMARY_CTA, SECONDARY_CTA } from "@/components/shared/detail-hero";
 import { PriceText } from "@/components/shared/price-text";
+import { ReportSheet } from "@/components/shared/report-sheet";
 import { JsonLd } from "@/components/seo/json-ld";
 import { APP_NAME, CITY, SITE_URL } from "@/config/site";
 import { formatDate, formatNumber, formatPrice, truncate } from "@/core/format";
@@ -192,6 +193,9 @@ function ReviewItem({ r, businessName }: { r: PublicReview; businessName: string
           <p className="mt-1 leading-relaxed whitespace-pre-line">{r.reply}</p>
         </div>
       ) : null}
+      <div className="mt-1 -mb-2 flex justify-end">
+        <ReportSheet targetType="review" targetId={r.id} className="-mr-2" />
+      </div>
     </li>
   );
 }

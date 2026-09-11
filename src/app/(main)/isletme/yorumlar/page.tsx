@@ -6,6 +6,7 @@ import { Star } from "lucide-react";
 import { routes } from "@/core/routes";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { ReportSheet } from "@/components/shared/report-sheet";
 import { requireProfile } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { RatingInline, Stars } from "@/features/business/components/rating";
@@ -69,6 +70,9 @@ export default async function BusinessReviewsPage() {
                 <Stars value={r.rating} className="mt-1" />
                 {r.comment ? <p className="mt-2 text-[15px] leading-relaxed whitespace-pre-line">{r.comment}</p> : null}
                 <ReviewReply reviewId={r.id} initialReply={r.reply} />
+                <div className="mt-1 -mb-2 flex justify-end">
+                  <ReportSheet targetType="review" targetId={r.id} className="-mr-2" />
+                </div>
               </li>
             ))}
           </ul>

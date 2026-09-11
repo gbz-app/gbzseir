@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
-import { TABLES, type ReportReasonValue, type ReportTargetType } from "@/lib/db-contract";
+import type { ReportReasonValue, ReportTargetType } from "@/lib/db-contract";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { routes } from "@/core/routes";
 import { BottomSheet } from "./bottom-sheet";
@@ -23,6 +23,14 @@ export const DEFAULT_REPORT_REASONS: ReportReason[] = [
   { value: "yaniltici", label: "Yanlış ya da yanıltıcı bilgi" },
   { value: "yanlis_kategori", label: "Yanlış kategori / yasaklı ürün" },
   { value: "uygunsuz", label: "Uygunsuz veya saldırgan içerik" },
+  { value: "diger", label: "Diğer" },
+];
+
+/** Reasons that fit a review (no "yanlış kategori"). */
+export const REVIEW_REPORT_REASONS: ReportReason[] = [
+  { value: "yaniltici", label: "Sahte ya da yanıltıcı yorum" },
+  { value: "uygunsuz", label: "Hakaret, küfür veya uygunsuz ifade" },
+  { value: "dolandiricilik", label: "Dolandırıcılık ya da reklam" },
   { value: "diger", label: "Diğer" },
 ];
 
@@ -41,8 +49,20 @@ export type ReportSheetProps = {
 
 const NOTE_MAX = 1000;
 
-/** "Şikayet et" sheet: reason + optional note -> inserts into `reports`. Requires login (redirects back). */
-export function ReportSheet({ targetType, targetId, open: openProp, onOpenChange, trigger, reasons = DEFAULT_REPORT_REASONS, className }: ReportSheetProps) {
+/** submit_report error hints -> message (23505 = already reported, see below). */
+const ERROR_MESSAGES: Record<string, string> = {
+  rate_limited: "Bugün çok fazla şikayet gönderdin, yarın tekrar dene.",
+  not_found: "Bu içerik artık yayında değil.",
+  own_content: "Kendi içeriğini şikayet edemezsin.",
+  restricted: "Hesabın kısıtlı olduğu için şikayet gönderemezsin.",
+};
+
+/** Current page incl. the tab hash ("#yorumlar"), to come back to after login. */
+const here = () => `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+/** "Şikayet et" sheet: reason + optional note -> rpc submit_report. Requires login (redirects back). */
+export function ReportSheet({ targetType, targetId, open: openProp, onOpenChange, trigger, reasons: reasonsProp, className }: ReportSheetProps) {
+  const reasons = reasonsProp ?? (targetType === "review" ? REVIEW_REPORT_REASONS : DEFAULT_REPORT_REASONS);
   const { user } = useAuth();
   const router = useRouter();
   const [innerOpen, setInnerOpen] = React.useState(false);
@@ -53,7 +73,7 @@ export function ReportSheet({ targetType, targetId, open: openProp, onOpenChange
 
   const setOpen = (o: boolean) => {
     if (o && !user) {
-      router.push(routes.auth.login(`${window.location.pathname}${window.location.search}`));
+      router.push(routes.auth.login(here()));
       return;
     }
     if (openProp === undefined) setInnerOpen(o);
@@ -63,12 +83,19 @@ export function ReportSheet({ targetType, targetId, open: openProp, onOpenChange
   const submit = async () => {
     if (!user || !reason) return;
     setBusy(true);
-    const { error } = await createClient()
-      .from(TABLES.reports)
-      .insert({ reporter_id: user.id, target_type: targetType, target_id: targetId, reason, detail: note.trim() || null });
+    const { error } = await createClient().rpc("submit_report", {
+      p_target_type: targetType,
+      p_target_id: targetId,
+      p_reason: reason,
+      p_detail: note.trim() || undefined,
+    });
     setBusy(false);
     if (error) {
-      toast.error(error.code === "23505" ? "Bu içeriği zaten şikayet ettin." : "Şikayet gönderilemedi, lütfen tekrar dene.");
+      if (error.hint === "login_required") {
+        router.push(routes.auth.login(here()));
+        return;
+      }
+      toast.error(error.code === "23505" ? "Bu içeriği zaten şikayet ettin." : (ERROR_MESSAGES[error.hint ?? ""] ?? "Şikayet gönderilemedi, lütfen tekrar dene."));
       return;
     }
     toast.success("Şikayetin alındı. En geç 24 saat içinde inceleyeceğiz.");

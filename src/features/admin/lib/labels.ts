@@ -141,6 +141,17 @@ export const SUPPORT_STATUS: LabelMap = {
   spam: { label: "Spam", tone: "outline" },
 };
 
+/** contact_messages.topic, short labels for the admin inbox. */
+export const SUPPORT_TOPIC: Record<string, string> = {
+  sikayet: "Şikayet",
+  teknik_destek: "Teknik destek",
+  reklam: "Reklam ve iş birliği",
+  isletme: "İşletme ekleme",
+  oneri: "Öneri",
+  diger: "Diğer",
+  bilgi_duzeltme: "Yer bilgisi düzeltme",
+};
+
 export const PROFILE_STATUS_HELP: Record<string, string> = {
   active: "Hesap normal çalışır.",
   restricted: "Yeni ilanları her zaman onaya düşer.",

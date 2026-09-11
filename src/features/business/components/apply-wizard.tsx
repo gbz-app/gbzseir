@@ -65,7 +65,9 @@ const LABEL_MAX = 60;
 const DESC_MAX = 2000;
 const ADDRESS_MAX = 200;
 
+/** apply_business result reasons and error hints -> Turkish text. */
 const RESULT_MESSAGES: Record<string, string> = {
+  applications_closed: "Şu an yeni işletme başvurusu alınmıyor. Daha sonra tekrar dene.",
   invalid_kinds: "Geçerli bir işletme türü seç.",
   invalid_vertical: "Geçerli bir işletme türü seç.",
   invalid_phone: "İşletme telefonu geçersiz görünüyor. Kontrol edip tekrar dene.",
@@ -466,7 +468,7 @@ export function ApplyWizard({ initial, businessId, resubmit, rejectionReason }: 
       p_vertical: d.vertical ?? undefined,
       p_business_id: businessId ?? undefined,
     });
-    if (error) return error.message || "İşletmen kaydedilemedi. Lütfen tekrar dene.";
+    if (error) return (error.hint && RESULT_MESSAGES[error.hint]) || error.message || "İşletmen kaydedilemedi. Lütfen tekrar dene.";
     const result = data as { ok?: boolean; reason?: string; business_id?: string } | null;
     if (!result?.ok || !result.business_id) return (result?.reason && RESULT_MESSAGES[result.reason]) || "İşletmen kaydedilemedi. Lütfen tekrar dene.";
     if (d.document) {

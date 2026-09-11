@@ -11,21 +11,21 @@ import { telHref } from "@/core/phone";
 import { routes } from "@/core/routes";
 import { AdminCard, AdminPagination, EmptyCard, FilterTabs, StatusBadge } from "@/features/admin/components/admin-ui";
 import { SupportActions } from "@/features/admin/components/support-actions";
-import { SUPPORT_STATUS } from "@/features/admin/lib/labels";
+import { SUPPORT_STATUS, SUPPORT_TOPIC } from "@/features/admin/lib/labels";
 import { oneOf, pageParam, pageRange } from "@/features/admin/lib/params";
-import { SUPPORT_TOPICS, TOPIC_INFO, type SupportTopic } from "@/features/support/topics";
+import { MESSAGE_TOPICS, TOPIC_INFO, type MessageTopic } from "@/features/support/topics";
 
 export const metadata: Metadata = { title: "Destek mesajları" };
 
 const PAGE_SIZE = 20;
 const STATUSES = ["new", "in_progress", "resolved", "spam", "tumu"] as const;
 type StatusFilter = (typeof STATUSES)[number];
-const TOPICS = ["tumu", ...SUPPORT_TOPICS] as const;
+const TOPICS = ["tumu", ...MESSAGE_TOPICS] as const;
 type TopicFilter = (typeof TOPICS)[number];
 
 type Row = {
   id: string;
-  topic: SupportTopic;
+  topic: MessageTopic;
   subject: string | null;
   message: string;
   name: string | null;
@@ -44,7 +44,7 @@ type Row = {
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-/** Destek gelen kutusu: şikayet, teknik destek, reklam, işletme, öneri mesajları. */
+/** Destek gelen kutusu: şikayet, teknik destek, reklam, işletme, öneri mesajları ve yer bilgisi düzeltmeleri. */
 export default async function AdminSupportPage({ searchParams }: Props) {
   await requireAdmin();
   const sp = await searchParams;
@@ -69,7 +69,7 @@ export default async function AdminSupportPage({ searchParams }: Props) {
 
   return (
     <>
-      <AdminPageHeader title="Destek mesajları" description="Şikayet, teknik destek, reklam ve iş birliği talepleri. Kullanıcı kendi mesajının durumunu Yardım sayfasında görür; iç notlar gizlidir." />
+      <AdminPageHeader title="Destek mesajları" description="Şikayet, teknik destek, reklam ve iş birliği talepleri, yer bilgisi düzeltmeleri. Kullanıcı kendi mesajının durumunu Yardım sayfasında görür; iç notlar gizlidir." />
       <div className="flex flex-col gap-3">
         <FilterTabs
           ariaLabel="Durum"
@@ -82,7 +82,7 @@ export default async function AdminSupportPage({ searchParams }: Props) {
         />
         <FilterTabs
           ariaLabel="Konu"
-          items={TOPICS.map((t) => ({ label: t === "tumu" ? "Tüm konular" : TOPIC_INFO[t].label, active: t === topic, href: routes.admin.support({ ...baseQuery, konu: t === "tumu" ? undefined : t }) }))}
+          items={TOPICS.map((t) => ({ label: t === "tumu" ? "Tüm konular" : SUPPORT_TOPIC[t], active: t === topic, href: routes.admin.support({ ...baseQuery, konu: t === "tumu" ? undefined : t }) }))}
         />
       </div>
 
@@ -103,7 +103,7 @@ export default async function AdminSupportPage({ searchParams }: Props) {
                 <div className="flex flex-wrap items-center gap-1.5">
                   <StatusBadge map={SUPPORT_STATUS} value={m.status} />
                   <Badge variant="secondary" className="gap-1">
-                    <info.icon className="size-3.5" aria-hidden /> {info.label}
+                    <info.icon className="size-3.5" aria-hidden /> {SUPPORT_TOPIC[m.topic] ?? info.label}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
                     #{m.id.slice(0, 8).toUpperCase()} · {formatRelativeTime(m.created_at)}

@@ -1,8 +1,13 @@
 /** Destek merkezi konuları (contact_messages.topic). Pure TS + lucide icons. */
-import { Flag, Lightbulb, Megaphone, MessageCircleQuestion, Store, Wrench, type LucideIcon } from "lucide-react";
+import { Flag, Lightbulb, MapPinned, Megaphone, MessageCircleQuestion, Store, Wrench, type LucideIcon } from "lucide-react";
 
+/** Topics the /yardim picker offers. */
 export const SUPPORT_TOPICS = ["sikayet", "teknik_destek", "reklam", "isletme", "oneri", "diger"] as const;
 export type SupportTopic = (typeof SUPPORT_TOPICS)[number];
+
+/** Every contact_messages.topic, incl. ones sent from elsewhere (place corrections from the place pages). */
+export const MESSAGE_TOPICS = [...SUPPORT_TOPICS, "bilgi_duzeltme"] as const;
+export type MessageTopic = (typeof MESSAGE_TOPICS)[number];
 
 export type TopicInfo = {
   label: string;
@@ -16,7 +21,7 @@ export type TopicInfo = {
   hint?: string;
 };
 
-export const TOPIC_INFO: Record<SupportTopic, TopicInfo> = {
+export const TOPIC_INFO: Record<MessageTopic, TopicInfo> = {
   sikayet: {
     label: "Şikayet bildir",
     text: "Bir işletme, ilan, kullanıcı ya da hizmet hakkında",
@@ -68,6 +73,15 @@ export const TOPIC_INFO: Record<SupportTopic, TopicInfo> = {
     tone: "bg-muted text-muted-foreground",
     subjectPlaceholder: "Konu",
     messagePlaceholder: "Mesajın",
+  },
+  // Not in the /yardim picker: sent from the "Bilgi hatalı mı? Bildir" sheet on place pages.
+  bilgi_duzeltme: {
+    label: "Yer bilgisi düzeltme",
+    text: "Eczane, cami, durak ya da gezilecek yer bilgisi hatası",
+    icon: MapPinned,
+    tone: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+    subjectPlaceholder: "Yer",
+    messagePlaceholder: "Ne yanlış?",
   },
 };
 

@@ -41,6 +41,12 @@ const EMPTY: ClassifiedDraft = {
   neighbourhoodName: null,
 };
 
+/** Listing caps (DB error hints) -> Turkish text. */
+const CAP_MESSAGES: Record<string, string> = {
+  listing_daily_cap: "Son 24 saatte çok fazla ilan verdin. Biraz sonra tekrar dene.",
+  listing_active_cap: "Açık ilan sınırına ulaştın (yayında, onay bekleyen ve durdurulmuş). Yeni ilan için eski ilanlarından birini sil ya da satıldı olarak işaretle.",
+};
+
 function schemaFor(categories: ListingCategory[], categoryId: string | null): AttributeField[] {
   const { category, parent } = categoryPath(categories, categoryId);
   const schema = category?.attributes_schema.length ? category.attributes_schema : (parent?.attributes_schema ?? []);
@@ -305,7 +311,7 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
         .insert({ ...payload, type: "classified", owner_id: user.id })
         .select("id,status")
         .single();
-      if (error) return error.message;
+      if (error) return (error.hint && CAP_MESSAGES[error.hint]) || error.message;
       id = data.id;
       status = data.status;
     }

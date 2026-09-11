@@ -52,6 +52,12 @@ const EMPTY: JobDraft = {
 
 const toNum = (s: string): number | null => (s ? Number(s) : null);
 
+/** Listing caps (DB error hints) -> Turkish text. */
+const CAP_MESSAGES: Record<string, string> = {
+  listing_daily_cap: "Son 24 saatte çok fazla ilan verdin. Biraz sonra tekrar dene.",
+  listing_active_cap: "Açık ilan sınırına ulaştın (yayında, onay bekleyen ve durdurulmuş). Yeni ilan için eski ilanlarından birini sil ya da doldu olarak işaretle.",
+};
+
 export type JobWizardProps = {
   /** Job sectors (listing_categories.type = 'job'). */
   sectors: ListingCategory[];
@@ -265,7 +271,7 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
         .insert({ ...payload, type: "job", owner_id: user.id })
         .select("id,status")
         .single();
-      if (error) return error.message;
+      if (error) return (error.hint && CAP_MESSAGES[error.hint]) || error.message;
       id = data.id;
       status = data.status;
     }

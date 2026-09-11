@@ -11,18 +11,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { OtpForm } from "@/components/auth/otp-form";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { sendLoginOtp, verifyLoginOtp } from "@/lib/auth/otp";
-import { createClient } from "@/lib/supabase/client";
-import { removeAllUserFiles } from "../lib/storage-cleanup";
+import { deleteMyAccount } from "../actions/delete-account";
 
 const WHAT_IS_DELETED = [
   "Tüm ilanların ve iş ilanların yayından kalkar ve silinir.",
-  "İşletme hesabın ve işletme sayfan kapatılır.",
+  "İşletme hesabın, işletme sayfan ve etkinliklerin kaldırılır.",
   "Hizmet taleplerin anonim hale getirilir.",
   "Yüklediğin tüm fotoğraflar ve belgeler silinir.",
   "Favorilerin ve bildirimlerin silinir.",
 ];
 
-/** G9 - Hesabı sil: explanation -> SMS code to the current phone -> files + account deleted. */
+/** G9 - Hesabı sil: explanation -> SMS code to the current phone -> account deleted, then its files (server action). */
 export function AccountDeleteFlow() {
   const router = useRouter();
   const { user, signOut } = useAuth();
@@ -67,14 +66,12 @@ export function AccountDeleteFlow() {
           onVerify={async (code) => {
             const { error: verifyError, userId } = await verifyLoginOtp(phone, code);
             if (verifyError) return verifyError;
-            const uid = userId ?? user?.id;
-            if (!uid) return "Oturum doğrulanamadı. Lütfen tekrar dene.";
+            if (!userId && !user?.id) return "Oturum doğrulanamadı. Lütfen tekrar dene.";
             setStage("deleting");
-            await removeAllUserFiles(uid);
-            const { error: rpcError } = await createClient().rpc("delete_my_account");
-            if (rpcError) {
+            const res = await deleteMyAccount().catch(() => null);
+            if (!res?.ok) {
               setStage("info");
-              setError(rpcError.message || "Hesap silinemedi. Lütfen tekrar dene.");
+              setError(res?.message ?? "Hesap silinemedi. Lütfen tekrar dene.");
               return;
             }
             await signOut();

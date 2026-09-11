@@ -45,11 +45,17 @@ async function readyRegistration(timeoutMs = 4000): Promise<ServiceWorkerRegistr
   ]);
 }
 
-/** True if this browser already has a push subscription. */
+/** True if this browser has a push subscription (and, when signed in, it is saved for this account). */
 export async function isPushSubscribed(): Promise<boolean> {
   if (!supported()) return false;
   const reg = await readyRegistration(1500);
-  return !!(await reg?.pushManager.getSubscription());
+  const sub = await reg?.pushManager.getSubscription();
+  if (!sub) return false;
+  const supabase = createClient();
+  const { data: auth } = await supabase.auth.getSession();
+  if (!auth.session) return true;
+  const { data, error } = await supabase.from(TABLES.pushSubscriptions).select("id").eq("endpoint", sub.endpoint).maybeSingle();
+  return error ? true : !!data;
 }
 
 /** Ask permission (user gesture!), subscribe and save the subscription to push_subscriptions. */
@@ -72,13 +78,13 @@ export async function subscribePush(): Promise<SubscribeResult> {
   const reg = await readyRegistration();
   if (!reg) return { ok: false, reason: "no-sw", message: "Bildirim servisi hazır değil. Sayfayı yenileyip tekrar dene." };
 
-  try {
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapid) });
+  const uid = auth.user.id;
+  const fresh = () => reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapid) });
+  const save = (sub: PushSubscription) => {
     const json = sub.toJSON();
-    const { error } = await supabase.from(TABLES.pushSubscriptions).upsert(
+    return supabase.from(TABLES.pushSubscriptions).upsert(
       {
-        user_id: auth.user.id,
+        user_id: uid,
         endpoint: sub.endpoint,
         p256dh: json.keys?.p256dh ?? "",
         auth: json.keys?.auth ?? "",
@@ -86,6 +92,17 @@ export async function subscribePush(): Promise<SubscribeResult> {
       },
       { onConflict: "endpoint" },
     );
+  };
+
+  try {
+    let sub = (await reg.pushManager.getSubscription()) ?? (await fresh());
+    let { error } = await save(sub);
+    if (error) {
+      // The endpoint may still belong to another account that used this device: start over with a new one.
+      await sub.unsubscribe().catch(() => undefined);
+      sub = await fresh();
+      ({ error } = await save(sub));
+    }
     if (error) return { ok: false, reason: "error", message: "Abonelik kaydedilemedi. Lütfen tekrar dene." };
     return { ok: true };
   } catch {
@@ -93,25 +110,20 @@ export async function subscribePush(): Promise<SubscribeResult> {
   }
 }
 
-/** Ask the server to send a test notification to the signed-in user's devices (POST /api/push/test). */
-export async function sendTestPush(): Promise<{ ok: boolean; message: string }> {
+/**
+ * Stop pushes on this device: deletes the DB row (needs the session, so call it before signing out),
+ * then the browser subscription. A row left by a failed delete dies with the endpoint (sender prunes 404/410).
+ * Resolves true when this device no longer receives pushes.
+ */
+export async function unsubscribePush(): Promise<boolean> {
+  if (!supported()) return true;
   try {
-    const res = await fetch("/api/push/test", { method: "POST" });
-    const body = (await res.json().catch(() => ({}))) as { pushed?: number; error?: string };
-    if (!res.ok) return { ok: false, message: body.error ?? "Test bildirimi gönderilemedi." };
-    return body.pushed ? { ok: true, message: "Test bildirimi gönderildi." } : { ok: false, message: "Bu hesapta kayıtlı bildirim aboneliği yok." };
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = await reg?.pushManager.getSubscription();
+    if (!sub) return true;
+    await createClient().from(TABLES.pushSubscriptions).delete().eq("endpoint", sub.endpoint);
+    return await sub.unsubscribe();
   } catch {
-    return { ok: false, message: "Bağlantı sorunu. Lütfen tekrar dene." };
+    return false;
   }
-}
-
-/** Remove this browser's subscription (local + DB row). */
-export async function unsubscribePush(): Promise<void> {
-  if (!supported()) return;
-  const reg = await readyRegistration(1500);
-  const sub = await reg?.pushManager.getSubscription();
-  if (!sub) return;
-  const endpoint = sub.endpoint;
-  await sub.unsubscribe().catch(() => undefined);
-  await createClient().from(TABLES.pushSubscriptions).delete().eq("endpoint", endpoint);
 }

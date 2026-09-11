@@ -72,6 +72,7 @@ export type Database = {
           device: string | null
           first_path: string | null
           id: string
+          ip_hash: string | null
           last_path: string | null
           last_seen_at: string
           os: string | null
@@ -86,6 +87,7 @@ export type Database = {
           device?: string | null
           first_path?: string | null
           id: string
+          ip_hash?: string | null
           last_path?: string | null
           last_seen_at?: string
           os?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           device?: string | null
           first_path?: string | null
           id?: string
+          ip_hash?: string | null
           last_path?: string | null
           last_seen_at?: string
           os?: string | null
@@ -187,6 +190,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          ip_hash: string | null
           platform: string
           session_id: string | null
           source: string
@@ -195,6 +199,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          ip_hash?: string | null
           platform: string
           session_id?: string | null
           source: string
@@ -203,6 +208,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          ip_hash?: string | null
           platform?: string
           session_id?: string | null
           source?: string
@@ -798,6 +804,7 @@ export type Database = {
           email: string | null
           handled: boolean
           id: string
+          ip_hash: string | null
           message: string
           name: string | null
           page_path: string | null
@@ -816,6 +823,7 @@ export type Database = {
           email?: string | null
           handled?: boolean
           id?: string
+          ip_hash?: string | null
           message: string
           name?: string | null
           page_path?: string | null
@@ -834,6 +842,7 @@ export type Database = {
           email?: string | null
           handled?: boolean
           id?: string
+          ip_hash?: string | null
           message?: string
           name?: string | null
           page_path?: string | null
@@ -1760,6 +1769,7 @@ export type Database = {
           is_demo: boolean
           kvkk_accepted_at: string | null
           marketing_consent: boolean
+          marketing_consent_at: string | null
           neighbourhood_id: string | null
           onboarded: boolean
           phone: string | null
@@ -1777,6 +1787,7 @@ export type Database = {
           is_demo?: boolean
           kvkk_accepted_at?: string | null
           marketing_consent?: boolean
+          marketing_consent_at?: string | null
           neighbourhood_id?: string | null
           onboarded?: boolean
           phone?: string | null
@@ -1794,6 +1805,7 @@ export type Database = {
           is_demo?: boolean
           kvkk_accepted_at?: string | null
           marketing_consent?: boolean
+          marketing_consent_at?: string | null
           neighbourhood_id?: string | null
           onboarded?: boolean
           phone?: string | null
@@ -1892,9 +1904,51 @@ export type Database = {
           },
         ]
       }
+      report_notes: {
+        Row: {
+          note: string
+          report_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          note: string
+          report_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          note?: string
+          report_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_notes_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: true
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_notes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_notes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
-          admin_note: string | null
           created_at: string
           detail: string | null
           id: string
@@ -1906,7 +1960,6 @@ export type Database = {
           target_type: string
         }
         Insert: {
-          admin_note?: string | null
           created_at?: string
           detail?: string | null
           id?: string
@@ -1918,7 +1971,6 @@ export type Database = {
           target_type: string
         }
         Update: {
-          admin_note?: string | null
           created_at?: string
           detail?: string | null
           id?: string
@@ -2356,38 +2408,21 @@ export type Database = {
       }
       public_profiles: {
         Row: {
-          avatar_url: string | null
           created_at: string | null
           display_name: string | null
           id: string | null
-          neighbourhood_id: string | null
-          phone_verified: boolean | null
         }
         Insert: {
-          avatar_url?: string | null
           created_at?: string | null
           display_name?: never
           id?: string | null
-          neighbourhood_id?: string | null
-          phone_verified?: never
         }
         Update: {
-          avatar_url?: string | null
           created_at?: string | null
           display_name?: never
           id?: string | null
-          neighbourhood_id?: string | null
-          phone_verified?: never
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_neighbourhood_id_fkey"
-            columns: ["neighbourhood_id"]
-            isOneToOne: false
-            referencedRelation: "neighbourhoods"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
@@ -2648,6 +2683,15 @@ export type Database = {
           p_subject?: string
           p_topic: string
           p_user_agent?: string
+        }
+        Returns: string
+      }
+      submit_report: {
+        Args: {
+          p_detail?: string
+          p_reason: string
+          p_target_id: string
+          p_target_type: string
         }
         Returns: string
       }
