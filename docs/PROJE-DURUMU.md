@@ -18,9 +18,9 @@ Diğer belgeler:
 | Kod deposu | GitHub `gbz-app/gbzseir`, dal `main`; `main`'e push = Vercel deploy |
 | Vercel projeleri | `gbzsehir` (public), `gbzsehir-admin` (aynı repo, `NEXT_PUBLIC_APP_MODE=admin`) |
 | Veritabanı | Supabase proje `fboythglcjofakbskstg`, bölge Tokyo (ap-northeast-1); Vercel fonksiyonları `hnd1` |
-| Son canlı commit | `d3bf2ac` (Sağlık tek sütun, çalışma saatleri, iş ilanı detayı) |
+| Son canlı commit | `9c9a164` (11 Eylül gece); büyük parti `1c9eb03` ile canlıya çıktı |
 
-**ÖNEMLİ:** `d3bf2ac`'den sonra yapılan ~250 dosyalık iş **henüz commit edilmedi ve canlıda değil**; çalışma ağacında duruyor. Veritabanı değişikliklerinin çoğu ise canlıya uygulandı (bkz. bölüm 5). Yeni oturumun ilk işi: `npx tsc --noEmit -p .` → `npx eslint` → `npx next build` → 390px ekran testleri → commit → push → deploy kontrolü.
+**Deploy durumu:** 26 maddelik partinin kodu `1c9eb03` ile, küçük düzeltmeler `9c9a164` ile canlıda (iki Vercel projesi READY, ana sayfalar 200, konsol hatası yok). Yeni bir oturumda önce `git status` ile commit edilmemiş iş olup olmadığına bakın; varsa `npx tsc --noEmit -p .` → `npx eslint` → `npx next build` → 390px ekran testleri → sadece ilgili dosyalarla commit → push → deploy kontrolü.
 
 **Gizli değerler nerede:** repo'da yok. Uygulama anahtarları `.env.local` (git-ignored) ve Vercel ortam değişkenlerinde. Yönetim anahtarları (Supabase access token, Vercel token, GitHub token) sahipte; önceki oturumda geçici oturum klasöründe (scratchpad) tutuluyordu ve oturum kapanınca kaybolur. Yeni oturumda bu üçünü sahipten tekrar isteyin; hiçbir zaman commit'e, belgeye veya çıktıya yazmayın.
 
@@ -67,7 +67,7 @@ Ayrıntılı ürün kararları: `docs/OTURUM-GUNLUGU.md` bölüm "Kararlar".
 - Tatil modu, "tümünü okundu", işletme kuralları, ilan istatistikleri, kullanıcı etkinlikleri, arama kayıtları, ilan videosu, GebzemAI, şehir rehberi (402 kayıt), doktorlar: **veritabanı tarafı canlı, kodu değil**
 - Google Maps projesi/anahtarı, Cloudflare R2, OpenAI anahtarı kurulu
 
-### 4.2 Kodda hazır, test + deploy bekliyor
+### 4.2 Canlıya çıkanlar (11 Eylül gece, `1c9eb03` + `9c9a164`)
 Header titremesi (yükleme ekranları), alt menü (düz siyah, tam genişlik), ortak alt çubuk (BottomDock), büyük/modern bildirim mesajları, modern şikayet sayfası, "Tümünü okundu yap", yeni tanıtım ekranları (5 adım), işletme açma (türe göre özellikler), tek işletme + destek yönlendirmesi, tür kilidi, adım adım işletme düzenleme, otellere QR menü, profil gücü (görev listesi), ilan sihirbazı ve detay ikonları, ilan istatistik ekranı, ilana 1 video (R2), etkinlikler (herkes oluşturur, kullanıcılar admin onayı; liste kategori tarzı, sade detay, takvime ekle), yeni arama sayfası, kenarlık/gölge temizliği, GebzemAI sayfası (OpenAI), ana sayfada Etkinlik kutusu ve GebzemAI kartı.
 
 ### 4.3 Arka planda çalışıyordu (bittiklerinde sonuçları kontrol edilmeli)
