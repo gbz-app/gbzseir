@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Briefcase, Bus, ChevronRight, Cross, Map as MapIcon, MoonStar, Store, Tag, type LucideIcon } from "lucide-react";
+import { Briefcase, Bus, ChevronRight, Map as MapIcon, MoonStar, Store, Tag, type LucideIcon } from "lucide-react";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -74,8 +74,8 @@ export default async function HomePage() {
       href: routes.nearby.dutyPharmacies(),
       label: "Nöbetçi Eczane",
       sub: dutyCount ? `Şu an ${dutyCount} açık` : "Bugün kim nöbette?",
-      icon: Cross,
-      tone: "bg-highlight-soft text-highlight-foreground dark:text-highlight",
+      image: "/images/home/eczane.webp",
+      imageClassName: "bg-card",
     },
     { href: routes.nearby.root("cami"), label: "Cami", sub: "Namaz vakitleri", icon: MoonStar, tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300" },
     { href: routes.nearby.root("durak"), label: "Durak", sub: "Duraklar ve hatlar", icon: Bus, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" },
@@ -112,7 +112,7 @@ export default async function HomePage() {
         <ul className="no-scrollbar -mx-4 mt-2 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-1">
           {guide.map((g) => (
             <li key={g.label} className="w-[7.75rem] shrink-0 snap-start">
-              <ImageTile href={g.href} label={g.label} sub={g.sub} icon={g.icon} tone={g.tone} sizes="124px" />
+              <ImageTile href={g.href} label={g.label} sub={g.sub} image={g.image} icon={g.icon} tone={g.tone} imageClassName={g.imageClassName} sizes="124px" />
             </li>
           ))}
         </ul>
