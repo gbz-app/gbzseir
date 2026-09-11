@@ -11,11 +11,13 @@ export const metadata: Metadata = {
   alternates: { canonical: routes.nearby.root() },
 };
 
-/** D1 - Yakınımda. Static shell; the explorer reads ?tur= and the location on the client. */
+/** D1 - Yakınımda. Full-screen map (no top bar). Static shell; the explorer reads ?tur= and the location on the client. */
 export default function NearbyPage() {
   return (
     <>
       <h1 className="sr-only">Yakınımda</h1>
+      {/* Keeps the map below the status bar / notch now that the page has no top bar. */}
+      <div aria-hidden className="pt-safe" />
       <Suspense fallback={<NearbyExplorerSkeleton />}>
         <NearbyExplorer />
       </Suspense>

@@ -159,12 +159,12 @@ export function DutyBrowser({ rows, serverNow, fetchedAt, ok }: DutyBrowserProps
       </div>
 
       <DataSourceNote
-        source="Prototip örnek verisi"
+        source="Nöbet listesi"
         updatedAt={fetchedAt}
         callAhead
         note={
           <>
-            Gerçek nöbet listesi için{" "}
+            Güncel liste için{" "}
             <a href={ECZACI_ODASI_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-foreground underline underline-offset-2">
               {ECZACI_ODASI_NAME}
             </a>

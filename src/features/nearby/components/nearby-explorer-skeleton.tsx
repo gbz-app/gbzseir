@@ -1,9 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin } from "lucide-react";
 
-/** Height of the /yakinimda map area: viewport minus top bar and bottom nav (vh fallback for old browsers). */
+/** Height of the /yakinimda map area: viewport minus the bottom nav and safe areas (no top bar; vh fallback for old browsers). */
 export const NEARBY_AREA_CLASS =
-  "relative w-full min-h-[420px] overflow-hidden h-[calc(100vh_-_var(--topbar-h)_-_var(--bottomnav-h))] supports-[height:100dvh]:h-[calc(100dvh_-_var(--topbar-h)_-_var(--bottomnav-h)_-_env(safe-area-inset-top,0px)_-_env(safe-area-inset-bottom,0px))]";
+  "relative w-full min-h-[420px] overflow-hidden h-[calc(100vh_-_var(--bottomnav-h))] supports-[height:100dvh]:h-[calc(100dvh_-_var(--bottomnav-h)_-_env(safe-area-inset-top,0px)_-_env(safe-area-inset-bottom,0px))]";
 
 /** Loading state of /yakinimda: chips, map placeholder and the list sheet. Server-safe. */
 export function NearbyExplorerSkeleton() {
@@ -23,7 +23,7 @@ export function NearbyExplorerSkeleton() {
         <Skeleton className="mt-2 h-3 w-1/3" />
         <div className="mt-4 flex flex-col gap-3">
           {[0, 1].map((i) => (
-            <div key={i} className="rounded-2xl bg-card p-3.5 shadow-soft ring-1 ring-foreground/[0.06]">
+            <div key={i} className="rounded-[1.75rem] bg-card p-4">
               <div className="flex gap-3">
                 <Skeleton className="size-10 rounded-xl" />
                 <div className="flex-1">

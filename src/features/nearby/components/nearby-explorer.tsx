@@ -11,8 +11,6 @@ import { routes } from "@/core/routes";
 import { istanbulParts } from "@/core/time";
 import { ChipFilter, type ChipOption } from "@/components/shared/chip-filter";
 import { DataSourceNote } from "@/components/shared/data-source-note";
-import { DemoBadge } from "@/components/shared/badges";
-import { DemoDataBanner } from "@/components/shared/demo-data-banner";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
@@ -61,11 +59,11 @@ function sourceFor(filter: NearbyFilter): { source: string; sourceUrl?: string; 
   switch (filter) {
     case "nobetci":
       return {
-        source: "Prototip örnek verisi",
+        source: "Nöbet listesi",
         callAhead: true,
         note: (
           <>
-            Gerçek nöbet listesi için{" "}
+            Güncel liste için{" "}
             <a href={ECZACI_ODASI_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-foreground underline underline-offset-2">
               {ECZACI_ODASI_NAME}
             </a>
@@ -243,16 +241,10 @@ export function NearbyExplorer() {
                   {data.loading ? "Yükleniyor…" : `${items.length} ${meta.noun}`} · {sortHint}
                 </p>
               </div>
-              {filter === "nobetci" ? <DemoBadge /> : null}
             </div>
           }
         >
           <LocationPrompt loc={loc} onLocate={locate} onPickNeighbourhood={() => setPickerOpen(true)} className="mb-3" />
-          {filter === "nobetci" ? (
-            <DemoDataBanner compact className="mb-3">
-              Örnek veri - gerçek nöbet listesi değildir. Gitmeden önce arayın.
-            </DemoDataBanner>
-          ) : null}
 
           {data.loading ? (
             <ListSkeleton count={3} variant="card" />

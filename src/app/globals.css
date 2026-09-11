@@ -258,10 +258,10 @@
     display: none;
   }
 }
-/* App background: lavender at the top fading into the page color, warm cream at the very bottom. */
+/* App background: lavender at the top fading into the page color (no warm tint behind the bottom nav). */
 @utility app-bg {
   background-color: var(--background);
-  background-image: linear-gradient(180deg, var(--bg-top) 0px, var(--background) 520px, var(--background) calc(100% - 360px), var(--bg-bottom) 100%);
+  background-image: linear-gradient(180deg, var(--bg-top) 0px, var(--background) 520px);
 }
 
 /* SVG parts that scale/rotate around their own center (onboarding illustrations). */

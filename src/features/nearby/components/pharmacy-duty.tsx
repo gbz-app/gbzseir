@@ -3,7 +3,7 @@
 import { Clock3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { describeDutyWindow, isDutyActive } from "@/core/duty";
-import { DemoBadge, DutyBadge } from "@/components/shared/badges";
+import { DutyBadge } from "@/components/shared/badges";
 import { useNow } from "../lib/use-now";
 import type { PharmacyDuty } from "../types";
 import { DetailSection } from "./detail-parts";
@@ -16,7 +16,6 @@ export function PharmacyDutyBadges({ duties, serverNow }: { duties: PharmacyDuty
   return (
     <>
       <DutyBadge label="Şu an nöbetçi" />
-      {active.source === "demo" ? <DemoBadge /> : null}
     </>
   );
 }
@@ -25,10 +24,9 @@ export function PharmacyDutyBadges({ duties, serverNow }: { duties: PharmacyDuty
 export function PharmacyDutySchedule({ duties, serverNow }: { duties: PharmacyDuty[]; serverNow: number }) {
   const now = useNow(serverNow);
   const upcoming = duties.filter((d) => new Date(d.duty_end).getTime() > now).slice(0, 4);
-  const demo = duties.some((d) => d.source === "demo");
 
   return (
-    <DetailSection title="Nöbet günleri" action={demo ? <DemoBadge /> : null}>
+    <DetailSection title="Nöbet günleri">
       {upcoming.length === 0 ? (
         <p className="rounded-2xl bg-muted/70 px-4 py-3 text-sm text-muted-foreground">Önümüzdeki günlerde kayıtlı nöbeti görünmüyor.</p>
       ) : (
@@ -45,7 +43,6 @@ export function PharmacyDutySchedule({ duties, serverNow }: { duties: PharmacyDu
           })}
         </ul>
       )}
-      {demo ? <p className="mt-2 px-1 text-xs text-muted-foreground">Örnek veri - gerçek nöbet listesi değildir.</p> : null}
     </DetailSection>
   );
 }

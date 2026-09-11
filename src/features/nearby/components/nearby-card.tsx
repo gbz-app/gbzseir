@@ -32,19 +32,16 @@ export function NearbyCard({ item, now, showDistance, selected, onShowOnMap }: N
   return (
     <article
       id={`yakin-${item.id}`}
-      className={cn(
-        "relative rounded-2xl bg-card p-3.5 shadow-soft ring-1 ring-foreground/[0.06] transition-shadow",
-        selected && "ring-2 ring-primary",
-      )}
+      className={cn("relative rounded-[1.75rem] bg-card p-4 transition-shadow", selected && "ring-2 ring-primary")}
     >
       <div className="flex items-start gap-3">
         <KindIcon kind={item.kind === "pharmacy" && onDuty ? "duty" : item.kind} size="sm" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="min-w-0 text-[15px] leading-snug font-bold break-words">
+            <h3 className="min-w-0 text-base leading-snug font-semibold break-words">
               <Link
                 href={item.href}
-                className="rounded-md outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="rounded-md outline-none after:absolute after:inset-0 after:rounded-[1.75rem] focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 {item.name}
               </Link>
@@ -83,11 +80,18 @@ export function NearbyCard({ item, now, showDistance, selected, onShowOnMap }: N
           ) : null}
         </div>
       </div>
-      <div className="relative z-10 mt-3 flex gap-2">
-        {item.phone ? <CallButton phone={item.phone} subjectType={item.subjectType} subjectId={item.id} className="flex-1" /> : null}
-        <DirectionsButton lat={item.lat} lng={item.lng} name={item.name} subjectType={item.subjectType} subjectId={item.id} className="flex-1" />
+      <div className="relative z-10 mt-3.5 flex gap-2">
+        {item.phone ? <CallButton phone={item.phone} subjectType={item.subjectType} subjectId={item.id} className="flex-1 rounded-full" /> : null}
+        <DirectionsButton
+          lat={item.lat}
+          lng={item.lng}
+          name={item.name}
+          subjectType={item.subjectType}
+          subjectId={item.id}
+          className="flex-1 rounded-full border-0 bg-muted hover:bg-muted/70"
+        />
         {onShowOnMap ? (
-          <Button type="button" variant="outline" size="icon" aria-label={`${item.name}: haritada göster`} onClick={() => onShowOnMap(item)}>
+          <Button type="button" variant="secondary" size="icon" className="rounded-full" aria-label={`${item.name}: haritada göster`} onClick={() => onShowOnMap(item)}>
             <MapPin />
           </Button>
         ) : null}
