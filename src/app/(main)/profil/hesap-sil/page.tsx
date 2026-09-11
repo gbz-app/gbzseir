@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { routes } from "@/core/routes";
-import { PageHeader } from "@/components/shared/page-header";
+import { ProfilePageHeader } from "@/components/shared/profile-page-header";
 import { requireProfile } from "@/lib/auth/server";
 import { AccountDeleteFlow } from "@/features/profile/components/account-delete-flow";
 
@@ -11,7 +11,7 @@ export default async function DeleteAccountPage() {
   await requireProfile(routes.profile.deleteAccount());
   return (
     <>
-      <PageHeader title="Hesabı Sil" backHref={routes.profile.settings()} />
+      <ProfilePageHeader title="Hesabı sil" backHref={routes.profile.settings()} />
       <AccountDeleteFlow />
     </>
   );

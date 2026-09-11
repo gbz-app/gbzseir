@@ -10,10 +10,8 @@ import {
   CircleHelp,
   ClipboardList,
   Clock,
-  FileText,
   Heart,
   LogOut,
-  Megaphone,
   Plus,
   Settings,
   Store,
@@ -29,6 +27,7 @@ import { initials } from "@/core/format";
 import { routes } from "@/core/routes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PROFILE_ROUND_BUTTON } from "@/components/shared/profile-page-header";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useMyBusinesses } from "@/lib/auth/hooks";
 import { useUnreadNotifications } from "@/lib/notifications/use-unread-notifications";
@@ -76,7 +75,7 @@ function PromoCard({ promo, onDismiss }: { promo: Promo; onDismiss?: () => void 
   const Icon = promo.icon;
   return (
     <section
-      className="relative flex min-h-[12.125rem] flex-col justify-end overflow-hidden rounded-3xl p-6 text-white shadow-card"
+      className="relative flex min-h-[12.125rem] flex-col justify-end overflow-hidden rounded-3xl p-6 text-white"
       style={{
         backgroundImage:
           "linear-gradient(135deg, color-mix(in oklch, var(--primary) 38%, black) 0%, color-mix(in oklch, var(--primary) 80%, black) 58%, var(--primary) 100%)",
@@ -129,14 +128,14 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
         <Link
           href={routes.content.help()}
           aria-label="Yardım"
-          className="flex size-11 items-center justify-center rounded-full bg-card text-foreground transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+          className={PROFILE_ROUND_BUTTON}
         >
           <CircleHelp className="size-5" strokeWidth={1.75} aria-hidden />
         </Link>
         <Link
           href={routes.profile.settings()}
           aria-label="Ayarlar"
-          className="flex size-11 items-center justify-center rounded-full bg-card text-foreground transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+          className={PROFILE_ROUND_BUTTON}
         >
           <Settings className="size-5" strokeWidth={1.75} aria-hidden />
         </Link>
@@ -236,7 +235,7 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
 
       {user && profile && !profile.onboarded ? (
         <Link href={routes.auth.profile(routes.profile.root())} className="mt-3 rounded-2xl bg-highlight-soft px-4 py-3 text-sm font-semibold">
-          Profilini tamamla: adını ve mahalleni ekle.
+          Profilini tamamla: adını ekle.
         </Link>
       ) : null}
 
@@ -265,8 +264,6 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
       <ul className="divide-y">
         <Row icon={Settings} label="Ayarlar" href={routes.profile.settings()} />
         <Row icon={CircleHelp} label="Yardım ve destek" href={routes.content.help()} />
-        <Row icon={Megaphone} label="Reklam ve iş birliği" href={routes.content.help("reklam")} />
-        <Row icon={FileText} label="Yasal metinler" href={routes.legal.kvkk()} />
       </ul>
 
       {user ? (

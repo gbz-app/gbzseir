@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, ClipboardList, Plus } from "lucide-react";
-import { PageHeader } from "@/components/shared/page-header";
+import { ProfileHeaderLink, ProfilePageHeader } from "@/components/shared/profile-page-header";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { requireAuth } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
@@ -41,7 +40,7 @@ function RequestCard({ row }: { row: Row }) {
   return (
     <Link
       href={routes.services.requestDetail(row.public_code)}
-      className="flex items-start gap-3 rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06] transition-[box-shadow,transform] outline-none hover:ring-primary/30 focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]"
+      className="flex items-start gap-3 rounded-2xl bg-card p-4 transition-transform outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]"
     >
       <ServiceIconBubble name={row.categoryIcon} size="sm" />
       <div className="min-w-0 flex-1">
@@ -96,16 +95,14 @@ export default async function MyRequestsPage() {
 
   return (
     <>
-      <PageHeader
+      <ProfilePageHeader
         title="Taleplerim"
         backHref={routes.profile.root()}
         actions={
           rows.length ? (
-            <Button asChild variant="ghost" size="sm" className="h-11 text-primary">
-              <Link href={routes.services.root()}>
-                <Plus /> Yeni talep
-              </Link>
-            </Button>
+            <ProfileHeaderLink href={routes.services.root()} label="Yeni talep">
+              <Plus className="size-5" strokeWidth={2} aria-hidden />
+            </ProfileHeaderLink>
           ) : null
         }
       />

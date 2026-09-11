@@ -8,7 +8,7 @@ import { IS_ADMIN_SITE } from "@/config/app-mode";
 export type QueryValue = string | number | boolean | null | undefined;
 export type QueryRecord = Record<string, QueryValue | QueryValue[]>;
 
-/** Append query params, skipping empty values. withQuery('/ilanlar', {tab:'is-ilanlari'}) -> '/ilanlar?tab=is-ilanlari' */
+/** Append query params, skipping empty values. withQuery('/ilanlar', {kategori:'elektronik'}) -> '/ilanlar?kategori=elektronik' */
 export function withQuery(path: string, query?: QueryRecord | null): string {
   if (!query) return path;
   const sp = new URLSearchParams();
@@ -86,8 +86,12 @@ export const routes = {
   },
 
   listings: {
-    /** /ilanlar?tab=ikinci-el|is-ilanlari (+ optional filters) */
-    root: (tab?: ListingsTab, query?: QueryRecord) => withQuery("/ilanlar", { tab, ...query }),
+    /** İkinci El list: /ilanlar (+ optional filters) */
+    classifieds: (query?: QueryRecord) => withQuery("/ilanlar", query),
+    /** İş ilanları list: /is-ilanlari (+ optional filters) */
+    jobs: (query?: QueryRecord) => withQuery("/is-ilanlari", query),
+    /** List page of a tab: ikinci-el -> /ilanlar, is-ilanlari -> /is-ilanlari (old /ilanlar?tab=is-ilanlari links redirect there). */
+    root: (tab?: ListingsTab, query?: QueryRecord) => withQuery(tab === "is-ilanlari" ? "/is-ilanlari" : "/ilanlar", query),
     classified: (id: string | number) => `/ilan/${enc(id)}`,
     job: (id: string | number) => `/is-ilani/${enc(id)}`,
     post: () => "/ilan-ver",
@@ -217,6 +221,7 @@ export const PUBLIC_STATIC_ROUTES: Array<{ path: string; priority: number; chang
   { path: "/yakinimda", priority: 0.7, changeFrequency: "weekly" },
   { path: "/gezilecek-yerler", priority: 0.7, changeFrequency: "weekly" },
   { path: "/ilanlar", priority: 0.8, changeFrequency: "hourly" },
+  { path: "/is-ilanlari", priority: 0.8, changeFrequency: "hourly" },
   { path: "/hizmetler", priority: 0.8, changeFrequency: "weekly" },
   { path: "/firmalar", priority: 0.7, changeFrequency: "daily" },
   { path: "/kesfet/yemek", priority: 0.7, changeFrequency: "daily" },

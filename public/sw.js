@@ -41,6 +41,7 @@ const PUBLIC_PAGES = [
   /^\/durak\/[^/]+\/?$/,
   /^\/gezilecek-yerler(\/[^/]+)?\/?$/,
   /^\/ilanlar\/?$/,
+  /^\/is-ilanlari\/?$/,
   /^\/ilan\/[^/]+\/?$/,
   /^\/is-ilani\/[^/]+\/?$/,
   /^\/hizmetler(\/[^/]+)?\/?$/,

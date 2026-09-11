@@ -16,15 +16,5 @@ export default async function ProfileSetupPage({ searchParams }: PageProps<"/gir
   if (!user) redirect(routes.auth.login(next));
   const profile = await getProfile();
   if (profile?.onboarded) redirect(next);
-  return (
-    <ProfileSetupScreen
-      next={next}
-      initial={{
-        fullName: profile?.full_name ?? null,
-        email: profile?.email ?? null,
-        neighbourhoodId: profile?.neighbourhood_id != null ? String(profile.neighbourhood_id) : null,
-        avatarUrl: profile?.avatar_url ?? null,
-      }}
-    />
-  );
+  return <ProfileSetupScreen next={next} initial={{ fullName: profile?.full_name ?? null, avatarUrl: profile?.avatar_url ?? null }} />;
 }

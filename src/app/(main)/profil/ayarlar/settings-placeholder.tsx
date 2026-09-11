@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronRight, Download, FileText, MapPinOff, Megaphone, PlayCircle, Smartphone, Trash2, type LucideIcon } from "lucide-react";
+import { Bell, ChevronRight, MapPinOff, Megaphone, PlayCircle, Smartphone, Trash2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
@@ -92,7 +92,7 @@ function consentHint(p: ConsentProfile | null): string {
   return date ? `${date} tarihinde izni geri aldın.` : "Kampanya ve duyuru bildirimleri için izin.";
 }
 
-/** Ayarlar: theme, notifications on/off, marketing consent, app helpers, account and legal links. */
+/** Ayarlar: theme, notifications on/off, marketing consent, app helpers and account. Legal texts: login + help page. */
 export function SettingsScreen() {
   const router = useRouter();
   const { user, profile, refreshProfile } = useAuth();
@@ -201,7 +201,6 @@ export function SettingsScreen() {
       ) : null}
 
       <Section title="Uygulama">
-        <ActionRow icon={Download} label="Ana ekrana ekle" hint="Uygulama gibi hızlıca aç." onClick={() => openInstallGuide()} />
         <ActionRow
           icon={PlayCircle}
           label="Tanıtımı tekrar izle"
@@ -227,12 +226,6 @@ export function SettingsScreen() {
           <ActionRow icon={Trash2} label="Hesabı sil" href={routes.profile.deleteAccount()} danger />
         </Section>
       ) : null}
-
-      <Section title="Yasal">
-        <ActionRow icon={FileText} label="KVKK Aydınlatma Metni" href={routes.legal.kvkk()} />
-        <ActionRow icon={FileText} label="Kullanım Koşulları" href={routes.legal.terms()} />
-        <ActionRow icon={FileText} label="Gizlilik Politikası" href={routes.legal.privacy()} />
-      </Section>
     </div>
   );
 }

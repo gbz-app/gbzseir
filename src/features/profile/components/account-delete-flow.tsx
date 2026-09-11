@@ -93,7 +93,7 @@ export function AccountDeleteFlow() {
 
   return (
     <div className="flex flex-col gap-5 px-4 pt-5 pb-8">
-      <div className="flex gap-3 rounded-2xl bg-destructive/10 p-4 ring-1 ring-destructive/20">
+      <div className="flex gap-3 rounded-2xl bg-destructive/10 p-4">
         <CircleAlert className="mt-0.5 size-5 shrink-0 text-destructive" aria-hidden />
         <div className="text-sm leading-relaxed">
           <p className="font-bold text-destructive">Bu işlem geri alınamaz</p>
@@ -105,7 +105,7 @@ export function AccountDeleteFlow() {
           <li key={t}>{t}</li>
         ))}
       </ul>
-      <label htmlFor="silme-onay" className="flex items-start gap-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/[0.08]">
+      <label htmlFor="silme-onay" className="flex items-start gap-3 rounded-2xl bg-card p-4">
         <Checkbox id="silme-onay" checked={agreed} onCheckedChange={(c) => setAgreed(c === true)} className="mt-0.5" />
         <span className="text-[15px] leading-snug">Okudum, hesabımın ve verilerimin silinmesini istiyorum.</span>
       </label>

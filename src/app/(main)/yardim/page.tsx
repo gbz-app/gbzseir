@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Mail, Phone } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { PageHeader } from "@/components/shared/page-header";
 import { APP_NAME } from "@/config/site";
 import { displayTrPhone, getAppSettings } from "@/lib/app-settings";
 import { formatPhoneInputTR, fromSupabasePhone, telHref } from "@/core/phone";
@@ -9,8 +8,9 @@ import { routes } from "@/core/routes";
 import { getCurrentUser, getProfile } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { ECZACI_ODASI_NAME } from "@/features/nearby/config";
-import { SupportCenter, type MyMessage } from "@/features/support/support-center";
-import { parseTopic } from "@/features/support/topics";
+import { type MyMessage } from "@/features/support/my-messages";
+import { SupportCenter } from "@/features/support/support-center";
+import { SupportFooter } from "@/features/support/support-footer";
 
 export const metadata: Metadata = {
   title: "Yardım ve destek",
@@ -34,17 +34,14 @@ const FAQ: Array<{ q: string; a: string }> = [
   { q: "Uygulamada neden mesajlaşma yok?", a: `${APP_NAME}'de iletişim yalnızca telefonla yapılır. Böylece dolandırıcılık ve spam mesajların önüne geçiyoruz. İlan ve işletme sayfalarındaki "Ara" butonunu kullanabilirsin.` },
   { q: "İlanım neden yayına alınmadı?", a: "Yasaklı kategorideki (emlak, vasıta, ilaç, silah, canlı hayvan, alkol, tütün) ya da eksik bilgili ilanlar yayına alınmaz. Profil > İlanlarım sayfasında ret nedenini görebilir, düzeltip tekrar gönderebilirsin." },
   { q: DUTY_Q, a: `Şu an gösterilen nöbet listesi örnek veridir, gerçek nöbet listesi değildir. Resmi liste için ${ECZACI_ODASI_NAME}'nın sitesine bakabilirsin.` },
-  { q: BUSINESS_Q, a: "Yeni işletme başvuruları yakında açılacak. Şimdilik bu sayfadaki \"İşletme ekletme\" formundan bize yazabilirsin; ekibimiz seni arar." },
-  { q: "Reklam vermek istiyorum, ne yapmalıyım?", a: "\"Reklam ve iş birliği\" formunu doldur. Ana sayfa vitrini, kategori öne çıkarma ve etkinlik tanıtımı gibi seçenekleri seninle konuşuruz." },
+  { q: BUSINESS_Q, a: "Yeni işletme başvuruları yakında açılacak. Şimdilik bu sayfada \"İşletmemi ekletmek istiyorum\" konusunu seçip bize yazabilirsin; ekibimiz seni arar." },
+  { q: "Reklam vermek istiyorum, ne yapmalıyım?", a: "Bu sayfada \"Reklam ve iş birliği\" konusunu seçip bize yaz. Ana sayfa vitrini, kategori öne çıkarma ve etkinlik tanıtımı gibi seçenekleri seninle konuşuruz." },
   { q: "Hesabımı nasıl silerim?", a: "Profil > Ayarlar > Hesabı sil adımlarını izleyebilirsin. Silme işlemi telefonuna gelen kod ile onaylanır ve geri alınamaz." },
-  { q: "Bir ilan ya da işletmeyi nasıl şikayet ederim?", a: "İlgili sayfadaki ⋯ menüsünden \"Şikayet et\"i seç ya da bu sayfadaki \"Şikayet bildir\" formunu kullan." },
+  { q: "Bir ilan ya da işletmeyi nasıl şikayet ederim?", a: "İlgili sayfadaki ⋯ menüsünden \"Şikayet et\"i seç ya da bu sayfada \"Şikayet bildir\" konusunu seçip bize yaz." },
 ];
 
-type Props = { searchParams: Promise<{ konu?: string }> };
-
-/** Yardım ve destek merkezi. */
-export default async function HelpPage({ searchParams }: Props) {
-  const { konu } = await searchParams;
+/** Yardım ve destek merkezi: step-by-step contact flow, Mesajlarım, FAQ, contacts and legal links. */
+export default async function HelpPage() {
   const [user, settings] = await Promise.all([getCurrentUser(), getAppSettings()]);
   let messages: MyMessage[] = [];
   let prefill = { name: "", phone: "" };
@@ -68,48 +65,42 @@ export default async function HelpPage({ searchParams }: Props) {
   });
 
   return (
-    <>
-      <PageHeader title="Yardım ve destek" backHref={routes.profile.root()} />
-      <div className="flex flex-col gap-7 px-4 pt-4 pb-10">
-        <header>
-          <h2 className="text-[1.6rem] leading-tight font-semibold tracking-tight">Nasıl yardımcı olabiliriz?</h2>
-          <p className="mt-1 text-[15px] text-muted-foreground">Konunu seç, mesajını yaz; ekibimiz en kısa sürede dönüş yapsın.</p>
-        </header>
+    <SupportCenter prefill={prefill} loggedIn={!!user} messages={messages}>
+      <section aria-labelledby="sss-baslik">
+        <h2 id="sss-baslik" className="mb-2 text-lg font-semibold">
+          Sık sorulan sorular
+        </h2>
+        <Accordion type="single" collapsible className="rounded-3xl bg-card px-4">
+          {faq.map((f, i) => (
+            <AccordionItem key={f.q} value={`s${i}`}>
+              <AccordionTrigger className="py-4 text-left text-[15px] font-semibold hover:no-underline">{f.q}</AccordionTrigger>
+              <AccordionContent className="pb-4 text-[15px] leading-relaxed text-muted-foreground">{f.a}</AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </section>
 
-        <SupportCenter initialTopic={parseTopic(konu)} prefill={prefill} loggedIn={!!user} messages={messages} />
-
-        <section>
-          <h2 className="mb-2 text-lg font-semibold">Sık sorulan sorular</h2>
-          <Accordion type="single" collapsible className="rounded-3xl bg-card px-4 shadow-soft ring-1 ring-foreground/[0.05]">
-            {faq.map((f, i) => (
-              <AccordionItem key={f.q} value={`s${i}`}>
-                <AccordionTrigger className="text-left text-[15px] font-semibold">{f.q}</AccordionTrigger>
-                <AccordionContent className="text-[15px] leading-relaxed text-muted-foreground">{f.a}</AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+      {/* Contact cards only for contacts set in Admin > Ayarlar (the flow above always works). */}
+      {settings.supportPhone || settings.supportEmail ? (
+        <section aria-label="Bize doğrudan ulaş" className={`grid gap-2.5 ${settings.supportPhone && settings.supportEmail ? "grid-cols-2" : ""}`}>
+          {settings.supportPhone ? (
+            <a href={telHref(settings.supportPhone)} className="flex flex-col gap-1 rounded-3xl bg-card p-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+              <Phone className="size-5 text-primary" aria-hidden />
+              <span className="mt-1 text-xs text-muted-foreground">Telefon</span>
+              <span className="text-sm font-semibold">{displayTrPhone(settings.supportPhone)}</span>
+            </a>
+          ) : null}
+          {settings.supportEmail ? (
+            <a href={`mailto:${settings.supportEmail}`} className="flex min-w-0 flex-col gap-1 rounded-3xl bg-card p-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+              <Mail className="size-5 text-primary" aria-hidden />
+              <span className="mt-1 text-xs text-muted-foreground">E-posta</span>
+              <span className="truncate text-sm font-semibold">{settings.supportEmail}</span>
+            </a>
+          ) : null}
         </section>
+      ) : null}
 
-        {/* Contact cards only for contacts set in Admin > Ayarlar (the form above always works). */}
-        {settings.supportPhone || settings.supportEmail ? (
-          <section className={`grid gap-2.5 ${settings.supportPhone && settings.supportEmail ? "grid-cols-2" : ""}`}>
-            {settings.supportPhone ? (
-              <a href={telHref(settings.supportPhone)} className="flex flex-col gap-1 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
-                <Phone className="size-5 text-primary" aria-hidden />
-                <span className="mt-1 text-xs text-muted-foreground">Telefon</span>
-                <span className="text-sm font-semibold">{displayTrPhone(settings.supportPhone)}</span>
-              </a>
-            ) : null}
-            {settings.supportEmail ? (
-              <a href={`mailto:${settings.supportEmail}`} className="flex min-w-0 flex-col gap-1 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05]">
-                <Mail className="size-5 text-primary" aria-hidden />
-                <span className="mt-1 text-xs text-muted-foreground">E-posta</span>
-                <span className="truncate text-sm font-semibold">{settings.supportEmail}</span>
-              </a>
-            ) : null}
-          </section>
-        ) : null}
-      </div>
-    </>
+      <SupportFooter />
+    </SupportCenter>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { routes } from "@/core/routes";
-import { PageHeader } from "@/components/shared/page-header";
+import { ProfilePageHeader } from "@/components/shared/profile-page-header";
 import { requireProfile } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { CARD_SELECT } from "@/features/listings/search";
@@ -74,7 +74,7 @@ export default async function FavoritesPage() {
 
   return (
     <>
-      <PageHeader title="Favorilerim" backHref={routes.profile.root()} />
+      <ProfilePageHeader title="Favorilerim" backHref={routes.profile.root()} />
       <FavoritesView listings={listings} businesses={businesses} pois={pois} />
     </>
   );

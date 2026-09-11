@@ -57,9 +57,10 @@ export function ChoiceChips<T extends string = string>(props: ChoiceChipsProps<T
             disabled={o.disabled}
             onClick={() => toggle(o.value)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+              "inline-flex items-center gap-1.5 rounded-full font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
               size === "sm" ? "min-h-10 px-3.5 text-[13px]" : "min-h-11 px-4 text-sm",
-              active ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border bg-card text-foreground hover:bg-muted",
+              // No border / shadow: a soft tint that shows on the white sheet and on the page background alike.
+              active ? "bg-primary text-primary-foreground" : "bg-foreground/[0.06] text-foreground hover:bg-foreground/10",
             )}
           >
             {o.icon}

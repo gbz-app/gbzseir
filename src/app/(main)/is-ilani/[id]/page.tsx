@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { routes, withQuery } from "@/core/routes";
 import { CITY } from "@/config/site";
-import { PageHeader } from "@/components/shared/page-header";
-import { FavoriteButton } from "@/components/shared/favorite-button";
-import { ShareButton } from "@/components/shared/share-button";
 import { JsonLd } from "@/components/seo/json-ld";
 import { EDITABLE_STATUSES } from "@/features/listings/constants";
 import { jobPostingJsonLd } from "@/features/listings/seo";
@@ -12,7 +9,8 @@ import { getListingDetail, safeCategories } from "@/features/listings/server/que
 import { displayState, jobModelFromDetail } from "@/features/listings/view-models";
 import { JobDetailView } from "@/features/listings/components/detail-views";
 import { StatusNotice } from "@/features/listings/components/detail-parts";
-import { ActionBarSpacer, JobActionBar, ListingDetailMenu, ReportFooter, ViewTracker } from "@/features/listings/components/detail-actions";
+import { JobActionBar, ReportFooter, ViewTracker } from "@/features/listings/components/detail-actions";
+import { ListingHeroBar } from "@/features/listings/components/hero-bar";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -30,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** E4 - İş ilanı detay (telefon üyeliksiz görünür, başvuru butonu/CV yok). */
+/** E4 - İş ilanı detay (firm-detail style; phone visible without login, no CV / apply form). */
 export default async function JobPage({ params }: Props) {
   const { id } = await params;
   const detail = await getListingDetail(id);
@@ -43,30 +41,29 @@ export default async function JobPage({ params }: Props) {
     ? withQuery(routes.listings.postJob(), { duzenle: detail.id })
     : null;
   const manageHref = routes.profile.jobs();
-  const similarHref = routes.listings.root("is-ilanlari", { kategori: model.sectorSlug });
+  const similarHref = routes.listings.jobs({ kategori: model.sectorSlug });
 
   return (
     <>
       {model.state === "live" && !detail.is_demo ? <JsonLd data={jobPostingJsonLd(detail, model)} /> : null}
-      <PageHeader
-        title="İş İlanı"
-        backHref={routes.listings.root("is-ilanlari")}
-        hideBottomNav
-        actions={
-          <>
-            <FavoriteButton targetType="listing" targetId={detail.id} />
-            <ShareButton title={detail.title} iconOnly variant="ghost" />
-            <ListingDetailMenu listingId={detail.id} ownerId={detail.owner_id} editHref={editHref} manageHref={manageHref} />
-          </>
-        }
-      />
       <JobDetailView
         model={model}
         isDemo={detail.is_demo}
+        views={detail.view_count}
+        sheetClassName="pb-36"
+        heroBar={
+          <ListingHeroBar
+            listingId={detail.id}
+            ownerId={detail.owner_id}
+            title={detail.title}
+            backHref={routes.listings.jobs()}
+            editHref={editHref}
+            manageHref={manageHref}
+          />
+        }
         notice={<StatusNotice state={model.state} kind="job" rejectionReason={detail.rejection_reason} />}
         footer={<ReportFooter listingId={detail.id} ownerId={detail.owner_id} />}
       />
-      <ActionBarSpacer />
       <JobActionBar
         listingId={detail.id}
         ownerId={detail.owner_id}

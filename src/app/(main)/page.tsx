@@ -4,6 +4,7 @@ import { Briefcase, Bus, ChevronRight, Map as MapIcon, Sparkles, Tag, type Lucid
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TopBar } from "@/components/layout/top-bar";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { VERTICAL_INFO, type Vertical } from "@/features/business/lib/verticals";
@@ -43,8 +44,8 @@ const CATEGORIES: Tile[] = [
   vertical("kafe"),
   vertical("hizmet", "Hizmetler"),
   vertical("otel"),
-  { href: routes.listings.root("ikinci-el"), label: "İkinci El", icon: Tag, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" },
-  { href: routes.listings.root("is-ilanlari"), label: "İş İlanı", icon: Briefcase, tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300" },
+  { href: routes.listings.classifieds(), label: "İkinci El", icon: Tag, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" },
+  { href: routes.listings.jobs(), label: "İş İlanı", icon: Briefcase, tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300" },
   vertical("saglik"),
   vertical("dugun"),
   vertical("egitim"),
@@ -110,6 +111,8 @@ async function PlacesSection() {
 /** C1 - Ana sayfa: başlık, arama, yapay zeka + hızlı kartlar, kategoriler, gezilecek yerler, haberler. */
 export default function HomePage() {
   return (
+    <>
+    <TopBar />
     <div className="flex flex-col gap-6 px-4 pt-2 pb-8">
       <JsonLd
         data={{
@@ -157,5 +160,6 @@ export default function HomePage() {
         <NewsSection />
       </Suspense>
     </div>
+    </>
   );
 }

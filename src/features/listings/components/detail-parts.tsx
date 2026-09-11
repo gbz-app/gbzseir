@@ -1,18 +1,30 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { CalendarDays, ChevronRight, CircleCheck, CirclePause, CircleX, Hash, Hourglass, MapPin, ShieldAlert, Timer } from "lucide-react";
+import { ChevronRight, CircleCheck, CirclePause, CircleX, Hourglass, MapPin, ShieldAlert, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
-import { formatDate, initials } from "@/core/format";
+import { initials } from "@/core/format";
 import { BusinessBadge, VerifiedBadge } from "@/components/shared/badges";
 import type { BusinessRef } from "../types";
 import type { DisplayState, SellerInfo } from "../view-models";
 import { CompanyLogo } from "./listing-cards";
 
+/** Section with a heading (firm page style). */
+export function DetailSection({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  return (
+    <section aria-labelledby={id}>
+      <h2 id={id} className="mb-3 text-lg font-semibold">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
 /** Amber safety box. */
 export function SafetyNotice({ title = "Güvenli alışveriş", text }: { title?: string; text: string }) {
   return (
-    <aside className="flex gap-3 rounded-2xl bg-highlight-soft p-4 ring-1 ring-highlight/30">
+    <aside className="flex gap-3 rounded-3xl bg-highlight-soft p-4">
       <ShieldAlert className="mt-0.5 size-5 shrink-0 text-highlight-foreground dark:text-highlight" aria-hidden />
       <div>
         <p className="text-sm font-bold text-highlight-foreground dark:text-foreground">{title}</p>
@@ -63,10 +75,10 @@ function noticeFor(state: DisplayState, kind: "classified" | "job", rejectionRea
 }
 
 const toneClass: Record<NoticeConfig["tone"], { box: string; icon: string }> = {
-  warning: { box: "bg-highlight-soft ring-highlight/30", icon: "text-highlight-foreground dark:text-highlight" },
-  danger: { box: "bg-destructive/10 ring-destructive/20", icon: "text-destructive" },
-  muted: { box: "bg-muted ring-foreground/[0.06]", icon: "text-muted-foreground" },
-  success: { box: "bg-success-soft ring-success/20", icon: "text-success" },
+  warning: { box: "bg-highlight-soft", icon: "text-highlight-foreground dark:text-highlight" },
+  danger: { box: "bg-destructive/10", icon: "text-destructive" },
+  muted: { box: "bg-card", icon: "text-muted-foreground" },
+  success: { box: "bg-success-soft", icon: "text-success" },
 };
 
 /** Status banner for listings that are not live (sold, expired, pending review...). */
@@ -86,7 +98,7 @@ export function StatusNotice({
   const Icon = cfg.icon;
   const tone = toneClass[cfg.tone];
   return (
-    <div role="status" className={cn("flex gap-3 rounded-2xl p-4 ring-1", tone.box)}>
+    <div role="status" className={cn("flex gap-3 rounded-3xl p-4", tone.box)}>
       <Icon className={cn("mt-0.5 size-5 shrink-0", tone.icon)} aria-hidden />
       <div className="min-w-0">
         <p className="font-bold">{cfg.title}</p>
@@ -97,47 +109,38 @@ export function StatusNotice({
   );
 }
 
-/** Location · date · ilan no. */
-export function MetaRow({ neighbourhoodName, postedAt, listingNo }: { neighbourhoodName: string | null; postedAt: string | null; listingNo: string | null }) {
+export type FactTile = { label: string; value: React.ReactNode };
+
+/** Key facts as three white tiles (the firm page stat tiles): value on top, label below. */
+export function FactTiles({ tiles }: { tiles: FactTile[] }) {
   return (
-    <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
-      {neighbourhoodName ? (
-        <li className="inline-flex items-center gap-1.5">
-          <MapPin className="size-4 shrink-0" aria-hidden />
-          {neighbourhoodName} Mah., Gebze
-        </li>
-      ) : null}
-      <li className="inline-flex items-center gap-1.5">
-        <CalendarDays className="size-4 shrink-0" aria-hidden />
-        {postedAt ? formatDate(postedAt, { month: "long" }) : "Bugün"}
-      </li>
-      {listingNo ? (
-        <li className="inline-flex items-center gap-1.5">
-          <Hash className="size-4 shrink-0" aria-hidden />
-          İlan no: {listingNo}
-        </li>
-      ) : null}
-    </ul>
+    <dl className="grid grid-cols-3 gap-2">
+      {tiles.map((t) => (
+        <div key={t.label} className="flex min-w-0 flex-col-reverse items-center justify-center rounded-2xl bg-card px-2 py-3 text-center">
+          <dt className="mt-1 text-xs text-muted-foreground">{t.label}</dt>
+          <dd className="line-clamp-2 max-w-full text-[15px] leading-tight font-semibold break-words tabular-nums">{t.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
-/** Label/value table (Özellikler, İş bilgileri). */
-export function DetailTable({ id, title, rows }: { id: string; title: string; rows: Array<{ label: string; value: string }> }) {
+export type DetailRow = { label: string; value: string };
+
+/** Label / value pairs as a clean two-column list on a white card (Özellikler, İş bilgileri). */
+export function DetailList({ id, title, rows }: { id: string; title: string; rows: DetailRow[] }) {
   if (!rows.length) return null;
   return (
-    <section aria-labelledby={id}>
-      <h2 id={id} className="text-lg font-bold">
-        {title}
-      </h2>
-      <dl className="mt-3 divide-y overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/[0.06]">
-        {rows.map((r) => (
-          <div key={r.label} className="flex items-start justify-between gap-4 px-4 py-3 text-[15px]">
-            <dt className="shrink-0 text-muted-foreground">{r.label}</dt>
-            <dd className="min-w-0 text-right font-semibold break-words">{r.value}</dd>
+    <DetailSection id={id} title={title}>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-3xl bg-card p-4">
+        {rows.map((r, i) => (
+          <div key={`${r.label}-${i}`} className="min-w-0">
+            <dt className="text-[13px] text-muted-foreground">{r.label}</dt>
+            <dd className="mt-0.5 text-[15px] leading-snug font-semibold break-words">{r.value}</dd>
           </div>
         ))}
       </dl>
-    </section>
+    </DetailSection>
   );
 }
 
@@ -145,12 +148,24 @@ export function DetailTable({ id, title, rows }: { id: string; title: string; ro
 export function TextSection({ id, title, text }: { id: string; title: string; text: string }) {
   if (!text.trim()) return null;
   return (
-    <section aria-labelledby={id}>
-      <h2 id={id} className="text-lg font-bold">
-        {title}
-      </h2>
-      <p className="mt-2 text-[15px] leading-relaxed break-words whitespace-pre-line">{text.trim()}</p>
-    </section>
+    <DetailSection id={id} title={title}>
+      <p className="text-[15px] leading-relaxed break-words whitespace-pre-line text-foreground/90">{text.trim()}</p>
+    </DetailSection>
+  );
+}
+
+/** Neighbourhood / OSB with a short note (listings carry no exact address). */
+export function LocationCard({ title, note }: { title: string; note?: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-3xl bg-card p-4">
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-primary">
+        <MapPin className="size-5" aria-hidden />
+      </span>
+      <div className="min-w-0">
+        <p className="font-semibold break-words">{title}</p>
+        {note ? <p className="mt-0.5 text-sm leading-snug text-muted-foreground">{note}</p> : null}
+      </div>
+    </div>
   );
 }
 
@@ -158,13 +173,13 @@ function BusinessRow({ business, interactive }: { business: BusinessRef; interac
   const verified = business.verification_level >= 1;
   const inner = (
     <>
-      <CompanyLogo name={business.name} logoUrl={business.logo_url} className="size-11 rounded-lg" />
+      <CompanyLogo name={business.name} logoUrl={business.logo_url} className="size-11" />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <BusinessBadge />
           {verified ? <VerifiedBadge /> : null}
         </div>
-        <p className="mt-1 truncate text-[15px] font-bold">{business.name}</p>
+        <p className="mt-1 truncate text-[15px] font-semibold">{business.name}</p>
       </div>
       {interactive && business.slug ? <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden /> : null}
     </>
@@ -173,60 +188,58 @@ function BusinessRow({ business, interactive }: { business: BusinessRef; interac
     return (
       <Link
         href={routes.businesses.detail(business.slug)}
-        className="mt-3 flex items-center gap-3 rounded-xl bg-muted/60 p-3 transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="mt-3 flex items-center gap-3 rounded-2xl bg-muted/60 p-3 transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
         aria-label={`${business.name} işletme profili`}
       >
         {inner}
       </Link>
     );
   }
-  return <div className="mt-3 flex items-center gap-3 rounded-xl bg-muted/60 p-3">{inner}</div>;
+  return <div className="mt-3 flex items-center gap-3 rounded-2xl bg-muted/60 p-3">{inner}</div>;
 }
 
-/** E3 seller card: "Ayşe Y.", "Üyelik: Eylül 2026", business badge -> /firma/[slug]. */
+/** Seller card: "Ayşe Y.", "Üyelik: Eylül 2026", business row -> /firma/[slug]. */
 export function SellerCard({ seller, business, interactive = true }: { seller: SellerInfo; business: BusinessRef | null; interactive?: boolean }) {
   return (
-    <section aria-labelledby="satici-baslik" className="rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]">
-      <h2 id="satici-baslik" className="text-sm font-semibold text-muted-foreground">
-        Satıcı
-      </h2>
-      <div className="mt-3 flex items-center gap-3">
-        <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-soft text-base font-extrabold text-primary">
+    <div className="rounded-3xl bg-card p-4">
+      <div className="flex items-center gap-3">
+        <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-soft text-base font-bold text-primary">
           {initials(seller.displayName)}
         </span>
         <div className="min-w-0">
-          <p className="truncate font-bold">{seller.displayName}</p>
-          {seller.memberSince ? <p className="text-sm text-muted-foreground">Üyelik: {seller.memberSince}</p> : null}
+          <p className="truncate font-semibold">{seller.displayName}</p>
+          <p className="text-sm text-muted-foreground">{seller.memberSince ? `Üyelik: ${seller.memberSince}` : "Gebzem üyesi"}</p>
         </div>
       </div>
       {business ? <BusinessRow business={business} interactive={interactive} /> : null}
-    </section>
+    </div>
   );
 }
 
-/** E4 company card: logo, name, "Onaylı" badge, link to /firma/[slug]. */
+/** Company card of a job ad: logo, name, "Onaylı" badge, link to /firma/[slug]. */
 export function CompanyCard({ company, interactive = true }: { company: BusinessRef | null; interactive?: boolean }) {
   if (!company) return null;
   const verified = company.verification_level >= 1;
+  const linked = interactive && !!company.slug;
   const inner = (
     <>
-      <CompanyLogo name={company.name} logoUrl={company.logo_url} className="size-14 rounded-2xl text-lg" />
+      <CompanyLogo name={company.name} logoUrl={company.logo_url} className="size-14 text-lg" />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-bold">{company.name}</p>
+        <p className="truncate text-base font-semibold">{company.name}</p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {verified ? <VerifiedBadge /> : <BusinessBadge />}
-          {interactive && company.slug ? <span className="text-xs font-semibold text-primary">İşletme profilini gör</span> : null}
+          {linked ? <span className="text-xs font-semibold text-primary">İşletme profilini gör</span> : null}
         </div>
       </div>
-      {interactive && company.slug ? <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden /> : null}
+      {linked ? <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden /> : null}
     </>
   );
-  const cls = "flex items-center gap-3 rounded-2xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.06]";
+  const cls = "flex items-center gap-3 rounded-3xl bg-card p-4";
   if (interactive && company.slug) {
     return (
       <Link
         href={routes.businesses.detail(company.slug)}
-        className={cn(cls, "transition-colors outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50")}
+        className={cn(cls, "transition-colors outline-none hover:bg-card/80 focus-visible:ring-3 focus-visible:ring-ring/50")}
         aria-label={`${company.name} işletme profili`}
       >
         {inner}

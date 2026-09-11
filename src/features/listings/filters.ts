@@ -1,8 +1,10 @@
 /**
- * /ilanlar URL filtreleri (paylaşılabilir). Saf TS: sunucu sayfası ve istemci bileşenleri aynı ayrıştırıcıyı kullanır.
+ * İlan listesi URL filtreleri (paylaşılabilir): /ilanlar (İkinci El) ve /is-ilanlari. Saf TS: sunucu sayfası ve istemci
+ * bileşenleri aynı ayrıştırıcıyı kullanır. Eski /ilanlar?tab=is-ilanlari adresleri /is-ilanlari'na yönlenir.
  *
- * ?tab=ikinci-el|is-ilanlari &q= &kategori=<slug> &min= &max= &mahalle=<slug> &durum= &sirala=yeni|fiyat-artan|fiyat-azalan
- *   2. el, kategori seçiliyken: &a_<key>=<seçenek> (seçim) | &a_<key>=1 (evet/hayır) | &a_<key>_min= &a_<key>_max= (sayı)
+ * &q= &kategori=<slug> &mahalle=<slug>
+ *   2. el: &min= &max= &durum= &sirala=yeni|fiyat-artan|fiyat-azalan
+ *     kategori seçiliyken: &a_<key>=<seçenek> (seçim) | &a_<key>=1 (evet/hayır) | &a_<key>_min= &a_<key>_max= (sayı)
  *   iş: &calisma=<work type> &konum=<JOB_LOCATIONS.key> &deneyim= &servis=1
  */
 import { routes, type ListingsTab, type QueryRecord } from "@/core/routes";
@@ -108,8 +110,9 @@ export function emptyQuery(tab: ListingsTab = "ikinci-el"): ListingsQuery {
   };
 }
 
-export function parseListingsQuery(raw: RawSearchParams): ListingsQuery {
-  const tab: ListingsTab = first(raw, "tab") === "is-ilanlari" ? "is-ilanlari" : "ikinci-el";
+/** `tab`: the list page's own tab; without it the legacy ?tab= param decides (old /ilanlar links). */
+export function parseListingsQuery(raw: RawSearchParams, forcedTab?: ListingsTab): ListingsQuery {
+  const tab: ListingsTab = forcedTab ?? (first(raw, "tab") === "is-ilanlari" ? "is-ilanlari" : "ikinci-el");
   const q = emptyQuery(tab);
   q.q = (first(raw, "q") ?? "").slice(0, SEARCH_MAX);
   const slug = first(raw, "kategori");

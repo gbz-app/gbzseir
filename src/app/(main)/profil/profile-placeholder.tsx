@@ -72,7 +72,7 @@ export function ProfilePlaceholder() {
 
       {user && profile && !profile.onboarded ? (
         <Link href={routes.auth.profile(routes.profile.root())} className="rounded-2xl bg-highlight-soft px-4 py-3 text-sm font-semibold">
-          Profilini tamamla: adını ve mahalleni ekle.
+          Profilini tamamla: adını ekle.
         </Link>
       ) : null}
 

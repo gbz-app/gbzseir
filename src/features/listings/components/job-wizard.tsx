@@ -234,7 +234,7 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
       title: "Önizleme",
       help: "İlanın böyle görünecek. Her şey doğruysa yayınla.",
       render: (ctx) => (
-        <div className="-mx-4 overflow-hidden rounded-3xl ring-1 ring-foreground/[0.06]">
+        <div className="-mx-4 overflow-hidden rounded-3xl">
           <JobDetailView model={previewModel(ctx.data)} preview />
         </div>
       ),
@@ -287,7 +287,7 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
       onComplete={onComplete}
       completeLabel={editId ? "Kaydet" : "Yayınla"}
       title={editId ? "İş ilanını düzenle" : "İş ilanı ver"}
-      exitHref={editId ? routes.profile.jobs() : routes.listings.post()}
+      exitHref={editId ? routes.profile.jobs() : routes.listings.jobs()}
     />
   );
 }

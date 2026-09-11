@@ -146,15 +146,16 @@ export function OtpForm({
           autoFocus
           disabled={busy}
           aria-label="6 haneli doğrulama kodu"
-          containerClassName="justify-center"
+          containerClassName="w-full justify-center"
         >
-          <InputOTPGroup className="gap-2">
+          {/* Borderless white boxes that share the row width (6 x 52 px + gaps would overflow at 390 px). */}
+          <InputOTPGroup className="w-full justify-center gap-2 has-aria-invalid:ring-0">
             {Array.from({ length: 6 }, (_, i) => (
               <InputOTPSlot
                 key={i}
                 index={i}
                 aria-invalid={!!error || undefined}
-                className="size-12 rounded-xl border bg-card text-2xl font-bold first:rounded-xl first:border-l last:rounded-xl min-[380px]:size-13"
+                className="h-14 max-w-14 flex-1 rounded-2xl border-0 bg-card text-2xl font-bold first:rounded-2xl first:border-0 last:rounded-2xl aria-invalid:ring-2 aria-invalid:ring-destructive/40"
               />
             ))}
           </InputOTPGroup>
@@ -166,7 +167,7 @@ export function OtpForm({
           </p>
         ) : null}
 
-        <Button type="submit" size="lg" className="h-13 w-full text-base" disabled={busy || code.length !== 6}>
+        <Button type="submit" size="lg" className="h-13 w-full text-base shadow-none" disabled={busy || code.length !== 6}>
           {busy ? <Loader2 className="animate-spin" /> : null}
           {submitLabel}
         </Button>

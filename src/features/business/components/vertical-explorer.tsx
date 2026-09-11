@@ -125,16 +125,18 @@ export function VerticalExplorer({
       {vertical === "hizmet" ? (
         <Link
           href={routes.services.root()}
-          className="flex items-center gap-3 rounded-3xl bg-card p-4 shadow-soft ring-1 ring-foreground/[0.05] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="flex items-center gap-3 rounded-3xl bg-red-600 p-4 text-white transition-transform outline-none hover:bg-red-700 focus-visible:ring-3 focus-visible:ring-red-600/40 active:scale-[0.99]"
         >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-primary">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
             <Wrench className="size-5" aria-hidden />
           </span>
           <span className="min-w-0 flex-1 text-sm">
-            <span className="block font-semibold">Usta mı arıyorsun?</span>
-            <span className="text-muted-foreground">Talebini oluştur, uygun firmalar seni arasın.</span>
+            <span className="block text-base font-bold">Usta mı arıyorsun?</span>
+            <span>Talebini oluştur, uygun firmalar seni arasın.</span>
           </span>
-          <ArrowUpRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-red-600" aria-hidden>
+            <ArrowUpRight className="size-5" />
+          </span>
         </Link>
       ) : null}
 

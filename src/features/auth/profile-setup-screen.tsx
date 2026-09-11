@@ -1,101 +1,106 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ArrowRight, BadgeCheck, Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ImageUploader, type UploadedImage } from "@/components/shared/image-uploader";
-import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
+import type { UploadedImage } from "@/components/shared/image-uploader";
+import { FULL_NAME_MAX, formatFullNameTr, fullNameError, nameWords } from "@/core/name";
+import { routes } from "@/core/routes";
 import { createClient } from "@/lib/supabase/client";
 import { TABLES } from "@/lib/db-contract";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { MARKETING_CONSENT_SESSION_KEY } from "@/lib/auth/otp";
-import { getDefaultNeighbourhood } from "@/lib/location/store";
 import { readString, removeItem } from "@/lib/storage";
-
-const NAME_RE = /^[\p{L}][\p{L}\s'.-]*$/u;
-
-const schema = z.object({
-  firstName: z.string().trim().min(2, "Adını yaz (en az 2 harf).").max(40, "En fazla 40 karakter.").regex(NAME_RE, "Sadece harf kullan."),
-  lastName: z.string().trim().min(2, "Soyadını yaz (en az 2 harf).").max(40, "En fazla 40 karakter.").regex(NAME_RE, "Sadece harf kullan."),
-  email: z.union([z.literal(""), z.email("Geçerli bir e-posta adresi gir.")]),
-  neighbourhoodId: z.string().nullable(),
-});
-
-type FormValues = z.infer<typeof schema>;
+import { AuthStepHeader } from "./auth-step-header";
+import { AvatarCirclePicker } from "./avatar-circle-picker";
 
 export type ProfileSetupInitial = {
   fullName?: string | null;
-  email?: string | null;
-  neighbourhoodId?: string | null;
   avatarUrl?: string | null;
 };
 
-function splitName(full?: string | null): [string, string] {
-  const parts = (full ?? "").trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return ["", ""];
-  if (parts.length === 1) return [parts[0], ""];
-  return [parts.slice(0, -1).join(" "), parts[parts.length - 1]];
+/** Current URL with or without ?adim=foto (keeps ?next=...). */
+function stepUrl(pathname: string, photo: boolean): string {
+  const p = new URLSearchParams(window.location.search);
+  if (photo) p.set("adim", "foto");
+  else p.delete("adim");
+  const qs = p.toString();
+  return qs ? `${pathname}?${qs}` : pathname;
 }
 
-/** B3 /giris/profil: complete the profile of a new user (name, neighbourhood, optional e-mail + avatar). */
+/**
+ * B3 /giris/profil: a new user's profile in two steps - full name ("Ad SOYAD"), then an optional round photo.
+ * The photo step lives in the URL (?adim=foto, history.pushState), so the back gesture returns to the name step.
+ */
 export function ProfileSetupScreen({ next, initial }: { next: string; initial?: ProfileSetupInitial }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, refreshProfile } = useAuth();
-  const [first, last] = splitName(initial?.fullName);
-  const [avatar, setAvatar] = React.useState<UploadedImage[]>(() =>
-    initial?.avatarUrl ? [{ url: initial.avatarUrl, thumbUrl: initial.avatarUrl, path: "", thumbPath: "" }] : [],
+  const [name, setName] = React.useState(() => formatFullNameTr(initial?.fullName));
+  const [nameError, setNameError] = React.useState<string | null>(null);
+  const [avatar, setAvatar] = React.useState<UploadedImage | null>(() =>
+    initial?.avatarUrl ? { url: initial.avatarUrl, thumbUrl: initial.avatarUrl, path: "", thumbPath: "" } : null,
   );
   const [uploading, setUploading] = React.useState(false);
+  const [saving, setSaving] = React.useState<"photo" | "skip" | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const pushedRef = React.useRef(false);
+  const inputId = React.useId();
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    getValues,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      firstName: first,
-      lastName: last,
-      email: initial?.email ?? "",
-      neighbourhoodId: initial?.neighbourhoodId ?? null,
-    },
-  });
+  const formatted = formatFullNameTr(name);
+  const valid = fullNameError(name) === null;
+  // Never show the photo step without a valid name (reload, forward).
+  const step: "name" | "photo" = searchParams.get("adim") === "foto" && valid ? "photo" : "name";
 
-  // Pre-fill Mahalle from the neighbourhood chosen during onboarding / in the top bar (client only).
+  // The name is not saved until the end: a reload on the photo step starts from the name again.
   React.useEffect(() => {
-    if (!getValues("neighbourhoodId")) {
-      const stored = getDefaultNeighbourhood();
-      if (stored) setValue("neighbourhoodId", stored.id);
-    }
-  }, [getValues, setValue]);
+    if (new URLSearchParams(window.location.search).has("adim")) window.history.replaceState(null, "", stepUrl(pathname, false));
+  }, [pathname]);
 
-  const onSubmit = async (values: FormValues) => {
+  const submitName = (e: React.FormEvent) => {
+    e.preventDefault();
+    const err = fullNameError(name);
+    setName(formatted);
+    setNameError(err);
+    if (!err) {
+      pushedRef.current = true;
+      window.history.pushState(null, "", stepUrl(pathname, true));
+      window.scrollTo({ top: 0 });
+    }
+  };
+
+  const backToName = () => {
+    if (saving) return;
+    if (pushedRef.current) {
+      pushedRef.current = false;
+      window.history.back();
+    } else {
+      window.history.replaceState(null, "", stepUrl(pathname, false));
+    }
+  };
+
+  const save = async (mode: "photo" | "skip") => {
+    if (saving) return;
+    const fullName = formatFullNameTr(name);
+    if (fullNameError(fullName)) return;
     setSubmitError(null);
+    setSaving(mode);
     const supabase = createClient();
     const uid = user?.id ?? (await supabase.auth.getUser()).data.user?.id;
     if (!uid) {
-      router.replace(`/giris?next=${encodeURIComponent(next)}`);
+      router.replace(routes.auth.login(next));
       return;
     }
-    const clean = (s: string) => s.trim().replace(/\s+/g, " ");
     // KVKK + terms accepted on the login screen. A DB trigger stamps the server time and the live KVKK version
-    // (profiles.kvkk_version), so the accepted text version is recorded next to kvkk_accepted_at.
+    // (profiles.kvkk_version). E-mail and neighbourhood are optional and edited later in Kişisel bilgiler.
     const row = {
-      full_name: `${clean(values.firstName)} ${clean(values.lastName)}`,
-      email: values.email ? values.email.trim().toLowerCase() : null,
-      neighbourhood_id: values.neighbourhoodId,
-      avatar_url: avatar[0]?.url ?? null,
+      full_name: fullName,
+      avatar_url: avatar?.url ?? null,
       onboarded: true,
       kvkk_accepted_at: new Date().toISOString(),
       marketing_consent: readString(MARKETING_CONSENT_SESSION_KEY, "session") === "1",
@@ -106,76 +111,117 @@ export function ProfileSetupScreen({ next, initial }: { next: string; initial?: 
       error = (await supabase.from(TABLES.profiles).upsert({ id: uid, ...row })).error;
     }
     if (error) {
+      setSaving(null);
       setSubmitError("Profil kaydedilemedi. Lütfen tekrar dene.");
       return;
     }
     removeItem(MARKETING_CONSENT_SESSION_KEY, "session");
     await refreshProfile();
-    toast.success(`Hoş geldin ${clean(values.firstName)}`);
+    toast.success(`Hoş geldin ${nameWords(fullName)[0]}`);
     router.replace(next);
     router.refresh();
   };
 
-  return (
-    <div className="flex flex-1 flex-col pt-4">
-      <div className="mb-7">
-        <h1 className="text-[1.75rem] leading-tight font-extrabold">Seni tanıyalım</h1>
-        <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">Profilini tamamla; sana yakın içerikleri gösterelim.</p>
-      </div>
+  if (step === "name") {
+    return (
+      <div className="flex flex-1 flex-col">
+        <AuthStepHeader step={3} fill={0.5} title="Adın ne?" description="Adını ve soyadını yaz. Soyadını biz büyük harfle yazarız." />
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
-        <ImageUploader variant="avatar" value={avatar} onChange={setAvatar} fileNamePrefix="avatar-" onUploadingChange={setUploading} />
-
-        <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
-          <div>
-            <Label htmlFor="firstName" className="mb-1.5 block text-sm font-semibold">
-              Ad
-            </Label>
-            <Input id="firstName" autoComplete="given-name" autoCapitalize="words" aria-invalid={!!errors.firstName || undefined} {...register("firstName")} />
-            {errors.firstName ? <p className="mt-1.5 text-sm text-destructive">{errors.firstName.message}</p> : null}
-          </div>
-          <div>
-            <Label htmlFor="lastName" className="mb-1.5 block text-sm font-semibold">
-              Soyad
-            </Label>
-            <Input id="lastName" autoComplete="family-name" autoCapitalize="words" aria-invalid={!!errors.lastName || undefined} {...register("lastName")} />
-            {errors.lastName ? <p className="mt-1.5 text-sm text-destructive">{errors.lastName.message}</p> : null}
-          </div>
-        </div>
-
-        <div>
-          <Label htmlFor="neighbourhood" className="mb-1.5 block text-sm font-semibold">
-            Mahalle
-          </Label>
-          <Controller
-            control={control}
-            name="neighbourhoodId"
-            render={({ field }) => (
-              <NeighbourhoodPicker id="neighbourhood" value={field.value} onChange={(n) => field.onChange(n ? String(n.id) : null)} showUseLocation />
+        <form onSubmit={submitName} noValidate className="flex flex-col">
+          <label htmlFor={inputId} className="mb-2 text-sm font-semibold">
+            Ad soyad
+          </label>
+          <input
+            id={inputId}
+            type="text"
+            autoComplete="name"
+            autoCapitalize="words"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="next"
+            autoFocus
+            maxLength={FULL_NAME_MAX + 10}
+            placeholder="Örn. Ayşe Nur Yılmaz"
+            value={name}
+            aria-invalid={!!nameError || undefined}
+            aria-describedby={nameError ? `${inputId}-err` : `${inputId}-preview`}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (nameError) setNameError(null);
+            }}
+            onBlur={() => setName(formatted)}
+            className={cn(
+              "h-14 w-full rounded-2xl bg-card px-5 text-lg font-semibold outline-none placeholder:font-normal placeholder:text-muted-foreground/70 focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30",
+              nameError && "ring-2 ring-destructive/50",
             )}
           />
-          <p className="mt-1.5 text-xs text-muted-foreground">Yakınındaki eczane, usta ve ilanları öne çıkarmak için kullanırız.</p>
-        </div>
+          {nameError ? (
+            <p id={`${inputId}-err`} role="alert" className="mt-2 text-sm font-medium text-destructive">
+              {nameError}
+            </p>
+          ) : null}
 
-        <div>
-          <Label htmlFor="email" className="mb-1.5 block text-sm font-semibold">
-            E-posta <span className="font-normal text-muted-foreground">(isteğe bağlı)</span>
-          </Label>
-          <Input id="email" type="email" inputMode="email" autoComplete="email" placeholder="ornek@eposta.com" aria-invalid={!!errors.email || undefined} {...register("email")} />
-          {errors.email ? <p className="mt-1.5 text-sm text-destructive">{errors.email.message}</p> : null}
-        </div>
+          <p id={`${inputId}-preview`} className="mt-3 flex min-h-6 items-center gap-2 text-[15px]">
+            {formatted ? (
+              <>
+                <BadgeCheck className={cn("size-5 shrink-0", valid ? "text-primary" : "text-muted-foreground/60")} aria-hidden />
+                <span className="shrink-0 text-muted-foreground">Profilinde:</span>
+                <span className="min-w-0 truncate font-semibold">{formatted}</span>
+              </>
+            ) : (
+              <span className="text-muted-foreground">Profilinde böyle görünür: Ayşe Nur YILMAZ</span>
+            )}
+          </p>
 
+          <Button type="submit" size="lg" className="mt-7 h-13 w-full text-base shadow-none">
+            Devam et
+            <ArrowRight data-icon="inline-end" aria-hidden />
+          </Button>
+        </form>
+      </div>
+    );
+  }
+
+  const busy = uploading || saving !== null;
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <AuthStepHeader
+        step={3}
+        title="Profil fotoğrafı"
+        description="Profilinde görünür. İstersen sonra da ekleyebilirsin."
+        onBack={backToName}
+        backLabel="Ad soyad adımına dön"
+      />
+
+      <div className="flex flex-col items-center">
+        <AvatarCirclePicker value={avatar} onChange={setAvatar} onUploadingChange={setUploading} inputRef={fileRef} />
+        <p className="mt-1 max-w-full truncate text-center text-lg font-semibold">{formatted}</p>
+      </div>
+
+      <div className="mt-auto flex flex-col gap-2 pt-10">
         {submitError ? (
-          <p role="alert" className="rounded-xl bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive">
+          <p role="alert" className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
             {submitError}
           </p>
         ) : null}
-
-        <Button type="submit" size="lg" className="mt-2 h-13 w-full text-base" disabled={isSubmitting || uploading}>
-          {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-          Kaydet ve devam et
+        <Button
+          type="button"
+          size="lg"
+          className="h-13 w-full text-base shadow-none"
+          disabled={busy}
+          onClick={() => (avatar ? void save("photo") : fileRef.current?.click())}
+        >
+          {saving === "photo" || (uploading && !avatar) ? <Loader2 className="animate-spin" /> : avatar ? null : <Camera aria-hidden />}
+          {avatar ? "Devam et" : "Fotoğraf seç"}
         </Button>
-      </form>
+        {avatar ? null : (
+          <Button type="button" variant="ghost" size="lg" className="h-12 w-full text-base text-muted-foreground" disabled={busy} onClick={() => void save("skip")}>
+            {saving === "skip" ? <Loader2 className="animate-spin" /> : null}
+            Şimdilik geç
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

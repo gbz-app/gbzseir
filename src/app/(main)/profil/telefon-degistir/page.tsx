@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { routes } from "@/core/routes";
-import { PageHeader } from "@/components/shared/page-header";
+import { ProfilePageHeader } from "@/components/shared/profile-page-header";
 import { requireProfile } from "@/lib/auth/server";
 import { PhoneChangeFlow } from "@/features/profile/components/phone-change-flow";
 
@@ -11,7 +11,7 @@ export default async function ChangePhonePage() {
   await requireProfile(routes.profile.changePhone());
   return (
     <>
-      <PageHeader title="Telefon Numarası" backHref={routes.profile.edit()} />
+      <ProfilePageHeader title="Telefon numarası" backHref={routes.profile.edit()} />
       <PhoneChangeFlow />
     </>
   );

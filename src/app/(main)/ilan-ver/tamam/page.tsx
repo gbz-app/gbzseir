@@ -53,7 +53,7 @@ export default async function PostDonePage({ searchParams }: Props) {
             <Link href={viewHref}>İlanı gör</Link>
           </Button>
         ) : null}
-        <Button asChild size="lg" variant="outline">
+        <Button asChild size="lg" variant="secondary">
           <Link href={manageHref}>İlanlarıma git</Link>
         </Button>
         <Button asChild variant="link">

@@ -84,7 +84,7 @@ export function NotificationsList({ items }: { items: NotificationItem[] }) {
           </Button>
         </div>
       ) : null}
-      <ul className="divide-y overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]">
+      <ul className="divide-y overflow-hidden rounded-2xl bg-card">
         {items.map((n) => {
           const Icon = iconFor(n.type);
           const fresh = isUnread(n);

@@ -3,6 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { EllipsisVertical, Flag, ListChecks, Pencil, PhoneOff } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { formatPhoneTR } from "@/core/format";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CallButton } from "@/components/shared/call-button";
+import { DetailActions, PRIMARY_CTA } from "@/components/shared/detail-hero";
 import { ReportSheet } from "@/components/shared/report-sheet";
 import { RevealPhoneButton } from "@/components/shared/reveal-phone-button";
 import { useAuth } from "@/lib/auth/auth-provider";
@@ -21,8 +24,13 @@ import type { DisplayState } from "../view-models";
 
 type OwnerLinks = { editHref: string | null; manageHref: string };
 
-/** Header "⋯" menu: Şikayet et (others) or Düzenle / İlanlarım (owner). */
-export function ListingDetailMenu({ listingId, ownerId, editHref, manageHref }: { listingId: string; ownerId: string } & OwnerLinks) {
+/** Big black CTA of the bottom bar (the firm page "Ara"); the Button's default shadow is removed. */
+const CTA = cn(PRIMARY_CTA, "shadow-none");
+/** White pill next to the CTA. */
+const LIGHT_CTA = "h-14 flex-1 rounded-full bg-card text-base font-semibold text-foreground shadow-none hover:bg-muted [&_svg]:size-5";
+
+/** "⋯" menu: Şikayet et (others) or Düzenle / İlanlarım (owner). */
+export function ListingDetailMenu({ listingId, ownerId, editHref, manageHref, className }: { listingId: string; ownerId: string; className?: string } & OwnerLinks) {
   const { user } = useAuth();
   const ensureAuth = useRequireAuth();
   const [reportOpen, setReportOpen] = React.useState(false);
@@ -32,7 +40,7 @@ export function ListingDetailMenu({ listingId, ownerId, editHref, manageHref }: 
     <>
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <Button type="button" variant="ghost" size="icon" className="rounded-full" aria-label="Diğer seçenekler">
+          <Button type="button" variant="ghost" size="icon" className={cn("rounded-full", className)} aria-label="Diğer seçenekler">
             <EllipsisVertical className="size-5" />
           </Button>
         </DropdownMenuTrigger>
@@ -82,46 +90,56 @@ export function ReportFooter({ listingId, ownerId }: { listingId: string; ownerI
   );
 }
 
-const barClass =
-  "fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-2xl border-t bg-background/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] shadow-float backdrop-blur-md";
-
-/** Space at the end of the page so the fixed action bar never covers content. */
-export function ActionBarSpacer() {
-  return <div aria-hidden className="h-[calc(5.25rem+env(safe-area-inset-bottom,0px))] shrink-0" />;
-}
-
 /** Shown instead of the phone button on sample (is_demo) listings: their numbers are not real. */
 function DemoNoCall() {
   return (
-    <p className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-muted px-3 text-sm font-semibold text-muted-foreground">
+    <p className="flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-muted px-4 text-[15px] font-semibold text-muted-foreground">
       <PhoneOff className="size-5 shrink-0" aria-hidden />
       <span className="truncate">Örnek kayıt - aranamaz</span>
     </p>
   );
 }
 
-function OwnerBar({ editHref, manageHref }: OwnerLinks) {
+/** Small label + value on the left of the bar (price, phone number). */
+function BarInfo({ label, value }: { label: string; value: string }) {
   return (
-    <div className={barClass}>
-      <div className="flex gap-2">
-        {editHref ? (
-          <Button asChild variant="outline" size="lg" className="flex-1">
-            <Link href={editHref}>
-              <Pencil /> Düzenle
-            </Link>
-          </Button>
-        ) : null}
-        <Button asChild size="lg" className="flex-1">
-          <Link href={manageHref}>
-            <ListChecks /> İlanlarım
-          </Link>
-        </Button>
-      </div>
+    <div className="min-w-0 shrink-0 pl-1">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="max-w-[10rem] truncate text-lg leading-tight font-bold tabular-nums">{value}</p>
     </div>
   );
 }
 
-/** E3 sticky bottom bar: price + "Numarayı göster" (then number + Ara). Owner sees management buttons. Demo: not callable. */
+function OwnerBar({ editHref, manageHref }: OwnerLinks) {
+  return (
+    <DetailActions>
+      {editHref ? (
+        <Button asChild variant="secondary" size="lg" className={LIGHT_CTA}>
+          <Link href={editHref}>
+            <Pencil /> Düzenle
+          </Link>
+        </Button>
+      ) : null}
+      <Button asChild size="lg" className={CTA}>
+        <Link href={manageHref}>
+          <ListChecks /> İlanlarım
+        </Link>
+      </Button>
+    </DetailActions>
+  );
+}
+
+function BrowseBar({ href, label }: { href: string; label: string }) {
+  return (
+    <DetailActions>
+      <Button asChild size="lg" className={CTA}>
+        <Link href={href}>{label}</Link>
+      </Button>
+    </DetailActions>
+  );
+}
+
+/** E3 bottom bar: price + black "Numarayı göster", then the number + black "Ara". Owner: management buttons. Demo: not callable. */
 export function ClassifiedActionBar({
   listingId,
   ownerId,
@@ -140,37 +158,24 @@ export function ClassifiedActionBar({
   isDemo?: boolean;
 } & OwnerLinks) {
   const { user } = useAuth();
-  const [revealed, setRevealed] = React.useState(false);
+  const [phone, setPhone] = React.useState<string | null>(null);
   if (user && user.id === ownerId) return <OwnerBar editHref={editHref} manageHref={manageHref} />;
-  if (state !== "live") {
-    return (
-      <div className={barClass}>
-        <Button asChild size="lg" variant="outline" className="w-full">
-          <Link href={similarHref}>Benzer ilanlara göz at</Link>
-        </Button>
-      </div>
-    );
-  }
+  if (state !== "live") return <BrowseBar href={similarHref} label="Benzer ilanlara göz at" />;
   return (
-    <div className={barClass}>
-      <div className="flex items-center gap-3">
-        {revealed ? null : (
-          <div className="min-w-0 shrink-0">
-            <p className="text-xs text-muted-foreground">Fiyat</p>
-            <p className="max-w-[9rem] truncate text-lg leading-tight font-extrabold tabular-nums">{priceText}</p>
-          </div>
-        )}
-        {isDemo ? (
-          <DemoNoCall />
-        ) : (
-          <RevealPhoneButton listingId={listingId} fullWidth className="h-12 flex-1 text-base" onRevealed={() => setRevealed(true)} />
-        )}
-      </div>
-    </div>
+    <DetailActions>
+      {phone ? <BarInfo label="Satıcının numarası" value={formatPhoneTR(phone)} /> : <BarInfo label="Fiyat" value={priceText} />}
+      {isDemo ? (
+        <DemoNoCall />
+      ) : phone ? (
+        <CallButton phone={phone} subjectType="listing" subjectId={listingId} label="Ara" variant="default" size="lg" className={CTA} />
+      ) : (
+        <RevealPhoneButton listingId={listingId} className={CTA} onRevealed={(p) => setPhone(p)} />
+      )}
+    </DetailActions>
   );
 }
 
-/** E4 sticky bottom bar: phone visible without login (İŞKUR rule), CallButton logs call_click. Demo: not callable. */
+/** E4 bottom bar: phone visible without login (İŞKUR rule) + black "Ara" (CallButton logs call_click). Demo: not callable. */
 export function JobActionBar({
   listingId,
   ownerId,
@@ -190,19 +195,18 @@ export function JobActionBar({
 } & OwnerLinks) {
   const { user } = useAuth();
   if (user && user.id === ownerId) return <OwnerBar editHref={editHref} manageHref={manageHref} />;
-  if (state !== "live" || !phone) {
-    return (
-      <div className={barClass}>
-        <Button asChild size="lg" variant="outline" className="w-full">
-          <Link href={similarHref}>Diğer iş ilanlarına göz at</Link>
-        </Button>
-      </div>
-    );
-  }
+  if (state !== "live" || !phone) return <BrowseBar href={similarHref} label="Diğer iş ilanlarına göz at" />;
   return (
-    <div className={barClass}>
-      {isDemo ? <DemoNoCall /> : <CallButton phone={phone} subjectType="job" subjectId={listingId} showNumber fullWidth size="lg" className="h-12 text-base" />}
-    </div>
+    <DetailActions>
+      {isDemo ? (
+        <DemoNoCall />
+      ) : (
+        <>
+          <BarInfo label="Başvuru için ara" value={formatPhoneTR(phone)} />
+          <CallButton phone={phone} subjectType="job" subjectId={listingId} label="Ara" variant="default" size="lg" className={CTA} />
+        </>
+      )}
+    </DetailActions>
   );
 }
 

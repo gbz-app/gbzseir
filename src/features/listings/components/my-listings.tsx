@@ -60,7 +60,7 @@ function ListingRow({ row, type, busy, onAction }: { row: MyListingRow; type: Li
   const Placeholder = isJob ? Briefcase : Tag;
 
   return (
-    <li className="rounded-2xl bg-card p-3 shadow-soft ring-1 ring-foreground/[0.06]">
+    <li className="rounded-2xl bg-card p-3">
       <div className="flex gap-3">
         <Link href={detailHref} className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted text-muted-foreground" tabIndex={-1} aria-hidden>
           {row.cover ? (

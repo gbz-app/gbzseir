@@ -82,7 +82,7 @@ export function FavoritesView({ listings, businesses, pois }: { listings: Listin
 
       {tab === "isletmeler" ? (
         businesses.length ? (
-          <ul className="divide-y overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]">
+          <ul className="divide-y overflow-hidden rounded-2xl bg-card">
             {businesses.map((b) => (
               <li key={b.id} className="flex items-center gap-3 px-3 py-3">
                 <Link href={b.slug ? routes.businesses.detail(b.slug) : routes.businesses.root()} className="flex min-w-0 flex-1 items-center gap-3">
@@ -120,7 +120,7 @@ export function FavoritesView({ listings, businesses, pois }: { listings: Listin
 
       {tab === "yerler" ? (
         pois.length ? (
-          <ul className="divide-y overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]">
+          <ul className="divide-y overflow-hidden rounded-2xl bg-card">
             {pois.map((p) => (
               <li key={p.id} className="flex items-center gap-3 px-3 py-3">
                 <Link href={poiHref(p.kind, p.slug)} className="flex min-w-0 flex-1 items-center gap-3">

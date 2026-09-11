@@ -129,7 +129,7 @@ export function ProfileEditForm({ initial }: { initial: ProfileEditInitial }) {
 
       <Link
         href={routes.profile.changePhone()}
-        className="flex min-h-14 items-center gap-3 rounded-2xl bg-card px-4 py-3 ring-1 ring-foreground/[0.08] transition-colors hover:bg-muted/60"
+        className="flex min-h-14 items-center gap-3 rounded-2xl bg-card px-4 py-3 transition-colors hover:bg-muted/60"
       >
         <Smartphone className="size-5 text-muted-foreground" aria-hidden />
         <span className="min-w-0 flex-1">

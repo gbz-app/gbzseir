@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { routes } from "@/core/routes";
-import { PageHeader } from "@/components/shared/page-header";
+import { ProfilePageHeader } from "@/components/shared/profile-page-header";
 import { requireProfile } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { NotificationsList, type NotificationItem } from "@/features/profile/components/notifications-list";
@@ -30,7 +30,7 @@ export default async function NotificationsPage() {
   }));
   return (
     <>
-      <PageHeader title="Bildirimler" backHref={routes.profile.root()} />
+      <ProfilePageHeader title="Bildirimler" backHref={routes.profile.root()} />
       <NotificationsList items={items} />
     </>
   );

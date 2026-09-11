@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { Store, Wrench } from "lucide-react";
+import { ArrowUpRight, Store, Wrench } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { ErrorState } from "@/components/shared/error-state";
 import { ListSkeleton } from "@/components/shared/skeletons";
@@ -107,14 +107,17 @@ export default async function FirmsPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href={routes.services.root()}
-            className="flex items-center gap-3 rounded-2xl bg-info-soft p-4 transition-transform outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]"
+            className="flex items-center gap-3 rounded-2xl bg-red-600 p-4 text-white transition-transform outline-none hover:bg-red-700 focus-visible:ring-3 focus-visible:ring-red-600/40 active:scale-[0.99]"
           >
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-card text-info shadow-soft">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
               <Wrench className="size-5" aria-hidden />
             </span>
-            <span className="min-w-0 text-sm">
-              <span className="block font-bold">Usta mı arıyorsun?</span>
-              <span className="text-muted-foreground">Talebini oluştur, uygun firmalar seni arasın.</span>
+            <span className="min-w-0 flex-1 text-sm">
+              <span className="block text-base font-bold">Usta mı arıyorsun?</span>
+              <span>Talebini oluştur, uygun firmalar seni arasın.</span>
+            </span>
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-red-600" aria-hidden>
+              <ArrowUpRight className="size-5" />
             </span>
           </Link>
           {settings.businessApplications ? (

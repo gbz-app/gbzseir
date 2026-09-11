@@ -271,7 +271,7 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
       title: "Önizleme",
       help: "İlanın böyle görünecek. Her şey doğruysa yayınla.",
       render: (ctx) => (
-        <div className="-mx-4 overflow-hidden rounded-3xl ring-1 ring-foreground/[0.06]">
+        <div className="-mx-4 overflow-hidden rounded-3xl">
           <ClassifiedDetailView model={previewModel(ctx.data)} preview />
         </div>
       ),
@@ -333,7 +333,7 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
       onComplete={onComplete}
       completeLabel={editId ? "Kaydet" : "Yayınla"}
       title={editId ? "İlanı düzenle" : "2. el ilan ver"}
-      exitHref={editId ? routes.profile.listings() : routes.listings.post()}
+      exitHref={editId ? routes.profile.listings() : routes.listings.classifieds()}
     />
   );
 }

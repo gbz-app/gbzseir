@@ -90,10 +90,10 @@ export function FilterSheet({ open, onOpenChange, query, categories, neighbourho
       repositionInputs={false}
       footer={
         <div className="flex gap-2">
-          <Button type="button" variant="outline" size="lg" className="flex-1" onClick={clear}>
+          <Button type="button" variant="secondary" size="lg" className="flex-1" onClick={clear}>
             Temizle
           </Button>
-          <Button type="button" size="lg" className="flex-[2]" onClick={apply}>
+          <Button type="button" size="lg" className="flex-[2] shadow-none" onClick={apply}>
             Sonuçları göster
           </Button>
         </div>
@@ -236,7 +236,7 @@ export function FilterSheet({ open, onOpenChange, query, categories, neighbourho
                 onChange={(v) => patch({ deneyim: v || null })}
               />
             </Section>
-            <label className="flex min-h-14 cursor-pointer items-center justify-between gap-4 rounded-2xl border px-4 py-3">
+            <label className="flex min-h-14 cursor-pointer items-center justify-between gap-4 rounded-2xl bg-muted/60 px-4 py-3">
               <span>
                 <span className="block text-[15px] font-bold">Servis var</span>
                 <span className="block text-xs text-muted-foreground">Sadece personel servisi olan ilanları göster.</span>

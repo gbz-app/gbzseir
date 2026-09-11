@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { routes, withQuery } from "@/core/routes";
 import { CITY } from "@/config/site";
-import { PageHeader } from "@/components/shared/page-header";
-import { FavoriteButton } from "@/components/shared/favorite-button";
-import { ShareButton } from "@/components/shared/share-button";
 import { JsonLd } from "@/components/seo/json-ld";
 import { EDITABLE_STATUSES } from "@/features/listings/constants";
 import { listingPriceText } from "@/features/listings/format";
@@ -13,7 +10,8 @@ import { getListingDetail, safeCategories } from "@/features/listings/server/que
 import { classifiedModelFromDetail, displayState } from "@/features/listings/view-models";
 import { ClassifiedDetailView } from "@/features/listings/components/detail-views";
 import { StatusNotice } from "@/features/listings/components/detail-parts";
-import { ActionBarSpacer, ClassifiedActionBar, ListingDetailMenu, ReportFooter, ViewTracker } from "@/features/listings/components/detail-actions";
+import { ClassifiedActionBar, ReportFooter, ViewTracker } from "@/features/listings/components/detail-actions";
+import { ListingHeroBar } from "@/features/listings/components/hero-bar";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -31,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** E3 - 2. el ilan detay. */
+/** E3 - 2. el ilan detay (firm-detail style: photo hero, white sheet, black bottom bar). */
 export default async function ClassifiedPage({ params }: Props) {
   const { id } = await params;
   const detail = await getListingDetail(id);
@@ -44,30 +42,29 @@ export default async function ClassifiedPage({ params }: Props) {
     ? withQuery(routes.listings.postClassified(), { duzenle: detail.id })
     : null;
   const manageHref = routes.profile.listings();
-  const similarHref = routes.listings.root("ikinci-el", { kategori: model.categorySlug });
+  const similarHref = routes.listings.classifieds({ kategori: model.categorySlug });
 
   return (
     <>
       {model.state === "live" && !detail.is_demo ? <JsonLd data={productJsonLd(detail, model)} /> : null}
-      <PageHeader
-        title="İlan"
-        backHref={routes.listings.root()}
-        hideBottomNav
-        actions={
-          <>
-            <FavoriteButton targetType="listing" targetId={detail.id} />
-            <ShareButton title={detail.title} iconOnly variant="ghost" />
-            <ListingDetailMenu listingId={detail.id} ownerId={detail.owner_id} editHref={editHref} manageHref={manageHref} />
-          </>
-        }
-      />
       <ClassifiedDetailView
         model={model}
         isDemo={detail.is_demo}
+        views={detail.view_count}
+        sheetClassName="pb-36"
+        heroBar={
+          <ListingHeroBar
+            listingId={detail.id}
+            ownerId={detail.owner_id}
+            title={detail.title}
+            backHref={routes.listings.classifieds()}
+            editHref={editHref}
+            manageHref={manageHref}
+          />
+        }
         notice={<StatusNotice state={model.state} kind="classified" rejectionReason={detail.rejection_reason} />}
         footer={<ReportFooter listingId={detail.id} ownerId={detail.owner_id} />}
       />
-      <ActionBarSpacer />
       <ClassifiedActionBar
         listingId={detail.id}
         ownerId={detail.owner_id}

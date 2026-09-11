@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { listingsHref, type ListingsQuery } from "../filters";
 
 type NavState = {
-  /** Navigate to /ilanlar with the given filters inside a transition (old results stay visible, dimmed). */
+  /** Navigate to the list page (/ilanlar or /is-ilanlari) with the given filters inside a transition (old results stay visible, dimmed). */
   navigate: (q: ListingsQuery, opts?: { push?: boolean }) => void;
   pending: boolean;
 };

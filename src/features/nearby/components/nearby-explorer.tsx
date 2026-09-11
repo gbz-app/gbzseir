@@ -82,7 +82,7 @@ function sourceFor(filter: NearbyFilter, dutyMode: DutyMode): { source: string; 
     case "durak":
       return { source: OSM_SOURCE, sourceUrl: OSM_COPYRIGHT_URL };
     case "taksi":
-      return { source: OSM_SOURCE, sourceUrl: OSM_COPYRIGHT_URL, callAhead: true };
+      return { source: OSM_SOURCE, sourceUrl: OSM_COPYRIGHT_URL, callAhead: true, note: "Telefonlar herkese açık rehber ve harita kayıtlarından alındı." };
     case "atm":
       return { source: OSM_SOURCE, sourceUrl: OSM_COPYRIGHT_URL };
     case "gezilecek":

@@ -79,7 +79,7 @@ export function DemoOtpBanner({ phone, nonce = 0, onFill }: DemoOtpBannerProps) 
   const current = state.key === key ? state : { key, code: null, done: false };
 
   return (
-    <div role="status" className="rounded-2xl border-2 border-dashed border-highlight bg-highlight-soft px-4 py-3 text-highlight-foreground dark:text-foreground">
+    <div role="status" className="rounded-2xl bg-highlight-soft px-4 py-3 text-highlight-foreground dark:text-foreground">
       <p className="flex items-center gap-2 text-xs font-extrabold tracking-wide uppercase">
         <FlaskConical className="size-4 text-highlight" aria-hidden />
         Prototip modu
@@ -88,14 +88,14 @@ export function DemoOtpBanner({ phone, nonce = 0, onFill }: DemoOtpBannerProps) 
       {current.code ? (
         <div className="mt-2 flex items-center justify-between gap-3">
           <span className="font-mono text-2xl font-extrabold tracking-[0.3em] tabular-nums">{current.code}</span>
-          <Button type="button" size="sm" variant="highlight" onClick={() => onFill(current.code!)}>
+          <Button type="button" size="sm" variant="highlight" className="shadow-none" onClick={() => onFill(current.code!)}>
             Kodu doldur
           </Button>
         </div>
       ) : current.done ? (
         <div className="mt-2 flex items-center justify-between gap-3 text-sm">
           <span>Kod henüz alınamadı.</span>
-          <Button type="button" size="sm" variant="outline" onClick={() => setRetry((r) => r + 1)}>
+          <Button type="button" size="sm" variant="secondary" onClick={() => setRetry((r) => r + 1)}>
             <RotateCw /> Tekrar dene
           </Button>
         </div>

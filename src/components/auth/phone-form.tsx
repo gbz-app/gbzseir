@@ -155,13 +155,14 @@ export function PhoneForm({
         </Label>
         <div
           className={cn(
-            "flex h-14 items-center overflow-hidden rounded-2xl border border-input bg-card transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30",
-            fieldError && "border-destructive ring-3 ring-destructive/20",
+            "flex h-14 items-center overflow-hidden rounded-2xl bg-card transition-[box-shadow] focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30",
+            fieldError && "ring-2 ring-destructive/50",
           )}
         >
-          <span className="flex h-full items-center border-r bg-muted/60 px-4 text-lg font-bold text-muted-foreground select-none" aria-hidden>
+          <span className="flex h-full items-center pr-3 pl-5 text-lg font-bold text-muted-foreground select-none" aria-hidden>
             +90
           </span>
+          <span className="h-6 w-px shrink-0 bg-foreground/10" aria-hidden />
           <input
             id={inputId}
             type="tel"
@@ -178,7 +179,7 @@ export function PhoneForm({
               setValue(formatPhoneInputTR(e.target.value));
               setFieldError(null);
             }}
-            className="h-full min-w-0 flex-1 bg-transparent px-4 text-lg font-semibold tracking-wide tabular-nums outline-none placeholder:font-normal placeholder:text-muted-foreground/70"
+            className="h-full min-w-0 flex-1 bg-transparent px-3 text-lg font-semibold tracking-wide tabular-nums outline-none placeholder:font-normal placeholder:text-muted-foreground/70"
           />
         </div>
         {fieldError ? (
@@ -189,7 +190,7 @@ export function PhoneForm({
       </div>
 
       {showConsents ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4 rounded-2xl bg-card p-4 dark:bg-input/30">
           <label className="flex items-start gap-3 text-sm leading-snug">
             <Checkbox checked={terms} onCheckedChange={(c) => setTerms(c === true)} className="mt-0.5" aria-required="true" />
             <span>
@@ -216,12 +217,12 @@ export function PhoneForm({
       {withCaptcha ? <TurnstileWidget key={captchaRound} onToken={setCaptchaToken} /> : null}
 
       {error ? (
-        <p role="alert" className="rounded-xl bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive">
+        <p role="alert" className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
           {error}
         </p>
       ) : null}
 
-      <Button type="submit" size="lg" className="h-13 w-full text-base" disabled={pending}>
+      <Button type="submit" size="lg" className="h-13 w-full text-base shadow-none" disabled={pending}>
         {pending ? <Loader2 className="animate-spin" /> : null}
         {submitLabel}
       </Button>

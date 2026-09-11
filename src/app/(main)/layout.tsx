@@ -1,10 +1,12 @@
-import { TopBar } from "@/components/layout/top-bar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { OnboardingGate } from "@/features/onboarding/onboarding-gate";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { AnnouncementBanner } from "@/components/layout/announcement-banner";
 
-/** Main app shell: TopBar (tab roots only) + content + BottomNav + onboarding + install prompt. */
+/**
+ * Main app shell: content + BottomNav + onboarding + install prompt. The home header (TopBar) is rendered by the home page
+ * itself: a path-dependent header here made the cached home HTML differ from the client (React hydration error 418).
+ */
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-bg relative mx-auto flex min-h-dvh w-full max-w-2xl flex-col">
@@ -14,7 +16,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       >
         İçeriğe geç
       </a>
-      <TopBar />
       <AnnouncementBanner />
       <main id="icerik" className="flex flex-1 flex-col">
         {children}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FlaskConical, Smartphone } from "lucide-react";
+import { FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PhoneForm } from "@/components/auth/phone-form";
 import { IS_ADMIN_SITE } from "@/config/app-mode";
@@ -9,25 +9,22 @@ import { routes } from "@/core/routes";
 import { MARKETING_CONSENT_SESSION_KEY, sendLoginOtp } from "@/lib/auth/otp";
 import { canGoBack } from "@/lib/navigation-history";
 import { writeString } from "@/lib/storage";
+import { AuthStepHeader } from "./auth-step-header";
 
 /**
- * B1 /giris: phone number -> SMS code. Login and signup are the same flow.
+ * B1 /giris: phone number -> SMS code. Login and signup are the same flow (step 1/3).
  * `demoMode` = app_settings.otp_demo_mode (read by the page); never shown on the admin site.
  */
 export function LoginScreen({ next, demoMode = false }: { next: string; demoMode?: boolean }) {
   const router = useRouter();
 
   return (
-    <div className="flex flex-1 flex-col pt-4">
-      <div className="mb-8">
-        <div className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-brand-soft text-primary">
-          <Smartphone className="size-7" aria-hidden />
-        </div>
-        <h1 className="text-[1.75rem] leading-tight font-extrabold text-balance">Telefon numaranla devam et</h1>
-        <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-          Giriş yapmak ya da yeni hesap açmak için numarana 6 haneli bir kod göndereceğiz. Şifre yok.
-        </p>
-      </div>
+    <div className="flex flex-1 flex-col">
+      <AuthStepHeader
+        step={1}
+        title="Numaranı gir"
+        description="Giriş ya da kayıt için numarana 6 haneli bir kod göndereceğiz. Şifre yok."
+      />
 
       <PhoneForm
         showConsents
@@ -41,7 +38,7 @@ export function LoginScreen({ next, demoMode = false }: { next: string; demoMode
       />
 
       {demoMode && !IS_ADMIN_SITE ? (
-        <p className="mt-5 flex items-start gap-2 rounded-xl bg-highlight-soft px-3.5 py-2.5 text-xs leading-relaxed text-highlight-foreground dark:text-foreground">
+        <p className="mt-5 flex items-start gap-2 rounded-2xl bg-highlight-soft px-4 py-3 text-xs leading-relaxed text-highlight-foreground dark:text-foreground">
           <FlaskConical className="mt-0.5 size-4 shrink-0 text-highlight" aria-hidden />
           <span>
             <strong>Prototip modu:</strong> Gerçek SMS gönderilmez. Kod bir sonraki ekranda gösterilir.

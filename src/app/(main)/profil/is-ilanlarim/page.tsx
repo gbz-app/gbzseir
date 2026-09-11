@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Plus } from "lucide-react";
 import { routes } from "@/core/routes";
-import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/shared/page-header";
+import { ProfileHeaderLink, ProfilePageHeader } from "@/components/shared/profile-page-header";
 import { requireProfile } from "@/lib/auth/server";
 import { getMyBusiness, getMyListings } from "@/features/listings/server/queries";
 import { MyListings } from "@/features/listings/components/my-listings";
@@ -17,17 +15,15 @@ export default async function MyJobsPage() {
   const canPost = business?.status === "approved";
   return (
     <>
-      <PageHeader
-        title="İş İlanlarım"
+      <ProfilePageHeader
+        title="İş ilanlarım"
         subtitle={business?.name}
         backHref={routes.profile.root()}
         actions={
           canPost ? (
-            <Button asChild size="sm" className="rounded-full">
-              <Link href={routes.listings.postJob()}>
-                <Plus /> Yeni ilan
-              </Link>
-            </Button>
+            <ProfileHeaderLink href={routes.listings.postJob()} label="Yeni iş ilanı">
+              <Plus className="size-5" strokeWidth={2} aria-hidden />
+            </ProfileHeaderLink>
           ) : null
         }
       />

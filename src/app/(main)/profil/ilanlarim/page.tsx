@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Plus } from "lucide-react";
 import { routes } from "@/core/routes";
-import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/shared/page-header";
+import { ProfileHeaderLink, ProfilePageHeader } from "@/components/shared/profile-page-header";
 import { requireProfile } from "@/lib/auth/server";
 import { getMyListings } from "@/features/listings/server/queries";
 import { MyListings } from "@/features/listings/components/my-listings";
@@ -16,15 +14,13 @@ export default async function MyClassifiedsPage() {
   const { rows, error } = await getMyListings(user.id, "classified");
   return (
     <>
-      <PageHeader
+      <ProfilePageHeader
         title="İlanlarım"
         backHref={routes.profile.root()}
         actions={
-          <Button asChild size="sm" className="rounded-full">
-            <Link href={routes.listings.postClassified()}>
-              <Plus /> Yeni ilan
-            </Link>
-          </Button>
+          <ProfileHeaderLink href={routes.listings.postClassified()} label="Yeni ilan">
+            <Plus className="size-5" strokeWidth={2} aria-hidden />
+          </ProfileHeaderLink>
         }
       />
       <MyListings rows={rows} type="classified" error={error} />
