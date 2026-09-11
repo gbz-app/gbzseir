@@ -83,6 +83,9 @@ const LABEL_PLACEHOLDER: Record<Vertical, string> = {
   otel: "Örn. Butik otel, Apart otel",
   hizmet: "Örn. Ev temizliği, Boya badana",
   magaza: "Örn. Kırtasiye, Telefon aksesuarı",
+  saglik: "Örn. Diş kliniği, Fizik tedavi",
+  dugun: "Örn. Düğün salonu, Organizasyon",
+  egitim: "Örn. Dil kursu, Etüt merkezi",
   etkinlik: "Örn. Etkinlik alanı",
   diger: "Örn. Oto yıkama, Kuru temizleme",
 };
@@ -95,6 +98,9 @@ const VERTICAL_HINT: Record<Vertical, string> = {
   otel: "Odalar ve gecelik fiyatlar",
   hizmet: "Hizmet listesi ve müşteri talepleri",
   magaza: "Dükkan sayfası ve galeri",
+  saglik: "Sayfa, galeri ve iletişim",
+  dugun: "Sayfa, galeri ve etkinlikler",
+  egitim: "Sayfa, galeri ve etkinlikler",
   etkinlik: "Etkinlikler",
   diger: "İşletme sayfası ve galeri",
 };

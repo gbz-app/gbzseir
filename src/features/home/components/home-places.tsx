@@ -57,7 +57,7 @@ export function HomePlaces({ places }: { places: PlaceSummary[] }) {
                   <meta.icon className="size-3.5" aria-hidden />
                   {meta.label}
                 </span>
-                <span className="absolute inset-x-2.5 bottom-2.5 rounded-3xl bg-card p-3.5">
+                <span className="absolute inset-x-2.5 bottom-2.5 rounded-xl bg-card p-3.5">
                   <span className="line-clamp-2 text-base leading-snug font-semibold">{p.name}</span>
                   <span className="mt-1 block truncate text-sm text-muted-foreground">{p.neighbourhoodName ? `${p.neighbourhoodName}, Gebze` : "Gebze"}</span>
                   <span className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, Briefcase, Bus, ChevronRight, Map as MapIcon, MoonStar, Siren, Sparkles, Store, Tag, type LucideIcon } from "lucide-react";
+import { Briefcase, Bus, ChevronRight, Map as MapIcon, Sparkles, Tag, type LucideIcon } from "lucide-react";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,26 +27,25 @@ const vertical = (v: Vertical, label?: string): Tile => ({
 
 /** Right of the AI card: 2 x 2 quick cards. */
 const QUICK: Tile[] = [
-  { href: routes.nearby.dutyPharmacies(), label: "Nöbetçi Eczane", image: "/images/home/eczane.webp", imageClassName: "bg-card" },
+  // Opens the map like the other pharmacies (Yakınımda > Nöbetçi).
+  { href: routes.nearby.root("nobetci"), label: "Nöbetçi Eczane", image: "/images/home/eczane.webp", imageClassName: "bg-card" },
   { href: routes.nearby.root("durak"), label: "Durak", icon: Bus, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" },
   { href: routes.nearby.root(), label: "Şehir Rehberi", icon: MapIcon, tone: "bg-brand-soft text-primary" },
-  { href: routes.content.emergency(), label: "Acil Durum", icon: Siren, tone: "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-300" },
+  { href: routes.nearby.root("taksi"), label: "Taksi", image: "/images/home/taksi.webp", imageClassName: "bg-card" },
 ];
 
 /** Category cards, 4 per row. */
 const CATEGORIES: Tile[] = [
-  { href: routes.nearby.root("taksi"), label: "Taksi", image: "/images/home/taksi.webp", imageClassName: "bg-card" },
   vertical("yemek"),
   vertical("restoran"),
   vertical("kafe"),
-  vertical("otel"),
   vertical("hizmet", "Hizmetler"),
-  vertical("etkinlik"),
-  vertical("magaza"),
+  vertical("otel"),
   { href: routes.listings.root("ikinci-el"), label: "İkinci El", icon: Tag, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" },
   { href: routes.listings.root("is-ilanlari"), label: "İş İlanı", icon: Briefcase, tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300" },
-  { href: routes.nearby.root("cami"), label: "Cami", icon: MoonStar, tone: "bg-teal-100 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300" },
-  { href: routes.businesses.root(), label: "Firmalar", icon: Store, tone: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300" },
+  vertical("saglik"),
+  vertical("dugun"),
+  vertical("egitim"),
 ];
 
 function SectionHeader({ id, title, href }: { id?: string; title: string; href?: string }) {
@@ -64,25 +63,16 @@ function SectionHeader({ id, title, href }: { id?: string; title: string; href?:
   );
 }
 
-/** Wide AI card on the left of the quick cards (search for now; the assistant comes later). */
+/** Wide GebzemAI card on the left of the quick cards: plain white, icon + name only (opens search for now). */
 function AiCard() {
   return (
     <Link
       href={routes.search()}
-      className="relative col-span-2 row-span-2 flex flex-col justify-between overflow-hidden rounded-3xl bg-linear-to-br from-violet-500 via-primary to-fuchsia-500 p-4 text-white outline-none transition-transform active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-ring/50"
+      aria-label="GebzemAI"
+      className="col-span-2 row-span-2 flex flex-col justify-between rounded-3xl bg-card p-4 outline-none transition-transform active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-ring/50"
     >
-      <span className="absolute -top-8 -right-8 size-28 rounded-full bg-white/15" aria-hidden />
-      <span className="absolute -bottom-10 -left-6 size-24 rounded-full bg-black/10" aria-hidden />
-      <span className="relative flex size-10 items-center justify-center rounded-2xl bg-white/20">
-        <Sparkles className="size-5" aria-hidden />
-      </span>
-      <span className="relative mt-3 block">
-        <span className="block text-[17px] leading-tight font-bold">Yapay zekaya sor</span>
-        <span className="mt-1 block text-xs leading-snug text-white/85">Eczane, usta, etkinlik… ne arıyorsan yaz</span>
-      </span>
-      <span className="relative mt-3 inline-flex w-fit items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-primary">
-        Sor <ArrowRight className="size-3.5" aria-hidden />
-      </span>
+      <Sparkles className="size-8 text-primary" strokeWidth={1.75} aria-hidden />
+      <span className="text-xl leading-tight font-bold">GebzemAI</span>
     </Link>
   );
 }
@@ -111,7 +101,7 @@ async function PlacesSection() {
   );
 }
 
-/** C1 - Ana sayfa: başlık, arama, yapay zeka + hızlı kartlar, kategoriler, haberler, gezilecek yerler. */
+/** C1 - Ana sayfa: başlık, arama, yapay zeka + hızlı kartlar, kategoriler, gezilecek yerler, haberler. */
 export default function HomePage() {
   return (
     <div className="flex flex-col gap-6 px-4 pt-2 pb-8">
@@ -154,11 +144,11 @@ export default function HomePage() {
       </section>
 
       <Suspense fallback={<Skeleton className="h-[26rem] w-full rounded-3xl" />}>
-        <NewsSection />
+        <PlacesSection />
       </Suspense>
 
       <Suspense fallback={<Skeleton className="h-[26rem] w-full rounded-3xl" />}>
-        <PlacesSection />
+        <NewsSection />
       </Suspense>
     </div>
   );

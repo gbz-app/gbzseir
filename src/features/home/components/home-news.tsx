@@ -69,7 +69,7 @@ export function HomeNews({ items }: { items: NewsItem[] }) {
                 <span className="absolute top-3 right-3 inline-flex h-7 items-center rounded-full bg-white/95 px-2.5 text-xs font-semibold text-neutral-900">
                   {NEWS_CATEGORY_LABELS[n.category]}
                 </span>
-                <span className="absolute inset-x-2.5 bottom-2.5 rounded-3xl bg-card p-3.5">
+                <span className="absolute inset-x-2.5 bottom-2.5 rounded-xl bg-card p-3.5">
                   <span className="line-clamp-3 text-[15px] leading-snug font-semibold">{n.title}</span>
                   <span className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span className="truncate font-medium">{n.sourceName}</span>

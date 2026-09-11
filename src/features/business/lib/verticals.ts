@@ -23,6 +23,9 @@ import {
   Drama,
   Dumbbell,
   Flame,
+  Gem,
+  GraduationCap,
+  HeartPulse,
   Laptop,
   Leaf,
   LockKeyhole,
@@ -51,7 +54,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export const VERTICALS = ["yemek", "restoran", "kafe", "otel", "hizmet", "magaza", "etkinlik", "diger"] as const;
+export const VERTICALS = ["yemek", "restoran", "kafe", "otel", "hizmet", "magaza", "saglik", "dugun", "egitim", "etkinlik", "diger"] as const;
 export type Vertical = (typeof VERTICALS)[number];
 
 export type VerticalInfo = {
@@ -103,6 +106,27 @@ export const VERTICAL_INFO: Record<Vertical, VerticalInfo> = {
     icon: Store,
     tone: "bg-teal-100 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300",
   },
+  saglik: {
+    label: "Sağlık",
+    plural: "Sağlık",
+    subtitle: "Klinik, diş hekimi, poliklinik ve sağlık hizmetleri",
+    icon: HeartPulse,
+    tone: "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-300",
+  },
+  dugun: {
+    label: "Düğün",
+    plural: "Düğün",
+    subtitle: "Düğün salonu, organizasyon, gelinlik ve fotoğrafçı",
+    icon: Gem,
+    tone: "bg-pink-100 text-pink-600 dark:bg-pink-500/15 dark:text-pink-300",
+  },
+  egitim: {
+    label: "Eğitim",
+    plural: "Eğitim",
+    subtitle: "Kurs, etüt, anaokulu ve özel ders",
+    icon: GraduationCap,
+    tone: "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300",
+  },
   etkinlik: {
     label: "Etkinlik",
     plural: "Etkinlikler",
@@ -114,10 +138,10 @@ export const VERTICAL_INFO: Record<Vertical, VerticalInfo> = {
 };
 
 /** Verticals with their own list page (/firmalar/tur/[tur]). */
-export const LISTABLE_VERTICALS: readonly Vertical[] = ["yemek", "restoran", "kafe", "otel", "hizmet", "magaza"];
+export const LISTABLE_VERTICALS: readonly Vertical[] = ["yemek", "restoran", "kafe", "otel", "hizmet", "magaza", "saglik", "dugun", "egitim"];
 
 /** Verticals a business can pick for itself ("etkinlik" is not a business type). */
-export const BUSINESS_VERTICALS: readonly Vertical[] = ["yemek", "restoran", "kafe", "otel", "hizmet", "magaza", "diger"];
+export const BUSINESS_VERTICALS: readonly Vertical[] = ["yemek", "restoran", "kafe", "otel", "hizmet", "saglik", "dugun", "egitim", "magaza", "diger"];
 
 export function parseVertical(value: unknown): Vertical | null {
   return typeof value === "string" && (VERTICALS as readonly string[]).includes(value) ? (value as Vertical) : null;
