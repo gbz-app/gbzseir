@@ -55,9 +55,3 @@ export function rpcErrorMessage(error: RpcError, fallback = "İşlem tamamlanama
   if (!error.code || /fetch|network|timeout|abort/i.test(error.message ?? "")) return "Bağlantı sorunu oluştu. Lütfen tekrar dene.";
   return fallback;
 }
-
-/** "Hacıhalil" -> "Hacıhalil Mah." (neighbourhood names are stored short). */
-export function neighbourhoodLabel(name: string | null | undefined): string {
-  if (!name) return "Gebze";
-  return /\bmah/i.test(name) ? name : `${name} Mah.`;
-}

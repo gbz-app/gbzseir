@@ -495,7 +495,7 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
     icon: Castle,
     subFilter: { by: "subkind", param: "alt" },
   },
-  { slug: "muze", hub: "gezi", kind: "place", placeCategory: "muze", label: "Müzeler", title: "Müzeler", description: "Gebze'deki müzeler.", icon: Landmark },
+  { slug: "muze", hub: "gezi", kind: "place", placeCategory: "muze", label: "Müzeler", title: "Müzeler", description: "Kocaeli'deki müzeler.", icon: Landmark },
   { slug: "park", hub: "gezi", kind: "place", placeCategory: "park", label: "Parklar", title: "Parklar", description: "Parklar ve meydanlar.", icon: Trees },
   {
     slug: "tabiat-parki",
@@ -521,7 +521,7 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
   },
   { slug: "spor", hub: "gezi", kind: "place", placeCategory: "spor", label: "Spor", title: "Spor tesisleri", description: "Stadyum, spor salonu ve yüzme havuzları.", icon: Trophy },
   { slug: "pazar", hub: "gezi", kind: "place", placeCategory: "pazar", label: "Pazar yerleri", title: "Pazar yerleri", description: "Kapalı ve açık pazar yerleri.", icon: ShoppingBasket },
-  { slug: "mezarlik", hub: "gezi", kind: "place", placeCategory: "mezarlik", label: "Mezarlıklar", title: "Mezarlıklar", description: "Gebze'deki mezarlıklar.", icon: Flower2 },
+  { slug: "mezarlik", hub: "gezi", kind: "place", placeCategory: "mezarlik", label: "Mezarlıklar", title: "Mezarlıklar", description: "Kocaeli'deki mezarlıklar.", icon: Flower2 },
   {
     slug: "ulasim",
     hub: "gezi",
@@ -580,7 +580,8 @@ export const GUIDE_PARAMS = {
   brand: "marka",
   operator: "operator",
   ownership: "sahiplik",
-  neighbourhood: "mahalle",
+  /** District slug (districts.id). */
+  district: "ilce",
   q: "q",
   page: "sayfa",
 } as const;

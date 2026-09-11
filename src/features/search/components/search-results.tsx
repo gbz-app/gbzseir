@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft, Briefcase, CalendarDays, ChevronRight, Newspaper, Stethoscope, Store, Tag, Wrench, type LucideIcon } from "lucide-react";
+import { districtBySlug } from "@/config/districts";
 import { formatDate } from "@/core/format";
 import { routes, withQuery } from "@/core/routes";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,7 @@ import { eventWhenShort } from "@/features/events/format";
 import { guideIcon, institutionCategoryMeta } from "@/features/guide/lib/constants";
 import { listingPriceText } from "@/features/listings/format";
 import { KindIcon } from "@/features/nearby/components/kind-icon";
-import { KIND_META, displayStopName, placeCategoryMeta, poiHref, type PlaceCategoryDef } from "@/features/nearby/config";
+import { KIND_META, placeCategoryMeta, poiHref, type PlaceCategoryDef } from "@/features/nearby/config";
 import type { SearchShortcut } from "../categories";
 import { POI_GROUPS, SEARCH_GROUP_LABEL, poiGroup, toSearchResults, type PoiGroup, type SearchGroup, type SearchPoi, type SearchResults } from "../query";
 
@@ -23,9 +24,9 @@ const EMPTY = toSearchResults(null);
 
 const ROW = "flex min-h-16 items-center gap-3 px-4 py-2.5 outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60";
 
-/** Where a row is: the ilçe when the RPC sends it (Kocaeli-wide data), otherwise the mahalle. */
-function area(r: { district_name?: string | null; neighbourhood_name?: string | null }): string | null {
-  return r.district_name || r.neighbourhood_name || null;
+/** Where a row is: its ilçe (district_id's name, else the name the RPC sent); null when unknown. */
+function area(r: { district_id?: string | null; district_name?: string | null }): string | null {
+  return districtBySlug(r.district_id)?.name || r.district_name || null;
 }
 
 function Thumb({ url, icon: Icon }: { url: string | null; icon: LucideIcon }) {
@@ -90,10 +91,7 @@ function PoiRow({ p, placeCategories, onPick }: { p: SearchPoi; placeCategories?
     <li>
       <Link href={poiHref(p.kind, p.slug)} onClick={onPick} className={ROW}>
         <KindIcon kind={p.kind} icon={icon} size="sm" className="size-11 rounded-2xl" />
-        <Text
-          title={p.kind === "bus_stop" ? displayStopName(p.name, p.neighbourhood_name) : p.name}
-          sub={[type, area(p) ?? p.address].filter(Boolean).join(" · ")}
-        />
+        <Text title={p.name} sub={[type, area(p) ?? p.address].filter(Boolean).join(" · ")} />
       </Link>
     </li>
   );
@@ -235,7 +233,7 @@ export function SearchResultsList({ q, data, focus, shortcuts = [], newsCategori
             <li key={l.id}>
               <Link href={routes.listings.job(l.id)} onClick={onPick} className={ROW}>
                 <Thumb url={l.thumb_url} icon={Briefcase} />
-                <Text title={l.title} sub={[l.category_name, l.job_location_label || l.district_name].filter(Boolean).join(" · ")} />
+                <Text title={l.title} sub={[l.category_name, l.job_location_label || area(l)].filter(Boolean).join(" · ")} />
               </Link>
             </li>
           ))}

@@ -57,7 +57,7 @@ export type AgentRunOptions = {
 export type AgentStop = "end_turn" | "max_tokens" | "tool_use" | "refusal" | (string & {});
 export type AgentResult = { stop: AgentStop };
 
-export const REFUSAL_TEXT = "Bu isteğe yardımcı olamıyorum. Gebze ile ilgili başka bir şey sorabilirsin.";
+export const REFUSAL_TEXT = "Bu isteğe yardımcı olamıyorum. Kocaeli ile ilgili başka bir şey sorabilirsin.";
 export const EMPTY_TEXT = "Şu an bir yanıt oluşturamadım. Soruyu biraz farklı sorabilir misin?";
 const TOOL_FAILED = JSON.stringify({ hata: "Bu bilgiye şu an ulaşılamadı." });
 

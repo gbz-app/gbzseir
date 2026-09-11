@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Hash, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
-import { CITY } from "@/config/site";
+import { districtBySlug, districtName } from "@/config/districts";
 import { PageHeader } from "@/components/shared/page-header";
 import { DirectionsButton } from "@/components/shared/directions-button";
 import { ShareButton } from "@/components/shared/share-button";
@@ -15,7 +15,7 @@ import { DistanceLabel } from "@/features/nearby/components/distance-label";
 import { NearbyMiniList } from "@/features/nearby/components/nearby-mini-list";
 import { InfoReportSheet } from "@/features/nearby/components/info-report-sheet";
 import { MapPreviewCard } from "@/components/maps/map-preview-card";
-import { KBB_SOURCE, OSM_COPYRIGHT_URL, OSM_SOURCE, displayStopName } from "@/features/nearby/config";
+import { KBB_SOURCE, OSM_COPYRIGHT_URL, OSM_SOURCE } from "@/features/nearby/config";
 import { parseStopDetails } from "@/features/nearby/lib/details";
 import { poiJsonLd } from "@/features/nearby/jsonld";
 import { getNearbyPois, getPoi } from "@/features/nearby/server/queries";
@@ -28,10 +28,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const poi = await getPoi("bus_stop", id);
   if (!poi) return { title: "Durak bulunamadı", robots: { index: false } };
-  const name = displayStopName(poi.name, poi.neighbourhood_name);
   return {
-    title: `${name} - ${CITY.name}`,
-    description: `${name}: konum, geçen hatlar ve yol tarifi.`,
+    title: `${poi.name} - ${districtName(poi.district_id)}`,
+    description: `${poi.name}: konum, geçen hatlar ve yol tarifi.`,
     alternates: { canonical: routes.nearby.stop(poi.slug) },
   };
 }
@@ -42,7 +41,7 @@ export default async function StopPage({ params }: Props) {
   const poi = await getPoi("bus_stop", id);
   if (!poi) notFound();
 
-  const name = displayStopName(poi.name, poi.neighbourhood_name);
+  const name = poi.name;
   const stop = parseStopDetails(poi.details);
   const hasPoint = typeof poi.lat === "number" && typeof poi.lng === "number";
   const nearby = hasPoint ? await getNearbyPois({ kind: "bus_stop", lat: poi.lat as number, lng: poi.lng as number, excludeId: poi.id, radiusM: 1500 }) : [];
@@ -50,12 +49,12 @@ export default async function StopPage({ params }: Props) {
 
   return (
     <>
-      <JsonLd data={poiJsonLd({ ...poi, name }, "BusStop", path)} />
+      <JsonLd data={poiJsonLd(poi, "BusStop", path)} />
       <PageHeader title="Durak" backHref={routes.nearby.root("durak")} hideBottomNav actions={<ShareButton title={name} iconOnly />} />
       <div className={cn("flex flex-col gap-5 px-4 pt-4", STICKY_BAR_SPACE)}>
         <DetailHero
           icon={<KindIcon kind="bus_stop" size="lg" />}
-          eyebrow={["Otobüs durağı", poi.neighbourhood_name].filter(Boolean).join(" · ")}
+          eyebrow={["Otobüs durağı", districtBySlug(poi.district_id)?.name].filter(Boolean).join(" · ")}
           title={name}
           badges={<DistanceLabel lat={poi.lat} lng={poi.lng} withIcon className="text-sm text-muted-foreground" />}
         />

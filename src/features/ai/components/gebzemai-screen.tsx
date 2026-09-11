@@ -167,7 +167,7 @@ function InactiveView() {
     <>
       <PageHeader title={<Title />} backHref={routes.home()} />
       <div className="flex flex-1 flex-col items-center px-4 pt-8 pb-10 text-center">
-        <Hero title="GebzemAI henüz aktif değil" text="Yakında buradan Gebze hakkında soru sorabileceksin. Şimdilik aradığını arama ve sayfalarımızda bulabilirsin." />
+        <Hero title="GebzemAI henüz aktif değil" text="Yakında buradan Kocaeli hakkında soru sorabileceksin. Şimdilik aradığını arama ve sayfalarımızda bulabilirsin." />
         <Button asChild className={cn("mt-5", BLACK_CTA)}>
           <Link href={routes.search()}>
             <Search aria-hidden /> Aramaya git
@@ -186,7 +186,7 @@ function GuestView() {
     <>
       <PageHeader title={<Title />} backHref={routes.home()} />
       <div className="flex flex-1 flex-col items-center px-4 pt-8 pb-10 text-center">
-        <Hero title="Merhaba, ben GebzemAI" text="Gebze'de nöbetçi eczane, açık mekan, etkinlik ve daha fazlasını sor; cevabı uygulamadaki bilgilerden hazırlarım." />
+        <Hero title="Merhaba, ben GebzemAI" text="Kocaeli'de nöbetçi eczane, açık mekan, doktor, otobüs hattı, etkinlik ve daha fazlasını sor; cevabı önce uygulamadaki bilgilerden hazırlarım." />
         <Button asChild className={cn("mt-5", BLACK_CTA)}>
           <Link href={login}>
             <LogIn aria-hidden /> Giriş yap ve sor
@@ -432,7 +432,7 @@ function Chat({ initialLimit, initialRemaining, onInactive }: { initialLimit: Ai
       <div role="region" aria-label="GebzemAI sohbeti" aria-busy={streaming} className="flex flex-1 flex-col gap-4 px-4 pt-4 pb-4">
         {messages.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center py-6 text-center">
-            <Hero title="Merhaba, ben GebzemAI" text="Gebze'de nöbetçi eczane, açık mekan, etkinlik ve daha fazlasını sor. Cevaplarım uygulamadaki bilgilerden gelir." />
+            <Hero title="Merhaba, ben GebzemAI" text="Kocaeli'de nöbetçi eczane, açık mekan, doktor, otobüs hattı, etkinlik ve daha fazlasını sor. Cevaplarım önce uygulamadaki bilgilerden gelir; bulamazsam internete bakarım." />
             <ul className="mt-5 flex flex-wrap justify-center gap-2" aria-label="Örnek sorular">
               {AI_EXAMPLES.map((e) => (
                 <li key={e.text}>
@@ -500,7 +500,7 @@ function Chat({ initialLimit, initialRemaining, onInactive }: { initialLimit: Ai
               value={input}
               maxLength={AI_MAX_INPUT_CHARS}
               disabled={blocked}
-              placeholder={blocked ? "Şu an soru gönderilemiyor" : "Gebze hakkında bir şey sor"}
+              placeholder={blocked ? "Şu an soru gönderilemiyor" : "Kocaeli hakkında bir şey sor"}
               enterKeyHint="send"
               aria-describedby={count >= AI_COUNTER_FROM ? "gebzemai-count" : undefined}
               onChange={(e) => {

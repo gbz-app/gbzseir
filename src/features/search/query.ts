@@ -19,7 +19,6 @@ export type SearchListing = WithDistrict & {
   price_try: number | null;
   job_location_label: string | null;
   category_name: string | null;
-  neighbourhood_name: string | null;
   thumb_url: string | null;
 };
 
@@ -29,7 +28,6 @@ export type SearchBusiness = WithDistrict & {
   name: string;
   category_label: string | null;
   logo_url: string | null;
-  neighbourhood_name: string | null;
   /** Active tatil state (missing on an older RPC). */
   vacation_mode?: boolean;
   vacation_until?: string | null;
@@ -43,7 +41,6 @@ export type SearchPoi = WithDistrict & {
   slug: string;
   name: string;
   address: string | null;
-  neighbourhood_name: string | null;
   /** Place category (kind 'place') or institution category key (kind 'institution'). */
   category: string | null;
   /** institution_categories label and lucide icon name (kind 'institution'). */
@@ -59,7 +56,6 @@ export type SearchEvent = WithDistrict & {
   ends_at: string | null;
   venue_name: string | null;
   cover_url: string | null;
-  neighbourhood_name: string | null;
 };
 
 export type SearchArticle = { id: string; slug: string; title: string; category: string; cover_url: string | null; published_at: string };
@@ -76,7 +72,6 @@ export type SearchDoctor = WithDistrict & {
   branch_label: string | null;
   photo_url: string | null;
   clinic_name: string;
-  neighbourhood_name: string | null;
 };
 
 export type SearchResults = {
@@ -197,5 +192,6 @@ export type PopularPlace = {
   /** Business category label (null for places). */
   label: string | null;
   imageUrl: string | null;
-  neighbourhoodName: string | null;
+  /** İlçe name (popular_places.district_name, else the name of its district_id); null when unknown. */
+  districtName: string | null;
 };

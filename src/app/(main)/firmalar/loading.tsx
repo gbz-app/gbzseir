@@ -1,12 +1,13 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { ListSkeleton } from "@/components/shared/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CITY } from "@/config/site";
 import { routes } from "@/core/routes";
 
 export default function Loading() {
   return (
     <>
-      <PageHeader title="Firmalar" subtitle="Gebze'nin onaylı işletmeleri" backHref={routes.services.root()} />
+      <PageHeader title="Firmalar" subtitle={`${CITY.province}'nin onaylı işletmeleri`} backHref={routes.services.root()} />
       <div className="flex flex-col gap-4 px-4 py-4" aria-busy="true">
         <Skeleton className="h-11 w-full rounded-xl" />
         <div className="flex gap-2 overflow-hidden">

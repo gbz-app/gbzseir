@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowUpRight, MapPin, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { districtBySlug } from "@/config/districts";
 import { formatPrice } from "@/core/format";
 import { formatDistance } from "@/core/geo";
 import { routes } from "@/core/routes";
@@ -39,6 +40,11 @@ function priceLine(item: VerticalCard): { strong: string; rest?: string } | null
   }
   const level = priceLevelInfo(item.price_level);
   return level ? { strong: level.symbol, rest: ` · ${level.label}` } : null;
+}
+
+/** "Gebze · 1,2 km": the district and the distance, whichever is known. */
+function placeLine(item: VerticalCard, distance: number | null): string {
+  return [districtBySlug(item.district_id)?.name, distance != null ? formatDistance(distance) : null].filter(Boolean).join(" · ");
 }
 
 type StatusTone = "open" | "vacation" | "muted";
@@ -79,7 +85,7 @@ export function VenueCard(props: VenueCardProps) {
   if (props.variant === "compact") return <CompactVenueCard {...props} />;
   const { item, distance, open, eager } = props;
   const price = priceLine(item);
-  const where = [item.neighbourhood_name ? `${item.neighbourhood_name} Mah.` : null, distance != null ? formatDistance(distance) : null].filter(Boolean).join(" · ");
+  const where = placeLine(item, distance);
   const status = statusOf(item, open);
 
   return (
@@ -140,7 +146,7 @@ export function VenueCard(props: VenueCardProps) {
 
 /** Half-width card (two per row at 390 px): photo on top, name, category, place and open status below. */
 function CompactVenueCard({ item, distance, open, eager }: VenueCardProps) {
-  const where = [item.neighbourhood_name, distance != null ? formatDistance(distance) : null].filter(Boolean).join(" · ");
+  const where = placeLine(item, distance);
   const status = statusOf(item, open);
 
   return (

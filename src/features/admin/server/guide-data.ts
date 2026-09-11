@@ -1,7 +1,7 @@
 import "server-only";
 import { publicUrl } from "@/config/app-mode";
+import { districtBySlug } from "@/config/districts";
 import { formatPhoneTR } from "@/core/format";
-import { trCompare } from "@/core/tr";
 import type { Json } from "@/lib/database.types";
 import type { ServerSupabase } from "@/lib/supabase/server";
 import { CATEGORY_KEY_RE } from "@/features/business/lib/category-visuals";
@@ -16,10 +16,10 @@ import { GUIDE_CATEGORY_FIELD_LABELS, guideCategoryField, isGuideKind, type Guid
  */
 
 /** Columns of the admin guide lists (toGuideRowItem). */
-export const GUIDE_ROW_COLUMNS = "id,kind,name,slug,address,phone,lat,details,source,source_ref,hidden,locked,verified_at,updated_at,neighbourhoods(name)";
+export const GUIDE_ROW_COLUMNS = "id,kind,name,slug,address,phone,lat,details,source,source_ref,hidden,locked,verified_at,updated_at,district_id";
 
 const EDIT_COLUMNS =
-  "id,kind,name,slug,address,phone,lat,lng,neighbourhood_id,details,source,source_ref,hidden,locked,verified_at,source_urls,email,website,updated_at";
+  "id,kind,name,slug,address,phone,lat,lng,district_id,details,source,source_ref,hidden,locked,verified_at,source_urls,email,website,updated_at";
 
 function parseSubkinds(v: Json | null | undefined): PlaceSubkindDef[] {
   if (!Array.isArray(v)) return [];
@@ -33,12 +33,11 @@ function parseSubkinds(v: Json | null | undefined): PlaceSubkindDef[] {
   return out;
 }
 
-/** Institution and place categories (with subkinds) and the neighbourhoods; built-in lists when a table cannot be read. */
+/** Institution and place categories (with subkinds); built-in lists when a table cannot be read. Districts are static. */
 export async function loadGuideVocab(supabase: ServerSupabase): Promise<GuideVocab> {
-  const [ic, pc, nh] = await Promise.all([
+  const [ic, pc] = await Promise.all([
     supabase.from("institution_categories").select("key,label_tr,group_key,icon,sort,active").order("sort").order("label_tr"),
     supabase.from("place_categories").select("key,label,active,subkinds").order("sort").order("label"),
-    supabase.from("neighbourhoods").select("id,name,lat,lng").limit(1000),
   ]);
   const placeCategories = pc.data?.length
     ? pc.data.map((r) => ({ key: r.key, label: r.label, active: r.active, subkinds: parseSubkinds(r.subkinds) }))
@@ -46,7 +45,6 @@ export async function loadGuideVocab(supabase: ServerSupabase): Promise<GuideVoc
   return {
     institutionCategories: toInstitutionCategoryDefs(ic.data),
     placeCategories,
-    neighbourhoods: (nh.data ?? []).map((n) => ({ id: n.id, name: n.name, lat: n.lat, lng: n.lng })).sort((a, b) => trCompare(a.name, b.name)),
   };
 }
 
@@ -62,7 +60,7 @@ export async function loadGuideRow(supabase: ServerSupabase, id: string): Promis
     name: data.name,
     slug: data.slug,
     address: data.address,
-    neighbourhoodId: data.neighbourhood_id,
+    districtId: data.district_id,
     lat: data.lat,
     lng: data.lng,
     phones: d.phones,
@@ -125,7 +123,7 @@ type RowShape = {
   locked: boolean;
   verified_at: string | null;
   updated_at: string;
-  neighbourhoods?: { name: string } | { name: string }[] | null;
+  district_id?: string | null;
 };
 
 /** A GUIDE_ROW_COLUMNS row as a list item (labels from the admin vocabularies). */
@@ -135,13 +133,12 @@ export function toGuideRowItem(r: RowShape, vocab: GuideVocab): GuideRowItem {
   const placeDefs = vocab.placeCategories.map((c) => ({ key: c.key, label: c.label, icon: null, active: c.active }));
   const category = guideCategoryLabel(kind, d, vocab.institutionCategories, placeDefs) ?? GUIDE_CATEGORY_FIELD_LABELS[guideCategoryField(kind)].none;
   const sub = kind === "place" ? placeSubkindLabel(d.subkind, d.category) : null;
-  const n = r.neighbourhoods;
-  const hood = Array.isArray(n) ? (n[0]?.name ?? null) : (n?.name ?? null);
+  const district = districtBySlug(r.district_id)?.name;
   return {
     id: r.id,
     kind,
     name: r.name,
-    subtitle: [category, sub, hood ?? "Mahalle yok", r.phone ? formatPhoneTR(r.phone) : "Telefon yok"].filter(Boolean).join(" · "),
+    subtitle: [category, sub, district ?? "İlçe yok", r.phone ? formatPhoneTR(r.phone) : "Telefon yok"].filter(Boolean).join(" · "),
     address: r.address,
     hasPin: r.lat !== null,
     verified: !!r.verified_at,

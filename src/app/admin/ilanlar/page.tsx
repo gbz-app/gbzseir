@@ -8,6 +8,7 @@ import { DemoBadge } from "@/components/shared/badges";
 import { Badge } from "@/components/ui/badge";
 import { routes, withQuery } from "@/core/routes";
 import { publicUrl } from "@/config/app-mode";
+import { districtBySlug } from "@/config/districts";
 import { formatDateTime, formatPhoneTR, formatPrice, formatPriceRange, formatRelativeTime } from "@/core/format";
 import {
   AdminCard,
@@ -44,9 +45,9 @@ const TYPES = ["tumu", "classified", "job"] as const;
 
 const SELECT =
   "id,type,title,description,price_try,status,flags,rejection_reason,created_at,published_at,expires_at,attributes,is_demo," +
-  "job_salary_min,job_salary_max,job_salary_hidden,job_location_label," +
+  "job_salary_min,job_salary_max,job_salary_hidden,job_location_label,district_id," +
   "owner:profiles!listings_owner_id_fkey(id,full_name,phone,trusted_publisher,status)," +
-  "business:businesses(id,name,slug,status),listing_categories(name,slug,is_banned),neighbourhoods(name),listing_media(url,thumb_url,sort),listing_videos(url,poster_url,duration_s,size_bytes)";
+  "business:businesses(id,name,slug,status),listing_categories(name,slug,is_banned),listing_media(url,thumb_url,sort),listing_videos(url,poster_url,duration_s,size_bytes)";
 
 type ListingRow = {
   id: string;
@@ -66,10 +67,11 @@ type ListingRow = {
   job_salary_max: number | null;
   job_salary_hidden: boolean;
   job_location_label: string | null;
+  /** public.districts id (config/districts.ts). */
+  district_id: string | null;
   owner: { id: string; full_name: string | null; phone: string | null; trusted_publisher: boolean; status: string } | null;
   business: { id: string; name: string; slug: string; status: string } | null;
   listing_categories: { name: string; slug: string; is_banned: boolean } | null;
-  neighbourhoods: { name: string } | null;
   listing_media: Array<{ url: string; thumb_url: string | null; sort: number }>;
   listing_videos: VideoRow | VideoRow[] | null;
 };
@@ -255,7 +257,8 @@ export default async function AdminListingsPage({ searchParams }: PageProps<"/ad
                         </Badge>
                       ) : null}
                     </InfoRow>
-                    <InfoRow label="Konum">{l.type === "job" ? l.job_location_label ?? l.neighbourhoods?.name ?? "-" : l.neighbourhoods?.name ?? "-"}</InfoRow>
+                    <InfoRow label="İlçe">{districtBySlug(l.district_id)?.name ?? "-"}</InfoRow>
+                    {l.type === "job" && l.job_location_label ? <InfoRow label="Çalışma yeri">{l.job_location_label}</InfoRow> : null}
                     <InfoRow label="Oluşturma">{formatDateTime(l.created_at)}</InfoRow>
                     {l.published_at ? <InfoRow label="Yayın bitişi">{formatDateTime(l.expires_at)}</InfoRow> : null}
                     {attrs.map(([k, v]) => (

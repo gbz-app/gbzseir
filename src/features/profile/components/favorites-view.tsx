@@ -25,7 +25,8 @@ export type FavoriteBusiness = {
   verification_level: number;
 };
 
-export type FavoritePoi = { id: string; kind: PoiKind; name: string; slug: string; neighbourhoodName: string | null };
+/** districtName: display name of the place's district (ilçe), null when unknown. */
+export type FavoritePoi = { id: string; kind: PoiKind; name: string; slug: string; districtName: string | null };
 
 type Tab = "ilanlar" | "isletmeler" | "yerler";
 
@@ -127,9 +128,9 @@ export function FavoritesView({ listings, businesses, pois }: { listings: Listin
                   <KindIcon kind={p.kind} size="sm" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-semibold">{p.name}</span>
-                    {p.neighbourhoodName ? (
+                    {p.districtName ? (
                       <span className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
-                        <MapPin className="size-3.5" aria-hidden /> {p.neighbourhoodName}
+                        <MapPin className="size-3.5" aria-hidden /> {p.districtName}
                       </span>
                     ) : null}
                   </span>

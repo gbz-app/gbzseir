@@ -2,6 +2,7 @@
  * Draft shapes of the listing wizards and mappers from an existing listing (edit mode). Pure TS (server + client).
  */
 import type { UploadedImage } from "@/components/shared/image-uploader";
+import { isDistrictSlug, type DistrictSlug } from "@/config/districts";
 import { jobLocationByLabel } from "./constants";
 import { splitJobDescription } from "./job-description";
 import type { AttributeValue, ListingDetail } from "./types";
@@ -15,8 +16,10 @@ export type ClassifiedDraft = {
   condition: string | null;
   attrs: Record<string, AttributeValue>;
   description: string;
-  neighbourhoodId: string | null;
-  neighbourhoodName: string | null;
+  /** District slug. Missing in drafts saved before districts: read it with draftDistrict(). */
+  districtId?: string | null;
+  /** @deprecated Neighbourhood of a draft saved before districts; only read by draftDistrict(). */
+  neighbourhoodId?: string | null;
   /** Optional video (R2). Missing in drafts saved before video existed. */
   video?: ClassifiedVideoDraft | null;
 };
@@ -43,9 +46,28 @@ export type JobDraft = {
   qualifications: string;
   /** JOB_LOCATIONS key. */
   locationKey: string | null;
-  neighbourhoodId: string | null;
-  neighbourhoodName: string | null;
+  /** District slug (optional for job ads). Missing in drafts saved before districts: read it with draftDistrict(). */
+  districtId?: string | null;
+  /** @deprecated Neighbourhood of a draft saved before districts; only read by draftDistrict(). */
+  neighbourhoodId?: string | null;
 };
+
+/** Every neighbourhood the old picker offered was in Gebze (the app covered Gebze only before the Kocaeli update). */
+const LEGACY_NEIGHBOURHOOD_DISTRICT: DistrictSlug = "gebze";
+
+/**
+ * District of a wizard draft. Drafts restored from localStorage may predate districts: their old neighbourhood pick
+ * becomes its district, so the user does not have to choose again.
+ */
+export function draftDistrict(d: { districtId?: string | null; neighbourhoodId?: string | null }): DistrictSlug | null {
+  if (isDistrictSlug(d.districtId)) return d.districtId;
+  return d.districtId === undefined && d.neighbourhoodId ? LEGACY_NEIGHBOURHOOD_DISTRICT : null;
+}
+
+/** Draft patch for a district pick (also drops an old neighbourhood so it cannot come back). */
+export function districtPatch(slug: string | null): { districtId: DistrictSlug | null; neighbourhoodId: null } {
+  return { districtId: isDistrictSlug(slug) ? slug : null, neighbourhoodId: null };
+}
 
 /** Keep digits only (max 9) for price / salary inputs. */
 export function digitsInput(value: string): string {
@@ -68,8 +90,7 @@ export function classifiedDraftFromDetail(d: ListingDetail): ClassifiedDraft {
     condition: typeof durum === "string" ? durum : null,
     attrs: rest,
     description: d.description,
-    neighbourhoodId: d.neighbourhood_id,
-    neighbourhoodName: d.neighbourhoodName,
+    districtId: isDistrictSlug(d.district_id) ? d.district_id : null,
     video: d.video ? { url: d.video.url, posterUrl: d.video.posterUrl, durationS: d.video.durationS } : null,
   };
 }
@@ -88,7 +109,6 @@ export function jobDraftFromDetail(d: ListingDetail): JobDraft {
     description,
     qualifications,
     locationKey: jobLocationByLabel(d.job_location_label)?.key ?? null,
-    neighbourhoodId: d.neighbourhood_id,
-    neighbourhoodName: d.neighbourhoodName,
+    districtId: isDistrictSlug(d.district_id) ? d.district_id : null,
   };
 }

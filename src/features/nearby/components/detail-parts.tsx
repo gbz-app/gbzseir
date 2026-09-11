@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BOTTOM_DOCK_SPACE, BottomDock } from "@/components/shared/bottom-dock";
 
-/** Card with the kind icon, eyebrow (type · neighbourhood), big name and badges. Server-safe. */
+/** Card with the kind icon, eyebrow (type · district), big name and badges. Server-safe. */
 export function DetailHero({
   icon,
   eyebrow,

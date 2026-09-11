@@ -51,10 +51,12 @@ function buildPatch(step: BusinessEditStep, d: BusinessEditData, amenityOptions:
       return { phone, website, instagram };
     }
     case "konum":
+      if (!d.districtId) return "İşletmenin bulunduğu ilçeyi seç.";
+      // The district is sent explicitly, so zz_fill_district keeps it (the pin already chose it in the form).
       return {
         address: d.address.trim() || null,
         location: d.location ? `SRID=4326;POINT(${d.location.lng} ${d.location.lat})` : null,
-        neighbourhood_id: d.neighbourhoodId,
+        district_id: d.districtId,
       };
     case "saatler": {
       const hoursError = validateHours(d.hours);
@@ -72,7 +74,7 @@ function buildPatch(step: BusinessEditStep, d: BusinessEditData, amenityOptions:
       };
     }
     case "hizmet-alani":
-      return null;
+      return d.serviceDistrictIds.length ? null : "Hizmet verdiğin en az bir ilçe seç.";
   }
 }
 
@@ -122,15 +124,15 @@ export function EditStepForm({ step, initial, amenities = AMENITIES }: { step: B
       }
     }
     if (step === "hizmet-alani") {
-      // One transaction (set_business_service_scope): a failed save keeps the old categories and areas.
+      // One transaction (set_business_service_scope): a failed save keeps the old categories and districts.
       const { error } = await supabase.rpc("set_business_service_scope", {
         p_business_id: d.id,
         p_category_ids: d.categoryIds,
-        p_neighbourhood_ids: d.areaIds,
+        p_district_ids: d.serviceDistrictIds,
       });
       if (error) {
         setSaving(false);
-        toast.error("Hizmet kategorileri ya da bölgeler kaydedilemedi.");
+        toast.error("Hizmet kategorileri ya da ilçeler kaydedilemedi.");
         return;
       }
     }

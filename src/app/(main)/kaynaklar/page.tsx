@@ -190,7 +190,7 @@ export default async function SourcesPage() {
               { label: "CC BY 4.0 lisansı", href: SOURCE_URLS.ccBy },
             ]}
           >
-            {`${CITY.name}'deki eczanelerin, camilerin ve tarihi yerlerin adı, adresi, telefonu ve konumu belediyenin açık veri portalından alınır. Konumları haritada kullanılan koordinat sistemine dönüştürdük, adresleri okunur hale getirdik.`}
+            {`${CITY.province}'nin 12 ilçesindeki eczanelerin, camilerin, akaryakıt istasyonlarının, taksi duraklarının, sağlık ve emniyet birimlerinin, müzelerin ve tarihi yerlerin, KocaeliKart noktalarının, acil toplanma alanlarının ve ücretsiz otoparkların adı, adresi, telefonu ve konumu belediyenin açık veri portalından alınır. Otobüs durakları ve duraklardan geçen hatlar da belediyenin toplu taşıma verisinden gelir. Konumları haritada kullanılan koordinat sistemine dönüştürdük, adresleri okunur hale getirdik.`}
           </SourceCard>
 
           <SourceCard
@@ -205,7 +205,7 @@ export default async function SourcesPage() {
               { label: "ODbL lisansı", href: SOURCE_URLS.odbl },
             ]}
           >
-            {`Otobüs durakları ve geçen hatlar, taksi durakları, ATM'ler, parklar ve mahalle sınırları OpenStreetMap'ten alınır. OpenStreetMap verisi Open Database License (ODbL) ile paylaşılır.`}
+            {`İlçe sınırları ile bazı ATM, park ve yer kayıtları OpenStreetMap'ten alınır. OpenStreetMap verisi Open Database License (ODbL) ile paylaşılır.`}
           </SourceCard>
 
           <SourceCard
@@ -257,8 +257,8 @@ export default async function SourcesPage() {
 
         <Section
           id="haber-kaynaklari"
-          title="Gebze Gündemi haber kaynakları"
-          description="Başlıklar ve en fazla 280 karakterlik özetler bu sitelerin herkese açık RSS akışlarından otomatik alınır; habere dokununca kaynağında açılır. Haberlerin tamamı ve tüm hakları yayıncılarına aittir."
+          title={`${CITY.province} Gündemi haber kaynakları`}
+          description="Bu sitelerin herkese açık RSS akışları kayıtlı. Uygulamada yalnızca Gebzem ekibinin kendi haberleri yayımlanır; bu sitelerin başlıkları gösterilmez. Haberlerin tamamı ve tüm hakları yayıncılarına aittir."
         >
           {news === null ? (
             <p className="rounded-2xl bg-muted/70 px-4 py-3 text-sm text-muted-foreground">Kaynak listesi şu an yüklenemedi. Biraz sonra tekrar dene.</p>
@@ -274,11 +274,11 @@ export default async function SourcesPage() {
             <p className="rounded-2xl bg-muted/70 px-4 py-3 text-sm text-muted-foreground">Şu an etkin bir haber kaynağı yok.</p>
           )}
           <p className="px-1 text-xs leading-relaxed text-muted-foreground">
-            {`Akışlar yaklaşık ${feedMinutes} dakikada bir "GebzemNews" adıyla okunur. Başlıkları `}
+            {`Akışlar yaklaşık ${feedMinutes} dakikada bir "GebzemNews" adıyla okunur. Gebzem'in kendi haberlerini `}
             <Link href={routes.content.news()} className="font-semibold text-foreground underline underline-offset-2">
-              Gebze Gündemi
+              Haberler
             </Link>
-            {" sayfasında görebilirsin."}
+            {" sayfasında okuyabilirsin."}
           </p>
         </Section>
 

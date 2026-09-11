@@ -8,7 +8,8 @@ import type { Json } from "@/lib/database.types";
 import { INSTITUTION_CATEGORY_DEFS, guideCategoryLabel, isGuideDetailKind } from "@/features/guide/lib/constants";
 import { parseGuideDetails, toInstitutionCategoryDefs } from "@/features/guide/lib/details";
 import type { InstitutionCategoryDef } from "@/features/guide/lib/types";
-import { PLACE_CATEGORY_DEFS, displayStopName, placeCategoryMeta, poiHref, type PlaceCategoryDef } from "../config";
+import { districtBySlug } from "@/config/districts";
+import { PLACE_CATEGORY_DEFS, districtLabel, placeCategoryMeta, poiHref, type PlaceCategoryDef } from "../config";
 import { parsePlaceDetails, parseStopDetails } from "./details";
 import type { DutyRow, DutyWindowIso, NearbyFilter, NearbyItem, PoiKind, PoiRow } from "../types";
 
@@ -33,10 +34,6 @@ const FILTER_KIND: Record<Exclude<NearbyFilter, "nobetci" | "isletme">, PoiKind>
   gezilecek: "place",
 };
 
-function hood(name: string | null | undefined): string | null {
-  return name ? `${name} Mah.` : null;
-}
-
 type Labels = { placeCategories: readonly PlaceCategoryDef[]; institutionCategories: readonly InstitutionCategoryDef[] };
 
 /** `labels`: the admin's place / institution category labels (the built-in lists when they cannot be read). */
@@ -52,30 +49,30 @@ function poiToItem(r: PoiRow, labels: Labels = { placeCategories: PLACE_CATEGORY
     distance: r.distance_m ?? null,
     subjectType: "poi" as const,
   };
+  const district = districtLabel(r);
   if (r.kind === "bus_stop") {
     const d = parseStopDetails(r.details);
     return {
       ...base,
       kind: "bus_stop",
-      name: displayStopName(r.name, r.neighbourhood_name),
-      subtitle: [hood(r.neighbourhood_name), d.stopCode ? `Durak kodu ${d.stopCode}` : null].filter(Boolean).join(" · ") || null,
+      subtitle: [district, d.stopCode ? `Durak kodu ${d.stopCode}` : null].filter(Boolean).join(" · ") || null,
       lines: d.lines,
     };
   }
   if (r.kind === "taxi") {
     // No detail page: the card opens the point in Google Maps.
-    return { ...base, kind: r.kind, href: `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}`, subtitle: hood(r.neighbourhood_name) };
+    return { ...base, kind: r.kind, href: `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}`, subtitle: district };
   }
   if (isGuideDetailKind(r.kind)) {
-    // City guide rows (ATM, banka, akaryakıt, şarj, resmî kurum): "<what it is> · <mahalle>", detail page /kurum/<slug>.
+    // City guide rows (ATM, banka, akaryakıt, şarj, resmî kurum): "<what it is> · <ilçe>", detail page /kurum/<slug>.
     const label = guideCategoryLabel(r.kind, parseGuideDetails(r.details, r.phone), labels.institutionCategories);
-    return { ...base, kind: r.kind, subtitle: [label, hood(r.neighbourhood_name)].filter(Boolean).join(" · ") || null };
+    return { ...base, kind: r.kind, subtitle: [label, district].filter(Boolean).join(" · ") || null };
   }
   if (r.kind === "place") {
     const d = parsePlaceDetails(r.details);
-    return { ...base, kind: "place", subtitle: [placeCategoryMeta(d.category, labels.placeCategories).label, r.neighbourhood_name].filter(Boolean).join(" · ") };
+    return { ...base, kind: "place", subtitle: [placeCategoryMeta(d.category, labels.placeCategories).label, district].filter(Boolean).join(" · ") };
   }
-  return { ...base, kind: r.kind, subtitle: hood(r.neighbourhood_name) };
+  return { ...base, kind: r.kind, subtitle: district };
 }
 
 function dutyToItem(r: DutyRow): NearbyItem {
@@ -84,7 +81,7 @@ function dutyToItem(r: DutyRow): NearbyItem {
     kind: "duty",
     name: r.name,
     href: routes.nearby.pharmacy(r.slug),
-    subtitle: hood(r.neighbourhood_name),
+    subtitle: districtLabel(r),
     address: r.address,
     phone: r.phone,
     lat: r.lat,
@@ -107,13 +104,13 @@ type BusinessRow = {
   working_hours: Json;
   vacation_mode: boolean;
   verification_level: number;
-  neighbourhoods: { name: string } | { name: string }[] | null;
+  district_id: string | null;
 };
 
 async function loadBusinesses(point: LatLng): Promise<NearbyItem[]> {
   const { data, error } = await createClient()
     .from("businesses")
-    .select("id,slug,name,category_label,phone,address,lat,lng,working_hours,vacation_mode,verification_level,neighbourhoods!businesses_neighbourhood_id_fkey(name)")
+    .select("id,slug,name,category_label,phone,address,lat,lng,working_hours,vacation_mode,verification_level,district_id")
     .eq("status", "approved")
     .not("lat", "is", null)
     .not("lng", "is", null)
@@ -122,13 +119,12 @@ async function loadBusinesses(point: LatLng): Promise<NearbyItem[]> {
   const items: NearbyItem[] = [];
   for (const b of (data ?? []) as BusinessRow[]) {
     if (typeof b.lat !== "number" || typeof b.lng !== "number") continue;
-    const n = Array.isArray(b.neighbourhoods) ? b.neighbourhoods[0] : b.neighbourhoods;
     items.push({
       id: b.id,
       kind: "business",
       name: b.name,
       href: routes.businesses.detail(b.slug),
-      subtitle: [b.category_label, n?.name ? hood(n.name) : null].filter(Boolean).join(" · ") || null,
+      subtitle: [b.category_label, districtBySlug(b.district_id)?.name].filter(Boolean).join(" · ") || null,
       address: b.address,
       phone: b.phone,
       lat: b.lat,

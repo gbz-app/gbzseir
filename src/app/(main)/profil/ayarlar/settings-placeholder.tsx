@@ -211,8 +211,8 @@ export function SettingsScreen() {
         />
         <ActionRow
           icon={MapPinOff}
-          label="Konum ve mahalle bilgimi sil"
-          hint="Bu cihazda saklanan yaklaşık konumu siler."
+          label="Konum ve ilçe bilgimi sil"
+          hint="Bu cihazda saklanan yaklaşık konumu ve ilçe seçimini siler."
           onClick={() => {
             clearLocationPrefs();
             toast.success("Konum bilgin silindi");

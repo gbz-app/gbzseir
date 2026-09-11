@@ -40,7 +40,7 @@ export type Dataset = { key: string; label: string; count: number | null };
 /** Datasets that are not poi rows (no record count). */
 const OTHER_DATASETS: Record<PoiSourceGroup, Dataset[]> = {
   kbb: [],
-  osm: [{ key: "osm:neighbourhoods", label: "Mahalle sınırları", count: null }],
+  osm: [{ key: "osm:districts", label: "İlçe sınırları", count: null }],
 };
 
 type PoiCounts = Record<string, number>;

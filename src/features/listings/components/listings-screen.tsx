@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { TAB_TYPE } from "../constants";
 import { isFiltered, queryKey, resolveSearch, type ListingsQuery } from "../filters";
 import { fetchListingsPage } from "../search";
-import { safeCategories, safeNeighbourhoods } from "../server/queries";
+import { safeCategories } from "../server/queries";
 import { createPublicClient } from "../server/public-client";
 import { ListingFavoritesProvider } from "./favorites";
 import { ClassifiedCard, JobCard } from "./listing-cards";
@@ -22,12 +22,9 @@ import { PostListingFab } from "./post-fab";
 export async function ListingsScreen({ query }: { query: ListingsQuery }) {
   const type = TAB_TYPE[query.tab];
   const isJob = type === "job";
-  const [allCategories, neighbourhoods] = await Promise.all([safeCategories(), safeNeighbourhoods()]);
-  const categories = allCategories.filter((c) => c.type === type);
-  const neighbourhood = query.mahalle ? (neighbourhoods.find((n) => n.slug === query.mahalle) ?? null) : null;
+  const categories = (await safeCategories()).filter((c) => c.type === type);
   const resolved = resolveSearch(query, {
     categoryIdBySlug: (slug) => categories.find((c) => c.slug === slug)?.id ?? null,
-    neighbourhoodIdBySlug: (slug) => neighbourhoods.find((n) => n.slug === slug)?.id ?? null,
   });
   const page = await fetchListingsPage(createPublicClient(), resolved, 0, { withCount: true });
   const filtered = isFiltered(query);
@@ -36,7 +33,7 @@ export async function ListingsScreen({ query }: { query: ListingsQuery }) {
     <ListingFavoritesProvider>
       <ListingsNavProvider>
         <div className="flex flex-col gap-4 px-4 pb-32">
-          <ListingsHeader query={query} categories={categories} neighbourhood={neighbourhood} total={page.total} />
+          <ListingsHeader query={query} categories={categories} total={page.total} />
           <ListingsResults>
             {page.error ? (
               <EmptyState className="rounded-3xl bg-card" icon={SearchX} title="İlanlar yüklenemedi" description="Bağlantını kontrol edip sayfayı yenile." />

@@ -1,14 +1,17 @@
 /**
  * schema.org builders for the nearby pages (rendered with <JsonLd/>).
  */
+import { districtBySlug } from "@/config/districts";
 import { CITY, SITE_URL } from "@/config/site";
 import type { PoiDetail } from "./types";
 
-export function postalAddress(address: string | null | undefined) {
+/** `districtId`: the row's district (addressLocality); left out when unknown. */
+export function postalAddress(address: string | null | undefined, districtId?: string | null) {
+  const locality = districtBySlug(districtId)?.name;
   return {
     "@type": "PostalAddress",
     ...(address ? { streetAddress: address } : {}),
-    addressLocality: CITY.name,
+    ...(locality ? { addressLocality: locality } : {}),
     addressRegion: CITY.province,
     addressCountry: "TR",
   };
@@ -25,7 +28,7 @@ export function absoluteUrl(path: string): string {
 
 /** Base Place-like object for a poi. */
 export function poiJsonLd(
-  poi: Pick<PoiDetail, "name" | "address" | "phone" | "lat" | "lng">,
+  poi: Pick<PoiDetail, "name" | "address" | "phone" | "lat" | "lng" | "district_id">,
   type: string | string[],
   path: string,
   extra: Record<string, unknown> = {},
@@ -35,7 +38,7 @@ export function poiJsonLd(
     "@type": type,
     name: poi.name,
     url: absoluteUrl(path),
-    address: postalAddress(poi.address),
+    address: postalAddress(poi.address, poi.district_id),
     ...(poi.phone ? { telephone: poi.phone } : {}),
     ...(geoCoordinates(poi.lat, poi.lng) ? { geo: geoCoordinates(poi.lat, poi.lng) } : {}),
     ...extra,

@@ -15,7 +15,8 @@ export type VerticalCard = {
   category_label: string | null;
   /** Description (capped), used by the sub-category chips. */
   description: string | null;
-  neighbourhood_name: string | null;
+  /** public.districts id (config/districts.ts). */
+  district_id: string | null;
   lat: number | null;
   lng: number | null;
   rating_avg: number;
@@ -56,7 +57,7 @@ type Raw = {
   vacation_mode: boolean | null;
   vacation_until: string | null;
   is_demo: boolean | null;
-  neighbourhoods: { name: string } | null;
+  district_id: string | null;
   business_photos: Array<{ url: string; sort: number }> | null;
   business_rooms: Array<{ price_try: number | string | null; is_available: boolean }> | null;
 };
@@ -139,7 +140,7 @@ export const listVerticalBusinesses = cache(async (vertical: Vertical): Promise<
   const { data, error } = await createPublicClient()
     .from("businesses")
     .select(
-      "id,slug,name,cover_url,logo_url,category_label,description,lat,lng,rating_avg,rating_count,price_level,star_rating,amenities,vertical,kinds,working_hours,vacation_mode,vacation_until,is_demo,neighbourhoods!businesses_neighbourhood_id_fkey(name),business_photos(url,sort),business_rooms(price_try,is_available)",
+      "id,slug,name,cover_url,logo_url,category_label,description,lat,lng,rating_avg,rating_count,price_level,star_rating,amenities,vertical,kinds,working_hours,vacation_mode,vacation_until,is_demo,district_id,business_photos(url,sort),business_rooms(price_try,is_available)",
     )
     .eq("status", "approved")
     .eq("vertical", vertical)
@@ -159,7 +160,7 @@ export const listVerticalBusinesses = cache(async (vertical: Vertical): Promise<
       logo_url: b.logo_url,
       category_label: b.category_label,
       description: b.description?.slice(0, 400) ?? null,
-      neighbourhood_name: b.neighbourhoods?.name ?? null,
+      district_id: b.district_id ?? null,
       lat: b.lat,
       lng: b.lng,
       rating_avg: num(b.rating_avg) ?? 0,

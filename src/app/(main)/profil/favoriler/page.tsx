@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { routes } from "@/core/routes";
+import { districtBySlug } from "@/config/districts";
 import { ProfilePageHeader } from "@/components/shared/profile-page-header";
 import { requireProfile } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
@@ -11,11 +12,6 @@ import { FavoritesView, type FavoriteBusiness, type FavoritePoi } from "@/featur
 export const metadata: Metadata = { title: "Favorilerim", robots: { index: false } };
 
 type Row = Record<string, unknown>;
-
-function relName(v: unknown): string | null {
-  const r = Array.isArray(v) ? v[0] : v;
-  return r && typeof r === "object" && "name" in r ? String((r as { name: unknown }).name ?? "") || null : null;
-}
 
 /** G6 - Favorilerim. */
 export default async function FavoritesPage() {
@@ -43,7 +39,7 @@ export default async function FavoritesPage() {
           .in("id", businessIds)
           .then((r) => (r.data ?? []) as unknown as Row[])
       : Promise.resolve([] as Row[]),
-    poiIds.length ? supabase.from("poi").select("id,kind,name,slug,neighbourhoods(name)").in("id", poiIds).then((r) => (r.data ?? []) as unknown as Row[]) : Promise.resolve([] as Row[]),
+    poiIds.length ? supabase.from("poi").select("id,kind,name,slug,district_id").in("id", poiIds).then((r) => (r.data ?? []) as unknown as Row[]) : Promise.resolve([] as Row[]),
   ]);
 
   const lo = order(listingIds);
@@ -68,7 +64,7 @@ export default async function FavoritesPage() {
       kind: r.kind as PoiKind,
       name: String(r.name ?? ""),
       slug: String(r.slug ?? ""),
-      neighbourhoodName: relName(r.neighbourhoods),
+      districtName: districtBySlug(typeof r.district_id === "string" ? r.district_id : null)?.name ?? null,
     }))
     .sort((a, b) => (po.get(a.id) ?? 0) - (po.get(b.id) ?? 0));
 

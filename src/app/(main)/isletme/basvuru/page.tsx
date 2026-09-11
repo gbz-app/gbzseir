@@ -68,9 +68,9 @@ export default async function BusinessApplyPage({ searchParams }: Props) {
       phone: toInput(existing.phone ?? loginPhone),
       address: existing.address ?? "",
       location: existing.lat !== null && existing.lng !== null ? { lat: existing.lat, lng: existing.lng } : null,
-      neighbourhoodId: existing.neighbourhood_id,
+      districtId: existing.district_id,
       serviceCategoryIds: existing.category_ids,
-      areaIds: existing.area_ids,
+      serviceDistrictIds: existing.service_district_ids,
       hours: hasAnyHours(hours) ? hours : defaultHours(),
       document: null,
     };
@@ -85,9 +85,10 @@ export default async function BusinessApplyPage({ searchParams }: Props) {
       phone: toInput(loginPhone),
       address: "",
       location: null,
-      neighbourhoodId: profile.neighbourhood_id ? String(profile.neighbourhood_id) : null,
+      // The user's home district is a good first guess; the pin or the picker can change it.
+      districtId: profile.district_id ?? null,
       serviceCategoryIds: [],
-      areaIds: [],
+      serviceDistrictIds: [],
       hours: defaultHours(),
       document: null,
     };

@@ -17,7 +17,7 @@ import { resolveVertical, type Vertical } from "./verticals";
  */
 
 const OWNER_COLUMNS =
-  "id,owner_id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,neighbourhood_id,kinds,category_label,working_hours,status,rejection_reason,verification_level,vacation_mode,vacation_until,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at,vertical,price_level,star_rating,amenities,website,instagram";
+  "id,owner_id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,district_id,kinds,category_label,working_hours,status,rejection_reason,verification_level,vacation_mode,vacation_until,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at,vertical,price_level,star_rating,amenities,website,instagram";
 
 export type OwnerBusiness = {
   id: string;
@@ -31,7 +31,8 @@ export type OwnerBusiness = {
   address: string | null;
   lat: number | null;
   lng: number | null;
-  neighbourhood_id: string | null;
+  /** public.districts id (config/districts.ts). */
+  district_id: string | null;
   kinds: BusinessKind[];
   category_label: string | null;
   working_hours: unknown;
@@ -53,20 +54,19 @@ export type OwnerBusiness = {
   amenities: string[];
   website: string | null;
   instagram: string | null;
-  neighbourhood_name: string | null;
   category_ids: string[];
-  area_ids: string[];
+  /** Districts the business travels to (business_service_districts). */
+  service_district_ids: string[];
   photos: BusinessPhoto[];
 };
 
-type Raw = Omit<OwnerBusiness, "kinds" | "status" | "rating_avg" | "amenities" | "neighbourhood_name" | "category_ids" | "area_ids" | "photos"> & {
+type Raw = Omit<OwnerBusiness, "kinds" | "status" | "rating_avg" | "amenities" | "category_ids" | "service_district_ids" | "photos"> & {
   kinds: string[] | null;
   amenities: string[] | null;
   status: string;
   rating_avg: number | string | null;
-  neighbourhoods: { name: string } | null;
   business_service_categories: Array<{ category_id: string }> | null;
-  business_service_areas: Array<{ neighbourhood_id: string }> | null;
+  business_service_districts: Array<{ district_id: string }> | null;
   business_photos: BusinessPhoto[] | null;
 };
 
@@ -130,7 +130,7 @@ export const getOwnerBusiness = cache(async (businessId?: string): Promise<Owner
   const { data, error } = await supabase
     .from("businesses")
     .select(
-      `${OWNER_COLUMNS},neighbourhoods!businesses_neighbourhood_id_fkey(name),business_service_categories(category_id),business_service_areas(neighbourhood_id),business_photos(id,url,sort)`,
+      `${OWNER_COLUMNS},business_service_categories(category_id),business_service_districts(district_id),business_photos(id,url,sort)`,
     )
     .eq("id", id)
     .eq("owner_id", user.id)
@@ -138,7 +138,7 @@ export const getOwnerBusiness = cache(async (businessId?: string): Promise<Owner
   if (error) throw new Error(error.message);
   if (!data) return null;
   const raw = data as unknown as Raw;
-  const { neighbourhoods, business_service_categories, business_service_areas, business_photos, ...rest } = raw;
+  const { business_service_categories, business_service_districts, business_photos, ...rest } = raw;
   const rating = typeof raw.rating_avg === "string" ? Number(raw.rating_avg) : (raw.rating_avg ?? 0);
   return {
     ...rest,
@@ -146,9 +146,8 @@ export const getOwnerBusiness = cache(async (businessId?: string): Promise<Owner
     status: (STATUSES as string[]).includes(raw.status) ? (raw.status as BusinessStatus) : "pending",
     rating_avg: Number.isFinite(rating) ? rating : 0,
     amenities: raw.amenities ?? [],
-    neighbourhood_name: neighbourhoods?.name ?? null,
     category_ids: (business_service_categories ?? []).map((c) => c.category_id),
-    area_ids: (business_service_areas ?? []).map((a) => a.neighbourhood_id),
+    service_district_ids: (business_service_districts ?? []).map((d) => d.district_id),
     photos: [...(business_photos ?? [])].sort((a, b) => a.sort - b.sort),
   };
 });

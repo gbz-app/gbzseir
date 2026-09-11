@@ -6,7 +6,7 @@ import { routes } from "@/core/routes";
 
 export const metadata: Metadata = {
   title: "Acil durum numaraları",
-  description: `${CITY.name} ve ${CITY.province} için acil çağrı ve arıza numaraları: 112, su, elektrik ve doğalgaz arıza hatları.`,
+  description: `${CITY.province} için acil çağrı ve arıza numaraları: 112, su, elektrik ve doğalgaz arıza hatları.`,
   alternates: { canonical: routes.content.emergency() },
 };
 

@@ -4,14 +4,15 @@ import * as React from "react";
 import { ChevronDown, LocateFixed, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CITY } from "@/config/site";
+import { districtName } from "@/config/districts";
 import { useApproxLocation } from "@/lib/location/use-approx-location";
-import { NeighbourhoodPicker } from "./neighbourhood-picker";
+import { DistrictPicker } from "./district-picker";
 
-/** Top-bar chip showing the current neighbourhood (or "Gebze"); tap to change or use GPS. */
+/** Top-bar chip showing the current district (or "Kocaeli"); tap to change or use GPS. */
 export function LocationChip({ className }: { className?: string }) {
   const loc = useApproxLocation();
   const [open, setOpen] = React.useState(false);
-  const label = loc.neighbourhood?.name ?? (loc.coords ? "Konumum" : CITY.name);
+  const label = loc.district ? districtName(loc.district) : loc.coords ? "Konumum" : CITY.province;
   const Icon = loc.coords ? LocateFixed : MapPin;
 
   return (
@@ -29,12 +30,13 @@ export function LocationChip({ className }: { className?: string }) {
         <span className="truncate">{label}</span>
         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
       </button>
-      <NeighbourhoodPicker
+      <DistrictPicker
         open={open}
         onOpenChange={setOpen}
         showTrigger={false}
         showUseLocation
-        value={loc.neighbourhood?.id ?? null}
+        persistDefault
+        value={loc.district}
         title="Konumunu seç"
       />
     </>

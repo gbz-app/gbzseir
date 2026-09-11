@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { districtBySlug, isDistrictSlug } from "@/config/districts";
 import { trNormalize } from "@/core/tr";
 import type { Json } from "@/lib/database.types";
 import { APP_SETTINGS_TAG } from "@/lib/app-settings";
@@ -40,13 +41,12 @@ import type {
 
 const TAGS = ["nearby", "poi"];
 const REVALIDATE = 3600;
-const COLUMNS =
-  "id,kind,name,slug,address,phone,lat,lng,neighbourhood_id,details,source,license,updated_at,verified_at,source_urls,email,website,neighbourhoods(name)";
+const COLUMNS = "id,kind,name,slug,address,phone,lat,lng,district_id,details,source,license,updated_at,verified_at,source_urls,email,website";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Labels = { institution: readonly InstitutionCategoryDef[]; place: readonly PlaceCategoryDef[] };
 
-/** A poi row as selected with COLUMNS (or a nearby_pois row, which has neighbourhood_name and no guide columns). */
+/** A poi row as selected with COLUMNS (or a nearby_pois row, which also has district_name and no guide columns). */
 type RawRow = {
   id: string;
   kind: string;
@@ -56,7 +56,8 @@ type RawRow = {
   phone: string | null;
   lat: number | null;
   lng: number | null;
-  neighbourhood_id: string | null;
+  district_id?: string | null;
+  district_name?: string | null;
   details: Json;
   source: string;
   license: string | null;
@@ -65,8 +66,6 @@ type RawRow = {
   source_urls?: string[] | null;
   email?: string | null;
   website?: string | null;
-  neighbourhoods?: { name: string } | { name: string }[] | null;
-  neighbourhood_name?: string | null;
 };
 
 function safeDecode(v: string): string {
@@ -77,18 +76,13 @@ function safeDecode(v: string): string {
   }
 }
 
-function hoodName(r: RawRow): string | null {
-  if (r.neighbourhood_name !== undefined) return r.neighbourhood_name;
-  const n = r.neighbourhoods;
-  return Array.isArray(n) ? (n[0]?.name ?? null) : (n?.name ?? null);
-}
-
 const isListKind = (k: string): k is GuideListKind => (GUIDE_LIST_KINDS as readonly string[]).includes(k);
 
 function toItem(r: RawRow, labels: Labels): GuideItem {
   const kind: GuideListKind = isListKind(r.kind) ? r.kind : "place";
   const details = parseGuideDetails(r.details, r.phone);
-  const neighbourhoodName = hoodName(r);
+  const districtId = r.district_id ?? null;
+  const districtName = districtBySlug(districtId)?.name ?? r.district_name ?? null;
   const categoryLabel = guideCategoryLabel(kind, details, labels.institution, labels.place);
   const subLabel = kind === "place" ? placeSubkindLabel(details.subkind, details.category) : null;
   return {
@@ -101,11 +95,11 @@ function toItem(r: RawRow, labels: Labels): GuideItem {
     phone: r.phone,
     lat: r.lat,
     lng: r.lng,
-    neighbourhoodId: r.neighbourhood_id,
-    neighbourhoodName,
+    districtId,
+    districtName,
     details,
     categoryLabel,
-    subtitle: [categoryLabel, subLabel, neighbourhoodName].filter(Boolean).join(" · ") || null,
+    subtitle: [categoryLabel, subLabel, districtName].filter(Boolean).join(" · ") || null,
     verifiedAt: r.verified_at ?? null,
     sourceUrls: (r.source_urls ?? []).filter((u) => /^https?:\/\//i.test(u)),
     email: r.email ?? null,
@@ -165,7 +159,7 @@ export async function listGuideItems(opts: GuideListOptions): Promise<GuideListR
     if (opts.bank) query = query.eq("details->>bank", opts.bank);
     if (opts.brand) query = query.eq("details->>brand", opts.brand);
     if (opts.operator) query = query.eq("details->>operator", opts.operator);
-    if (opts.neighbourhoodId && UUID_RE.test(opts.neighbourhoodId)) query = query.eq("neighbourhood_id", opts.neighbourhoodId);
+    if (isDistrictSlug(opts.districtId)) query = query.eq("district_id", opts.districtId);
     const q = opts.q ? searchTerm(opts.q) : null;
     if (q) query = query.ilike("search_norm", `%${q}%`);
     if (opts.hasLocation === true) query = query.not("lat", "is", null);

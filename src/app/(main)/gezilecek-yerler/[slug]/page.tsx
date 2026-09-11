@@ -5,6 +5,7 @@ import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
 import { DetailActions, DetailHero, DetailSheet, PRIMARY_CTA, SECONDARY_CTA } from "@/components/shared/detail-hero";
 import { JsonLd } from "@/components/seo/json-ld";
+import { districtBySlug } from "@/config/districts";
 import { APP_NAME, CITY, SITE_URL } from "@/config/site";
 import { formatPhoneTR, truncate } from "@/core/format";
 import { distanceMeters } from "@/core/geo";
@@ -32,8 +33,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const item = await getGuideItem(slug, "place").catch(() => null);
   if (!item) return { title: "Yer bulunamadı", robots: { index: false } };
   const d = item.details;
-  const title = `${item.name} - ${CITY.name}`;
-  const description = truncate(d.description || `${item.name}: ${CITY.name}'de gezilecek yer. Konum, açıklama ve yol tarifi.`, 160);
+  const district = districtBySlug(item.districtId)?.name;
+  const title = `${item.name} - ${district ?? CITY.province}`;
+  const place = district ? `${district}, ${CITY.province}` : CITY.province;
+  const description = truncate(d.description || `${item.name} (gezilecek yer, ${place}): konum, açıklama ve yol tarifi.`, 160);
   const url = routes.nearby.place(item.slug);
   return {
     title,
@@ -67,7 +70,8 @@ export default async function PlacePage({ params }: Props) {
   const path = routes.nearby.place(item.slug);
   const phone = d.phones[0] ?? null;
   const hours = readableHours(d.hours);
-  const hood = item.neighbourhoodName;
+  // "Kartepe, Kocaeli" (just the province when the district is unknown).
+  const areaLine = [districtBySlug(item.districtId)?.name, CITY.province].filter(Boolean).join(", ");
 
   const nearbyRows = hasPoint ? await getNearbyGuideItems({ kind: "place", lat, lng, excludeId: item.id, radiusM: 10000, limit: 4 }) : [];
   const nearby = nearbyRows.map((n) => ({
@@ -82,7 +86,7 @@ export default async function PlacePage({ params }: Props) {
     "@id": url,
     name: item.name,
     url,
-    address: postalAddress(item.address),
+    address: postalAddress(item.address, item.districtId),
     ...(phone ? { telephone: phone } : {}),
     ...(hasPoint ? { geo: geoCoordinates(lat, lng) } : {}),
     ...(d.description ? { description: d.description } : {}),
@@ -126,8 +130,7 @@ export default async function PlacePage({ params }: Props) {
             <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <MapPin className="size-4" aria-hidden />
-                {hood ? `${hood} Mah., ` : ""}
-                {CITY.name}
+                {areaLine}
               </span>
               <DistanceLabel lat={item.lat} lng={item.lng} withIcon className="font-semibold text-primary" />
             </p>

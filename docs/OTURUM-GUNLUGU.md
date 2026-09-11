@@ -34,6 +34,13 @@ Aynı akşam:
 - Kapsam değişti: **Gebze → tüm Kocaeli**, **mahalle kaldırılacak**, **haritalar Google Maps**
 - Sahip `kocaeli/` klasörüne KBB açık verilerini ve GTFS toplu taşıma verisini koydu; Kocaeli faz A (veritabanı + aktarım) ve banka/ATM derin araştırması başlatıldı
 
+### 12 Eylül — sahibin son listesi (dalga 1, 2a, 2b) ve GebzemAI
+- **Dalga 1** (`6fc64e1`): tek köşe yuvarlaklığı ailesi (chip/card/media), "Örnek" etiketleri kalktı, ekran dönmesi kapalı, harita sayfaları doğrudan harita (Google POI'leri gizli, daire pinler), şehir rehberi sade liste + kategoride harita, sade haber/yer/etkinlik "Tümü" sayfaları, doktor profilleri, Gebze Center sinema bölümü.
+- **Dalga 2a** (`ea584ca`): geri gelmedeki takılma düzeldi (vaul çekmecesi tüm stilleri yeniden hesaplatıyordu; ana sayfaya dönüş ~1,7 sn → ~0,5-0,7 sn), arama şehir rehberi türlerini ve doktorları kapsıyor (migration 85), admin yer kaydı CC foto atıflarını koruyor.
+- **Veri:** 56 gezilecek yere CC lisanslı foto (101 yeni, 30 büyütülmüş; 166 yerin serbest fotoğrafı yok), KBB'den 1.232 yardımcı yer (846 KocaeliKart, 338 toplanma alanı, 48 ücretsiz otopark; kişi adına kayıtlı KocaeliKart sahipleri alınmadı).
+- **Dalga 2b — mahalle kaldırıldı:** ortak `DistrictPicker`, konum deposu ilçe tutuyor; tanıtım, profil, hizmet talebi, işletme başvuru/düzenleme (hizmet bölgesi = ilçeler), ilanlar (?ilce=), etkinlikler, duyurular (ilçe hedefleme), yakınımda/rehber/nöbet/arama ve admin ekranları ilçeye geçti. Kartlarda "X Mah." yerine ilçe adı. Migration 86 (admin raporlarına ilçe) yazıldı, deneme çalıştırması tamam; canlıya uygulama güvenlik filtresine takıldı, sahibin onayını bekliyor.
+- **GebzemAI:** Kocaeli kapsamı, önce uygulama verisi; yeni araçlar `doktor_bul` (şikayete göre branş, klinik telefonu), `otobus_hatlari` (durağın/yerin yakınından geçen hatlar; sefer saati verisi yok, uydurmaz), `internet_ara` (yalnız veritabanında yoksa, OpenAI web araması, kaynak kartlarıyla). İnternet aramasının maliyeti günlük bütçeye ekleniyor.
+
 ---
 
 ## 2. Kararlar (sahip onaylı)
@@ -68,6 +75,9 @@ Aynı akşam:
 11. **Anahtarlar sohbete yapıştırıldı** (Cloudflare kurulum, OpenAI): güvenli dosyada tutuldu, yazdırılmadı; yenilenmeleri önerildi.
 12. **Gerçek hesaplar ve test kodu:** SMS sağlayıcı olmadığından 6 gerçek hesap yeni giriş başlatamıyor; sahip test kodu istemedi.
 13. **Araç notları:** Git Bash `/yol` dönüşümü için `MSYS_NO_PATHCONV=1`; Edge CDP göreli profil klasörüyle çalışmıyor (mutlak yol); CSV'ler Windows-1254 kodlu (JSON kullan); KBB koordinatları çoğunlukla EPSG:5254 (TM30), WGS84'e çevrilmeli.
+14. **Yanlış teşhis (12 Eylül):** ekran testinde sayfa "çevrimdışı" kaldı; önce sunucunun soğuk olduğu, sonra CDP gezinmesinin takıldığı sanıldı. Asıl neden Git Bash'in `/` ile başlayan argümanı `C:/Program Files/Git/...` yapmasıydı. `MSYS_NO_PATHCONV=1` açılınca betik yolu da Windows biçiminde (`C:/...`) verilmeli. Ders: önce girdiyi doğrula, sonra ortamı suçla.
+15. **Migration 86 güvenlik filtresine takıldı:** kontrol ajanı canlıya uygulamak istedi, engellendi; aşılmaya çalışılmadı. Arayüz buna bağlı değil, sahibin onayına bırakıldı.
+16. **İnternet araması maliyeti:** OpenAI web araması çağrı başına ücretli (1.000 aramada 10 USD) ve bulunan metin girdi token'ı sayılıyor; gpt-5.4-mini ile arama başı ~0,015 USD. Bu yüzden yalnız veritabanında sonuç yoksa kullanılıyor ve maliyet günlük bütçeye ekleniyor.
 
 ---
 

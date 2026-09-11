@@ -28,6 +28,7 @@ import {
   Waves,
   type LucideIcon,
 } from "lucide-react";
+import { districtBySlug } from "@/config/districts";
 import { routes, withQuery } from "@/core/routes";
 import { categoryIcon, gradientFor, type CategoryDef } from "@/features/business/lib/category-visuals";
 import type { BuiltinPlaceCategory, MarkerKind, NearbyFilter, PlaceCategory, PoiKind } from "./types";
@@ -282,12 +283,7 @@ export function poiHref(kind: PoiKind, slug: string): string {
   }
 }
 
-/** Generic OSM names that need the neighbourhood to be meaningful ("Otobüs Durağı"). */
-export function isGenericStopName(name: string): boolean {
-  return /^(otob[uü]s )?dura[gğ][iı]?$/i.test(name.trim());
-}
-
-export function displayStopName(name: string, neighbourhood: string | null | undefined): string {
-  if (isGenericStopName(name) && neighbourhood) return `${neighbourhood} Durağı`;
-  return name;
+/** İlçe name of a row: the static name of its district_id, else the name the RPC sent; null when unknown. */
+export function districtLabel(r: { district_id?: string | null; district_name?: string | null }): string | null {
+  return districtBySlug(r.district_id)?.name ?? r.district_name ?? null;
 }

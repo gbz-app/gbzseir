@@ -49,9 +49,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // An empty list (e.g. /rehber/sahil before any row exists) stays out of search results.
   const empty = counts.ok && listCount(cfg, counts) === 0;
   return {
-    title: `${name} - ${CITY.name} Şehir Rehberi`,
+    title: `${name} - ${CITY.province} Şehir Rehberi`,
     description: cfg.presetLabel
-      ? `${CITY.name}'deki ${cfg.presetLabel.toLocaleLowerCase("tr-TR")} kayıtları: adres, telefon, harita ve yol tarifi.`
+      ? `${CITY.province}'deki${cfg.presetLabel.toLocaleLowerCase("tr-TR")} kayıtları: adres, telefon, harita ve yol tarifi.`
       : `${cfg.description} Adres, telefon, harita ve yol tarifi.`,
     alternates: { canonical: routes.guide.category(slug) },
     ...(empty ? { robots: { index: false, follow: true } } : {}),
@@ -100,7 +100,7 @@ export default async function GuideListPage({ params }: Props) {
     jsonLd.push({
       "@context": "https://schema.org",
       "@type": "ItemList",
-      name: `${CITY.name} ${cfg.presetLabel ?? cfg.title}`,
+      name: `${CITY.province} ${cfg.presetLabel ?? cfg.title}`,
       itemListElement: listed.map((e, i) => ({ "@type": "ListItem", position: i + 1, name: e.name, url: `${SITE_URL}${e.href}` })),
     });
   }

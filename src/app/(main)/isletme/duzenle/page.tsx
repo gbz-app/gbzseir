@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BedDouble, ChevronRight, CircleAlert, CircleCheck, ExternalLink, ImagePlus, QrCode, Wrench, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DISTRICT_SLUGS, districtBySlug } from "@/config/districts";
 import { routes, type BusinessEditStep } from "@/core/routes";
 import { PageHeader } from "@/components/shared/page-header";
 import { requireProfile } from "@/lib/auth/server";
@@ -100,12 +101,17 @@ export default async function BusinessEditHubPage() {
 
   const noLogo = !b.logo_url;
   const noAbout = !b.description?.trim();
+  const district = districtBySlug(b.district_id);
   const pageRows: HubRow[] = [
     step("temel", noLogo && noAbout ? missing("Logo ve açıklama eksik") : noLogo ? missing("Logo eksik") : noAbout ? missing("Açıklama eksik") : ok()),
     step("iletisim", b.phone ? ok() : missing("Telefon eksik")),
     step(
       "konum",
-      b.address?.trim() && hasPin ? ok(b.neighbourhood_name ? `${b.neighbourhood_name} Mah.` : "Tamam") : missing(hasPin ? "Adres eksik" : "Harita konumu eksik"),
+      !district
+        ? missing("İlçe seçilmedi")
+        : b.address?.trim() && hasPin
+          ? ok(district.name)
+          : missing(hasPin ? "Adres eksik" : "Harita konumu eksik"),
     ),
     step("saatler", hasAnyHours(hours) ? ok(isAlwaysOpen(hours) ? "7/24 açık" : "Tamam") : missing("Saatler girilmedi")),
     {
@@ -127,8 +133,9 @@ export default async function BusinessEditHubPage() {
   ];
   if (hasScope) {
     const c = b.category_ids.length;
-    const a = b.area_ids.length;
-    pageRows.push(step("hizmet-alani", c && a ? ok(`${c} kategori · ${a} mahalle`) : missing(c ? "Mahalle seçilmedi" : "Kategori seçilmedi")));
+    const a = b.service_district_ids.length;
+    const areaLabel = DISTRICT_SLUGS.every((slug) => b.service_district_ids.includes(slug)) ? "Tüm Kocaeli" : `${a} ilçe`;
+    pageRows.push(step("hizmet-alani", c && a ? ok(`${c} kategori · ${areaLabel}`) : missing(c ? "İlçe seçilmedi" : "Kategori seçilmedi")));
   }
 
   const toolRows: HubRow[] = [];

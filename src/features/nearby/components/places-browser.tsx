@@ -38,7 +38,7 @@ export function PlacesBrowser({ places, categories = PLACE_CATEGORY_DEFS }: { pl
 
   return (
     <>
-      <PageHeader title="Gezilecek Yerler" subtitle="Gebze'nin tarihi ve doğal güzellikleri" backHref={routes.home()}>
+      <PageHeader title="Gezilecek Yerler" subtitle="Kocaeli'nin tarihi ve doğal güzellikleri" backHref={routes.home()}>
         <ChipFilter options={options} value={cat} onChange={(v) => v && setCat(v)} ariaLabel="Kategori" size="sm" />
       </PageHeader>
       <div className="flex flex-col gap-6 px-4 pt-4 pb-6">

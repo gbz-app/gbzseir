@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
-import { trCompare } from "@/core/tr";
+import { KOCAELI_DISTRICTS } from "@/config/districts";
 import { CONTENT_CACHE_TAGS } from "../cache-tags";
 import { createPublicClient } from "../server/public-client";
 import { toAnnouncementKind, type Announcement } from "./meta";
@@ -13,19 +13,11 @@ async function loadAnnouncements(): Promise<Announcement[]> {
   // RLS already hides rows whose ends_at has passed.
   const { data, error } = await supabase
     .from("announcements")
-    .select("id,kind,title,body,neighbourhood_ids,source_label,starts_at,ends_at,is_demo")
+    .select("id,kind,title,body,district_ids,source_label,starts_at,ends_at,is_demo")
     .order("starts_at", { ascending: true })
     .limit(100);
   if (error) throw new Error(error.message);
   const rows = data ?? [];
-
-  const ids = [...new Set(rows.flatMap((r) => r.neighbourhood_ids ?? []))];
-  const names = new Map<string, string>();
-  if (ids.length) {
-    const { data: hoods, error: hoodError } = await supabase.from("neighbourhoods").select("id,name").in("id", ids);
-    if (hoodError) throw new Error(hoodError.message);
-    for (const n of hoods ?? []) names.set(n.id, n.name);
-  }
 
   const now = Date.now();
   return rows
@@ -35,10 +27,8 @@ async function loadAnnouncements(): Promise<Announcement[]> {
       kind: toAnnouncementKind(r.kind),
       title: r.title,
       body: r.body,
-      neighbourhoods: (r.neighbourhood_ids ?? [])
-        .filter((id) => names.has(id))
-        .map((id) => ({ id, name: names.get(id)! }))
-        .sort((a, b) => trCompare(a.name, b.name)),
+      // Static district list (no lookup query), in display order.
+      districts: KOCAELI_DISTRICTS.filter((d) => (r.district_ids ?? []).includes(d.slug)).map((d) => ({ id: d.slug, name: d.name })),
       sourceLabel: r.source_label,
       startsAt: r.starts_at,
       endsAt: r.ends_at,
@@ -46,7 +36,8 @@ async function loadAnnouncements(): Promise<Announcement[]> {
     }));
 }
 
-const loadAnnouncementsCached = unstable_cache(loadAnnouncements, ["content-announcements-v1"], {
+// v2: districts replaced neighbourhoods in the cached shape.
+const loadAnnouncementsCached = unstable_cache(loadAnnouncements, ["content-announcements-v2"], {
   revalidate: ANNOUNCEMENTS_REVALIDATE_SECONDS,
   tags: [CONTENT_CACHE_TAGS.announcements],
 });

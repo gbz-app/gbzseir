@@ -4,7 +4,7 @@ import { MapPin, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { formatPhoneTR } from "@/core/format";
-import { CITY } from "@/config/site";
+import { districtBySlug, districtName } from "@/config/districts";
 import { PageHeader } from "@/components/shared/page-header";
 import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
@@ -30,9 +30,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const poi = await getPoi("pharmacy", id);
   if (!poi) return { title: "Eczane bulunamadı", robots: { index: false } };
+  const district = districtBySlug(poi.district_id)?.name;
   return {
-    title: `${poi.name} - ${CITY.name}`,
-    description: `${poi.name}${poi.neighbourhood_name ? `, ${poi.neighbourhood_name}` : ""}: adres, telefon, nöbet günleri ve yol tarifi.`,
+    title: `${poi.name} - ${districtName(poi.district_id)}`,
+    description: `${poi.name}${district ? `, ${district}` : ""}: adres, telefon, nöbet günleri ve yol tarifi.`,
     alternates: { canonical: routes.nearby.pharmacy(poi.slug) },
   };
 }
@@ -59,7 +60,7 @@ export default async function PharmacyPage({ params }: Props) {
       <div className={cn("flex flex-col gap-5 px-4 pt-4", STICKY_BAR_SPACE)}>
         <DetailHero
           icon={<KindIcon kind="pharmacy" size="lg" />}
-          eyebrow={["Eczane", poi.neighbourhood_name].filter(Boolean).join(" · ")}
+          eyebrow={["Eczane", districtBySlug(poi.district_id)?.name].filter(Boolean).join(" · ")}
           title={poi.name}
           badges={
             <>

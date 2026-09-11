@@ -20,7 +20,8 @@ import { ServiceIconBubble } from "@/features/services/components/service-icon";
 import { CloseRequestSheet, RemoveLeadButton, ReviewForm } from "@/features/services/components/request-actions";
 import { isRequestOpen, requestStatusMeta, whenLabel } from "@/features/services/labels";
 import type { CustomerRequestView } from "@/features/services/types";
-import { neighbourhoodLabel, normalizeRequestCode } from "@/features/services/util";
+import { normalizeRequestCode } from "@/features/services/util";
+import { districtName } from "@/config/districts";
 
 export const metadata: Metadata = { title: "Talebim", robots: { index: false } };
 
@@ -95,7 +96,7 @@ export default async function RequestDetailPage({ params }: Props) {
   const hired = providers.find((p) => p.business.id === r.hired_business_id) ?? null;
   const facts = [
     ...r.answers.filter((a) => a.display).map((a) => ({ label: a.title, value: a.display as string })),
-    { label: "Konum", value: neighbourhoodLabel(r.neighbourhood?.name) },
+    { label: "İlçe", value: districtName(r.district?.id) },
     ...(r.address_note ? [{ label: "Adres tarifi", value: r.address_note }] : []),
     { label: "Ne zaman", value: whenLabel(r.when_type, r.when_date) },
     ...(r.note ? [{ label: "Not", value: <span className="font-medium whitespace-pre-line">{r.note}</span> }] : []),
@@ -114,7 +115,7 @@ export default async function RequestDetailPage({ params }: Props) {
               {r.category.parent_name ? <p className="text-xs font-medium text-muted-foreground">{r.category.parent_name}</p> : null}
               <h2 className="text-lg leading-tight font-bold">{r.category.name}</h2>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {neighbourhoodLabel(r.neighbourhood?.name)} · {whenLabel(r.when_type, r.when_date)} · <RelativeTime date={r.created_at} />
+                {districtName(r.district?.id)} · {whenLabel(r.when_type, r.when_date)} · <RelativeTime date={r.created_at} />
               </p>
             </div>
           </div>

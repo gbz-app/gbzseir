@@ -39,7 +39,7 @@ export async function FeaturedBusinessesRail({ limit = 10, title = "Öne çıkan
 
   return (
     <section aria-label={title}>
-      <SectionHeader title={title} description="Gebze'nin onaylı işletmeleri" href={routes.businesses.root()} />
+      <SectionHeader title={title} description="Kocaeli'nin onaylı işletmeleri" href={routes.businesses.root()} />
       <ul className="no-scrollbar -mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
         {top.map((b) => (
           <li key={b.id} className="w-[15rem] shrink-0 snap-start">

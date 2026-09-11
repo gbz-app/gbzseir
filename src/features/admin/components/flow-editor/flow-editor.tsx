@@ -306,7 +306,7 @@ export function FlowEditor({ categoryId, categoryName, versions }: FlowEditorPro
           ) : steps.length === 0 ? (
             <div className="px-4 py-10 text-center">
               <p className="font-semibold">Bu kategoride henüz soru yok.</p>
-              <p className="mt-1 text-sm text-muted-foreground">İlk soruyu ekleyerek başla. Mahalle, zaman, not ve fotoğraf adımları sistem tarafından eklenir.</p>
+              <p className="mt-1 text-sm text-muted-foreground">İlk soruyu ekleyerek başla. Konum (ilçe), zaman, not ve fotoğraf adımları sistem tarafından eklenir.</p>
               <Button className="mt-4" onClick={addStep}>
                 <Plus aria-hidden /> İlk soruyu ekle
               </Button>

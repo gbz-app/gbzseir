@@ -22,7 +22,7 @@ export const AI_EXAMPLES: ReadonlyArray<{ text: string; href: string }> = [
   { text: "Bugün nöbetçi eczane hangisi?", href: routes.nearby.dutyPharmacies() },
   { text: "Yakınımda açık kafe", href: routes.businesses.vertical("kafe") },
   { text: "Bu hafta hangi etkinlikler var?", href: routes.events.root() },
-  { text: "Gebze'de taksi durağı", href: routes.nearby.root("taksi") },
+  { text: "Dizimde menisküs var, hangi doktora gideyim?", href: routes.doctors.list() },
   { text: "Su tesisatçısı lazım", href: routes.search("tesisatçı") },
   { text: "Tarihi yerler neler?", href: routes.nearby.places() },
 ];
@@ -47,7 +47,10 @@ export type AiCardIcon =
   | "news"
   | "fuel"
   | "ev_charge"
-  | "institution";
+  | "institution"
+  | "doctor"
+  | "bus_line"
+  | "web";
 
 /** What a call is logged against (log_contact_event). */
 export type AiCallSubject = "business" | "poi" | "event";
@@ -60,7 +63,7 @@ export type AiCard = {
   title: string;
   /** One line under the title. */
   subtitle?: string;
-  /** In-app path ("/eczane/x") or, for news headlines only, an https URL of the source site. */
+  /** In-app path ("/eczane/x") or, for web search sources only (external: true), an https URL of the source site. */
   href: string;
   external?: boolean;
   /** Small label: "Örnek veri", "Açık", "Tatilde". */

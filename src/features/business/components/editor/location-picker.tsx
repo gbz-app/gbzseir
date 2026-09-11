@@ -7,10 +7,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { HideBottomNav } from "@/components/layout/nav-visibility";
 import { MAP_UNAVAILABLE_TITLE, MapPattern } from "@/components/maps/map-states";
+import { districtBySlug, type KocaeliDistrict } from "@/config/districts";
 import { CITY } from "@/config/site";
 import { distanceMeters, roundCoord, type LatLng } from "@/core/geo";
-import { createClient } from "@/lib/supabase/client";
-import { useApproxLocation } from "@/lib/location/use-approx-location";
+import { districtForPoint, useApproxLocation } from "@/lib/location/use-approx-location";
 import {
   googleMapsAvailable,
   loadGoogleMaps,
@@ -32,15 +32,13 @@ const MAP_READY_TIMEOUT_MS = 12_000;
 /** Business pins are public addresses chosen by the owner: keep ~1 m precision. */
 const roundPin = (p: LatLng): LatLng => ({ lat: roundCoord(p.lat, 5), lng: roundCoord(p.lng, 5) });
 
-export type ResolvedNeighbourhood = { id: string; name: string };
-
 export type LocationPickerProps = {
   value: LatLng | null;
   onChange: (value: LatLng | null) => void;
-  /** Where to open the map when there is no pin yet (e.g. the chosen neighbourhood's centre). */
+  /** Where to open the map when there is no pin yet (e.g. the chosen district's centre). */
   fallbackCenter?: LatLng | null;
-  /** Called with the neighbourhood that contains the confirmed pin (rpc neighbourhood_for_point). */
-  onNeighbourhood?: (n: ResolvedNeighbourhood) => void;
+  /** Called with the district that contains the confirmed pin (rpc district_for_point); not called outside Kocaeli. */
+  onDistrict?: (district: KocaeliDistrict) => void;
   /** Google Maps only: the address suggested for the confirmed pin (reverse geocoding or the chosen search result). */
   onAddress?: (address: string) => void;
   /** One line under the map title (default: the business copy). */
@@ -65,7 +63,16 @@ function useIsClient(): boolean {
  * search and the suggested address. Without NEXT_PUBLIC_GOOGLE_MAPS_KEY, or when Google cannot load or refuses the key,
  * the opening shows a calm "Harita şu an kullanılamıyor" notice instead (the pin can be added later).
  */
-export function LocationPicker({ value, onChange, fallbackCenter, onNeighbourhood, onAddress, hint = DEFAULT_HINT, autoOpen = false, id }: LocationPickerProps) {
+export function LocationPicker({
+  value,
+  onChange,
+  fallbackCenter,
+  onDistrict,
+  onAddress,
+  hint = DEFAULT_HINT,
+  autoOpen = false,
+  id,
+}: LocationPickerProps) {
   // null until the user opens or closes the map; autoOpen then shows it right after hydration.
   const [open, setOpen] = React.useState<boolean | null>(null);
   const [start, setStart] = React.useState<LatLng | null>(null);
@@ -92,18 +99,17 @@ export function LocationPicker({ value, onChange, fallbackCenter, onNeighbourhoo
     openAt(coords);
   };
 
-  const confirm = async (p: LatLng, address: string | null) => {
+  const confirm = (p: LatLng, address: string | null) => {
     const pin = roundPin(p);
     onChange(pin);
     if (address && onAddress) onAddress(address);
     setOpen(false);
-    if (!onNeighbourhood) return;
-    try {
-      const { data } = await createClient().rpc("neighbourhood_for_point", { p_lat: roundCoord(pin.lat), p_lng: roundCoord(pin.lng) });
-      const hit = Array.isArray(data) ? data[0] : null;
-      if (hit?.id) onNeighbourhood({ id: String(hit.id), name: String(hit.name) });
-    } catch {
-      /* optional convenience */
+    if (onDistrict) {
+      // Never rejects (offline: nearest district centre); a pin outside Kocaeli leaves the district as it was.
+      void districtForPoint(pin).then((slug) => {
+        const district = districtBySlug(slug);
+        if (district) onDistrict(district);
+      });
     }
   };
 

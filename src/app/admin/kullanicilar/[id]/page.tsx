@@ -32,6 +32,7 @@ import { formatDateTime, formatNumber, formatPhoneTR, formatRelativeTime, initia
 import { telHref } from "@/core/phone";
 import { routes, withQuery } from "@/core/routes";
 import { publicUrl } from "@/config/app-mode";
+import { districtBySlug } from "@/config/districts";
 import { AdminCard, InfoList, InfoRow, StatTile, StatusBadge } from "@/features/admin/components/admin-ui";
 import { HBarList, formatDuration } from "@/features/admin/components/charts";
 import { BusinessSlotControl, UserActions } from "@/features/admin/components/user-actions";
@@ -58,7 +59,6 @@ type Overview = {
     kvkk_accepted_at: string | null;
     /** legal_texts version (kvkk) accepted at kvkk_accepted_at; null for older acceptances. */
     kvkk_version: string | null;
-    neighbourhood: string | null;
     last_sign_in_at: string | null;
     /** Admin-granted businesses on top of Ayarlar > Hesap başına işletme sayısı (2026091370). */
     extra_business_slots?: number;
@@ -102,8 +102,13 @@ export default async function AdminUserPage({ params }: Props) {
   if (error || !data) notFound();
   const o = data as unknown as Overview;
   const p = o.profile;
-  // Ayarlar > Hesap başına işletme sayısı + the slots granted to this user (2026091370).
-  const { data: maxRow } = await supabase.from("app_settings").select("value").eq("key", "business_max_per_owner").maybeSingle();
+  // Ayarlar > Hesap başına işletme sayısı + the slots granted to this user (2026091370). The home district is read
+  // from profiles (admin_user_overview still reports the old neighbourhood).
+  const [{ data: maxRow }, { data: districtRow }] = await Promise.all([
+    supabase.from("app_settings").select("value").eq("key", "business_max_per_owner").maybeSingle(),
+    supabase.from("profiles").select("district_id").eq("id", id).maybeSingle(),
+  ]);
+  const district = districtBySlug(districtRow?.district_id);
   const extraSlots = p.extra_business_slots ?? 0;
   const businessLimit = (typeof maxRow?.value === "number" ? maxRow.value : 1) + extraSlots;
 
@@ -139,7 +144,7 @@ export default async function AdminUserPage({ params }: Props) {
                   )}
                 </InfoRow>
                 <InfoRow label="E-posta">{p.email ?? "-"}</InfoRow>
-                <InfoRow label="Mahalle">{p.neighbourhood ?? "-"}</InfoRow>
+                <InfoRow label="İlçe">{district?.name ?? "-"}</InfoRow>
                 <InfoRow label="Son giriş">{p.last_sign_in_at ? formatDateTime(p.last_sign_in_at) : "-"}</InfoRow>
                 <InfoRow label="Son görülme">{o.usage.last_seen_at ? formatRelativeTime(o.usage.last_seen_at) : "Uygulamada görülmedi"}</InfoRow>
                 <InfoRow label="KVKK onayı">

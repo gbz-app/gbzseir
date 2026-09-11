@@ -166,7 +166,7 @@ export function TextSection({ id, title, icon, text }: { id: string; title: stri
   );
 }
 
-/** Neighbourhood / OSB with a short note (listings carry no exact address). */
+/** District with a short note (listings carry no exact address). */
 export function LocationCard({ title, note }: { title: string; note?: string }) {
   return (
     <div className="flex items-center gap-3 rounded-3xl bg-card p-4">

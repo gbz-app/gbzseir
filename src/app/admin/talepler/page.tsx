@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { AdminPageHeader } from "@/components/admin/admin-page";
 import { EmptyState } from "@/components/shared/empty-state";
+import { districtBySlug } from "@/config/districts";
 import { formatDate, formatRelativeTime } from "@/core/format";
 import { routes, withQuery } from "@/core/routes";
 import { AdminPagination, EmptyCard, FilterTabs } from "@/features/admin/components/admin-ui";
@@ -36,7 +37,7 @@ type Row = {
   is_demo: boolean;
   category_id: string;
   customer: { full_name: string | null } | null;
-  neighbourhoods: { name: string } | null;
+  district_id: string | null;
   leads: Array<{ count: number }> | null;
 };
 
@@ -53,7 +54,7 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
   let query = supabase
     .from("service_requests")
     .select(
-      "id,public_code,status,created_at,when_type,when_date,accepted_count,max_providers,dispatch_note,is_demo,category_id,customer:profiles!service_requests_customer_id_fkey(full_name),neighbourhoods(name),leads(count)",
+      "id,public_code,status,created_at,when_type,when_date,accepted_count,max_providers,dispatch_note,is_demo,category_id,customer:profiles!service_requests_customer_id_fkey(full_name),district_id,leads(count)",
       { count: "exact" },
     );
   if (tab !== "tumu") query = query.in("status", TAB_STATUSES[tab]);
@@ -74,14 +75,15 @@ export default async function AdminRequestsPage({ searchParams }: Props) {
       categoryName: cat?.name ?? "Kategori",
       parentName: parent?.name ?? null,
       autoDispatch: !!cat?.auto_dispatch,
-      neighbourhood: r.neighbourhoods?.name ?? null,
+      district: districtBySlug(r.district_id)?.name ?? null,
       whenLabel: r.when_type === "tarih" && r.when_date ? formatDate(r.when_date, { month: "long" }) : (WHEN_TYPES[r.when_type] ?? r.when_type),
       createdLabel: formatRelativeTime(r.created_at),
       customerName: r.customer?.full_name ?? null,
       accepted: r.accepted_count,
       max: r.max_providers,
       leadCount: r.leads?.[0]?.count ?? 0,
-      fallback: /tüm gebze|bölge dışı/i.test(r.dispatch_note ?? ""),
+      // dispatch_request writes 'area_fallback'; the text test keeps notes of older rows.
+      fallback: r.dispatch_note === "area_fallback" || /tüm gebze|bölge dışı/i.test(r.dispatch_note ?? ""),
       isDemo: r.is_demo,
     };
   });

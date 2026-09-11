@@ -2,12 +2,13 @@
  * İlan listesi URL filtreleri (paylaşılabilir): /ilanlar (İkinci El) ve /is-ilanlari. Saf TS: sunucu sayfası ve istemci
  * bileşenleri aynı ayrıştırıcıyı kullanır. Eski /ilanlar?tab=is-ilanlari adresleri /is-ilanlari'na yönlenir.
  *
- * &q= &kategori=<slug> &mahalle=<slug>
+ * &q= &kategori=<slug> &ilce=<district slug>
  *   2. el: &min= &max= &durum= &sirala=yeni|fiyat-artan|fiyat-azalan
  *     kategori seçiliyken: &a_<key>=<seçenek> (seçim) | &a_<key>=1 (evet/hayır) | &a_<key>_min= &a_<key>_max= (sayı)
  *   iş: &calisma=<work type> &konum=<JOB_LOCATIONS.key> &deneyim= &servis=1
  */
 import { routes, type ListingsTab, type QueryRecord } from "@/core/routes";
+import { isDistrictSlug, type DistrictSlug } from "@/config/districts";
 import {
   CONDITIONS,
   EXPERIENCE_LEVELS,
@@ -33,8 +34,8 @@ export type ListingsQuery = {
   kategori: string | null;
   min: number | null;
   max: number | null;
-  /** Neighbourhood slug. */
-  mahalle: string | null;
+  /** District slug (?ilce=, districts.id). */
+  ilce: DistrictSlug | null;
   /** 2. el condition (attributes.durum). */
   durum: string | null;
   /** 2. el category attribute filters (only with a category; checked against its schema in search_listings). */
@@ -99,7 +100,7 @@ export function emptyQuery(tab: ListingsTab = "ikinci-el"): ListingsQuery {
     kategori: null,
     min: null,
     max: null,
-    mahalle: null,
+    ilce: null,
     durum: null,
     attrs: {},
     sirala: "yeni",
@@ -117,8 +118,9 @@ export function parseListingsQuery(raw: RawSearchParams, forcedTab?: ListingsTab
   q.q = (first(raw, "q") ?? "").slice(0, SEARCH_MAX);
   const slug = first(raw, "kategori");
   q.kategori = slug && /^[a-z0-9-]{1,80}$/.test(slug) ? slug : null;
-  const mahalle = first(raw, "mahalle");
-  q.mahalle = mahalle && /^[a-z0-9-]{1,80}$/.test(mahalle) ? mahalle : null;
+  // Old ?mahalle= links are ignored (mahalle left the app).
+  const ilce = first(raw, "ilce");
+  q.ilce = isDistrictSlug(ilce) ? ilce : null;
   if (tab === "ikinci-el") {
     q.min = intParam(first(raw, "min"));
     q.max = intParam(first(raw, "max"));
@@ -140,7 +142,7 @@ export function parseListingsQuery(raw: RawSearchParams, forcedTab?: ListingsTab
 
 /** Query params for the URL (defaults and other-tab fields are dropped). */
 export function listingsQueryToRecord(q: ListingsQuery): QueryRecord {
-  const base: QueryRecord = { q: q.q || undefined, kategori: q.kategori, mahalle: q.mahalle };
+  const base: QueryRecord = { q: q.q || undefined, kategori: q.kategori, ilce: q.ilce };
   if (q.tab === "ikinci-el") {
     const attrs: QueryRecord = {};
     if (q.kategori) for (const k of Object.keys(q.attrs).sort()) attrs[`a_${k}`] = q.attrs[k];
@@ -157,7 +159,7 @@ export function listingsHref(q: ListingsQuery): string {
 export function countActiveFilters(q: ListingsQuery): number {
   let n = 0;
   if (q.kategori) n++;
-  if (q.mahalle) n++;
+  if (q.ilce) n++;
   if (q.tab === "ikinci-el") {
     if (q.min != null || q.max != null) n++;
     if (q.durum) n++;
@@ -218,7 +220,8 @@ export type ResolvedSearch = {
   type: ListingType;
   q: string | null;
   categoryId: string | null;
-  neighbourhoodId: string | null;
+  /** p_district_id. */
+  districtId: DistrictSlug | null;
   minPrice: number | null;
   maxPrice: number | null;
   condition: string | null;
@@ -231,17 +234,14 @@ export type ResolvedSearch = {
   shuttle: boolean;
 };
 
-export function resolveSearch(
-  q: ListingsQuery,
-  lookups: { categoryIdBySlug: (slug: string) => string | null; neighbourhoodIdBySlug: (slug: string) => string | null },
-): ResolvedSearch {
+export function resolveSearch(q: ListingsQuery, lookups: { categoryIdBySlug: (slug: string) => string | null }): ResolvedSearch {
   const type = TAB_TYPE[q.tab];
   const categoryId = q.kategori ? lookups.categoryIdBySlug(q.kategori) : null;
   return {
     type,
     q: q.q.trim() || null,
     categoryId,
-    neighbourhoodId: q.mahalle ? lookups.neighbourhoodIdBySlug(q.mahalle) : null,
+    districtId: q.ilce,
     minPrice: type === "classified" ? q.min : null,
     maxPrice: type === "classified" ? q.max : null,
     condition: type === "classified" ? q.durum : null,

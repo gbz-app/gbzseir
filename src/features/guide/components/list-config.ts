@@ -151,10 +151,14 @@ export function resolveGuideList(slug: string, defs: readonly InstitutionCategor
   }
 }
 
-/** Path of a list with a chip value ("aile_sagligi_merkezi" -> "?alt=aile-sagligi-merkezi"). */
-export function guideListHref(cfg: Pick<GuideListConfig, "slug" | "chipParam">, query: { chip?: string | null; own?: Ownership | null; q?: string }): string {
+/** Path of a list with a chip value ("aile_sagligi_merkezi" -> "?alt=aile-sagligi-merkezi") and a district (?ilce=). */
+export function guideListHref(
+  cfg: Pick<GuideListConfig, "slug" | "chipParam">,
+  query: { chip?: string | null; own?: Ownership | null; q?: string; ilce?: string | null },
+): string {
   return routes.guide.category(cfg.slug, {
     [cfg.chipParam]: query.chip ? query.chip.replace(/_/g, "-") : undefined,
+    ilce: query.ilce ?? undefined,
     sahiplik: query.own ?? undefined,
     q: query.q?.trim() || undefined,
   });
@@ -168,8 +172,10 @@ export type GuideEntry = {
   href: string;
   /** What the row is: "Aile sağlığı merkezi", "Ziraat Bankası ATM", "Tarihi cami". */
   type: string | null;
-  /** "<type> · <mahalle> Mah." */
+  /** "<type> · <ilçe>" */
   sub: string | null;
+  /** districts.id of the row (the ?ilce= filter), null when unknown. */
+  district: string | null;
   cat: string | null;
   group: InstitutionGroupKey | null;
   subkind: string | null;
@@ -183,7 +189,7 @@ export type GuideEntry = {
   photo: string | null;
   /** Lucide kebab-case icon name of the category (guideIcon), or null for the kind icon. */
   icon: string | null;
-  /** trNormalize'd search text (name, type, mahalle, address). */
+  /** trNormalize'd search text (name, type, ilçe, address). */
   q: string;
 };
 

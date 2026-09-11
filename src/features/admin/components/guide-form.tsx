@@ -11,9 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUploader, type UploadedImage } from "@/components/shared/image-uploader";
+import { KOCAELI_DISTRICTS, districtBySlug } from "@/config/districts";
 import { formatPhoneTR } from "@/core/format";
 import type { LatLng } from "@/core/geo";
 import { routes } from "@/core/routes";
+import { districtForPoint } from "@/lib/location/use-approx-location";
 import { LocationPicker } from "@/features/business/components/editor/location-picker";
 import { GUIDE_KIND_META, GUIDE_LIST_KINDS, OWNERSHIP_LABELS, SOCKET_LABELS } from "@/features/guide/lib/constants";
 import type { GuideListKind, GuidePhoto, Ownership } from "@/features/guide/lib/types";
@@ -39,7 +41,8 @@ type Draft = {
   kind: GuideListKind;
   name: string;
   address: string;
-  neighbourhoodId: string;
+  /** District slug, "" when not chosen. */
+  districtId: string;
   location: LatLng | null;
   phones: string[];
   fax: string;
@@ -79,7 +82,7 @@ function toDraft(v: GuideFormValue | undefined, kind: GuideListKind): Draft {
     kind: v?.kind ?? kind,
     name: v?.name ?? "",
     address: v?.address ?? "",
-    neighbourhoodId: v?.neighbourhoodId ?? "",
+    districtId: v?.districtId ?? "",
     location: v && v.lat !== null && v.lng !== null ? { lat: v.lat, lng: v.lng } : null,
     phones: v?.phones.length ? v.phones.map(phoneText) : [""],
     fax: v?.fax ? phoneText(v.fax) : "",
@@ -126,7 +129,7 @@ export type GuideQueue = {
 
 /**
  * Add / edit a city guide record: basics per kind (institution / place category, bank, fuel brand, EV operator and
- * sockets), map pin (Google Maps with address search), address and mahalle, phones, e-mail, website, hours,
+ * sockets), map pin (Google Maps with address search), address and district, phones, e-mail, website, hours,
  * texts, photos, verification with its sources, hiding and the import lock.
  */
 export function GuideForm({
@@ -169,8 +172,7 @@ export function GuideForm({
   const options = guideCategoryOptions(kind, vocab, { current: categoryValue || null });
   const placeSubkinds = kind === "place" ? (vocab.placeCategories.find((c) => c.key === d.category)?.subkinds ?? []) : [];
   const subkindOptions = d.subkind && !placeSubkinds.some((s) => s.key === d.subkind) ? [...placeSubkinds, { key: d.subkind, label: d.subkind }] : placeSubkinds;
-  const hood = vocab.neighbourhoods.find((n) => n.id === d.neighbourhoodId);
-  const hoodCenter = hood && hood.lat !== null && hood.lng !== null ? { lat: hood.lat, lng: hood.lng } : null;
+  const districtCenter = districtBySlug(d.districtId)?.center ?? null;
   const imported = !!value && (!!value.sourceRef || value.source === "osm" || value.source === "kbb");
   const deletable = value ? guideDeletable(value.source, value.sourceRef) : false;
   const busy = pending || uploading;
@@ -179,6 +181,15 @@ export function GuideForm({
   const onAddress = (a: string) => {
     if (!d.address.trim()) set("address", a);
     else if (a.trim() !== d.address.trim()) setAddressHint(a);
+  };
+
+  // A confirmed pin fills in its district (district polygons); the select below can still change it.
+  const onPin = (p: LatLng | null) => {
+    set("location", p);
+    if (!p) return;
+    void districtForPoint(p).then((slug) => {
+      if (slug) set("districtId", slug);
+    });
   };
 
   const submit = (goNext: boolean) => {
@@ -205,7 +216,7 @@ export function GuideForm({
       kind,
       name: d.name,
       address: d.address,
-      neighbourhoodId: d.neighbourhoodId || null,
+      districtId: d.districtId || null,
       lat: d.location?.lat ?? null,
       lng: d.location?.lng ?? null,
       phones: d.phones.map((p) => p.trim()).filter(Boolean),
@@ -313,9 +324,8 @@ export function GuideForm({
       <Section title="Konum" description="İğnesi olmayan kayıt listede görünür; haritada ve Yakınımda'da görünmez.">
         <LocationPicker
           value={d.location}
-          onChange={(p) => set("location", p)}
-          fallbackCenter={hoodCenter}
-          onNeighbourhood={(n) => set("neighbourhoodId", n.id)}
+          onChange={onPin}
+          fallbackCenter={districtCenter}
           onAddress={onAddress}
           hint={d.address.trim() ? `Adres: ${d.address.trim()}` : "Haritayı kaydırarak iğneyi kaydın tam üzerine getir."}
           autoOpen={openMap}
@@ -343,12 +353,12 @@ export function GuideForm({
             </div>
           ) : null}
         </Field>
-        <Field label="Mahalle" htmlFor={fid("hood")} hint="İğneyi koyunca kendiliğinden seçilir.">
-          <select id={fid("hood")} value={d.neighbourhoodId} onChange={(e) => set("neighbourhoodId", e.target.value)} className={SELECT}>
+        <Field label="İlçe" htmlFor={fid("district")} hint="İğneyi koyunca kendiliğinden seçilir. Boş kalırsa iğnenin ilçesi yazılır.">
+          <select id={fid("district")} value={d.districtId} onChange={(e) => set("districtId", e.target.value)} className={SELECT}>
             <option value="">Seçilmedi</option>
-            {vocab.neighbourhoods.map((n) => (
-              <option key={n.id} value={n.id}>
-                {n.name}
+            {KOCAELI_DISTRICTS.map((x) => (
+              <option key={x.slug} value={x.slug}>
+                {x.name}
               </option>
             ))}
           </select>
@@ -413,7 +423,7 @@ export function GuideForm({
 
       <Section title="Ayrıntılar">
         <Field label="Çalışma saatleri" htmlFor={fid("hours")}>
-          <Input id={fid("hours")} value={d.hours} maxLength={500} placeholder="ör. Hafta içi 08:30-17:30" onChange={(e) => set("hours", e.target.value)} />
+          <Input id={fid("hours")} value={d.hours} maxLength={500} placeholder="Hafta içi 08:30-17:30" onChange={(e) => set("hours", e.target.value)} />
         </Field>
         <Field label="Açıklama" htmlFor={fid("desc")}>
           <Textarea id={fid("desc")} rows={4} maxLength={2000} value={d.description} onChange={(e) => set("description", e.target.value)} />
@@ -500,7 +510,7 @@ export function GuideForm({
           </Field>
         ) : null}
         <Field label="Kaynak bağlantıları" htmlFor={fid("src")} hint="Her satıra bir adres. Bilginin geldiği resmî sayfalar; en fazla 20.">
-          <Textarea id={fid("src")} rows={3} value={d.sourceUrls} placeholder="https://gebze.bel.tr/..." onChange={(e) => set("sourceUrls", e.target.value)} />
+          <Textarea id={fid("src")} rows={3} value={d.sourceUrls} placeholder="https://..." onChange={(e) => set("sourceUrls", e.target.value)} />
         </Field>
       </Section>
 

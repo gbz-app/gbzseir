@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { DemoBadge } from "@/components/shared/badges";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { districtBySlug } from "@/config/districts";
 import { formatPhoneTR, formatRelativeTime, initials } from "@/core/format";
 import { routes, withQuery } from "@/core/routes";
 import { AdminPagination, EmptyCard, FilterTabs, SearchBox, StatusBadge } from "@/features/admin/components/admin-ui";
@@ -31,7 +32,8 @@ type Row = {
   trusted_publisher: boolean;
   is_demo: boolean;
   created_at: string;
-  neighbourhoods: { name: string } | null;
+  /** Home district (public.districts id). */
+  district_id: string | null;
 };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -50,7 +52,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   let query = supabase
     .from("profiles")
-    .select("id,full_name,phone,avatar_url,role,status,trusted_publisher,is_demo,created_at,neighbourhoods!profiles_neighbourhood_id_fkey(name)", { count: "exact" });
+    .select("id,full_name,phone,avatar_url,role,status,trusted_publisher,is_demo,created_at,district_id", { count: "exact" });
   if (filter === "isletme") query = query.in("id", [...ownerMap.keys()].length ? [...ownerMap.keys()] : ["00000000-0000-0000-0000-000000000000"]);
   if (filter === "kisitli") query = query.neq("status", "active");
   if (filter === "yonetici") query = query.eq("role", "admin");
@@ -96,6 +98,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
             {rows.map((u) => {
               const biz = ownerMap.get(u.id);
               const seen = lastSeen.get(u.id);
+              const district = districtBySlug(u.district_id);
               return (
                 <li key={u.id}>
                   <Link href={routes.admin.user(u.id)} className="flex items-center gap-3 px-4 py-3 transition-colors outline-none hover:bg-muted/50 focus-visible:bg-muted">
@@ -114,7 +117,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                       </div>
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">
                         {formatPhoneTR(u.phone) || "Telefon yok"}
-                        {u.neighbourhoods?.name ? ` · ${u.neighbourhoods.name}` : ""}
+                        {district ? ` · ${district.name}` : ""}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Katıldı {formatRelativeTime(u.created_at)}

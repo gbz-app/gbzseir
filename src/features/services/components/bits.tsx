@@ -55,12 +55,13 @@ export type FirmCardData = {
   rating_count: number | null;
   verification_level: number;
   category_label: string | null;
-  neighbourhood_name?: string | null;
+  /** District (ilçe) display name. */
+  district_name?: string | null;
 };
 
 /** Compact firm row linking to /firma/[slug]. */
 export function FirmCard({ firm, className }: { firm: FirmCardData; className?: string }) {
-  const meta = [firm.category_label, firm.neighbourhood_name].filter(Boolean).join(" · ");
+  const meta = [firm.category_label, firm.district_name].filter(Boolean).join(" · ");
   return (
     <Link
       href={routes.businesses.detail(firm.slug)}

@@ -4,6 +4,7 @@ import * as React from "react";
 import { ArrowUpDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CITY } from "@/config/site";
+import { districtName } from "@/config/districts";
 import { routes } from "@/core/routes";
 import {
   DropdownMenu,
@@ -23,7 +24,7 @@ import {
   pickAttrFilters,
   type ListingsQuery,
 } from "../filters";
-import type { ListingCategory, NeighbourhoodRef } from "../types";
+import type { ListingCategory } from "../types";
 import { CategoryIcon } from "./category-icon";
 import { FilterSheet } from "./filter-sheet";
 import { useListingsNav } from "./listings-nav";
@@ -31,15 +32,15 @@ import { useListingsNav } from "./listings-nav";
 const COPY = {
   "ikinci-el": {
     title: "İkinci El",
-    subtitle: `${CITY.name}'de aracısız al, sat; satıcıyı doğrudan ara.`,
-    placeholder: "Ne arıyorsun? Örn. bisiklet",
+    subtitle: `${CITY.province}'de aracısız al, sat; satıcıyı doğrudan ara.`,
+    placeholder: "Ne arıyorsun?",
     searchLabel: "İkinci el ilanlarda ara",
     noun: "ilan",
     chipsLabel: "Kategoriler",
   },
   "is-ilanlari": {
     title: "İş İlanları",
-    subtitle: `${CITY.name} ve OSB'lerde güncel iş ilanları`,
+    subtitle: `${CITY.province} ve OSB'lerde güncel iş ilanları`,
     placeholder: "Pozisyon, firma ya da OSB ara",
     searchLabel: "İş ilanlarında ara",
     noun: "iş ilanı",
@@ -72,7 +73,6 @@ export type ListingsHeaderProps = {
   query: ListingsQuery;
   /** Categories of the page (2. el categories or job sectors). */
   categories: ListingCategory[];
-  neighbourhood: NeighbourhoodRef | null;
   total: number | null;
 };
 
@@ -80,7 +80,7 @@ export type ListingsHeaderProps = {
  * Header of the İkinci El / İş İlanları lists (/kesfet style): back circle, big title, search pill + filter button,
  * category chips (and work types for jobs), result count + sort. All state lives in the URL.
  */
-export function ListingsHeader({ query, categories, neighbourhood, total }: ListingsHeaderProps) {
+export function ListingsHeader({ query, categories, total }: ListingsHeaderProps) {
   const { navigate, pending } = useListingsNav();
   const isJob = query.tab === "is-ilanlari";
   const copy = COPY[query.tab];
@@ -205,7 +205,7 @@ export function ListingsHeader({ query, categories, neighbourhood, total }: List
 
       <div className="-my-1 flex min-h-9 items-center gap-3">
         <p className="min-w-0 truncate text-sm text-muted-foreground" aria-live="polite">
-          {pending ? "Yükleniyor…" : total != null ? `${total.toLocaleString("tr-TR")} ${copy.noun}` : null}
+          {pending ? "Yükleniyor…" : total != null ? `${total.toLocaleString("tr-TR")} ${copy.noun}${query.ilce ? ` · ${districtName(query.ilce)}` : ""}` : null}
         </p>
         {filterCount > 0 ? (
           <button
@@ -248,7 +248,6 @@ export function ListingsHeader({ query, categories, neighbourhood, total }: List
         onOpenChange={setSheetOpen}
         query={query}
         categories={categories}
-        neighbourhood={neighbourhood}
         onApply={(q) => navigate(q)}
       />
     </div>

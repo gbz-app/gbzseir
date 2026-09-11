@@ -68,7 +68,7 @@ export async function getDutyData(revalidate = 300): Promise<DutyData> {
   return { rows, fetchedAt, ok, generatedAt: now, mode };
 }
 
-const POI_COLUMNS = "id,kind,name,slug,address,phone,lat,lng,neighbourhood_id,details,source,license,updated_at,neighbourhoods(name)";
+const POI_COLUMNS = "id,kind,name,slug,address,phone,lat,lng,district_id,details,source,license,updated_at";
 
 function safeDecode(v: string): string {
   try {
@@ -87,8 +87,6 @@ export const getPoi = cache(async (kind: PoiKind, param: string): Promise<PoiDet
   const { data, error } = await (UUID_RE.test(value) ? base.eq("id", value) : base.eq("slug", value)).maybeSingle();
   if (error) throw new Error(`poi query failed: ${error.message}`);
   if (!data) return null;
-  const n = data.neighbourhoods as { name: string } | { name: string }[] | null;
-  const neighbourhoodName = Array.isArray(n) ? (n[0]?.name ?? null) : (n?.name ?? null);
   return {
     id: data.id,
     kind: data.kind as PoiKind,
@@ -98,8 +96,7 @@ export const getPoi = cache(async (kind: PoiKind, param: string): Promise<PoiDet
     phone: data.phone,
     lat: data.lat,
     lng: data.lng,
-    neighbourhood_id: data.neighbourhood_id,
-    neighbourhood_name: neighbourhoodName,
+    district_id: data.district_id,
     details: data.details,
     source: data.source,
     license: data.license,
@@ -146,26 +143,23 @@ export async function getPlaces(): Promise<PlaceSummary[]> {
   const supabase = createPublicClient(3600, ["nearby", "poi"]);
   const { data, error } = await supabase
     .from("poi")
-    .select("id,slug,name,address,lat,lng,details,neighbourhoods(name)")
+    .select("id,slug,name,address,lat,lng,details,district_id")
     .eq("kind", "place")
     .or(GEZILECEK_FILTER)
     .order("details->curated", { ascending: false, nullsFirst: false })
     .order("name", { ascending: true })
     .limit(PLACES_LIMIT);
   if (error) throw new Error(`places query failed: ${error.message}`);
-  const list: PlaceSummary[] = (data ?? []).map((row) => {
-    const n = row.neighbourhoods as { name: string } | { name: string }[] | null;
-    return {
-      id: row.id,
-      slug: row.slug,
-      name: row.name,
-      address: row.address,
-      lat: row.lat,
-      lng: row.lng,
-      neighbourhoodName: Array.isArray(n) ? (n[0]?.name ?? null) : (n?.name ?? null),
-      details: parsePlaceDetails(row.details),
-    };
-  });
+  const list: PlaceSummary[] = (data ?? []).map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    address: row.address,
+    lat: row.lat,
+    lng: row.lng,
+    districtId: row.district_id,
+    details: parsePlaceDetails(row.details),
+  }));
   list.sort(
     (a, b) =>
       Number(b.details.curated) - Number(a.details.curated) ||

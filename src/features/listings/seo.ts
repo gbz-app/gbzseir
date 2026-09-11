@@ -1,7 +1,7 @@
 /**
  * schema.org JSON-LD builders for listing detail pages (Product/Offer and JobPosting).
  */
-import { CITY, SITE_URL } from "@/config/site";
+import { APP_NAME, CITY, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { truncate } from "@/core/format";
 import type { ListingDetail } from "./types";
@@ -36,7 +36,7 @@ export function productJsonLd(listing: ListingDetail, model: ClassifiedViewModel
       availability: model.state === "sold" ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
       itemCondition: condition,
       priceValidUntil: listing.expires_at.slice(0, 10),
-      areaServed: { "@type": "City", name: CITY.name },
+      areaServed: { "@type": "City", name: model.districtName ?? CITY.province },
       seller: model.business
         ? { "@type": "Organization", name: model.business.name, url: model.business.slug ? abs(routes.businesses.detail(model.business.slug)) : undefined }
         : { "@type": "Person", name: model.seller.displayName },
@@ -80,7 +80,7 @@ export function jobPostingJsonLd(listing: ListingDetail, model: JobViewModel): R
     validThrough: listing.expires_at,
     employmentType: listing.job_work_type ? EMPLOYMENT_TYPE[listing.job_work_type] : undefined,
     directApply: false,
-    identifier: model.listingNo ? { "@type": "PropertyValue", name: company?.name ?? CITY.name, value: model.listingNo } : undefined,
+    identifier: model.listingNo ? { "@type": "PropertyValue", name: company?.name ?? APP_NAME, value: model.listingNo } : undefined,
     hiringOrganization: company
       ? {
           "@type": "Organization",
@@ -93,8 +93,8 @@ export function jobPostingJsonLd(listing: ListingDetail, model: JobViewModel): R
       "@type": "Place",
       address: {
         "@type": "PostalAddress",
-        streetAddress: [model.locationLabel, model.neighbourhoodName ? `${model.neighbourhoodName} Mah.` : null].filter(Boolean).join(", ") || undefined,
-        addressLocality: CITY.name,
+        streetAddress: model.locationLabel || undefined,
+        addressLocality: model.districtName ?? CITY.province,
         addressRegion: CITY.province,
         addressCountry: "TR",
       },

@@ -4,11 +4,15 @@
  */
 
 export const APP_NAME = "Gebzem";
-export const APP_FULL_NAME = `${APP_NAME} - Gebze Şehir Rehberi`;
-export const APP_TAGLINE = "Gebze artık cebinde";
+export const APP_FULL_NAME = `${APP_NAME} - Kocaeli Şehir Rehberi`;
+export const APP_TAGLINE = "Kocaeli artık cebinde";
 export const APP_DESCRIPTION =
-  "Nöbetçi eczane, yakındaki cami ve duraklar, 2. el ve iş ilanları, usta ve hizmet talepleri, Gebze'nin onaylı işletmeleri: şehirle ilgili her şey tek uygulamada.";
+  "Nöbetçi eczane, yakındaki cami ve duraklar, 2. el ve iş ilanları, usta ve hizmet talepleri, Kocaeli'nin onaylı işletmeleri: 12 ilçede şehirle ilgili her şey tek uygulamada.";
 
+/**
+ * The brand's home city. The app covers every Kocaeli district (src/config/districts.ts); `center` is the fallback map
+ * point when the user has chosen no district and shared no location.
+ */
 export const CITY = {
   name: "Gebze",
   slug: "gebze",
@@ -48,6 +52,9 @@ export const STORAGE_KEYS = {
   visits: "gebzem.visits",
   installDismissedAt: "gebzem.install.dismissedAt",
   location: "gebzem.location.v1",
+  /** Chosen district + location mode: { district: DistrictSlug | null, mode }. */
+  district: "gebzem.district.v1",
+  /** @deprecated Old neighbourhood choice; read once to migrate it to `district`, dropped in phase C. */
   neighbourhood: "gebzem.neighbourhood.v1",
   marketingConsent: "gebzem.marketingConsent",
   wizardDraftPrefix: "gebzem.draft.",

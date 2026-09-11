@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowUpRight, Map as MapIcon, Search, Store, Wrench, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { districtBySlug } from "@/config/districts";
 import { CITY } from "@/config/site";
 import { distanceMeters, formatDistance } from "@/core/geo";
 import { routes } from "@/core/routes";
@@ -18,6 +19,7 @@ import { useApproxLocation } from "@/lib/location/use-approx-location";
 import { openStatusAt, parseWorkingHours, type OpenStatus } from "../lib/hours";
 import type { VerticalCard } from "../lib/vertical-queries";
 import { VERTICAL_INFO, VERTICAL_SUBCATEGORIES, subcategoryMatcher, type Vertical, type VerticalSubcategory } from "../lib/verticals";
+import { DistrictFilterChip, useDistrictParam } from "./district-filter";
 import { DoctorsExplorer, ExploreSegments, useExploreSegment } from "./doctors/doctors-explorer";
 import type { DirectoryDoctor, DoctorBranch } from "./doctors/doctor-meta";
 import { VenueCard, VenuePhotoFallback } from "./venue-card";
@@ -28,7 +30,7 @@ const NOUN: Partial<Record<Vertical, string>> = { hizmet: "firma", otel: "otel",
 
 const NO_SUBCATEGORIES: readonly VerticalSubcategory[] = [];
 
-/** /kesfet/[tur]: search, sub-category chips, one-column photo cards and a map view of one vertical. */
+/** /kesfet/[tur]: search, district filter (?ilce=), sub-category chips, one-column photo cards and a map view of one vertical. */
 export function VerticalExplorer({
   vertical,
   items,
@@ -54,6 +56,7 @@ export function VerticalExplorer({
   const now = useNow();
   const [q, setQ] = React.useState("");
   const [subKey, setSubKey] = React.useState<string | null>(null);
+  const [district, setDistrict] = useDistrictParam();
   const [mapOpen, setMapOpen] = React.useState(false);
 
   const hasPoint = loc.pointSource !== "city";
@@ -71,20 +74,30 @@ export function VerticalExplorer({
 
   const needle = slugifyTr(q);
   const sub = subcategories.find((s) => s.key === subKey) ?? null;
+  const districtInfo = districtBySlug(district);
   const filtered = React.useMemo(() => {
     const active = subcategories.find((s) => s.key === subKey);
     const matches = active ? subcategoryMatcher(active) : null;
     return rows.filter(
       (r) =>
-        (!needle || slugifyTr(`${r.item.name} ${r.item.category_label ?? ""} ${r.item.neighbourhood_name ?? ""}`).includes(needle)) &&
+        (!district || r.item.district_id === district) &&
+        (!needle || slugifyTr(`${r.item.name} ${r.item.category_label ?? ""} ${districtBySlug(r.item.district_id)?.name ?? ""}`).includes(needle)) &&
         (!matches || matches(`${r.item.category_label ?? ""} ${r.item.name} ${r.item.description ?? ""}`)),
     );
-  }, [rows, needle, subcategories, subKey]);
+  }, [rows, needle, subcategories, subKey, district]);
 
   const clearAll = () => {
     setQ("");
     setSubKey(null);
+    setDistrict(null);
   };
+  // One filter alone gets its own empty message ("Kafe için henüz mekan yok", "Kandıra için henüz mekan yok").
+  const emptyTitle =
+    sub && !needle && !districtInfo
+      ? `${sub.label} için henüz`
+      : districtInfo && !needle && !sub
+        ? `${districtInfo.name} için henüz`
+        : null;
 
   const mappable = filtered.filter((r) => r.item.lat != null && r.item.lng != null);
   const noun = NOUN[vertical] ?? "mekan";
@@ -96,7 +109,7 @@ export function VerticalExplorer({
       {doctors ? <ExploreSegments value={segment} onChange={setSegment} counts={{ isletmeler: items.length, doktorlar: doctors.length }} /> : null}
 
       {showDoctors ? (
-        <DoctorsExplorer doctors={doctors} branches={doctorBranches} />
+        <DoctorsExplorer doctors={doctors} branches={doctorBranches} district={district} onDistrictChange={setDistrict} />
       ) : (
         <>
           <label className="relative block">
@@ -106,7 +119,7 @@ export function VerticalExplorer({
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder={`${info.label} ara: isim, mahalle`}
+              placeholder={`${info.label} ara: isim, ilçe`}
               enterKeyHint="search"
               className="h-12 w-full rounded-full bg-card pr-11 pl-12 text-[15px] outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:hidden"
             />
@@ -170,14 +183,17 @@ export function VerticalExplorer({
             </div>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground" aria-live="polite">
-                {filtered.length} {noun}
-              </p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground" aria-live="polite">
+                  {filtered.length} {noun}
+                </p>
+                <DistrictFilterChip value={district} onChange={setDistrict} />
+              </div>
               {filtered.length === 0 ? (
                 <div className="rounded-3xl bg-card px-6 py-8 text-center">
-                  <p className="font-semibold">{sub && !needle ? `${sub.label} için henüz ${noun} yok` : `Aramana uygun ${noun} bulunamadı`}</p>
+                  <p className="font-semibold">{emptyTitle ? `${emptyTitle} ${noun} yok` : `Aramana uygun ${noun} bulunamadı`}</p>
                   <Button variant="outline" className="mt-4" onClick={clearAll}>
-                    {sub ? "Tümünü göster" : "Aramayı temizle"}
+                    {sub || districtInfo ? "Tümünü göster" : "Aramayı temizle"}
                   </Button>
                 </div>
               ) : (

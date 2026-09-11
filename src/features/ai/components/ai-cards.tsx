@@ -6,6 +6,7 @@ import {
   BedDouble,
   Building2,
   Bus,
+  BusFront,
   CalendarDays,
   CarTaxiFront,
   ChevronRight,
@@ -13,6 +14,7 @@ import {
   Cross,
   ExternalLink,
   Fuel,
+  Globe,
   HeartPulse,
   Landmark,
   MoonStar,
@@ -20,6 +22,7 @@ import {
   Pill,
   PlugZap,
   ShoppingBag,
+  Stethoscope,
   Store,
   UtensilsCrossed,
   Wrench,
@@ -49,6 +52,9 @@ const ICONS: Record<AiCardIcon, LucideIcon> = {
   fuel: Fuel,
   ev_charge: PlugZap,
   institution: Building2,
+  doctor: Stethoscope,
+  bus_line: BusFront,
+  web: Globe,
 };
 
 const LINK_CLASS =

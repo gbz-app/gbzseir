@@ -2,6 +2,7 @@
  * View models for the detail views. The same presentational components render the public detail pages
  * (built from DB rows) and the wizard preview step (built from the draft).
  */
+import { districtBySlug } from "@/config/districts";
 import { CONDITIONS, EXPERIENCE_LEVELS, JOB_BENEFITS, WORK_TYPES, optionLabel, type ListingStatus, type Option } from "./constants";
 import { formatMonthYear, isPastExpiry, isSalaryVisible, listingNo, salaryText } from "./format";
 import { splitJobDescription } from "./job-description";
@@ -62,7 +63,8 @@ export type ClassifiedViewModel = {
   categoryIcon: string | null;
   conditionLabel: string | null;
   attributes: AttributeRow[];
-  neighbourhoodName: string | null;
+  /** District display name ("İzmit"); null when the listing has none. */
+  districtName: string | null;
   postedAt: string | null;
   listingNo: string | null;
   images: MediaRef[];
@@ -87,7 +89,7 @@ export function classifiedModelFromDetail(d: ListingDetail, categories: ListingC
     categoryIcon: path.category?.icon ?? path.parent?.icon ?? null,
     conditionLabel: optionLabel(CONDITIONS, typeof d.attributes.durum === "string" ? d.attributes.durum : null),
     attributes: describeAttributes(schema, d.attributes),
-    neighbourhoodName: d.neighbourhoodName,
+    districtName: districtBySlug(d.district_id)?.name ?? null,
     postedAt: d.published_at ?? d.created_at,
     listingNo: listingNo(d.id),
     images: d.media.map((m) => ({ url: m.url, thumbUrl: m.thumbUrl })),
@@ -111,7 +113,7 @@ export type JobViewModel = {
   description: string;
   qualifications: string;
   locationLabel: string | null;
-  neighbourhoodName: string | null;
+  districtName: string | null;
   postedAt: string | null;
   listingNo: string | null;
   company: BusinessRef | null;
@@ -138,7 +140,7 @@ export function jobModelFromDetail(d: ListingDetail, categories: ListingCategory
     description,
     qualifications,
     locationLabel: d.job_location_label,
-    neighbourhoodName: d.neighbourhoodName,
+    districtName: districtBySlug(d.district_id)?.name ?? null,
     postedAt: d.published_at ?? d.created_at,
     listingNo: listingNo(d.id),
     company: d.business,

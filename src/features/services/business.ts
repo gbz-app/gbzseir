@@ -28,7 +28,7 @@ export async function getServiceBusiness(): Promise<ServiceBusinessGate> {
 export const SERVICE_GATE_COPY: Record<Exclude<ServiceBusinessGate, { ok: true }>["reason"], { title: string; description: string }> = {
   no_business: {
     title: "Hizmet talepleri işletmeler içindir",
-    description: "Gebze'de hizmet veriyorsan ücretsiz işletme hesabı aç; bölgendeki müşteri talepleri buraya düşsün.",
+    description: "Kocaeli'de hizmet veriyorsan ücretsiz işletme hesabı aç; bölgendeki müşteri talepleri buraya düşsün.",
   },
   not_approved: {
     title: "İşletme hesabın şu an kapalı",

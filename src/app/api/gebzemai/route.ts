@@ -192,6 +192,8 @@ export async function POST(request: Request): Promise<Response> {
   // The DB names the model at begin; a model of the other provider (switched a moment ago) falls back to this one's default.
   const model = resolveAiModel(b.model ?? config.model, provider);
   const usage = emptyUsage();
+  /** Paid work done inside tools (the web search request), added to the turn's cost for the daily budget. */
+  let toolCostMicroUsd = 0;
   const userAbort = new AbortController();
   const deadline = AbortSignal.timeout(DEADLINE_MS);
   const signal = AbortSignal.any([userAbort.signal, deadline]);
@@ -235,7 +237,8 @@ export async function POST(request: Request): Promise<Response> {
             },
             runTool: async (name, input) => {
               send({ t: "status", label: toolStatusLabel(name) });
-              const out = await runAiTool(name, input);
+              const out = await runAiTool(name, input, signal);
+              toolCostMicroUsd += out.costMicroUsd ?? 0;
               if (out.cards.length) send({ t: "cards", items: out.cards });
               if (out.notice) notices.set(out.notice.text, out.notice.keyword);
               return { content: out.content, isError: out.isError };
@@ -260,7 +263,7 @@ export async function POST(request: Request): Promise<Response> {
               p_turn: turnId,
               p_input: totalInputTokens(usage),
               p_output: usage.output,
-              p_cost_micro_usd: costMicroUsd(usage, model),
+              p_cost_micro_usd: costMicroUsd(usage, model) + toolCostMicroUsd,
               p_model: model.id,
               p_status: status,
               p_tool_calls: usage.toolCalls,

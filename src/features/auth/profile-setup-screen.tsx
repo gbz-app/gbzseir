@@ -97,7 +97,7 @@ export function ProfileSetupScreen({ next, initial }: { next: string; initial?: 
       return;
     }
     // KVKK + terms accepted on the login screen. A DB trigger stamps the server time and the live KVKK version
-    // (profiles.kvkk_version). E-mail and neighbourhood are optional and edited later in Kişisel bilgiler.
+    // (profiles.kvkk_version). E-mail and district are optional and edited later in Kişisel bilgiler.
     const row = {
       full_name: fullName,
       avatar_url: avatar?.url ?? null,
@@ -141,7 +141,7 @@ export function ProfileSetupScreen({ next, initial }: { next: string; initial?: 
             enterKeyHint="next"
             autoFocus
             maxLength={FULL_NAME_MAX + 10}
-            placeholder="Örn. Ayşe Nur Yılmaz"
+            placeholder="Adın ve soyadın"
             value={name}
             aria-invalid={!!nameError || undefined}
             aria-describedby={nameError ? `${inputId}-err` : `${inputId}-preview`}

@@ -6,12 +6,14 @@ import { CalendarPlus, ChevronRight, ExternalLink, Ticket, Trash2 } from "lucide
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { istanbulDateKey } from "@/core/time";
+import { districtBySlug } from "@/config/districts";
 import { notify } from "@/lib/notify";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { DistrictPicker } from "@/components/shared/district-picker";
 import { FormScreen } from "@/components/shared/form-screen";
 import { refreshMyBusinessPages } from "@/features/business/actions";
 import { CharCount, Field } from "@/features/business/components/editor/field";
@@ -31,7 +33,10 @@ export type EventOwnerBusiness = {
   phone: string | null;
   lat: number | null;
   lng: number | null;
-  neighbourhoodId: string | null;
+  /** District slug (businesses.district_id); null for city events (the inline form asks for it). */
+  districtId?: string | null;
+  /** @deprecated Mahalle left the app; ignored. */
+  neighbourhoodId?: string | null;
 };
 
 /** Statuses an admin can pick in the inline form (review states come from the review actions). */
@@ -198,8 +203,10 @@ function EventForm({
   const [time, setTime] = React.useState(start?.time ?? "20:00");
   const [endDate, setEndDate] = React.useState(end?.date ?? "");
   const [endTime, setEndTime] = React.useState(end?.time ?? "");
-  const [venue, setVenue] = React.useState(event?.venue_name ?? business.name);
+  // A city event has no default place (the city name would put an İzmit concert "in Gebze").
+  const [venue, setVenue] = React.useState(event?.venue_name ?? (business.id ? business.name : ""));
   const [address, setAddress] = React.useState(event?.address ?? business.address ?? "");
+  const [district, setDistrict] = React.useState<string | null>(event?.district_id ?? business.districtId ?? null);
   const [isFree, setIsFree] = React.useState(event?.is_free ?? false);
   const [price, setPrice] = React.useState(amountInput(event?.price_try));
   const [priceNote, setPriceNote] = React.useState(event?.price_note ?? "");
@@ -227,6 +234,10 @@ function EventForm({
     const ticket = normalizeUrl(ticketUrl);
     if (ticket === undefined) return notify.error("Bilet bağlantısı geçersiz.");
     if (description.length > 3000) return notify.error("Açıklama en fazla 3000 karakter olabilir.");
+    const districtRow = districtBySlug(district);
+    if (!districtRow) return notify.error("İlçe seç.");
+    // A city event has no exact pin: it sits on its district's centre (moved along when the district changes).
+    const center = !business.id && (!event || event.district_id !== districtRow.slug) ? districtRow.center : null;
 
     setSaving(true);
     const values = {
@@ -236,6 +247,8 @@ function EventForm({
       ends_at: endsAt,
       venue_name: venue.trim() || null,
       address: address.trim() || null,
+      district_id: districtRow.slug,
+      ...(center ? { lat: center.lat, lng: center.lng } : {}),
       is_free: isFree,
       price_try: amount,
       price_note: priceNote.trim() || null,
@@ -249,7 +262,7 @@ function EventForm({
       ? await supabase.from("events").update(values).eq("id", event.id).select(OWNER_EVENT_COLUMNS).single()
       : await supabase
           .from("events")
-          .insert({ ...values, business_id: business.id, phone: business.phone, lat: business.lat, lng: business.lng, neighbourhood_id: business.neighbourhoodId })
+          .insert({ business_id: business.id, phone: business.phone, lat: business.lat, lng: business.lng, ...values })
           .select(OWNER_EVENT_COLUMNS)
           .single();
     setSaving(false);
@@ -300,6 +313,9 @@ function EventForm({
       </div>
       <Field label="Yer" htmlFor="etk-yer">
         <Input id="etk-yer" value={venue} maxLength={120} onChange={(e) => setVenue(e.target.value)} />
+      </Field>
+      <Field label="İlçe" htmlFor="etk-ilce">
+        <DistrictPicker id="etk-ilce" value={district} onChange={(d) => setDistrict(d?.slug ?? null)} />
       </Field>
       <Field label="Adres" htmlFor="etk-adres" optional>
         <Input id="etk-adres" value={address} maxLength={200} onChange={(e) => setAddress(e.target.value)} />

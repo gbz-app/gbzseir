@@ -1,4 +1,5 @@
 import "server-only";
+import { districtBySlug } from "@/config/districts";
 import { APP_SETTINGS_TAG } from "@/lib/app-settings";
 import { createClient } from "@/lib/supabase/server";
 import { createPublicClient } from "@/features/nearby/server/public-client";
@@ -50,7 +51,8 @@ export async function getPopularPlaces(limit = 10): Promise<PopularPlace[]> {
         category: r.category ?? null,
         label: r.label ?? null,
         imageUrl: r.image_url ?? null,
-        neighbourhoodName: r.neighbourhood_name ?? null,
+        // district_name / district_id are missing on the RPC before 2026091380.
+        districtName: districtBySlug(r.district_id)?.name ?? r.district_name ?? null,
       }));
     }
   } catch {
@@ -66,7 +68,7 @@ export async function getPopularPlaces(limit = 10): Promise<PopularPlace[]> {
       category: p.details.category,
       label: null,
       imageUrl: p.details.photos[0]?.thumbUrl || p.details.photos[0]?.url || null,
-      neighbourhoodName: p.neighbourhoodName,
+      districtName: districtBySlug(p.districtId)?.name ?? null,
     }));
   } catch {
     return [];

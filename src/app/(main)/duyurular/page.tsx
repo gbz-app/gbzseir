@@ -12,7 +12,7 @@ export const revalidate = 300;
 
 export const metadata = contentMetadata({
   title: "Duyurular",
-  description: "Gebze'de planlı su ve elektrik kesintileri, belediye ve genel duyurular: tarih, saat ve etkilenen mahalleler.",
+  description: "Kocaeli'de planlı su ve elektrik kesintileri, belediye ve genel duyurular: tarih, saat ve etkilenen ilçeler.",
   path: routes.content.announcements(),
 });
 

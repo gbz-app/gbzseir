@@ -10,8 +10,8 @@ import { listUpcomingEvents } from "@/features/events/queries";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: `Etkinlikler - ${CITY.name}`,
-  description: `${CITY.name}'de yaklaşan konser, tiyatro, atölye, spor ve festival etkinlikleri. Tarih, yer ve ücret bilgileri ${APP_NAME}'de.`,
+  title: `Etkinlikler - ${CITY.province}`,
+  description: `${CITY.province}'de yaklaşan konser, tiyatro, atölye, spor ve festival etkinlikleri. Tarih, yer ve ücret bilgileri ${APP_NAME}'de.`,
   alternates: { canonical: routes.events.root() },
 };
 
@@ -33,7 +33,7 @@ export default async function EventsPage() {
           data={{
             "@context": "https://schema.org",
             "@type": "ItemList",
-            name: `${CITY.name} etkinlikleri`,
+            name: `${CITY.province} etkinlikleri`,
             itemListElement: listed.map((e, i) => ({
               "@type": "ListItem",
               position: i + 1,

@@ -11,11 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ImageUploader, type UploadedImage } from "@/components/shared/image-uploader";
-import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
+import { DistrictPicker } from "@/components/shared/district-picker";
 import { useAuth } from "@/lib/auth/auth-provider";
-import { applyProfileNeighbourhood } from "@/lib/location/store";
+import { applyProfileDistrict } from "@/lib/location/store";
 import { createClient } from "@/lib/supabase/client";
-import type { Neighbourhood } from "@/lib/types";
 
 const NAME_RE = /^[\p{L}][\p{L}\s'.-]*$/u;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -23,7 +22,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 export type ProfileEditInitial = {
   fullName: string | null;
   email: string | null;
-  neighbourhoodId: string | null;
+  /** profiles.district_id (district slug, e.g. "gebze"). */
+  districtId: string | null;
   avatarUrl: string | null;
   phone: string | null;
 };
@@ -34,7 +34,7 @@ function splitName(full: string | null): [string, string] {
   return [parts.slice(0, -1).join(" "), parts[parts.length - 1]];
 }
 
-/** G3 - Profili düzenle: only name, neighbourhood, e-mail and photo (consents are not touched). */
+/** G3 - Profili düzenle: only name, district, e-mail and photo (consents are not touched). */
 export function ProfileEditForm({ initial }: { initial: ProfileEditInitial }) {
   const router = useRouter();
   const { user, refreshProfile } = useAuth();
@@ -42,8 +42,7 @@ export function ProfileEditForm({ initial }: { initial: ProfileEditInitial }) {
   const [firstName, setFirstName] = React.useState(first0);
   const [lastName, setLastName] = React.useState(last0);
   const [email, setEmail] = React.useState(initial.email ?? "");
-  const [neighbourhoodId, setNeighbourhoodId] = React.useState<string | null>(initial.neighbourhoodId);
-  const [picked, setPicked] = React.useState<Neighbourhood | null>(null);
+  const [districtId, setDistrictId] = React.useState<string | null>(initial.districtId);
   const [avatar, setAvatar] = React.useState<UploadedImage[]>(() =>
     initial.avatarUrl ? [{ url: initial.avatarUrl, thumbUrl: initial.avatarUrl, path: "", thumbPath: "" }] : [],
   );
@@ -67,13 +66,16 @@ export function ProfileEditForm({ initial }: { initial: ProfileEditInitial }) {
     if (v || !user) return;
     setSaving(true);
     const clean = (s: string) => s.trim().replace(/\s+/g, " ");
+    const districtChanged = districtId !== initial.districtId;
     const { error: upError } = await createClient()
       .from("profiles")
       .update({
         full_name: `${clean(firstName)} ${clean(lastName)}`,
         email: email.trim() ? email.trim().toLowerCase() : null,
-        neighbourhood_id: neighbourhoodId,
         avatar_url: avatar[0]?.url ?? null,
+        // Only a changed district is written. The old mahalle goes with it: an explicit district_id wins in
+        // zz_fill_district, so clearing neighbourhood_id here cannot wipe the new district.
+        ...(districtChanged ? { district_id: districtId, neighbourhood_id: null } : {}),
       })
       .eq("id", user.id);
     setSaving(false);
@@ -81,13 +83,8 @@ export function ProfileEditForm({ initial }: { initial: ProfileEditInitial }) {
       setError("Profil kaydedilemedi. Lütfen tekrar dene.");
       return;
     }
-    // Mirror a changed neighbourhood in the top-bar choice (untouched field: the local choice stays).
-    if (!neighbourhoodId || picked) {
-      applyProfileNeighbourhood(
-        initial.neighbourhoodId,
-        neighbourhoodId && picked ? { id: neighbourhoodId, name: picked.name, district: picked.district, lat: picked.lat, lng: picked.lng } : null,
-      );
-    }
+    // Mirror a changed district in the top-bar choice (untouched field: the local choice stays).
+    applyProfileDistrict(initial.districtId, districtId);
     await refreshProfile();
     toast.success("Profilin güncellendi");
     router.push(routes.profile.root());
@@ -110,17 +107,8 @@ export function ProfileEditForm({ initial }: { initial: ProfileEditInitial }) {
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        <Label>Mahalle</Label>
-        <NeighbourhoodPicker
-          value={neighbourhoodId}
-          onChange={(n) => {
-            setNeighbourhoodId(n ? String(n.id) : null);
-            setPicked(n);
-          }}
-          persistDefault={false}
-          allowClear
-          showUseLocation
-        />
+        <Label htmlFor="ilce">İlçe</Label>
+        <DistrictPicker id="ilce" value={districtId} onChange={(d) => setDistrictId(d?.slug ?? null)} allowClear showUseLocation />
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="eposta">E-posta (isteğe bağlı)</Label>
@@ -129,7 +117,7 @@ export function ProfileEditForm({ initial }: { initial: ProfileEditInitial }) {
 
       <Link
         href={routes.profile.changePhone()}
-        className="flex min-h-14 items-center gap-3 rounded-2xl bg-card px-4 py-3 transition-colors hover:bg-muted/60"
+        className="flex min-h-14 items-center gap-3 rounded-card bg-card px-4 py-3 transition-colors hover:bg-muted/60"
       >
         <Smartphone className="size-5 text-muted-foreground" aria-hidden />
         <span className="min-w-0 flex-1">
@@ -141,7 +129,7 @@ export function ProfileEditForm({ initial }: { initial: ProfileEditInitial }) {
       </Link>
 
       {error ? (
-        <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p role="alert" className="rounded-chip bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       ) : null}

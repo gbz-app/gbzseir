@@ -6,6 +6,7 @@ import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
 import { DetailActions, DetailHero, DetailSheet, PRIMARY_CTA, SECONDARY_CTA } from "@/components/shared/detail-hero";
 import { JsonLd } from "@/components/seo/json-ld";
+import { districtBySlug } from "@/config/districts";
 import { APP_NAME, CITY, SITE_URL } from "@/config/site";
 import { formatPhoneTR, truncate } from "@/core/format";
 import { distanceMeters } from "@/core/geo";
@@ -52,10 +53,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!item) return { title: "Kayıt bulunamadı", robots: { index: false } };
   const entry = toEntry(item, await loadLabels());
   const type = entry.type ?? GUIDE_KIND_META[item.kind].label;
-  const title = `${item.name} - ${type}, ${CITY.name}`;
+  const district = districtBySlug(item.districtId)?.name;
+  const title = `${item.name} - ${type}, ${district ?? CITY.province}`;
+  const place = district ? `${district}, ${CITY.province}` : CITY.province;
   const description = truncate(
     item.details.description ||
-      `${item.name}: ${CITY.name}'de ${type.toLocaleLowerCase("tr-TR")}. Adres, telefon${item.details.hours ? ", çalışma saatleri" : ""} ve yol tarifi ${APP_NAME}'de.`,
+      `${item.name} (${type.toLocaleLowerCase("tr-TR")}, ${place}): adres, telefon${item.details.hours ? ", çalışma saatleri" : ""} ve yol tarifi ${APP_NAME}'de.`,
     160,
   );
   const url = routes.guide.detail(item.slug);
@@ -88,7 +91,9 @@ export default async function GuideDetailPage({ params }: Props) {
   const phones = d.phones;
   const phone = phones[0] ?? null;
   const hours = readableHours(d.hours);
-  const hood = item.neighbourhoodName;
+  const district = districtBySlug(item.districtId)?.name ?? null;
+  // "Darıca, Kocaeli" (just the province when the district is unknown).
+  const areaLine = [district, CITY.province].filter(Boolean).join(", ");
 
   const nearbyRows = hasPoint
     ? await getNearbyGuideItems({ kind, lat, lng, excludeId: item.id, category: kind === "institution" ? d.category : null, limit: 4 })
@@ -106,7 +111,7 @@ export default async function GuideDetailPage({ params }: Props) {
     "@id": url,
     name: item.name,
     url,
-    address: postalAddress(item.address),
+    address: postalAddress(item.address, item.districtId),
     ...(phone ? { telephone: phone } : {}),
     ...(d.fax ? { faxNumber: d.fax } : {}),
     ...(item.email ? { email: item.email } : {}),
@@ -127,7 +132,7 @@ export default async function GuideDetailPage({ params }: Props) {
   };
 
   const hasActions = !!phone || hasPoint;
-  const addressLine = item.address ?? (hood ? `${hood} Mah., ${CITY.name}` : null);
+  const addressLine = item.address ?? (district ? areaLine : null);
 
   return (
     <>
@@ -156,8 +161,7 @@ export default async function GuideDetailPage({ params }: Props) {
             <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <MapPin className="size-4" aria-hidden />
-                {hood ? `${hood} Mah., ` : ""}
-                {CITY.name}
+                {areaLine}
               </span>
               <DistanceLabel lat={item.lat} lng={item.lng} withIcon className="font-semibold text-primary" />
             </p>
@@ -283,7 +287,7 @@ export default async function GuideDetailPage({ params }: Props) {
                   <p className="font-semibold">Harita konumu henüz yok.</p>
                   {item.address ? (
                     <a
-                      href={`https://www.google.com/maps/search/?${new URLSearchParams({ api: "1", query: `${item.address}, ${CITY.name}, ${CITY.province}` })}`}
+                      href={`https://www.google.com/maps/search/?${new URLSearchParams({ api: "1", query: [item.address, district, CITY.province].filter(Boolean).join(", ") })}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-1 inline-block font-semibold text-primary underline-offset-2 hover:underline"

@@ -120,7 +120,10 @@ export type Doctor = {
 };
 
 /** A doctor with the clinic they work at (Keşfet > Sağlık > Doktorlar). */
-export type DirectoryDoctor = Doctor & { clinic: { slug: string; name: string; neighbourhood_name: string | null; is_demo: boolean } };
+export type DirectoryDoctor = Doctor & {
+  /** district_id: the clinic's public.districts id (config/districts.ts). */
+  clinic: { slug: string; name: string; district_id: string | null; is_demo: boolean };
+};
 
 export const DOCTOR_COLUMNS = "id,slug,business_id,name,title,branch,photo_url,bio,days,hours_note,sort,is_active,is_demo";
 

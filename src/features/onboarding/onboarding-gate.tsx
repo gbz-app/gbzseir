@@ -44,7 +44,7 @@ const STEPS: Step[] = [
     label: "Firmalar ve ustalar",
     kicker: "Firmalar ve ustalar",
     title: "Esnafı bul, ustayı çağır",
-    text: "Gebze'nin işletmelerini keşfet. Usta mı arıyorsun? Talebini bırak, uygun ustalar sana dönsün.",
+    text: "Kocaeli'nin işletmelerini keşfet. Usta mı arıyorsun? Talebini bırak, uygun ustalar sana dönsün.",
     Art: FirmsArt,
   },
   {
@@ -196,7 +196,7 @@ function OnboardingSlides({ onDone }: { onDone: () => void }) {
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    // Keys typed in the neighbourhood sheet (a portal) bubble here through React: ignore them.
+    // Keys typed in the district sheet (a portal) bubble here through React: ignore them.
     if (!rootRef.current?.contains(e.target as Node)) return;
     if (e.key === "ArrowRight") go(index + 1);
     else if (e.key === "ArrowLeft") go(index - 1);

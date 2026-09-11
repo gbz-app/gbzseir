@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarCheck, CalendarClock, CalendarDays, Check, ImagePlus, Loader2, Lock, LogIn, Phone, Trash2, Zap, type LucideIcon } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,22 +12,26 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
+import { DistrictPicker } from "@/components/shared/district-picker";
 import { Wizard, WizardSkeleton, buildFlowSteps, readWizardDraft, type WizardStep, type WizardStepContext } from "@/components/wizard";
+import { districtBySlug, districtName, isDistrictSlug, type DistrictSlug, type KocaeliDistrict } from "@/config/districts";
+import { LocationPicker } from "@/features/business/components/editor/location-picker";
 import { useAuth } from "@/lib/auth/hooks";
 import { createClient } from "@/lib/supabase/client";
-import { getDefaultNeighbourhood } from "@/lib/location/store";
+import { getDefaultDistrict } from "@/lib/location/store";
+import { districtForPoint } from "@/lib/location/use-approx-location";
 import { ACCEPTED_IMAGE_TYPES } from "@/lib/images";
 import type { Json } from "@/lib/database.types";
 import { summarizeAnswers, validateAnswers, type FlowAnswers, type FlowSchema } from "@/core/flow";
 import { formatDate, formatPhoneTR } from "@/core/format";
+import { roundCoord, type LatLng } from "@/core/geo";
 import { fromSupabasePhone } from "@/core/phone";
 import { routes } from "@/core/routes";
 import { addDaysToKey, istanbulDateKey } from "@/core/time";
 import { WHEN_OPTIONS, whenLabel } from "../labels";
 import { removeUploadedPhotos, uploadRequestPhotos, useRequestPhotos, type RequestPhotos } from "../photo-store";
 import type { ServicePickerData, SubmitRequestResult, WhenType } from "../types";
-import { PICKED_PARAM, neighbourhoodLabel, pickedRequestHref, rpcErrorMessage } from "../util";
+import { PICKED_PARAM, pickedRequestHref, rpcErrorMessage } from "../util";
 import { PICK_STEP_HELP, PICK_STEP_TITLE, ServicePicker } from "./service-picker";
 import { LeaveSheet, WizardTitle } from "./wizard-chrome";
 
@@ -44,9 +49,11 @@ export type WizardCategory = {
 type Draft = {
   v: 1;
   answers: FlowAnswers;
-  neighbourhoodId: string | null;
-  neighbourhoodName: string | null;
+  /** districts.id; drafts saved before the district switch have none, so the location step asks again. */
+  districtId: DistrictSlug | null;
   addressNote: string;
+  /** Optional map pin of the service address, with the district it falls in (missing in older drafts). */
+  pin?: RequestPin | null;
   whenType: WhenType | null;
   whenDate: string | null;
   note: string;
@@ -55,6 +62,9 @@ type Draft = {
 };
 
 type Ctx = WizardStepContext<Draft>;
+
+/** A confirmed map pin and the district it falls in (rpc district_for_point). */
+type RequestPin = LatLng & { district: DistrictSlug };
 
 const MAX_PHOTOS = 6;
 const MAX_WHEN_DAYS = 180;
@@ -109,13 +119,12 @@ function RequestWizardInner({ category, schema, picker, notice }: RequestWizardP
   const [leaveOpen, setLeaveOpen] = React.useState(false);
 
   const [initialData] = React.useState<Draft>(() => {
-    const n = typeof window !== "undefined" ? getDefaultNeighbourhood() : null;
     return {
       v: 1,
       answers: {},
-      neighbourhoodId: n?.id ?? null,
-      neighbourhoodName: n?.name ?? null,
+      districtId: typeof window !== "undefined" ? getDefaultDistrict() : null,
       addressNote: "",
+      pin: null,
       whenType: null,
       whenDate: null,
       note: "",
@@ -163,8 +172,8 @@ function RequestWizardInner({ category, schema, picker, notice }: RequestWizardP
       {
         id: "konum",
         title: "Hizmet nerede verilecek?",
-        help: "Mahalleni seç. Adres tarifin yalnızca talebinle ilgilenen firmalara gösterilir.",
-        validate: (d) => (d.neighbourhoodId ? null : "Lütfen mahalleni seç."),
+        help: "İlçeni seç. Adres tarifin yalnızca talebinle ilgilenen firmalara gösterilir.",
+        validate: (d) => (isDistrictSlug(d.districtId) ? null : "Lütfen ilçeni seç."),
         render: (ctx) => <LocationStep ctx={ctx} />,
       },
       {
@@ -209,7 +218,7 @@ function RequestWizardInner({ category, schema, picker, notice }: RequestWizardP
       }
       const check = validateAnswers(schema, d.answers ?? {});
       if (!check.valid) return invalidAnswersMessage(schema, Object.keys(check.errors));
-      if (!d.neighbourhoodId) return "Mahalle seçmelisin. Özet ekranından Konum'u düzenleyebilirsin.";
+      if (!isDistrictSlug(d.districtId)) return "İlçe seçmelisin. Özet ekranından Konum'u düzenleyebilirsin.";
       const whenErr = validateWhen(d);
       if (whenErr) return whenErr;
 
@@ -223,10 +232,15 @@ function RequestWizardInner({ category, schema, picker, notice }: RequestWizardP
         }
       }
 
+      const pin = d.pin ?? null;
       const { data, error } = await supabase.rpc("submit_service_request", {
         p_category_id: category.id,
         p_answers: check.cleaned as unknown as Json,
-        p_neighbourhood_id: d.neighbourhoodId,
+        p_district_id: d.districtId,
+        // The pin is optional; with it the dispatch measures distances from the service address instead of the district
+        // centre. It only feeds those distances, so it is stored rounded (~100 m) rather than at the pin's ~1 m.
+        p_lat: pin ? roundCoord(pin.lat) : undefined,
+        p_lng: pin ? roundCoord(pin.lng) : undefined,
         p_address_note: d.addressNote.trim() || undefined,
         p_when_type: d.whenType ?? "esnek",
         p_when_date: d.whenType === "tarih" && d.whenDate ? d.whenDate : undefined,
@@ -310,21 +324,51 @@ function validateWhen(d: Draft): string | null {
 
 /* ------------------------------------------------------------------ steps */
 
+/** District (required) + address text + optional map pin. The pin wins: picking it moves the district to the pin's. */
 function LocationStep({ ctx }: { ctx: Ctx }) {
   const d = ctx.data;
+  const districtId = isDistrictSlug(d.districtId) ? d.districtId : null;
+  const pin = d.pin ?? null;
+
+  const chooseDistrict = (x: KocaeliDistrict | null) => {
+    const slug = x?.slug ?? null;
+    // A pin in another district no longer marks the chosen place.
+    if (pin && pin.district !== slug) {
+      ctx.setData({ districtId: slug, pin: null });
+      toast.info("İlçeyi değiştirdin, haritadaki işareti kaldırdık.");
+      return;
+    }
+    ctx.setData({ districtId: slug });
+  };
+
+  const choosePin = async (p: LatLng | null) => {
+    if (!p) {
+      ctx.setData({ pin: null });
+      return;
+    }
+    const before = districtId;
+    const slug = await districtForPoint(p);
+    if (!slug) {
+      toast.info("İşaretlediğin yer Kocaeli dışında görünüyor. Kocaeli içinde bir yer seç.");
+      return;
+    }
+    // The DB keeps an explicitly sent district as it is, so the district follows the pin here.
+    ctx.setData({ districtId: slug, pin: { lat: p.lat, lng: p.lng, district: slug } });
+    if (before && before !== slug) toast.info(`İşaretlediğin yer ${districtName(slug)} ilçesinde, ilçeni buna göre güncelledik.`);
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Label htmlFor="talep-mahalle" className="mb-2 text-sm font-semibold">
-          Mahalle
+        <Label htmlFor="talep-ilce" className="mb-2 text-sm font-semibold">
+          İlçe
         </Label>
-        <NeighbourhoodPicker
-          id="talep-mahalle"
-          value={d.neighbourhoodId}
-          onChange={(n) => ctx.setData({ neighbourhoodId: n ? String(n.id) : null, neighbourhoodName: n?.name ?? null })}
+        <DistrictPicker
+          id="talep-ilce"
+          value={districtId}
+          onChange={chooseDistrict}
           showUseLocation
-          invalid={!!ctx.error && !d.neighbourhoodId}
-          placeholder="Mahalle seç"
+          invalid={!!ctx.error && !districtId}
           className="h-12"
         />
       </div>
@@ -337,7 +381,7 @@ function LocationStep({ ctx }: { ctx: Ctx }) {
           value={d.addressNote}
           maxLength={ADDRESS_MAX}
           rows={3}
-          placeholder="Örn. Atatürk Cad. yakını, site girişindeki mavi blok"
+          placeholder="Cadde, site ya da bina adı, kapı bilgisi"
           onChange={(e) => ctx.setData({ addressNote: e.target.value.slice(0, ADDRESS_MAX) })}
         />
         <div className="mt-1.5 flex items-start justify-between gap-3 text-xs text-muted-foreground">
@@ -349,6 +393,17 @@ function LocationStep({ ctx }: { ctx: Ctx }) {
             {d.addressNote.length}/{ADDRESS_MAX}
           </span>
         </div>
+      </div>
+      <div>
+        <p className="mb-2 text-sm font-semibold">Haritada işaretle (isteğe bağlı)</p>
+        <LocationPicker
+          id="talep-harita"
+          value={pin}
+          onChange={(p) => void choosePin(p)}
+          fallbackCenter={districtBySlug(districtId)?.center ?? null}
+          hint="Haritayı kaydırarak iğneyi hizmet verilecek yere getir."
+        />
+        <p className="mt-1.5 text-xs text-muted-foreground">İşaretlersen talebin sana yakın firmalara daha doğru iletilir.</p>
       </div>
     </div>
   );
@@ -463,7 +518,7 @@ function NoteStep({ ctx }: { ctx: Ctx }) {
           maxLength={NOTE_MAX}
           rows={4}
           className="min-h-28"
-          placeholder="Örn. Hafta içi 18:00'den sonra evdeyim, kedimiz var."
+          placeholder="Hafta içi 18:00'den sonra evdeyim, kedimiz var."
           onChange={(e) => ctx.setData({ note: e.target.value.slice(0, NOTE_MAX) })}
         />
         <p className="mt-1.5 text-right text-xs text-muted-foreground tabular-nums">
@@ -575,8 +630,9 @@ function SummaryStep({ ctx, schema }: { ctx: Ctx; schema: FlowSchema }) {
         </SummaryRow>
       ))}
       <SummaryRow title="Konum" onEdit={() => ctx.goTo("konum")}>
-        {neighbourhoodLabel(d.neighbourhoodName)}
+        {districtBySlug(d.districtId)?.name ?? <span className="text-muted-foreground">İlçe seçilmedi</span>}
         {d.addressNote.trim() ? <span className="mt-0.5 block text-sm font-medium text-muted-foreground">{d.addressNote.trim()}</span> : null}
+        {d.pin ? <span className="mt-0.5 block text-sm font-medium text-muted-foreground">Haritada işaretlendi</span> : null}
       </SummaryRow>
       <SummaryRow title="Ne zaman" onEdit={() => ctx.goTo("zaman")}>
         {whenLabel(d.whenType, d.whenDate)}

@@ -16,7 +16,6 @@ import {
   type ListingCategory,
   type ListingDetail,
   type MyListingRow,
-  type NeighbourhoodRef,
 } from "../types";
 import { createPublicClient } from "./public-client";
 
@@ -41,27 +40,9 @@ export const getListingCategories = unstable_cache(
   { revalidate: 3600, tags: ["listing-categories"] },
 );
 
-export const getNeighbourhoodIndex = unstable_cache(
-  async (): Promise<NeighbourhoodRef[]> => {
-    const { data, error } = await createPublicClient().from("neighbourhoods").select("id,name,slug").order("name").limit(500);
-    if (error) throw new Error(error.message);
-    return ((data ?? []) as Row[]).map((r) => ({ id: String(r.id), name: String(r.name ?? ""), slug: String(r.slug ?? "") }));
-  },
-  ["listings:neighbourhoods:v1"],
-  { revalidate: 86400, tags: ["neighbourhoods"] },
-);
-
 export async function safeCategories(): Promise<ListingCategory[]> {
   try {
     return await getListingCategories();
-  } catch {
-    return [];
-  }
-}
-
-export async function safeNeighbourhoods(): Promise<NeighbourhoodRef[]> {
-  try {
-    return await getNeighbourhoodIndex();
   } catch {
     return [];
   }
@@ -86,7 +67,7 @@ export const getLatestListings = unstable_cache(
 // ---------------------------------------------------------------------------
 
 const DETAIL_SELECT =
-  "id,type,owner_id,business_id,category_id,title,description,price_try,attributes,neighbourhood_id,status,rejection_reason,expires_at,published_at,created_at,updated_at,view_count,call_count,job_work_type,job_salary_min,job_salary_max,job_salary_hidden,job_experience,job_benefits,job_location_label,is_demo,owner:public_profiles(display_name,created_at),business:businesses(name,phone,slug,logo_url,verification_level),listing_categories(name,slug,parent_id,attributes_schema),neighbourhoods(name),listing_media(id,url,thumb_url,sort),listing_videos(url,poster_url,duration_s)";
+  "id,type,owner_id,business_id,category_id,title,description,price_try,attributes,district_id,status,rejection_reason,expires_at,published_at,created_at,updated_at,view_count,call_count,job_work_type,job_salary_min,job_salary_max,job_salary_hidden,job_experience,job_benefits,job_location_label,is_demo,owner:public_profiles(display_name,created_at),business:businesses(name,phone,slug,logo_url,verification_level),listing_categories(name,slug,parent_id,attributes_schema),listing_media(id,url,thumb_url,sort),listing_videos(url,poster_url,duration_s)";
 
 /** One listing (deduped per request between generateMetadata and the page). Null when missing or not visible. */
 export const getListingDetail = cache(async (id: string): Promise<ListingDetail | null> => {
@@ -114,7 +95,7 @@ export async function getOwnListing(userId: string, id: string): Promise<Listing
 // ---------------------------------------------------------------------------
 
 const MY_SELECT =
-  "id,type,title,status,price_try,rejection_reason,expires_at,published_at,created_at,view_count,call_count,job_salary_min,job_salary_max,job_salary_hidden,job_location_label,neighbourhoods(name),listing_media(url,thumb_url,sort)";
+  "id,type,title,status,price_try,rejection_reason,expires_at,published_at,created_at,view_count,call_count,job_salary_min,job_salary_max,job_salary_hidden,job_location_label,district_id,listing_media(url,thumb_url,sort)";
 
 export async function getMyListings(userId: string, type: ListingType): Promise<{ rows: MyListingRow[]; error: string | null }> {
   const supabase = await createClient();
@@ -137,7 +118,8 @@ export type MyBusiness = {
   logo_url: string | null;
   phone: string | null;
   verification_level: number;
-  neighbourhood_id: string | null;
+  /** District slug of the business (default district of its job ads). */
+  district_id: string | null;
   status: string;
 };
 
@@ -149,7 +131,7 @@ export async function getMyBusiness(userId: string, businessId?: string | null):
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("businesses")
-    .select("id,name,slug,logo_url,phone,verification_level,neighbourhood_id,status")
+    .select("id,name,slug,logo_url,phone,verification_level,district_id,status")
     .eq("owner_id", userId)
     .order("created_at");
   if (error || !data?.length) return null;
@@ -163,7 +145,7 @@ export async function getMyBusiness(userId: string, businessId?: string | null):
     logo_url: pick.logo_url,
     phone: pick.phone,
     verification_level: pick.verification_level ?? 0,
-    neighbourhood_id: pick.neighbourhood_id,
+    district_id: pick.district_id,
     status: pick.status,
   };
 }

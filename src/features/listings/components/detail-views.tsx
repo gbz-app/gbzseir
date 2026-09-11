@@ -1,12 +1,12 @@
 import { BadgeCheck, CalendarDays, Eye, FileText, Hash, Images, MapPin, MapPinned, SlidersHorizontal, Sparkles, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CITY } from "@/config/site";
+import { districtBySlug } from "@/config/districts";
 import { formatDate, formatNumber } from "@/core/format";
 import { BusinessBadge, DemoBadge } from "@/components/shared/badges";
 import { DetailSheet } from "@/components/shared/detail-hero";
 import { RelativeTime } from "@/components/shared/relative-time";
 import { SAFETY_TEXT, WORK_TYPES, optionLabel } from "../constants";
-import { listingPriceText } from "../format";
+import { listingPlace, listingPriceText } from "../format";
 import type { ClassifiedViewModel, JobViewModel } from "../view-models";
 import {
   DetailList,
@@ -76,7 +76,7 @@ function MetaLine({ place, postedAt, children }: { place: string; postedAt: stri
  */
 export function ClassifiedDetailView({ model, notice, footer, preview, isDemo, heroBar, views, sheetClassName }: DetailViewProps<ClassifiedViewModel>) {
   const Title = preview ? "h2" : "h1";
-  const place = model.neighbourhoodName ? `${model.neighbourhoodName} Mah., ${CITY.name}` : CITY.name;
+  const place = listingPlace(model.districtName);
   const hasConditionRow = model.attributes.some((a) => a.key === "durum");
   const categoryIcon = categoryIconFor(model.categoryIcon);
   const tiles: FactTile[] = [
@@ -133,8 +133,8 @@ export function ClassifiedDetailView({ model, notice, footer, preview, isDemo, h
 }
 
 type JobDetailViewProps = DetailViewProps<JobViewModel> & {
-  /** Employer extras for the "İşveren" card (neighbourhood, other open job ads); none in the preview. */
-  employer?: { neighbourhoodName: string | null; openJobs: number | null } | null;
+  /** Employer extras for the "İşveren" card (business district slug, other open job ads); none in the preview. */
+  employer?: { districtId: string | null; openJobs: number | null } | null;
   /** Business phone shown as text in "Başvurmadan önce" (the page passes it for live, non-demo ads only). */
   applyPhone?: string | null;
 };
@@ -146,7 +146,7 @@ type JobDetailViewProps = DetailViewProps<JobViewModel> & {
  */
 export function JobDetailView({ model, notice, footer, preview, isDemo, heroBar, views, sheetClassName, employer, applyPhone }: JobDetailViewProps) {
   const Title = preview ? "h2" : "h1";
-  const place = model.neighbourhoodName ? `${model.neighbourhoodName} Mah., ${CITY.name}` : CITY.name;
+  const place = listingPlace(model.districtName);
   const verified = (model.company?.verification_level ?? 0) >= 1;
   const postedLong = model.postedAt ? formatDate(model.postedAt, { month: "long" }) : null;
   const daily = model.workTypeLabel != null && model.workTypeLabel === optionLabel(WORK_TYPES, "gunluk");
@@ -175,6 +175,7 @@ export function JobDetailView({ model, notice, footer, preview, isDemo, heroBar,
         <JobFactChips
           workTypeLabel={model.workTypeLabel}
           locationLabel={model.locationLabel}
+          districtName={model.districtName}
           experienceLabel={model.experienceLabel}
           benefits={model.benefits}
         />
@@ -195,7 +196,12 @@ export function JobDetailView({ model, notice, footer, preview, isDemo, heroBar,
         ) : null}
         {model.company ? (
           <DetailSection id="isveren" title="İşveren">
-            <EmployerCard company={model.company} neighbourhoodName={employer?.neighbourhoodName} openJobs={employer?.openJobs} interactive={!preview} />
+            <EmployerCard
+              company={model.company}
+              districtName={districtBySlug(employer?.districtId)?.name}
+              openJobs={employer?.openJobs}
+              interactive={!preview}
+            />
           </DetailSection>
         ) : null}
         <JobApplyInfo isDemo={isDemo} verified={verified} phone={applyPhone} closed={closed} />

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
 import { routes } from "@/core/routes";
-import { CITY } from "@/config/site";
+import { districtName } from "@/config/districts";
 import { isFiltered, listingsHref, parseListingsQuery } from "@/features/listings/filters";
 import { ListingsScreen } from "@/features/listings/components/listings-screen";
 
@@ -9,9 +9,10 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const query = parseListingsQuery(await searchParams, "ikinci-el");
+  const place = districtName(query.ilce);
   return {
-    title: `${CITY.name} İkinci El İlanlar`,
-    description: `${CITY.name}'de ikinci el eşya ilanları. Satıcıyı doğrudan ara, mesajlaşmayla uğraşma.`,
+    title: `${place} İkinci El İlanlar`,
+    description: `${place} ikinci el eşya ilanları. Satıcıyı doğrudan ara, mesajlaşmayla uğraşma.`,
     alternates: { canonical: routes.listings.classifieds() },
     robots: isFiltered(query) ? { index: false, follow: true } : undefined,
   };

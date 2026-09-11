@@ -14,7 +14,8 @@ export type OwnerEvent = {
   address: string | null;
   lat: number | null;
   lng: number | null;
-  neighbourhood_id: string | null;
+  /** District slug (districts.id). */
+  district_id: string | null;
   venue_business_id: string | null;
   business_id: string | null;
   created_by: string | null;
@@ -32,7 +33,7 @@ export type OwnerEvent = {
 
 /** Never contact_phone: that column is not readable through the API (reveal_event_phone). */
 export const OWNER_EVENT_COLUMNS =
-  "id,slug,title,description,category,starts_at,ends_at,venue_name,address,lat,lng,neighbourhood_id,venue_business_id,business_id,created_by,is_free,price_try,price_note,ticket_url,cover_url,status,has_contact_phone,rejection_reason,admin_hidden,is_demo";
+  "id,slug,title,description,category,starts_at,ends_at,venue_name,address,lat,lng,district_id,venue_business_id,business_id,created_by,is_free,price_try,price_note,ticket_url,cover_url,status,has_contact_phone,rejection_reason,admin_hidden,is_demo";
 
 type Raw = Omit<OwnerEvent, "category" | "price_try" | "status" | "has_contact_phone" | "admin_hidden" | "is_demo"> & {
   category: string;
@@ -50,7 +51,7 @@ export function toOwnerEvent(r: Raw): OwnerEvent {
     slug: r.slug ?? "",
     lat: r.lat ?? null,
     lng: r.lng ?? null,
-    neighbourhood_id: r.neighbourhood_id ?? null,
+    district_id: r.district_id ?? null,
     venue_business_id: r.venue_business_id ?? null,
     business_id: r.business_id ?? null,
     created_by: r.created_by ?? null,

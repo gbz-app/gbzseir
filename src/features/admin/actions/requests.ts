@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
+import { districtBySlug } from "@/config/districts";
 import { parseFlowSchema, summarizeAnswers, type FlowAnswers } from "@/core/flow";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
@@ -19,8 +20,8 @@ export async function getRequestDetailAction(input: { requestId: string }): Prom
     const { data: r, error } = await supabase
       .from("service_requests")
       .select(
-        "id,public_code,status,created_at,closed_at,when_type,when_date,note,address_note,photos,hide_phone,accepted_count,max_providers,dispatch_note,is_demo,answers,flow_id,category_id," +
-          "customer:profiles!service_requests_customer_id_fkey(id,full_name,phone,status),neighbourhoods(name)," +
+        "id,public_code,status,created_at,closed_at,when_type,when_date,note,address_note,photos,hide_phone,accepted_count,max_providers,dispatch_note,is_demo,answers,flow_id,category_id,district_id," +
+          "customer:profiles!service_requests_customer_id_fkey(id,full_name,phone,status)," +
           "leads(id,status,wave_no,match_score,offer_price_try,offer_note,seen_at,accepted_at,created_at,businesses(id,name,slug,phone))",
       )
       .eq("id", parsed.data.requestId)
@@ -46,8 +47,8 @@ export async function getRequestDetailAction(input: { requestId: string }): Prom
       answers: unknown;
       flow_id: string | null;
       category_id: string;
+      district_id: string | null;
       customer: { id: string; full_name: string | null; phone: string | null; status: string } | null;
-      neighbourhoods: { name: string } | null;
       leads: Array<{
         id: string;
         status: string;
@@ -118,7 +119,7 @@ export async function getRequestDetailAction(input: { requestId: string }): Prom
         autoDispatch: !!cat?.auto_dispatch,
         notifyPoolSize: cat?.notify_pool_size ?? 8,
       },
-      neighbourhood: row.neighbourhoods?.name ?? null,
+      district: districtBySlug(row.district_id)?.name ?? null,
       customer: row.customer ? { id: row.customer.id, name: row.customer.full_name, phone: row.customer.phone, status: row.customer.status } : null,
       flowVersion: flow?.version ?? null,
       answers,
@@ -176,7 +177,7 @@ export async function dispatchRequestAction(input: z.input<typeof dispatchSchema
     };
     const message =
       result.leadCount > 0
-        ? `${result.leadCount} firmaya gönderildi${result.fallback ? " (mahallede firma olmadığı için tüm Gebze'ye)" : ""}.`
+        ? `${result.leadCount} firmaya gönderildi${result.fallback ? " (ilçede yeterli firma olmadığı için yakındaki firmalara da)" : ""}.`
         : result.status === "no_match"
           ? "Uygun firma bulunamadı; talep 'Eşleşme yok' durumunda."
           : "Yeni firma bulunamadı; talep daha önce gönderilen firmalarda.";

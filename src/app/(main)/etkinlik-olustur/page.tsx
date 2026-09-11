@@ -24,7 +24,7 @@ export default async function CreateEventPage({ searchParams }: Props) {
   const supabase = await createClient();
   const [vocab, { data: owned }] = await Promise.all([
     getVocabularies(),
-    supabase.from("businesses").select("id,name,address,phone,lat,lng,neighbourhood_id,status").eq("owner_id", user.id).order("created_at"),
+    supabase.from("businesses").select("id,name,address,phone,lat,lng,district_id,status").eq("owner_id", user.id).order("created_at"),
   ]);
   const mine = owned ?? [];
   const toWizard = (b: (typeof mine)[number]): WizardBusiness => ({
@@ -34,7 +34,7 @@ export default async function CreateEventPage({ searchParams }: Props) {
     phone: b.phone,
     lat: b.lat,
     lng: b.lng,
-    neighbourhoodId: b.neighbourhood_id,
+    districtId: b.district_id,
   });
   const businesses = mine.filter((b) => b.status === "approved").map(toWizard);
 

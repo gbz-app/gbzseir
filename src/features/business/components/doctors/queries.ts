@@ -43,14 +43,14 @@ export async function getOwnerDoctors(businessId: string): Promise<Doctor[]> {
 const DIRECTORY_COLUMNS = "id,slug,business_id,name,title,branch,photo_url,days,sort,is_active,is_demo";
 
 type RawDirectoryDoctor = Omit<RawDoctor, "bio" | "hours_note"> & {
-  businesses: { slug: string; name: string; is_demo: boolean | null; neighbourhoods: { name: string } | null } | null;
+  businesses: { slug: string; name: string; is_demo: boolean | null; district_id: string | null } | null;
 };
 
 /** Active doctors of every public sağlık business: real ones first, then by name. Anon client (RLS: public businesses only). */
 export const listSaglikDoctors = cache(async (): Promise<DirectoryDoctor[]> => {
   const { data, error } = await createPublicClient()
     .from("business_staff")
-    .select(`${DIRECTORY_COLUMNS},businesses!inner(slug,name,is_demo,neighbourhoods!businesses_neighbourhood_id_fkey(name))`)
+    .select(`${DIRECTORY_COLUMNS},businesses!inner(slug,name,is_demo,district_id)`)
     .eq("is_active", true)
     .eq("businesses.vertical", "saglik")
     .eq("businesses.status", "approved")
@@ -64,7 +64,7 @@ export const listSaglikDoctors = cache(async (): Promise<DirectoryDoctor[]> => {
       clinic: {
         slug: r.businesses!.slug,
         name: r.businesses!.name,
-        neighbourhood_name: r.businesses!.neighbourhoods?.name ?? null,
+        district_id: r.businesses!.district_id ?? null,
         is_demo: r.businesses!.is_demo === true,
       },
     }))

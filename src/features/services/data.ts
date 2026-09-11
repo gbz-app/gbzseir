@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { getAppSettings } from "@/lib/app-settings";
+import { districtBySlug } from "@/config/districts";
 import { parseFlowSchema, type FlowSchema } from "@/core/flow";
 import type { ServiceCatalog, ServiceCategory, ServiceParent } from "./types";
 
@@ -132,7 +133,10 @@ export type FirmCard = {
   rating_count: number | null;
   verification_level: number;
   category_label: string | null;
-  neighbourhood_name: string | null;
+  /** districts.id of the firm (BusinessRow shows its name). */
+  district_id: string | null;
+  /** District (ilçe) display name of the firm. */
+  district_name: string | null;
 };
 
 /** Up to `limit` approved service firms serving any of the given categories (best verified/rated first). */
@@ -141,7 +145,7 @@ export async function getFirmsForCategories(categoryIds: string[], limit = 5): P
   const { data, error } = await publicClient()
     .from("businesses")
     .select(
-      "id,slug,name,logo_url,rating_avg,rating_count,verification_level,category_label,neighbourhoods!businesses_neighbourhood_id_fkey(name),business_service_categories!inner(category_id)",
+      "id,slug,name,logo_url,rating_avg,rating_count,verification_level,category_label,district_id,business_service_categories!inner(category_id)",
     )
     .eq("status", "approved")
     .contains("kinds", ["service"])
@@ -152,8 +156,6 @@ export async function getFirmsForCategories(categoryIds: string[], limit = 5): P
     .limit(limit);
   if (error) return [];
   return (data ?? []).map((b) => {
-    const nb = b.neighbourhoods as { name?: string } | { name?: string }[] | null;
-    const nbName = Array.isArray(nb) ? nb[0]?.name : nb?.name;
     return {
       id: b.id,
       slug: b.slug,
@@ -163,7 +165,8 @@ export async function getFirmsForCategories(categoryIds: string[], limit = 5): P
       rating_count: b.rating_count,
       verification_level: b.verification_level,
       category_label: b.category_label,
-      neighbourhood_name: nbName ?? null,
+      district_id: b.district_id,
+      district_name: districtBySlug(b.district_id)?.name ?? null,
     };
   });
 }

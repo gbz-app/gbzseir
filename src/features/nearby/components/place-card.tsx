@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { districtBySlug } from "@/config/districts";
 import { routes } from "@/core/routes";
 import { placeCategoryMeta, type PlaceCategoryDef } from "../config";
 import type { PlaceCategory, PlacePhoto, PlaceSummary } from "../types";
@@ -80,6 +81,7 @@ export function PlaceVisual({
 /** Large photo card for curated places. */
 export function PlaceCard({ place, categories, priority }: { place: PlaceSummary; categories?: Categories; priority?: boolean }) {
   const meta = placeCategoryMeta(place.details.category, categories);
+  const district = districtBySlug(place.districtId)?.name;
   return (
     <Link
       href={routes.nearby.place(place.slug)}
@@ -107,7 +109,7 @@ export function PlaceCard({ place, categories, priority }: { place: PlaceSummary
       </div>
       <div className="p-4">
         <h3 className="text-lg leading-snug font-bold group-hover:underline">{place.name}</h3>
-        {place.neighbourhoodName ? <p className="mt-0.5 text-sm text-muted-foreground">{place.neighbourhoodName} Mah.</p> : null}
+        {district ? <p className="mt-0.5 text-sm text-muted-foreground">{district}</p> : null}
         {place.details.description ? <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-foreground/85">{place.details.description}</p> : null}
       </div>
     </Link>
@@ -117,6 +119,7 @@ export function PlaceCard({ place, categories, priority }: { place: PlaceSummary
 /** Compact row for other (non-curated) places. */
 export function PlaceRow({ place, categories }: { place: PlaceSummary; categories?: Categories }) {
   const meta = placeCategoryMeta(place.details.category, categories);
+  const district = districtBySlug(place.districtId)?.name;
   return (
     <Link
       href={routes.nearby.place(place.slug)}
@@ -135,7 +138,7 @@ export function PlaceRow({ place, categories }: { place: PlaceSummary; categorie
         <span className="block truncate text-[15px] font-semibold">{place.name}</span>
         <span className="block truncate text-xs text-muted-foreground">
           {meta.label}
-          {place.neighbourhoodName ? ` · ${place.neighbourhoodName} Mah.` : ""}
+          {district ? ` · ${district}` : ""}
         </span>
       </span>
       <DistanceLabel lat={place.lat} lng={place.lng} className="shrink-0 text-sm font-semibold text-primary" />

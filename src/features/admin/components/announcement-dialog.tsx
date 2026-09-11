@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AreaPicker } from "@/features/business/components/editor/area-picker";
+import { KOCAELI_DISTRICTS } from "@/config/districts";
+import { cn } from "@/lib/utils";
 import { deleteAnnouncementAction, saveAnnouncementAction } from "../actions/announcements";
 import { isoToIstanbulInput, istanbulInputToIso } from "../lib/datetime";
 import { ANNOUNCEMENT_KINDS } from "../lib/labels";
@@ -20,7 +21,8 @@ export type AnnouncementValue = {
   kind: "su_kesintisi" | "elektrik_kesintisi" | "belediye" | "genel";
   title: string;
   body: string | null;
-  neighbourhood_ids: string[];
+  /** Target district slugs (empty = all of Kocaeli). */
+  district_ids: string[];
   source_label: string | null;
   starts_at: string;
   ends_at: string | null;
@@ -28,18 +30,19 @@ export type AnnouncementValue = {
 
 const SELECT = "h-10 w-full rounded-md border bg-background px-3 text-sm";
 
-/** Add / edit an announcement (kesinti, belediye, genel) with target neighbourhoods. */
+/** Add / edit an announcement (kesinti, belediye, genel) with target districts. */
 export function AnnouncementDialog({ value, trigger }: { value?: AnnouncementValue; trigger: React.ReactElement }) {
   const { pending, run } = useAdminAction();
   const [open, setOpen] = React.useState(false);
   const [kind, setKind] = React.useState<AnnouncementValue["kind"]>(value?.kind ?? "genel");
   const [title, setTitle] = React.useState(value?.title ?? "");
   const [body, setBody] = React.useState(value?.body ?? "");
-  const [areas, setAreas] = React.useState<string[]>(value?.neighbourhood_ids ?? []);
+  const [areas, setAreas] = React.useState<string[]>(value?.district_ids ?? []);
   const [source, setSource] = React.useState(value?.source_label ?? "");
   const [starts, setStarts] = React.useState(() => isoToIstanbulInput(value?.starts_at ?? new Date().toISOString()));
   const [ends, setEnds] = React.useState(() => isoToIstanbulInput(value?.ends_at));
-  const ids = { kind: React.useId(), title: React.useId(), body: React.useId(), source: React.useId(), starts: React.useId(), ends: React.useId() };
+  const ids = { kind: React.useId(), title: React.useId(), body: React.useId(), source: React.useId(), starts: React.useId(), ends: React.useId(), areas: React.useId() };
+  const toggleArea = (slug: string) => setAreas((all) => (all.includes(slug) ? all.filter((x) => x !== slug) : [...all, slug]));
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +55,7 @@ export function AnnouncementDialog({ value, trigger }: { value?: AnnouncementVal
           kind,
           title,
           body,
-          neighbourhoodIds: areas,
+          districtIds: areas,
           sourceLabel: source,
           startsAt,
           endsAt: istanbulInputToIso(ends),
@@ -67,7 +70,7 @@ export function AnnouncementDialog({ value, trigger }: { value?: AnnouncementVal
       <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{value ? "Duyuruyu düzenle" : "Yeni duyuru"}</DialogTitle>
-          <DialogDescription>Mahalle seçmezsen tüm Gebze&apos;ye gösterilir. Bitiş zamanından sonra otomatik olarak yayından kalkar.</DialogDescription>
+          <DialogDescription>İlçe seçmezsen tüm Kocaeli&apos;ye gösterilir. Bitiş zamanından sonra otomatik olarak yayından kalkar.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -87,7 +90,7 @@ export function AnnouncementDialog({ value, trigger }: { value?: AnnouncementVal
               <Label htmlFor={ids.source} className="mb-1 block text-xs font-semibold">
                 Kaynak
               </Label>
-              <Input id={ids.source} value={source} maxLength={80} onChange={(e) => setSource(e.target.value)} placeholder="ör. İSU, SEDAŞ, Gebze Belediyesi" />
+              <Input id={ids.source} value={source} maxLength={80} onChange={(e) => setSource(e.target.value)} placeholder="İSU, SEDAŞ, belediye" />
             </div>
           </div>
           <div>
@@ -117,8 +120,28 @@ export function AnnouncementDialog({ value, trigger }: { value?: AnnouncementVal
             </div>
           </div>
           <div>
-            <p className="mb-1 text-xs font-semibold">Mahalleler ({areas.length ? `${areas.length} seçili` : "tüm Gebze"})</p>
-            <AreaPicker value={areas} onChange={setAreas} />
+            <p id={ids.areas} className="mb-1 text-xs font-semibold">
+              İlçeler ({areas.length ? `${areas.length} seçili` : "tüm Kocaeli"})
+            </p>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby={ids.areas}>
+              {KOCAELI_DISTRICTS.map((d) => {
+                const on = areas.includes(d.slug);
+                return (
+                  <button
+                    key={d.slug}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => toggleArea(d.slug)}
+                    className={cn(
+                      "inline-flex h-9 items-center rounded-chip px-3 text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                      on ? "bg-foreground text-background" : "bg-muted hover:bg-muted/70",
+                    )}
+                  >
+                    {d.name}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div className="flex flex-wrap justify-between gap-2">
             {value ? <DeleteAnnouncement id={value.id} title={value.title} onDone={() => setOpen(false)} /> : <span />}

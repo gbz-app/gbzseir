@@ -211,7 +211,7 @@ export function ProfileScreen({ applicationsOpen }: { applicationsOpen: boolean 
   } else if (!promoDismissed && applicationsOpen) {
     promo = {
       title: "İşletmen mi var?",
-      text: `Ücretsiz işletme hesabı aç, ${CITY.name}lilere ulaş.`,
+      text: `Ücretsiz işletme hesabı aç, ${CITY.province}'de müşterilere ulaş.`,
       cta: "Hemen başla",
       href: routes.business.intro(),
       icon: Store,

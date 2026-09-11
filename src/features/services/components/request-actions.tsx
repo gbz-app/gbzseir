@@ -257,7 +257,7 @@ export function ReviewForm({ code, businessId, businessName, existing }: { code:
           value={comment}
           maxLength={1000}
           rows={3}
-          placeholder="Deneyimini diğer Gebzelilerle paylaş: zamanında geldi mi, işi nasıldı?"
+          placeholder="Deneyimini paylaş: zamanında geldi mi, işi nasıldı?"
           onChange={(e) => setComment(e.target.value.slice(0, 1000))}
         />
         <p className="mt-1.5 text-right text-xs text-muted-foreground tabular-nums">{comment.length}/1000</p>

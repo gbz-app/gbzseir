@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Clock, MapPin, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { districtName } from "@/config/districts";
 import { routes } from "@/core/routes";
 import { parseMediaUrl } from "@/lib/media/kinds";
 import { orderByDefs } from "@/features/business/lib/category-visuals";
@@ -76,7 +77,7 @@ export function HomePlaces({ places, categories = PLACE_CATEGORY_DEFS }: { place
                 </span>
                 <span className="absolute inset-x-2.5 bottom-2.5 rounded-xl bg-card p-3.5">
                   <span className="line-clamp-2 text-base leading-snug font-semibold">{p.name}</span>
-                  <span className="mt-1 block truncate text-sm text-muted-foreground">{p.neighbourhoodName ? `${p.neighbourhoodName}, Gebze` : "Gebze"}</span>
+                  <span className="mt-1 block truncate text-sm text-muted-foreground">{districtName(p.districtId)}</span>
                   <span className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                     {p.details.hours ? (
                       <span className="inline-flex min-w-0 items-center gap-1">

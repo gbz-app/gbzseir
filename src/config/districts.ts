@@ -9,6 +9,9 @@
  * nearestDistrict() is a centre-based estimate; the exact point -> district lookup (polygons) is rpc("district_for_point").
  */
 
+import { distanceMeters } from "@/core/geo";
+import { trNormalize } from "@/core/tr";
+
 export type DistrictSlug =
   | "izmit"
   | "gebze"
@@ -62,6 +65,12 @@ export function districtName(slug: string | null | undefined, fallback = "Kocael
   return districtBySlug(slug)?.name ?? fallback;
 }
 
+/** District by display name, Turkish-insensitive ("GEBZE", "gebze" -> Gebze). */
+export function districtByName(name: string | null | undefined): KocaeliDistrict | undefined {
+  const n = trNormalize(name);
+  return n ? KOCAELI_DISTRICTS.find((d) => trNormalize(d.name) === n) : undefined;
+}
+
 export function districtByKbbIlceId(ilceId: number | null | undefined): KocaeliDistrict | undefined {
   return ilceId == null ? undefined : KOCAELI_DISTRICTS.find((d) => d.kbb_ilce_id === ilceId);
 }
@@ -81,4 +90,10 @@ export function nearestDistrict(point: { lat: number; lng: number }): KocaeliDis
     }
   }
   return best;
+}
+
+/** nearestDistrict() for points near Kocaeli only: undefined when the closest centre is farther than `maxMeters`. */
+export function nearestDistrictWithin(point: { lat: number; lng: number }, maxMeters = 35_000): KocaeliDistrict | undefined {
+  const d = nearestDistrict(point);
+  return distanceMeters(point, d.center) <= maxMeters ? d : undefined;
 }

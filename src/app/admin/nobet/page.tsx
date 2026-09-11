@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Form from "next/form";
 import Link from "next/link";
 import { CalendarDays, TriangleAlert } from "lucide-react";
+import { districtBySlug } from "@/config/districts";
 import { requireAdmin } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { AdminPageHeader } from "@/components/admin/admin-page";
@@ -88,7 +89,7 @@ export default async function AdminDutyPage({ searchParams }: Props) {
   const supabase = await createClient();
 
   const [pharmacyRes, dayRes, runsRes, modeRes] = await Promise.all([
-    supabase.from("poi").select("id,name,phone,neighbourhoods(name)").eq("kind", "pharmacy").eq("hidden", false).order("name").limit(1000),
+    supabase.from("poi").select("id,name,phone,district_id").eq("kind", "pharmacy").eq("hidden", false).order("name").limit(1000),
     supabase.from("pharmacy_duty").select("poi_id,source,fetched_at").eq("duty_start", win.start.toISOString()),
     supabase
       .from("duty_import_runs")
@@ -99,10 +100,7 @@ export default async function AdminDutyPage({ searchParams }: Props) {
   ]);
 
   const pharmacies: DutyPharmacy[] = (pharmacyRes.data ?? [])
-    .map((p) => {
-      const n = p.neighbourhoods as { name: string } | { name: string }[] | null;
-      return { id: p.id, name: p.name, phone: p.phone, neighbourhood: Array.isArray(n) ? (n[0]?.name ?? null) : (n?.name ?? null) };
-    })
+    .map((p) => ({ id: p.id, name: p.name, phone: p.phone, district: districtBySlug(p.district_id)?.name ?? null }))
     .sort((a, b) => trCompare(a.name, b.name));
   const known = new Set(pharmacies.map((p) => p.id));
   const dayRows = dayRes.data ?? [];

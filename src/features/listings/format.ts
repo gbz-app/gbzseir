@@ -1,9 +1,15 @@
 /**
  * İlanlara özgü biçimlendirme ve durum yardımcıları (saf TS).
  */
+import { CITY } from "@/config/site";
 import { formatPrice, formatPriceRange } from "@/core/format";
 import { TIMEZONE } from "@/core/time";
 import type { ListingStatus } from "./constants";
+
+/** Place line of a listing: "İzmit, Kocaeli", or only the province when the district is unknown. */
+export function listingPlace(districtName: string | null | undefined): string {
+  return districtName ? `${districtName}, ${CITY.province}` : CITY.province;
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

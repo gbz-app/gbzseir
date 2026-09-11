@@ -10,7 +10,7 @@ import { deleteEventAction, reviewEventAction, setEventStatusAction } from "../a
 import { ConfirmDialog } from "./confirm-dialog";
 import { useAdminAction } from "./use-admin-action";
 
-export const EVENT_REJECT_REASONS = ["Eksik ya da yanlış bilgi", "Uygunsuz içerik", "Etkinlik değil, reklam", "Tarihi geçmiş", "Gebze dışında", "Diğer"] as const;
+export const EVENT_REJECT_REASONS = ["Eksik ya da yanlış bilgi", "Uygunsuz içerik", "Etkinlik değil, reklam", "Tarihi geçmiş", "Kocaeli dışında", "Diğer"] as const;
 
 /** Preset reason + optional detail ("Diğer" needs the detail). */
 function ReasonPicker({ reason, onReason, note, onNote }: { reason: string; onReason: (r: string) => void; note: string; onNote: (n: string) => void }) {

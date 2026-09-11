@@ -30,8 +30,6 @@ export type ListingCategory = {
   attributes_schema: AttributeField[];
 };
 
-export type NeighbourhoodRef = { id: string; name: string; slug: string };
-
 export type MediaRef = { url: string; thumbUrl: string | null };
 
 /** The listing's optional video (public.listing_videos, one per 2. el listing). */
@@ -53,7 +51,8 @@ export type ListingCardData = {
   price: number | null;
   postedAt: string;
   condition: string | null;
-  neighbourhoodName: string | null;
+  /** District slug (listings.district_id); null for rows without one. */
+  districtId: string | null;
   cover: MediaRef | null;
   categoryIcon: string | null;
   categoryName: string | null;
@@ -83,8 +82,8 @@ export type ListingDetail = {
   description: string;
   price: number | null;
   attributes: AttributeValues;
-  neighbourhood_id: string | null;
-  neighbourhoodName: string | null;
+  /** District slug (districts.id). */
+  district_id: string | null;
   status: ListingStatus;
   rejection_reason: string | null;
   expires_at: string;
@@ -126,7 +125,7 @@ export type MyListingRow = {
   salaryMax: number | null;
   salaryHidden: boolean;
   locationLabel: string | null;
-  neighbourhoodName: string | null;
+  districtId: string | null;
   cover: MediaRef | null;
 };
 
@@ -238,11 +237,6 @@ function toBusiness(v: unknown): BusinessRef | null {
   };
 }
 
-function nameOf(v: unknown): string | null {
-  const r = one(v as Row | Row[] | null);
-  return r && typeof r === "object" ? str(r.name) : null;
-}
-
 /** Card rows from search_listings / listings with CARD_SELECT. */
 export function toCardData(row: Row): ListingCardData {
   const media = toMediaList(row.listing_media);
@@ -255,7 +249,7 @@ export function toCardData(row: Row): ListingCardData {
     price: num(row.price_try),
     postedAt: str(row.published_at) ?? str(row.created_at) ?? new Date(0).toISOString(),
     condition: typeof attributes.durum === "string" ? attributes.durum : null,
-    neighbourhoodName: nameOf(row.neighbourhoods),
+    districtId: str(row.district_id),
     cover: media[0] ? { url: media[0].url, thumbUrl: media[0].thumbUrl } : null,
     categoryIcon: cat ? str(cat.icon) : null,
     categoryName: cat ? str(cat.name) : null,
@@ -286,8 +280,7 @@ export function toListingDetail(row: Row): ListingDetail {
     description: str(row.description) ?? "",
     price: num(row.price_try),
     attributes: parseAttributeValues(row.attributes),
-    neighbourhood_id: str(row.neighbourhood_id),
-    neighbourhoodName: nameOf(row.neighbourhoods),
+    district_id: str(row.district_id),
     status: (str(row.status) ?? "draft") as ListingStatus,
     rejection_reason: str(row.rejection_reason),
     expires_at: str(row.expires_at) ?? new Date(0).toISOString(),
@@ -338,7 +331,7 @@ export function toMyListingRow(row: Row): MyListingRow {
     salaryMax: num(row.job_salary_max),
     salaryHidden: row.job_salary_hidden === true,
     locationLabel: str(row.job_location_label),
-    neighbourhoodName: nameOf(row.neighbourhoods),
+    districtId: str(row.district_id),
     cover: media[0] ? { url: media[0].url, thumbUrl: media[0].thumbUrl } : null,
   };
 }

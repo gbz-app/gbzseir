@@ -15,12 +15,13 @@ import { ChipFilter, type ChipOption } from "@/components/shared/chip-filter";
 import { DataSourceNote } from "@/components/shared/data-source-note";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
-import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
+import { DistrictPicker } from "@/components/shared/district-picker";
 import { ListSkeleton } from "@/components/shared/skeletons";
 import { GoogleMap } from "@/components/maps/google-map";
 import type { FlyRequest, MapPadding, MapPoint } from "@/components/maps/types";
 import { useApproxLocation } from "@/lib/location/use-approx-location";
 import { useOnboardingActive } from "@/features/onboarding";
+import { districtBySlug } from "@/config/districts";
 import { CITY } from "@/config/site";
 import {
   ECZACI_ODASI_NAME,
@@ -203,7 +204,7 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
     const coords = await loc.request();
     if (coords) toast.success("Konumun bulundu, en yakından uzağa sıralandı.");
     else {
-      toast.error("Konum alınamadı. Mahalleni seçebilirsin.");
+      toast.error("Konum alınamadı. İlçeni seçebilirsin.");
       setPickerOpen(true);
     }
   };
@@ -214,8 +215,8 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
   };
 
   const fitKey = !data.loading && visible.length > 0 ? `${data.cacheKey}|${fitQuery}` : "";
-  const sortHint =
-    loc.pointSource === "gps" ? "en yakından uzağa" : loc.pointSource === "neighbourhood" && loc.neighbourhood ? `${loc.neighbourhood.name} merkezine göre` : `${CITY.name} merkezine göre`;
+  const refDistrict = loc.pointSource === "district" ? districtBySlug(loc.district) : undefined;
+  const sortHint = loc.pointSource === "gps" ? "en yakından uzağa" : `${refDistrict?.name ?? CITY.name} merkezine göre`;
   const source = filter ? sourceFor(filter, dutyMode) : null;
 
   const coachSteps: CoachStep[] = [
@@ -297,7 +298,7 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
                   onFocus={() => {
                     if (snap === "peek") setSnap("half");
                   }}
-                  placeholder="İsim, mahalle ya da adres ara"
+                  placeholder="İsim ya da adres ara"
                   aria-label={`${meta.title} içinde ara`}
                   enterKeyHint="search"
                   autoComplete="off"
@@ -318,7 +319,7 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
           }
         >
           {/* Hidden while searching so the matches start right under the search bar. */}
-          {query.trim() ? null : <LocationPrompt loc={loc} onLocate={locate} onPickNeighbourhood={() => setPickerOpen(true)} className="mb-3" />}
+          {query.trim() ? null : <LocationPrompt loc={loc} onLocate={locate} onPickDistrict={() => setPickerOpen(true)} className="mb-3" />}
           {filter === "nobetci" && demoDuty && !query.trim() && !data.loading && !data.error && items.length > 0 ? <DutyDemoNote className="mb-3" /> : null}
 
           {data.loading ? (
@@ -333,7 +334,7 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
                 compact
                 icon={meta.icon}
                 title="Yakında sonuç bulunamadı"
-                description={filter === "isletme" ? "Haritada konumu olan onaylı işletme henüz yok." : "Farklı bir mahalle seçmeyi ya da konumunu paylaşmayı dene."}
+                description={filter === "isletme" ? "Haritada konumu olan onaylı işletme henüz yok." : "Farklı bir ilçe seçmeyi ya da konumunu paylaşmayı dene."}
               />
             )
           ) : visible.length === 0 ? (
@@ -372,14 +373,8 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
         </NearbySheet>
       ) : null}
 
-      <NeighbourhoodPicker
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
-        showTrigger={false}
-        showUseLocation
-        value={loc.neighbourhood?.id ?? null}
-        title="Mahalleni seç"
-      />
+      {/* The pick becomes the reference point (district centre) of every nearby list. */}
+      <DistrictPicker open={pickerOpen} onOpenChange={setPickerOpen} showTrigger={false} showUseLocation persistDefault value={loc.district} />
 
       <CoachMarks
         steps={coachSteps}

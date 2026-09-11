@@ -58,7 +58,7 @@ export function AnnouncementCard({ item, now, mine }: { item: Announcement; now:
             {mine ? (
               <Badge variant="info" className="h-6 px-2.5">
                 <MapPin aria-hidden />
-                Mahallende
+                İlçende
               </Badge>
             ) : null}
             {item.isDemo ? <DemoBadge /> : null}
@@ -79,17 +79,17 @@ export function AnnouncementCard({ item, now, mine }: { item: Announcement; now:
           </dt>
           <dd className="font-semibold">{formatAnnouncementWindow(item.startsAt, item.endsAt)}</dd>
         </div>
-        {item.neighbourhoods.length ? (
+        {item.districts.length ? (
           <div className="flex items-start gap-2.5">
             <dt className="shrink-0">
               <MapPin className="mt-1 size-4 text-muted-foreground" aria-hidden />
-              <span className="sr-only">Etkilenen mahalleler</span>
+              <span className="sr-only">Etkilenen ilçeler</span>
             </dt>
             <dd className="min-w-0">
-              <ul className="flex flex-wrap gap-1.5" aria-label="Etkilenen mahalleler">
-                {item.neighbourhoods.map((n) => (
-                  <li key={n.id} className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
-                    {n.name} Mah.
+              <ul className="flex flex-wrap gap-1.5" aria-label="Etkilenen ilçeler">
+                {item.districts.map((d) => (
+                  <li key={d.id} className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
+                    {d.name}
                   </li>
                 ))}
               </ul>
@@ -101,7 +101,7 @@ export function AnnouncementCard({ item, now, mine }: { item: Announcement; now:
               <MapPin className="mt-0.5 size-4 text-muted-foreground" aria-hidden />
               <span className="sr-only">Kapsam</span>
             </dt>
-            <dd className="text-muted-foreground">Tüm Gebze</dd>
+            <dd className="text-muted-foreground">Tüm Kocaeli</dd>
           </div>
         ) : null}
         {showSource ? (

@@ -63,8 +63,11 @@ export type BuiltinPlaceCategory =
  */
 export type PlaceCategory = string;
 
+/** İlçe of a row (Kocaeli districts, 2026091380): districts.id and its name; missing on an older RPC. */
+type WithDistrict = { district_id?: string | null; district_name?: string | null };
+
 /** Row of rpc nearby_pois. */
-export type PoiRow = {
+export type PoiRow = WithDistrict & {
   id: string;
   kind: PoiKind;
   name: string;
@@ -73,7 +76,9 @@ export type PoiRow = {
   phone: string | null;
   lat: number;
   lng: number;
+  /** @deprecated Mahalle left the app (phase C drops it); use district_id. */
   neighbourhood_id: string | null;
+  /** @deprecated Mahalle left the app (phase C drops it); use district_id. */
   neighbourhood_name: string | null;
   details: Json;
   source: string;
@@ -83,7 +88,7 @@ export type PoiRow = {
 };
 
 /** Row of rpc duty_pharmacies_now / duty_pharmacies_for_day. */
-export type DutyRow = {
+export type DutyRow = WithDistrict & {
   duty_id: string;
   poi_id: string;
   name: string;
@@ -92,7 +97,9 @@ export type DutyRow = {
   phone: string | null;
   lat: number;
   lng: number;
+  /** @deprecated Mahalle left the app (phase C drops it); use district_id. */
   neighbourhood_id: string | null;
+  /** @deprecated Mahalle left the app (phase C drops it); use district_id. */
   neighbourhood_name: string | null;
   duty_start: string;
   duty_end: string;
@@ -112,8 +119,8 @@ export type PoiDetail = {
   phone: string | null;
   lat: number | null;
   lng: number | null;
-  neighbourhood_id: string | null;
-  neighbourhood_name: string | null;
+  /** districts.id (DistrictSlug), null when unknown. */
+  district_id: string | null;
   details: Json;
   source: string;
   license: string | null;
@@ -163,7 +170,8 @@ export type PlaceSummary = {
   address: string | null;
   lat: number | null;
   lng: number | null;
-  neighbourhoodName: string | null;
+  /** districts.id (DistrictSlug), null when unknown. */
+  districtId: string | null;
   details: PlaceDetails;
 };
 

@@ -29,7 +29,8 @@ export type EventItem = {
   /** Public phone (business events and city events). A normal user's number is never here (reveal_event_phone). */
   phone: string | null;
   cover_url: string | null;
-  neighbourhood_name: string | null;
+  /** District slug (districts.id); name via districtName(). */
+  district_id: string | null;
   business: EventOrganizer | null;
   /** Sample (seed) event: labelled "Örnek", no call button, no JSON-LD. */
   is_demo: boolean;
@@ -42,18 +43,17 @@ export type EventItem = {
 };
 
 const COLUMNS =
-  "id,slug,title,description,category,starts_at,ends_at,venue_name,address,lat,lng,is_free,price_try,price_note,ticket_url,phone,cover_url,is_demo,organizer_name,has_contact_phone,venue_business_id,neighbourhoods(name),businesses(id,slug,name,logo_url,phone,is_demo,verification_level)";
+  "id,slug,title,description,category,starts_at,ends_at,venue_name,address,lat,lng,is_free,price_try,price_note,ticket_url,phone,cover_url,is_demo,organizer_name,has_contact_phone,venue_business_id,district_id,businesses(id,slug,name,logo_url,phone,is_demo,verification_level)";
 
-type Raw = Omit<EventItem, "category" | "category_label" | "category_icon" | "price_try" | "neighbourhood_name" | "business" | "has_contact_phone"> & {
+type Raw = Omit<EventItem, "category" | "category_label" | "category_icon" | "price_try" | "business" | "has_contact_phone"> & {
   category: string;
   price_try: number | string | null;
   has_contact_phone: boolean | null;
-  neighbourhoods: { name: string } | null;
   businesses: EventOrganizer | null;
 };
 
 function toItem(r: Raw, categories: readonly EventCategoryDef[]): EventItem {
-  const { neighbourhoods, businesses, ...rest } = r;
+  const { businesses, ...rest } = r;
   const price = r.price_try === null ? null : Number(r.price_try);
   const category = parseEventCategory(r.category) ?? DEFAULT_EVENT_CATEGORY;
   const def = categories.find((c) => c.key === category);
@@ -63,7 +63,7 @@ function toItem(r: Raw, categories: readonly EventCategoryDef[]): EventItem {
     category_label: def?.label ?? eventCategoryInfo(category, categories).label,
     category_icon: def?.icon ?? null,
     price_try: price !== null && Number.isFinite(price) ? price : null,
-    neighbourhood_name: neighbourhoods?.name ?? null,
+    district_id: r.district_id ?? null,
     business: businesses ?? null,
     is_demo: r.is_demo === true,
     organizer_name: r.organizer_name ?? null,

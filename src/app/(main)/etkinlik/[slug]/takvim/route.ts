@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { CITY, SITE_URL } from "@/config/site";
+import { districtBySlug } from "@/config/districts";
 import { routes } from "@/core/routes";
 import { buildEventIcs } from "@/features/events/ics";
 import { getEventBySlug } from "@/features/events/queries";
@@ -19,7 +20,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
   if (!e) return new Response("Etkinlik bulunamadı", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
 
   const url = `${SITE_URL}${routes.events.detail(e.slug)}`;
-  const location = [e.venue_name, e.address, `${CITY.name}, ${CITY.province}`].filter(Boolean).join(", ");
+  const district = districtBySlug(e.district_id)?.name;
+  const location = [e.venue_name, e.address, district ? `${district}, ${CITY.province}` : CITY.province].filter(Boolean).join(", ");
   const body = buildEventIcs(
     { id: e.id, title: e.title, description: e.description, starts_at: e.starts_at, ends_at: e.ends_at, location, lat: e.lat, lng: e.lng, url },
     new URL(SITE_URL).host,

@@ -10,8 +10,8 @@ import { listPastEvents } from "@/features/events/queries";
 export const revalidate = 1800;
 
 export const metadata: Metadata = {
-  title: `Geçmiş etkinlikler - ${CITY.name}`,
-  description: `${CITY.name}'de son 3 ayda yapılan etkinlikler.`,
+  title: `Geçmiş etkinlikler - ${CITY.province}`,
+  description: `${CITY.province}'de son 3 ayda yapılan etkinlikler.`,
   alternates: { canonical: routes.events.past() },
   robots: { index: false, follow: true },
 };

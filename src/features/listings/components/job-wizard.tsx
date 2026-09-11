@@ -22,8 +22,9 @@ import {
 import { routes } from "@/core/routes";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
+import { DistrictPicker } from "@/components/shared/district-picker";
 import { Wizard, type WizardStep } from "@/components/wizard/wizard";
+import { districtBySlug, isDistrictSlug } from "@/config/districts";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -45,7 +46,7 @@ import { isSalaryVisible, salaryText } from "../format";
 import { composeJobDescription } from "../job-description";
 import type { BusinessRef, ListingCategory } from "../types";
 import { benefitOptions, type JobViewModel } from "../view-models";
-import { digitsInput, type JobDraft } from "../wizard-drafts";
+import { digitsInput, districtPatch, draftDistrict, type JobDraft } from "../wizard-drafts";
 import { CategoryIcon } from "./category-icon";
 import { ChoiceChips } from "./choice-chips";
 import { JobDetailView } from "./detail-views";
@@ -71,8 +72,7 @@ const EMPTY: JobDraft = {
   description: "",
   qualifications: "",
   locationKey: null,
-  neighbourhoodId: null,
-  neighbourhoodName: null,
+  districtId: null,
 };
 
 const toNum = (s: string): number | null => (s ? Number(s) : null);
@@ -86,7 +86,8 @@ const CAP_MESSAGES: Record<string, string> = {
 export type JobWizardProps = {
   /** Job sectors (listing_categories.type = 'job'). */
   sectors: ListingCategory[];
-  business: { id: string } & BusinessRef;
+  /** `district_id`: the business district, pre-selected for a new ad. */
+  business: { id: string; district_id?: string | null } & BusinessRef;
   editId: string | null;
   initial: JobDraft | null;
 };
@@ -95,7 +96,8 @@ export type JobWizardProps = {
 export function JobWizard({ sectors, business, editId, initial }: JobWizardProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const initialData = React.useMemo<JobDraft>(() => initial ?? EMPTY, [initial]);
+  const businessDistrict = isDistrictSlug(business.district_id) ? business.district_id : null;
+  const initialData = React.useMemo<JobDraft>(() => initial ?? { ...EMPTY, districtId: businessDistrict }, [initial, businessDistrict]);
   const topSectors = sectors.filter((s) => !s.parent_id);
 
   const previewModel = (d: JobDraft): JobViewModel => {
@@ -115,7 +117,7 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
       description: d.description.trim(),
       qualifications: d.qualifications.trim(),
       locationLabel: jobLocationByKey(d.locationKey)?.label ?? null,
-      neighbourhoodName: d.neighbourhoodName,
+      districtName: districtBySlug(draftDistrict(d))?.name ?? null,
       postedAt: new Date().toISOString(),
       listingNo: null,
       company: business,
@@ -141,7 +143,7 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
               id="is-pozisyon"
               value={ctx.data.title}
               maxLength={TITLE_MAX}
-              placeholder="Örn. CNC Operatörü"
+              placeholder="Aradığın pozisyonun adı"
               onChange={(e) => ctx.setData({ title: e.target.value })}
             />
           </Field>
@@ -227,7 +229,7 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
               id="is-nitelik"
               rows={4}
               maxLength={JOB_QUALIFICATIONS_MAX}
-              placeholder="Örn. Forklift ehliyeti, vardiyalı çalışabilecek"
+              placeholder="Aradığın belge, ehliyet ya da deneyim"
               value={ctx.data.qualifications}
               onChange={(e) => ctx.setData({ qualifications: e.target.value })}
             />
@@ -253,12 +255,13 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
               size="sm"
             />
           </Field>
-          <Field label="Mahalle (isteğe bağlı)" icon={MapPin}>
-            <NeighbourhoodPicker
-              value={ctx.data.neighbourhoodId}
-              onChange={(n) => ctx.setData({ neighbourhoodId: n ? String(n.id) : null, neighbourhoodName: n?.name ?? null })}
-              persistDefault={false}
+          <Field label="İlçe (isteğe bağlı)" icon={MapPin}>
+            <DistrictPicker
+              value={draftDistrict(ctx.data)}
+              onChange={(dist) => ctx.setData(districtPatch(dist?.slug ?? null))}
               allowClear
+              title="İlçe seç"
+              description="İşin olduğu ilçeyi seç."
             />
           </Field>
         </div>
@@ -281,12 +284,13 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
     if (!user) return "Oturumun kapanmış. Lütfen tekrar giriş yap.";
     if (!d.sectorId) return "Sektör seç.";
     const supabase = createClient();
+    const district = draftDistrict(d);
     const payload = {
       category_id: d.sectorId,
       business_id: business.id,
       title: d.title.trim(),
       description: composeJobDescription(d.description, d.qualifications),
-      neighbourhood_id: d.neighbourhoodId,
+      district_id: district,
       job_work_type: d.workType,
       job_salary_min: d.salaryHidden ? null : toNum(d.salaryMin),
       job_salary_max: d.salaryHidden ? null : toNum(d.salaryMax),
@@ -298,7 +302,15 @@ export function JobWizard({ sectors, business, editId, initial }: JobWizardProps
     let id = editId;
     let status: string | null = null;
     if (editId) {
-      const { data, error } = await supabase.from("listings").update(payload).eq("id", editId).eq("owner_id", user.id).select("id,status").single();
+      // A new district drops the ad's old neighbourhood (it would contradict the district until the column goes).
+      const moved = district !== (initial?.districtId ?? null);
+      const { data, error } = await supabase
+        .from("listings")
+        .update(moved ? { ...payload, neighbourhood_id: null } : payload)
+        .eq("id", editId)
+        .eq("owner_id", user.id)
+        .select("id,status")
+        .single();
       if (error) return error.message;
       status = data.status;
     } else {

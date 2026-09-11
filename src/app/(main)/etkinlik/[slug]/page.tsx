@@ -10,10 +10,11 @@ import { DirectionsButton } from "@/components/shared/directions-button";
 import { DetailActions, DetailHero, DetailSheet, PRIMARY_CTA, SECONDARY_CTA } from "@/components/shared/detail-hero";
 import { JsonLd } from "@/components/seo/json-ld";
 import { APP_NAME, CITY, SITE_URL } from "@/config/site";
+import { districtBySlug, districtName } from "@/config/districts";
 import { truncate } from "@/core/format";
 import { routes } from "@/core/routes";
 import { BusinessLogo } from "@/features/business/components/business-logo";
-import { EventCategoryIcon, EventCoverFallback } from "@/features/events/components/event-card";
+import { EventCategoryIcon, EventCoverFallback, eventPlaceLine } from "@/features/events/components/event-card";
 import { EventDateText, EventDescription, EventHeroMenu, EventOwnerLine, EventOwnerProvider, EventPlaceLink } from "@/features/events/components/event-detail-parts";
 import { EventPhoneReveal } from "@/features/events/components/event-phone-reveal";
 import { eventDateLabel, eventPriceLabel } from "@/features/events/format";
@@ -45,7 +46,7 @@ function hasEnded(e: EventItem): boolean {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const e = await getEventBySlug(normalizeSlug((await params).slug)).catch(() => null);
   if (!e) return { title: "Etkinlik bulunamadı", robots: { index: false } };
-  const description = truncate(e.description?.trim() || `${e.title}: ${eventDateLabel(e.starts_at, e.ends_at)}, ${e.venue_name ?? CITY.name}.`, 160);
+  const description = truncate(e.description?.trim() || `${e.title}: ${eventDateLabel(e.starts_at, e.ends_at)}, ${eventPlaceLine(e) ?? districtName(e.district_id)}.`, 160);
   return {
     title: e.title,
     description,
@@ -89,8 +90,10 @@ export default async function EventPage({ params }: Props) {
   const ticket = !past && e.ticket_url ? e.ticket_url : null;
   const url = `${SITE_URL}${routes.events.detail(e.slug)}`;
   const calendarHref = routes.events.calendar(e.slug);
-  const placeName = e.venue_name ?? venue?.name ?? null;
-  const placeSub = e.address ?? (e.neighbourhood_name ? `${e.neighbourhood_name} Mah.` : null);
+  const district = districtBySlug(e.district_id)?.name ?? null;
+  // "Mor Salkım Otel · Gebze" over the address as written.
+  const placeName = [e.venue_name ?? venue?.name, district].filter(Boolean).join(" · ") || null;
+  const placeSub = e.address;
   const verified = (e.business?.verification_level ?? 0) >= 1;
   const organizerName = e.business ? null : (e.organizer_name ?? (revealable ? "Etkinlik sahibi" : null));
 
@@ -135,8 +138,14 @@ export default async function EventPage({ params }: Props) {
             image: e.cover_url ? [e.cover_url] : undefined,
             location: {
               "@type": "Place",
-              name: e.venue_name ?? CITY.name,
-              address: { "@type": "PostalAddress", streetAddress: e.address ?? undefined, addressLocality: CITY.name, addressRegion: CITY.province, addressCountry: "TR" },
+              name: e.venue_name ?? district ?? CITY.province,
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: e.address ?? undefined,
+                addressLocality: district ?? undefined,
+                addressRegion: CITY.province,
+                addressCountry: "TR",
+              },
               geo: hasLocation ? { "@type": "GeoCoordinates", latitude: e.lat, longitude: e.lng } : undefined,
             },
             offers: { "@type": "Offer", price: e.is_free ? 0 : (e.price_try ?? undefined), priceCurrency: "TRY", url: e.ticket_url ?? url },
@@ -280,7 +289,7 @@ export default async function EventPage({ params }: Props) {
               <h2 className="mb-2 text-base font-semibold">Konum</h2>
               <MapPreviewCard lat={e.lat!} lng={e.lng!} kind="place" name={e.venue_name ?? e.title} />
               <div className="mt-3 flex items-center gap-3">
-                <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{placeSub ?? placeName ?? CITY.name}</p>
+                <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{placeSub ?? placeName ?? CITY.province}</p>
                 <DirectionsButton lat={e.lat!} lng={e.lng!} name={e.venue_name ?? e.title} size="sm" variant="secondary" className="shrink-0 bg-card shadow-none hover:bg-muted" />
               </div>
             </section>

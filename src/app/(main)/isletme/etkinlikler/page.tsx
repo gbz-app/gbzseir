@@ -23,7 +23,7 @@ export default async function OwnerEventsPage() {
       <PageHeader title="Etkinliklerim" subtitle={b.name} backHref={routes.business.root()} />
       <div className="px-4 pt-4 pb-10">
         <EventsManager
-          business={{ id: b.id, name: b.name, address: b.address, phone: b.phone, lat: b.lat, lng: b.lng, neighbourhoodId: b.neighbourhood_id }}
+          business={{ id: b.id, name: b.name, address: b.address, phone: b.phone, lat: b.lat, lng: b.lng, districtId: b.district_id }}
           initial={events}
           categories={vocab.eventCategories}
           wizardCreateHref={routes.events.create({ isletme: b.id })}

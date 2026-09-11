@@ -19,8 +19,8 @@ export async function LatestNewsList({ limit = 4, className }: { limit?: number;
   const top = items.slice(0, Math.min(5, Math.max(3, limit)));
 
   return (
-    <section aria-label="Gebze Gündemi" className={className}>
-      <SectionHeader title="Gebze Gündemi" description="Yerel kaynaklardan son başlıklar" href={routes.content.news()} />
+    <section aria-label="Kocaeli Gündemi" className={className}>
+      <SectionHeader title="Kocaeli Gündemi" description="Yerel kaynaklardan son başlıklar" href={routes.content.news()} />
       {top.length ? (
         <ul className="mt-2 divide-y rounded-2xl bg-card px-4 shadow-soft ring-1 ring-foreground/[0.06]">
           {top.map((item) => (

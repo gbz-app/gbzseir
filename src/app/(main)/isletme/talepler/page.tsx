@@ -16,7 +16,7 @@ import { ServiceIconBubble } from "@/features/services/components/service-icon";
 import { SERVICE_GATE_COPY, getServiceBusiness } from "@/features/services/business";
 import { leadStatusMeta, leadTab, whenLabel } from "@/features/services/labels";
 import type { MyLeadRow } from "@/features/services/types";
-import { neighbourhoodLabel } from "@/features/services/util";
+import { districtName } from "@/config/districts";
 
 export const metadata: Metadata = { title: "Gelen talepler", robots: { index: false } };
 
@@ -49,7 +49,7 @@ function LeadCard({ lead, extra, firmName }: { lead: MyLeadRow; extra?: Extra; f
             {unseen ? <span className="size-2 shrink-0 rounded-full bg-primary" aria-label="Görülmedi" /> : null}
           </p>
           <p className="truncate text-xs text-muted-foreground">
-            {neighbourhoodLabel(lead.neighbourhood_name)} · {whenLabel(lead.when_type, lead.when_date)}
+            {districtName(lead.district_id)} · {whenLabel(lead.when_type, lead.when_date)}
           </p>
         </div>
         <StatusBadge label={meta.label} tone={meta.tone} className="shrink-0" />

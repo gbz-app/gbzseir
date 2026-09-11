@@ -9,7 +9,7 @@ import type { Json, TablesInsert, TablesUpdate } from "@/lib/database.types";
 import { revalidatePublic, type PublicCacheTag } from "@/lib/revalidate-public";
 import { CATEGORY_KEY_RE } from "@/features/business/lib/category-visuals";
 import type { PoiKind } from "@/features/nearby/types";
-import { dbFail, withAdmin, type AdminContext } from "../server/guard";
+import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { POI_KIND_VALUES, poiDeletable, poiPublicPath } from "../lib/poi-kinds";
 import { firstIssue, zId } from "../lib/zod";
@@ -63,7 +63,8 @@ const placeFields = z.object({
   photos: z.array(photo).max(12, "En fazla 12 fotoğraf."),
 });
 
-const AREA_MSG = "Konum Gebze çevresinde olmalı.";
+/** A box around Kocaeli's 12 districts (a sanity check; the district comes from the polygons). */
+const AREA_MSG = "Konum Kocaeli'de olmalı.";
 
 const schema = z.object({
   id: zId.optional(),
@@ -71,8 +72,8 @@ const schema = z.object({
   name: z.string().trim().min(2, "Yer adı yaz.").max(120),
   phone: z.string().trim().max(40).optional(),
   address: z.string().trim().max(200).optional(),
-  lat: z.number().min(40.5, AREA_MSG).max(41.2, AREA_MSG).nullable(),
-  lng: z.number().min(29, AREA_MSG).max(30, AREA_MSG).nullable(),
+  lat: z.number().min(40.4, AREA_MSG).max(41.3, AREA_MSG).nullable(),
+  lng: z.number().min(29.2, AREA_MSG).max(30.5, AREA_MSG).nullable(),
   hidden: z.boolean(),
   /** Keep the admin's fields when a data sync (OSM / KBB) updates the row. */
   locked: z.boolean(),
@@ -99,13 +100,6 @@ function poiPhone(raw: string): string | null {
   const d = raw.replace(/\D+/g, "");
   if (/^444\d{4}$/.test(d)) return `444 ${d.slice(3, 4)} ${d.slice(4)}`;
   return normalizePhoneTR(raw, { allowLandline: true });
-}
-
-/** Neighbourhood of a point (polygon, else the nearest centre within 6 km). */
-async function neighbourhoodAt(supabase: AdminContext["supabase"], lat: number, lng: number): Promise<string | null> {
-  const { data } = await supabase.rpc("neighbourhood_for_point", { p_lat: lat, p_lng: lng });
-  const hit = Array.isArray(data) ? data[0] : null;
-  return hit?.id ?? null;
 }
 
 /**
@@ -151,12 +145,8 @@ export async function savePlaceAction(input: z.input<typeof schema>): Promise<Ac
         const base = jsonObject(current.details);
         patch.details = { ...base, ...place, photos: photosJson(base.photos, placePhotos) };
       }
-      // Only a moved pin is written, with its neighbourhood.
-      if (point && location && (current.lat !== point.lat || current.lng !== point.lng)) {
-        patch.location = location;
-        const neighbourhood = await neighbourhoodAt(supabase, point.lat, point.lng);
-        if (neighbourhood) patch.neighbourhood_id = neighbourhood;
-      }
+      // Only a moved pin is written; the zz_fill_district trigger moves the district with it.
+      if (point && location && (current.lat !== point.lat || current.lng !== point.lng)) patch.location = location;
       const { error } = await supabase.from("poi").update(patch).eq("id", v.id);
       if (error) return dbFail(error);
       await revalidatePois(v.kind, current.slug);
@@ -171,8 +161,8 @@ export async function savePlaceAction(input: z.input<typeof schema>): Promise<Ac
       slug,
       address: v.address || null,
       phone,
+      // district_id: the zz_fill_district trigger takes it from the pin.
       location,
-      neighbourhood_id: await neighbourhoodAt(supabase, point.lat, point.lng),
       details: place && placePhotos ? { ...place, photos: photosJson(undefined, placePhotos) } : {},
       source: "manual",
       license: null,

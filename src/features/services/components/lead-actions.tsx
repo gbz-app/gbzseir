@@ -138,7 +138,7 @@ export function LeadActions({ leadId, acceptedCount, maxProviders }: { leadId: s
                 pattern="[0-9]*"
                 autoComplete="off"
                 value={price}
-                placeholder="Örn. 1500"
+                placeholder="Tutar"
                 onChange={(e) => setPrice(e.target.value.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 7))}
                 className="h-12 pr-12 text-lg font-semibold tabular-nums"
               />
@@ -157,7 +157,7 @@ export function LeadActions({ leadId, acceptedCount, maxProviders }: { leadId: s
               value={note}
               maxLength={NOTE_MAX}
               rows={3}
-              placeholder="Örn. Yarın öğleden sonra müsaitim, malzeme dahil."
+              placeholder="Yarın öğleden sonra müsaitim, malzeme dahil."
               onChange={(e) => setNote(e.target.value.slice(0, NOTE_MAX))}
             />
             <p className="mt-1.5 text-right text-xs text-muted-foreground tabular-nums">

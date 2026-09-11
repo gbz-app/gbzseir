@@ -36,14 +36,14 @@ import { getOwnerBusinessList } from "@/features/business/lib/owner-queries";
 
 export const metadata: Metadata = {
   title: "İşletme hesabı",
-  description: `İşletmeni ${CITY.name}'ye ücretsiz tanıt: işletme sayfası, Yakınımda haritası, QR menü, oda ve hizmet listesi, iş ilanları ve müşteri yorumları ${APP_NAME}'de.`,
+  description: `İşletmeni ${CITY.province}'ye ücretsiz tanıt: işletme sayfası, Yakınımda haritası, QR menü, oda ve hizmet listesi, iş ilanları ve müşteri yorumları ${APP_NAME}'de.`,
   alternates: { canonical: routes.business.intro() },
 };
 
 const BENEFITS: Array<{ icon: LucideIcon; title: string; text: string; tone: string }> = [
   { icon: Store, title: "Ücretsiz işletme sayfası", text: "Logon, fotoğrafların, çalışma saatlerin ve telefonun tek sayfada.", tone: "bg-brand-soft text-primary" },
   { icon: Sparkles, title: "Türüne göre araçlar", text: "Restoran ve kafeye QR menü, otele odalar, hizmet firmasına müşteri talepleri.", tone: "bg-highlight-soft text-highlight-foreground dark:text-highlight" },
-  { icon: MapPin, title: "Yakınımda haritasında görün", text: "Çevrendeki Gebzeliler seni haritada bulsun, yol tarifi alsın.", tone: "bg-info-soft text-info" },
+  { icon: MapPin, title: "Yakınımda haritasında görün", text: "Çevrendeki müşteriler seni haritada bulsun, yol tarifi alsın.", tone: "bg-info-soft text-info" },
   { icon: Briefcase, title: "İşletme adına iş ilanı ver", text: "Personel ilanlarını işletmen adına, onaylı olarak yayınla.", tone: "bg-success-soft text-success" },
   { icon: Star, title: "Yorum topla", text: "Çalıştığın müşteriler puan versin, sen de yorumlara yanıt ver.", tone: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300" },
 ];
@@ -137,7 +137,7 @@ export default async function BusinessIntroPage() {
                   <VerifiedBadge className="h-5 shrink-0 px-1.5 text-[11px]" />
                 </div>
                 <RatingInline avg={4.9} count={12} className="mt-0.5" />
-                <p className="truncate text-xs text-muted-foreground">Senin kategorin · {CITY.name}</p>
+                <p className="truncate text-xs text-muted-foreground">Senin kategorin · Senin ilçen</p>
               </div>
             </div>
             <div className="mt-3 flex gap-2">
@@ -152,9 +152,9 @@ export default async function BusinessIntroPage() {
         </section>
 
         <header>
-          <h2 className="text-[1.7rem] leading-tight font-extrabold text-balance">İşletmeni {CITY.name}&apos;ye tanıt</h2>
+          <h2 className="text-[1.7rem] leading-tight font-extrabold text-balance">İşletmeni {CITY.province}&apos;ye tanıt</h2>
           <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-            {CITY.name}liler seni bulsun, arasın. İşletme hesabı tamamen ücretsiz.
+            {CITY.province}&apos;nin 12 ilçesinde müşteriler seni bulsun, arasın. İşletme hesabı tamamen ücretsiz.
           </p>
         </header>
 

@@ -10,7 +10,7 @@ import { callRpc } from "@/features/ai/server/rpc";
 
 export const metadata: Metadata = {
   title: "GebzemAI",
-  description: "Gebze hakkında sor: nöbetçi eczane, açık mekanlar, etkinlikler ve daha fazlası.",
+  description: "Kocaeli hakkında sor: nöbetçi eczane, açık mekanlar, doktorlar, otobüs hatları, etkinlikler ve daha fazlası.",
   robots: { index: false },
 };
 

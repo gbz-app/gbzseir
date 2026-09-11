@@ -43,6 +43,8 @@ export default async function PostJobPage({ searchParams }: Props) {
         logo_url: business.logo_url,
         verification_level: business.verification_level,
         phone: business.phone,
+        // A new job ad starts in the business's district.
+        district_id: business.district_id,
       }}
       editId={editId}
       initial={initial}

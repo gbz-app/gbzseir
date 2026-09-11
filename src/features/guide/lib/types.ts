@@ -103,12 +103,14 @@ export type GuideItem = {
   /** Null when the row has no pin yet (list only, no map). */
   lat: number | null;
   lng: number | null;
-  neighbourhoodId: string | null;
-  neighbourhoodName: string | null;
+  /** districts.id (DistrictSlug), null when unknown. */
+  districtId: string | null;
+  /** İlçe name, null when unknown. */
+  districtName: string | null;
   details: GuideDetails;
   /** Label of the category / bank / brand / operator (admin labels win for categories). */
   categoryLabel: string | null;
-  /** Short line under the name: "<categoryLabel> · <mahalle>". */
+  /** Short line under the name: "<categoryLabel> · <ilçe>". */
   subtitle: string | null;
   /** ISO time phone and address were checked against an official source (null: not verified). */
   verifiedAt: string | null;
@@ -132,7 +134,8 @@ export type GuideListOptions = {
   bank?: string | null;
   brand?: string | null;
   operator?: string | null;
-  neighbourhoodId?: string | null;
+  /** District (districts.id, the ?ilce= value). */
+  districtId?: string | null;
   /** Free text (name, address, category), accent-insensitive. */
   q?: string | null;
   /** true: only rows with a pin; false: only rows without one (the "konumu eksik" list). */

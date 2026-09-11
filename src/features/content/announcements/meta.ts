@@ -1,4 +1,5 @@
 import { Droplets, Landmark, Megaphone, Zap, type LucideIcon } from "lucide-react";
+import type { DistrictSlug } from "@/config/districts";
 import { formatDate, formatDateTime, formatTime } from "@/core/format";
 import { istanbulDateKey, istanbulDayDiff } from "@/core/time";
 
@@ -9,8 +10,8 @@ export type Announcement = {
   kind: AnnouncementKind;
   title: string;
   body: string | null;
-  /** Affected neighbourhoods (empty = city wide / unspecified). */
-  neighbourhoods: Array<{ id: string; name: string }>;
+  /** Affected districts in display order (empty = all of Kocaeli / unspecified). */
+  districts: Array<{ id: DistrictSlug; name: string }>;
   sourceLabel: string | null;
   startsAt: string;
   endsAt: string | null;

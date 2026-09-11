@@ -186,7 +186,7 @@ export function StepForm({
                 <Input id={f("unit")} value={step.unit ?? ""} maxLength={12} onChange={(e) => onChange({ unit: e.target.value })} />
               </Field>
             ) : null}
-            <Field label="Örnek metin (isteğe bağlı)" htmlFor={f("placeholder")}>
+            <Field label="Kutu içi ipucu (isteğe bağlı)" htmlFor={f("placeholder")}>
               <Input id={f("placeholder")} value={step.placeholder ?? ""} maxLength={80} onChange={(e) => onChange({ placeholder: e.target.value })} />
             </Field>
             {step.type === "text" ? (

@@ -17,7 +17,7 @@ export default async function EditProfilePage() {
         initial={{
           fullName: profile.full_name,
           email: profile.email,
-          neighbourhoodId: profile.neighbourhood_id != null ? String(profile.neighbourhood_id) : null,
+          districtId: profile.district_id ?? null,
           avatarUrl: profile.avatar_url,
           phone: fromSupabasePhone(user.phone ?? profile.phone ?? null),
         }}

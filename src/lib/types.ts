@@ -12,7 +12,10 @@ export type Profile = {
   full_name: string | null;
   email: string | null;
   avatar_url: string | null;
+  /** @deprecated Mahalle left the app; use district_id. Dropped in phase C. */
   neighbourhood_id: string | number | null;
+  /** Home district (districts.id slug, e.g. "gebze"); optional until the Kocaeli migration is live everywhere. */
+  district_id?: string | null;
   role: UserRole | string;
   onboarded: boolean;
   kvkk_accepted_at: string | null;
@@ -20,7 +23,7 @@ export type Profile = {
   created_at?: string | null;
 };
 
-/** Row of public.neighbourhoods. */
+/** @deprecated Row of public.neighbourhoods. Mahalle left the app (use src/config/districts.ts); phase C drops it. */
 export type Neighbourhood = {
   id: string | number;
   name: string;

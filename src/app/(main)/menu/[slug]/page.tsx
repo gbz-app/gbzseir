@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, TreePalm, UtensilsCrossed } from "lucide-react";
 import { HideBottomNav } from "@/components/layout/nav-visibility";
-import { APP_NAME, CITY } from "@/config/site";
+import { districtName } from "@/config/districts";
+import { APP_NAME } from "@/config/site";
 import { routes } from "@/core/routes";
 import { BusinessLogo } from "@/features/business/components/business-logo";
 import { MenuSections, menuItemCount } from "@/features/business/components/menu-view";
@@ -33,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!b) return { title: "Menü bulunamadı", robots: { index: false } };
   return {
     title: `${b.name} menü`,
-    description: `${b.name} (${CITY.name}) menüsü ve fiyatları. ${APP_NAME} QR menü.`,
+    description: `${b.name} (${districtName(b.district_id)}) menüsü ve fiyatları. ${APP_NAME} QR menü.`,
     alternates: { canonical: routes.businesses.menu(b.slug) },
   };
 }

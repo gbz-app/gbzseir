@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { isDistrictSlug } from "@/config/districts";
 import { routes } from "@/core/routes";
 import { slugifyTr } from "@/core/tr";
 import type { Json, TablesInsert, TablesUpdate } from "@/lib/database.types";
@@ -9,7 +10,7 @@ import { revalidatePublic, type PublicPath } from "@/lib/revalidate-public";
 import { CATEGORY_KEY_RE } from "@/features/business/lib/category-visuals";
 import { GUIDE_LIST_KINDS, GUIDE_SLUG_PREFIX, INSTITUTION_FALLBACK_CATEGORY, guideHref, sectionFor } from "@/features/guide/lib/constants";
 import type { GuideListKind } from "@/features/guide/lib/types";
-import { dbFail, withAdmin, type AdminContext } from "../server/guard";
+import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
 import { SOCKET_TYPES, guideDeletable, isGuideKind, istanbulDate } from "../lib/guide-admin";
 import { firstIssue, zId } from "../lib/zod";
@@ -20,7 +21,8 @@ import { firstIssue, zId } from "../lib/zod";
  * them. Unknown details keys (import key, osm_id, verify_note...) are kept.
  */
 
-const AREA_MSG = "Konum Gebze çevresinde olmalı.";
+/** A box around Kocaeli's 12 districts (a sanity check; the district comes from the polygons). */
+const AREA_MSG = "Konum Kocaeli'de olmalı.";
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const key = z.string().regex(CATEGORY_KEY_RE, "Listeden bir seçim yap.");
 
@@ -44,9 +46,9 @@ const schema = z.object({
   kind: z.enum(GUIDE_LIST_KINDS),
   name: z.string().trim().min(2, "Ad yaz.").max(200, "Ad en fazla 200 karakter olabilir."),
   address: z.string().trim().max(300, "Adres en fazla 300 karakter olabilir."),
-  neighbourhoodId: zId.nullable(),
-  lat: z.number().min(40.5, AREA_MSG).max(41.2, AREA_MSG).nullable(),
-  lng: z.number().min(29, AREA_MSG).max(30, AREA_MSG).nullable(),
+  districtId: z.string().refine(isDistrictSlug, "Listeden bir ilçe seç.").nullable(),
+  lat: z.number().min(40.4, AREA_MSG).max(41.3, AREA_MSG).nullable(),
+  lng: z.number().min(29.2, AREA_MSG).max(30.5, AREA_MSG).nullable(),
   phones: z.array(z.string().trim().max(40)).max(8, "En fazla 8 telefon ekleyebilirsin."),
   fax: z.string().trim().max(40),
   email: z.string().trim().max(200, "E-posta en fazla 200 karakter olabilir."),
@@ -214,13 +216,6 @@ function newSlug(kind: GuideListKind, name: string): string {
 
 const pointWkt = (p: { lat: number; lng: number }) => `SRID=4326;POINT(${p.lng} ${p.lat})`;
 
-/** Neighbourhood of a point (polygon, else the nearest centre within 6 km). */
-async function neighbourhoodAt(supabase: AdminContext["supabase"], p: { lat: number; lng: number }): Promise<string | null> {
-  const { data } = await supabase.rpc("neighbourhood_for_point", { p_lat: p.lat, p_lng: p.lng });
-  const hit = Array.isArray(data) ? data[0] : null;
-  return hit?.id ?? null;
-}
-
 /** Admin lists here, then the public app: /rehber, the section list(s), the detail page and the map lists. */
 async function refreshGuide(kind: GuideListKind, slug: string, categories: Array<string | null | undefined>, id?: string) {
   revalidatePath(routes.admin.guide());
@@ -274,7 +269,7 @@ export async function saveGuideAction(input: z.input<typeof schema>): Promise<Ac
     const point = v.lat !== null && v.lng !== null ? { lat: v.lat, lng: v.lng } : null;
 
     if (v.id) {
-      const { data: current, error: cErr } = await supabase.from("poi").select("kind,slug,details,lat,lng,verified_at").eq("id", v.id).maybeSingle();
+      const { data: current, error: cErr } = await supabase.from("poi").select("kind,slug,details,lat,lng,verified_at,district_id").eq("id", v.id).maybeSingle();
       if (cErr) return dbFail(cErr);
       if (!current || current.kind !== v.kind) return fail("Kayıt bulunamadı.", "not_found");
       const oldCategory = objectOf(current.details).category;
@@ -293,14 +288,14 @@ export async function saveGuideAction(input: z.input<typeof schema>): Promise<Ac
       // Only a moved (or removed) pin is written.
       const moved = point ? current.lat !== point.lat || current.lng !== point.lng : current.lat !== null;
       if (moved) patch.location = point ? pointWkt(point) : null;
-      patch.neighbourhood_id = v.neighbourhoodId ?? (point ? await neighbourhoodAt(supabase, point) : null);
+      // A changed district is the admin's pick; otherwise the zz_fill_district trigger moves it with a moved pin.
+      if (v.districtId && v.districtId !== current.district_id) patch.district_id = v.districtId;
       const { error } = await supabase.from("poi").update(patch).eq("id", v.id);
       if (error) return dbFail(error);
       await refreshGuide(v.kind, current.slug, [v.category, typeof oldCategory === "string" ? oldCategory : null], v.id);
       return ok({ id: v.id, slug: current.slug }, "Kayıt kaydedildi.");
     }
 
-    const neighbourhoodId = v.neighbourhoodId ?? (point ? await neighbourhoodAt(supabase, point) : null);
     for (let attempt = 0; attempt < 3; attempt++) {
       const slug = newSlug(v.kind, v.name);
       const row: TablesInsert<"poi"> = {
@@ -314,7 +309,8 @@ export async function saveGuideAction(input: z.input<typeof schema>): Promise<Ac
         source_urls: sourceUrls,
         verified_at: verifiedAt(v, null),
         location: point ? pointWkt(point) : null,
-        neighbourhood_id: neighbourhoodId,
+        // Null: the zz_fill_district trigger takes the district from the pin.
+        district_id: v.districtId,
         details: buildDetails(null, v, phones, fax),
         source: "manual",
         license: null,

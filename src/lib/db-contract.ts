@@ -5,6 +5,9 @@
 
 export const TABLES = {
   profiles: "profiles",
+  /** Kocaeli districts (id = slug, e.g. "gebze"); read-only for clients. */
+  districts: "districts",
+  /** Legacy (phase C drops it); new code uses districts. */
   neighbourhoods: "neighbourhoods",
   notifications: "notifications",
   pushSubscriptions: "push_subscriptions",
@@ -40,6 +43,37 @@ export type ReportReasonValue = "dolandiricilik" | "yanlis_kategori" | "uygunsuz
 export type RevealPhoneResult =
   | { ok: true; phone: string; display_name?: string | null }
   | { ok: false; reason: "not_found" | "rate_limited" | "login_required" | "no_phone" | string };
+
+/** admin_data_health().districts (2026091386). Counts are every row of the table (any status, demo included). */
+export type AdminDistrictHealth = {
+  /** One entry per district, districts.sort order; boundary = its polygon is loaded; users = profiles with that home district. */
+  rows: Array<{
+    id: string;
+    name: string;
+    active: boolean;
+    boundary: boolean;
+    businesses: number;
+    listings: number;
+    events: number;
+    poi: number;
+    requests: number;
+    users: number;
+  }>;
+  /** Rows without district_id (should stay 0: the zz_fill_district triggers fill them). */
+  missing: Record<"businesses" | "listings" | "events" | "poi" | "requests", number>;
+  /** Profiles without a home district (optional, not an error). */
+  users_without_district: number;
+};
+
+/** admin_user_overview().districts (2026091386): the user's own rows per district, most first; id/name null = no district. */
+export type AdminUserDistrictRow = {
+  id: string | null;
+  name: string | null;
+  listings: number;
+  businesses: number;
+  requests: number;
+  events: number;
+};
 
 export const rpcArgs = {
   getDemoOtp: (phone: string) => ({ p_phone: phone }),

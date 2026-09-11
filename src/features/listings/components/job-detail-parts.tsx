@@ -2,12 +2,12 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { BadgeCheck, Banknote, Briefcase, BriefcaseBusiness, Bus, CircleCheck, Clock, Eye, MapPin, PhoneCall, ShieldAlert, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CITY } from "@/config/site";
 import { formatNumber, formatPhoneTR } from "@/core/format";
 import { routes } from "@/core/routes";
 import { DemoBadge, VerifiedBadge } from "@/components/shared/badges";
 import { RelativeTime } from "@/components/shared/relative-time";
 import { JOB_SAFETY_TEXT, jobLocationByLabel, type Option } from "../constants";
+import { listingPlace } from "../format";
 import type { BusinessRef } from "../types";
 import { CompanyLogo } from "./listing-cards";
 import { BENEFIT_ICONS, jobLocationIcon } from "./listing-icons";
@@ -105,11 +105,14 @@ type Fact = { key: string; icon: LucideIcon; text: string };
 export function JobFactChips({
   workTypeLabel,
   locationLabel,
+  districtName,
   experienceLabel,
   benefits,
 }: {
   workTypeLabel: string | null;
   locationLabel: string | null;
+  /** The ad's district: "Merkez" reads "<district> merkez". */
+  districtName?: string | null;
   experienceLabel: string | null;
   benefits: Option[];
 }) {
@@ -117,7 +120,7 @@ export function JobFactChips({
   if (workTypeLabel) facts.push({ key: "calisma", icon: Clock, text: workTypeLabel });
   if (locationLabel) {
     const merkez = jobLocationByLabel(locationLabel)?.key === "merkez";
-    facts.push({ key: "konum", icon: jobLocationIcon(locationLabel), text: merkez ? `${CITY.name} merkez` : locationLabel });
+    facts.push({ key: "konum", icon: jobLocationIcon(locationLabel), text: merkez && districtName ? `${districtName} merkez` : locationLabel });
   }
   facts.push({
     key: "deneyim",
@@ -165,15 +168,15 @@ export function BenefitGrid({ benefits }: { benefits: Option[] }) {
 const PILL_LINK =
   "flex h-11 min-w-0 items-center justify-center rounded-full px-4 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
-/** Employer card: logo, name, "Onaylı" badge, neighbourhood; links to the firm page and its other open job ads. */
+/** Employer card: logo, name, "Onaylı" badge, district; links to the firm page and its other open job ads. */
 export function EmployerCard({
   company,
-  neighbourhoodName,
+  districtName,
   openJobs,
   interactive = true,
 }: {
   company: BusinessRef;
-  neighbourhoodName?: string | null;
+  districtName?: string | null;
   openJobs?: number | null;
   interactive?: boolean;
 }) {
@@ -190,7 +193,7 @@ export function EmployerCard({
             {verified ? <VerifiedBadge /> : null}
             <span className="inline-flex min-w-0 items-center gap-1">
               <MapPin className="size-3.5 shrink-0" aria-hidden />
-              <span className="truncate">{neighbourhoodName ? `${neighbourhoodName} Mah., ${CITY.name}` : CITY.name}</span>
+              <span className="truncate">{listingPlace(districtName)}</span>
             </span>
           </div>
         </div>

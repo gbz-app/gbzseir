@@ -13,10 +13,13 @@ export type ChecklistInput = {
   address: string | null;
   lat: number | null;
   lng: number | null;
+  /** The business's district (public.districts id). */
+  district_id: string | null;
   working_hours: unknown;
   amenities: readonly string[] | null;
   categoryCount: number;
-  areaCount: number;
+  /** Service districts (business_service_districts). */
+  serviceDistrictCount: number;
   photoCount: number;
   /** Tool counts of the type (menu items, rooms, active services, active doctors); null or undefined when unknown: the task is left out. */
   menuItemCount?: number | null;
@@ -58,7 +61,8 @@ export const MIN_PORTFOLIO_PHOTOS = 3;
 
 /**
  * "Profil gücü" tasks of a business page, in display order. Common tasks for every type, then per type: service
- * firms get categories, areas and the price list; others get amenities; food and hotels a menu; hotels rooms.
+ * firms get categories, service districts and the price list; others get amenities; food and hotels a menu; hotels
+ * rooms. The location task needs the district as well as the address and the map pin.
  */
 export function businessChecklist(b: ChecklistInput): Checklist {
   const vertical = resolveVertical(b.vertical, b.kinds);
@@ -83,8 +87,8 @@ export function businessChecklist(b: ChecklistInput): Checklist {
   add(
     "location",
     "Adres ve konum ekle",
-    !!b.address?.trim() && b.lat !== null && b.lng !== null,
-    "Konumunu unuttun. Haritada ve Yakınımda görünmüyorsun.",
+    !!b.district_id && !!b.address?.trim() && b.lat !== null && b.lng !== null,
+    b.lat !== null && b.lng !== null && !b.district_id ? "İlçeni seçmeyi unuttun. İlçe listelerinde görünmüyorsun." : "Konumunu unuttun. Haritada ve Yakınımda görünmüyorsun.",
     step("konum"),
   );
   add(
@@ -96,7 +100,7 @@ export function businessChecklist(b: ChecklistInput): Checklist {
   );
   if (hasScope) {
     add("categories", "Hizmet kategorilerini seç", b.categoryCount > 0, "Kategori seçmeyi unuttun. Doğru talepler sana gelsin.", step("hizmet-alani"));
-    add("areas", "Hizmet bölgelerini seç", b.areaCount > 0, "Mahalle seçmeyi unuttun. Yakınındaki talepler önce sana gelsin.", `${step("hizmet-alani")}#bolgeler`);
+    add("areas", "Hizmet verdiğin ilçeleri seç", b.serviceDistrictCount > 0, "İlçe seçmeyi unuttun. Yakınındaki talepler önce sana gelsin.", `${step("hizmet-alani")}#bolgeler`);
   } else {
     add("amenities", "Olanakları seç", !!b.amenities?.length, "Olanaklarını seçmeyi unuttun. Filtrelerde de çıkarsın.", step("ozellikler"));
   }

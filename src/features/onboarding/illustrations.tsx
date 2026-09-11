@@ -330,10 +330,10 @@ export function DiscoverArt() {
 
 /* ------------------------------------------------------------------ 5. Kişiselleştir (compact header art) */
 
-/** Neighbourhood pin, a ringing bell and the locate glyph: a short visual header for the settings step. */
+/** District pin, a ringing bell and the locate glyph: a short visual header for the settings step. */
 export function PersonalizeArt() {
   return (
-    <div role="img" aria-label="Mahalle, konum ve bildirim ayarları" className="relative mx-auto flex h-24 w-full items-center justify-center">
+    <div role="img" aria-label="İlçe, konum ve bildirim ayarları" className="relative mx-auto flex h-24 w-full items-center justify-center">
       <M idle="breathe" className="absolute top-1/2 left-1/2 -mt-16 -ml-16 size-32 rounded-full bg-primary/[0.08]" />
       <div className="relative flex items-center">
         <M enter="pop" d={140} idle="float" i={900} style={vars({ "--ob-fy": "-4px" })}>

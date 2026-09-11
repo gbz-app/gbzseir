@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
-import { CITY } from "@/config/site";
+import { districtBySlug, districtName } from "@/config/districts";
 import { PageHeader } from "@/components/shared/page-header";
 import { DirectionsButton } from "@/components/shared/directions-button";
 import { ShareButton } from "@/components/shared/share-button";
@@ -29,9 +29,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const poi = await getPoi("mosque", id);
   if (!poi) return { title: "Cami bulunamadı", robots: { index: false } };
+  const district = districtBySlug(poi.district_id)?.name;
   return {
-    title: `${poi.name} - ${CITY.name}`,
-    description: `${poi.name}${poi.neighbourhood_name ? `, ${poi.neighbourhood_name}` : ""}: adres, günün namaz vakitleri ve yol tarifi.`,
+    title: `${poi.name} - ${districtName(poi.district_id)}`,
+    description: `${poi.name}${district ? `, ${district}` : ""}: adres, günün namaz vakitleri ve yol tarifi.`,
     alternates: { canonical: routes.nearby.mosque(poi.slug) },
   };
 }
@@ -57,7 +58,7 @@ export default async function MosquePage({ params }: Props) {
       <div className={cn("flex flex-col gap-5 px-4 pt-4", STICKY_BAR_SPACE)}>
         <DetailHero
           icon={<KindIcon kind="mosque" size="lg" />}
-          eyebrow={["Cami", poi.neighbourhood_name].filter(Boolean).join(" · ")}
+          eyebrow={["Cami", districtBySlug(poi.district_id)?.name].filter(Boolean).join(" · ")}
           title={poi.name}
           badges={<DistanceLabel lat={poi.lat} lng={poi.lng} withIcon className="text-sm text-muted-foreground" />}
         />

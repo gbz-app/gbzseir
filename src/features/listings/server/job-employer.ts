@@ -1,19 +1,18 @@
 import "server-only";
 import { cache } from "react";
 import { isUuid } from "../format";
-import { one } from "../types";
 import { createPublicClient } from "./public-client";
 
 /** Extra employer facts for the job detail "İşveren" card. */
 export type JobEmployerInfo = {
-  /** Neighbourhood of the business (null when not set / not readable). */
-  neighbourhoodName: string | null;
+  /** District slug of the business (null when not set / not readable). */
+  districtId: string | null;
   /** The business's other live job ads (this one excluded); null when the count failed. */
   openJobs: number | null;
 };
 
 /**
- * Two cheap public reads (RLS as anon): the business neighbourhood and a head-only count of its other
+ * Two cheap public reads (RLS as anon): the business district and a head-only count of its other
  * active, non-expired job ads (same rule as the firm page's listings tab). Never throws: null on failure.
  */
 export const getJobEmployerInfo = cache(async (businessId: string, listingId: string): Promise<JobEmployerInfo | null> => {
@@ -21,7 +20,7 @@ export const getJobEmployerInfo = cache(async (businessId: string, listingId: st
   try {
     const supabase = createPublicClient();
     const [biz, jobs] = await Promise.all([
-      supabase.from("businesses").select("neighbourhoods!businesses_neighbourhood_id_fkey(name)").eq("id", businessId).maybeSingle(),
+      supabase.from("businesses").select("district_id").eq("id", businessId).maybeSingle(),
       supabase
         .from("listings")
         .select("id", { count: "exact", head: true })
@@ -31,10 +30,8 @@ export const getJobEmployerInfo = cache(async (businessId: string, listingId: st
         .gt("expires_at", new Date().toISOString())
         .neq("id", listingId),
     ]);
-    const row = biz.error ? null : (biz.data as unknown as { neighbourhoods?: { name?: unknown } | Array<{ name?: unknown }> | null } | null);
-    const nb = one(row?.neighbourhoods ?? null);
     return {
-      neighbourhoodName: typeof nb?.name === "string" && nb.name ? nb.name : null,
+      districtId: biz.error ? null : (biz.data?.district_id ?? null),
       openJobs: jobs.error ? null : (jobs.count ?? null),
     };
   } catch {

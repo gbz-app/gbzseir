@@ -3,6 +3,7 @@ import { ChevronRight, TreePalm } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { DemoBadge, VerifiedBadge } from "@/components/shared/badges";
+import { districtBySlug } from "@/config/districts";
 import { isOnVacation } from "../lib/hours";
 import { BusinessLogo } from "./business-logo";
 import { RatingInline } from "./rating";
@@ -18,12 +19,13 @@ export type BusinessRowData = {
   vacation_mode?: boolean;
   /** Tatil modu return date (the vacation is over from then on). */
   vacation_until?: string | null;
-  neighbourhood_name?: string | null;
+  /** public.districts id (config/districts.ts); its name is shown after the category. */
+  district_id?: string | null;
   /** Sample (seed) business: small "Örnek" chip. */
   is_demo?: boolean;
 };
 
-/** Directory row card: logo, name + Onaylı, rating, Tatilde, category · neighbourhood, optional distance. Server-safe. */
+/** Directory row card: logo, name + Onaylı, rating, Tatilde, category · district, optional distance. Server-safe. */
 export function BusinessRow({
   b,
   distanceLabel,
@@ -36,7 +38,7 @@ export function BusinessRow({
   now?: Date | null;
   className?: string;
 }) {
-  const meta = [b.category_label, b.neighbourhood_name ? `${b.neighbourhood_name}` : null].filter(Boolean).join(" · ");
+  const meta = [b.category_label, districtBySlug(b.district_id)?.name].filter(Boolean).join(" · ");
   const vacation = now === null ? !!b.vacation_mode : isOnVacation(b, now);
   return (
     <Link

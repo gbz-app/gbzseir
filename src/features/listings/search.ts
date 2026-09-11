@@ -9,7 +9,7 @@ import type { ResolvedSearch } from "./filters";
 import { toCardData, type ListingCardData } from "./types";
 
 export const CARD_SELECT =
-  "id,type,title,price_try,published_at,created_at,business_id,attributes,job_work_type,job_salary_min,job_salary_max,job_salary_hidden,job_benefits,job_location_label,job_experience,is_demo,neighbourhoods(name),listing_categories(name,icon),listing_media(url,thumb_url,sort),listing_videos(listing_id),business:businesses(name,slug,logo_url,verification_level)";
+  "id,type,title,price_try,published_at,created_at,business_id,attributes,job_work_type,job_salary_min,job_salary_max,job_salary_hidden,job_benefits,job_location_label,job_experience,is_demo,district_id,listing_categories(name,icon),listing_media(url,thumb_url,sort),listing_videos(listing_id),business:businesses(name,slug,logo_url,verification_level)";
 
 export type ListingsPage = { items: ListingCardData[]; hasMore: boolean; total: number | null; error: string | null };
 
@@ -35,7 +35,7 @@ export async function fetchListingsPage(
   const args: SearchArgs = { p_type: p.type, p_sort: p.sort };
   if (p.q) args.p_q = p.q;
   if (p.categoryId) args.p_category_id = p.categoryId;
-  if (p.neighbourhoodId) args.p_neighbourhood_id = p.neighbourhoodId;
+  if (p.districtId) args.p_district_id = p.districtId;
   if (p.minPrice != null) args.p_min_price = p.minPrice;
   if (p.maxPrice != null) args.p_max_price = p.maxPrice;
   if (p.workType) args.p_work_type = p.workType;

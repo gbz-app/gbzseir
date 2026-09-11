@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { routes } from "@/core/routes";
+import { DISTRICT_SLUGS, isDistrictSlug } from "@/config/districts";
 import { revalidatePublic } from "@/lib/revalidate-public";
 import { dbFail, withAdmin } from "../server/guard";
 import { fail, ok, type ActionResult } from "../lib/action-result";
@@ -14,7 +15,8 @@ const schema = z
     kind: z.enum(["su_kesintisi", "elektrik_kesintisi", "belediye", "genel"]),
     title: z.string().trim().min(3, "Başlık en az 3 karakter olmalı.").max(120, "Başlık en fazla 120 karakter olabilir."),
     body: z.string().trim().max(1500, "Metin en fazla 1500 karakter olabilir.").optional(),
-    neighbourhoodIds: z.array(zId).max(200),
+    // Target districts (empty = all of Kocaeli); the database checks them like a foreign key too.
+    districtIds: z.array(z.string().refine(isDistrictSlug, "Geçersiz ilçe.")).max(DISTRICT_SLUGS.length),
     sourceLabel: z.string().trim().max(80, "Kaynak en fazla 80 karakter olabilir.").optional(),
     startsAt: z.string().datetime({ offset: true, message: "Başlangıç zamanı seç." }),
     endsAt: z.string().datetime({ offset: true }).nullable(),
@@ -39,7 +41,8 @@ export async function saveAnnouncementAction(input: z.input<typeof schema>): Pro
       kind: v.kind,
       title: v.title,
       body: v.body || null,
-      neighbourhood_ids: v.neighbourhoodIds,
+      // neighbourhood_ids is left untouched: an update that changes only it would recompute district_ids (trigger).
+      district_ids: [...new Set(v.districtIds)],
       source_label: v.sourceLabel || null,
       starts_at: v.startsAt,
       ends_at: v.endsAt,

@@ -95,7 +95,7 @@ export const routes = {
     root: () => "/rehber",
     /**
      * One list: a GUIDE_SECTIONS slug (kamu, saglik, egitim, atm, akaryakit, tarihi...) or an institution category slug
-     * (nufus, aile-sagligi-merkezi); query: alt, banka, marka, operator, sahiplik, mahalle, q, sayfa (GUIDE_PARAMS).
+     * (nufus, aile-sagligi-merkezi); query: alt, banka, marka, operator, sahiplik, ilce, q, sayfa (GUIDE_PARAMS).
      */
     category: (kategori: string, query?: QueryRecord) => withQuery(`/rehber/${enc(kategori)}`, query),
     /** Detail of an institution, ATM, bank branch, fuel or EV charging station (places keep /gezilecek-yerler/<slug>). */

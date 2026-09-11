@@ -12,7 +12,7 @@ import { StatusBadge } from "@/features/services/components/bits";
 import { ServiceIconBubble } from "@/features/services/components/service-icon";
 import { isRequestOpen, requestStatusMeta } from "@/features/services/labels";
 import type { RequestStatus } from "@/features/services/types";
-import { neighbourhoodLabel } from "@/features/services/util";
+import { districtName } from "@/config/districts";
 
 export const metadata: Metadata = { title: "Taleplerim", robots: { index: false } };
 
@@ -27,7 +27,7 @@ type Row = {
   created_at: string;
   categoryName: string;
   categoryIcon: string | null;
-  neighbourhoodName: string | null;
+  districtId: string | null;
 };
 
 function one<T>(v: T | T[] | null | undefined): T | null {
@@ -46,7 +46,7 @@ function RequestCard({ row }: { row: Row }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-[15px] font-bold">{row.categoryName}</p>
         <p className="truncate text-xs text-muted-foreground">
-          {formatDate(row.created_at, { month: "long" })} · {neighbourhoodLabel(row.neighbourhoodName)}
+          {formatDate(row.created_at, { month: "long" })} · {districtName(row.districtId)}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <StatusBadge label={status.label} tone={status.tone} />
@@ -68,7 +68,7 @@ export default async function MyRequestsPage() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("service_requests")
-    .select("id,public_code,status,accepted_count,max_providers,stalled_at,created_at,service_categories(name,icon),neighbourhoods(name)")
+    .select("id,public_code,status,accepted_count,max_providers,stalled_at,created_at,district_id,service_categories(name,icon)")
     .eq("customer_id", user.id)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -76,7 +76,6 @@ export default async function MyRequestsPage() {
 
   const rows: Row[] = (data ?? []).map((r) => {
     const cat = one(r.service_categories as { name: string; icon: string | null } | { name: string; icon: string | null }[] | null);
-    const nb = one(r.neighbourhoods as { name: string } | { name: string }[] | null);
     return {
       id: r.id,
       public_code: r.public_code,
@@ -87,7 +86,7 @@ export default async function MyRequestsPage() {
       created_at: r.created_at,
       categoryName: cat?.name ?? "Hizmet talebi",
       categoryIcon: cat?.icon ?? null,
-      neighbourhoodName: nb?.name ?? null,
+      districtId: r.district_id,
     };
   });
   const openRows = rows.filter((r) => isRequestOpen(r.status));
@@ -111,7 +110,7 @@ export default async function MyRequestsPage() {
           <EmptyState
             icon={ClipboardList}
             title="Henüz hizmet talebin yok"
-            description="Birkaç soruyu cevapla, Gebze'deki uygun firmalar seninle ilgilensin. Ücretsiz."
+            description="Birkaç soruyu cevapla, sana yakın uygun firmalar seninle ilgilensin. Ücretsiz."
             actionLabel="Hizmet talebi oluştur"
             actionHref={routes.services.root()}
           />

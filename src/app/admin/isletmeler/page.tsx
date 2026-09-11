@@ -10,6 +10,7 @@ import { routes, withQuery } from "@/core/routes";
 import { googleMapsPlaceUrl } from "@/core/geo";
 import { publicUrl } from "@/config/app-mode";
 import { formatDateTime, formatNumber, formatPhoneTR, formatRelativeTime } from "@/core/format";
+import { KOCAELI_DISTRICTS, districtBySlug } from "@/config/districts";
 import {
   AdminCard,
   AdminPagination,
@@ -36,9 +37,9 @@ const STATUSES = ["tumu", "approved", "suspended", "rejected", "pending"] as con
 type StatusFilter = (typeof STATUSES)[number];
 
 const SELECT =
-  "id,slug,name,kinds,vertical,category_label,phone,address,description,status,rejection_reason,verification_level,vacation_mode,logo_url,cover_url,working_hours,lat,lng,rating_avg,rating_count,leads_accepted_count,is_demo,created_at,updated_at,approved_at," +
-  "owner:profiles!businesses_owner_id_fkey(id,full_name,phone,status),neighbourhoods!businesses_neighbourhood_id_fkey(name)," +
-  "business_service_categories(service_categories(id,name)),business_service_areas(neighbourhoods(id,name)),business_documents(id,kind,path,created_at),business_photos(url,sort)," +
+  "id,slug,name,kinds,vertical,category_label,phone,address,description,status,rejection_reason,verification_level,vacation_mode,logo_url,cover_url,working_hours,lat,lng,district_id,rating_avg,rating_count,leads_accepted_count,is_demo,created_at,updated_at,approved_at," +
+  "owner:profiles!businesses_owner_id_fkey(id,full_name,phone,status)," +
+  "business_service_categories(service_categories(id,name)),business_service_districts(district_id),business_documents(id,kind,path,created_at),business_photos(url,sort)," +
   // Doctors of sağlık businesses (the admin reads hidden rows too).
   "business_staff(id,business_id,name,title,branch,photo_url,bio,days,hours_note,sort,is_active,is_demo,consent_confirmed_at)";
 
@@ -61,6 +62,8 @@ type BusinessRow = {
   working_hours: unknown;
   lat: number | null;
   lng: number | null;
+  /** public.districts id (config/districts.ts). */
+  district_id: string | null;
   rating_avg: number;
   rating_count: number;
   leads_accepted_count: number;
@@ -69,9 +72,8 @@ type BusinessRow = {
   updated_at: string;
   approved_at: string | null;
   owner: { id: string; full_name: string | null; phone: string | null; status: string } | null;
-  neighbourhoods: { name: string } | null;
   business_service_categories: Array<{ service_categories: { id: string; name: string } | null }>;
-  business_service_areas: Array<{ neighbourhoods: { id: string; name: string } | null }>;
+  business_service_districts: Array<{ district_id: string }>;
   business_documents: Array<{ id: string; kind: string; path: string; created_at: string }>;
   business_photos: Array<{ url: string; sort: number }>;
   business_staff: Array<RawDoctor & { consent_confirmed_at: string | null }> | null;
@@ -108,7 +110,8 @@ function adminDoctors(b: BusinessRow): AdminDoctor[] {
 
 function BusinessDetails({ b, branches }: { b: BusinessRow; branches: readonly DoctorBranch[] }) {
   const categories = b.business_service_categories.map((c) => c.service_categories).filter(Boolean) as Array<{ id: string; name: string }>;
-  const areas = b.business_service_areas.map((a) => a.neighbourhoods).filter(Boolean) as Array<{ id: string; name: string }>;
+  const served = new Set(b.business_service_districts.map((d) => d.district_id));
+  const areas = KOCAELI_DISTRICTS.filter((d) => served.has(d.slug));
   const photos = [...b.business_photos].sort((x, y) => x.sort - y.sort);
   const saglik = isSaglik(b);
   const doctors = adminDoctors(b);
@@ -123,11 +126,12 @@ function BusinessDetails({ b, branches }: { b: BusinessRow; branches: readonly D
               <Phone className="size-4 text-muted-foreground" aria-hidden /> {formatPhoneTR(b.phone) || "-"}
             </span>
           </InfoRow>
+          <InfoRow label="İlçe">{districtBySlug(b.district_id)?.name ?? "-"}</InfoRow>
           <InfoRow label="Adres">
             <span className="inline-flex items-start gap-1.5">
               <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
               <span>
-                {[b.address, b.neighbourhoods?.name ? `${b.neighbourhoods.name} Mah.` : null].filter(Boolean).join(", ") || "-"}
+                {b.address || "-"}
                 {b.lat && b.lng ? (
                   <a
                     className="ml-2 text-primary underline-offset-4 hover:underline"
@@ -196,11 +200,13 @@ function BusinessDetails({ b, branches }: { b: BusinessRow; branches: readonly D
             )}
           </div>
           <div>
-            <h3 className="text-sm font-semibold">Hizmet bölgeleri</h3>
-            {areas.length ? (
+            <h3 className="text-sm font-semibold">Hizmet ilçeleri</h3>
+            {areas.length === KOCAELI_DISTRICTS.length ? (
+              <p className="mt-1 text-sm">Tüm Kocaeli</p>
+            ) : areas.length ? (
               <ul className="mt-1.5 flex flex-wrap gap-1.5">
                 {areas.map((a) => (
-                  <li key={a.id}>
+                  <li key={a.slug}>
                     <Badge variant="secondary" className="h-6 px-2.5">
                       {a.name}
                     </Badge>
@@ -208,7 +214,7 @@ function BusinessDetails({ b, branches }: { b: BusinessRow; branches: readonly D
                 ))}
               </ul>
             ) : (
-              <p className="mt-1 text-sm text-muted-foreground">Bölge seçilmemiş.</p>
+              <p className="mt-1 text-sm text-muted-foreground">İlçe seçilmemiş.</p>
             )}
           </div>
         </div>

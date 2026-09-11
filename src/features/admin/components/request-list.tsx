@@ -26,7 +26,8 @@ export type RequestRowData = {
   categoryName: string;
   parentName: string | null;
   autoDispatch: boolean;
-  neighbourhood: string | null;
+  /** District (ilçe) display name. */
+  district: string | null;
   whenLabel: string;
   createdLabel: string;
   customerName: string | null;
@@ -106,7 +107,7 @@ export function RequestList({ rows }: { rows: RequestRowData[] }) {
                 </p>
                 <p className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-muted-foreground">
                   <span className="inline-flex items-center gap-1">
-                    <MapPin className="size-3.5" aria-hidden /> {r.neighbourhood ?? "Mahalle yok"}
+                    <MapPin className="size-3.5" aria-hidden /> {r.district ?? "İlçe yok"}
                   </span>
                   <span>{r.whenLabel}</span>
                   <span className="inline-flex items-center gap-1">
@@ -213,7 +214,7 @@ function RequestDetailView({
           <p className="font-semibold">
             {result.leadCount > 0 ? `${result.leadCount} firmaya gönderildi.` : "Yeni firmaya gönderilemedi."} Toplam {result.totalLeads} firma · durum: {labelOf(REQUEST_STATUS, result.status)}
           </p>
-          {result.fallback ? <p className="mt-1">Mahallede hizmet veren firma bulunamadığı için Gebze genelindeki firmalara gönderildi.</p> : null}
+          {result.fallback ? <p className="mt-1">İlçede yeterli firma bulunamadığı için yakındaki diğer firmalara da gönderildi.</p> : null}
         </div>
       ) : null}
 
@@ -221,8 +222,8 @@ function RequestDetailView({
         <dl className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
           <dt className="text-muted-foreground">Oluşturma</dt>
           <dd className="font-medium">{formatDateTime(d.createdAt)}</dd>
-          <dt className="text-muted-foreground">Mahalle</dt>
-          <dd className="font-medium">{d.neighbourhood ? `${d.neighbourhood} Mah.` : "-"}</dd>
+          <dt className="text-muted-foreground">İlçe</dt>
+          <dd className="font-medium">{d.district ?? "-"}</dd>
           <dt className="text-muted-foreground">Ne zaman</dt>
           <dd className="font-medium">{when}</dd>
           <dt className="text-muted-foreground">Kabul</dt>

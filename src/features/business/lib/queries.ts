@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { KOCAELI_DISTRICTS, type DistrictSlug } from "@/config/districts";
 import { trCompare } from "@/core/tr";
 import type { BusinessKind } from "@/lib/types";
 import { parseKinds } from "./kinds";
@@ -11,7 +12,12 @@ import { createPublicClient } from "./public-client";
  */
 
 export const PUBLIC_BUSINESS_COLUMNS =
-  "id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,neighbourhood_id,kinds,category_label,working_hours,verification_level,vacation_mode,vacation_until,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at,vertical,price_level,star_rating,amenities,website,instagram,is_demo";
+  "id,slug,name,logo_url,cover_url,description,phone,address,lat,lng,district_id,kinds,category_label,working_hours,verification_level,vacation_mode,vacation_until,rating_avg,rating_count,leads_accepted_count,created_at,updated_at,approved_at,vertical,price_level,star_rating,amenities,website,instagram,is_demo";
+
+/** Service districts in the display order of config/districts.ts (unknown ids dropped). */
+function sortDistricts(ids: readonly string[]): DistrictSlug[] {
+  return KOCAELI_DISTRICTS.filter((d) => ids.includes(d.slug)).map((d) => d.slug);
+}
 
 export type ServiceCategoryLite = {
   id: string;
@@ -33,7 +39,8 @@ export type PublicBusiness = {
   address: string | null;
   lat: number | null;
   lng: number | null;
-  neighbourhood_id: string | null;
+  /** public.districts id (config/districts.ts). */
+  district_id: string | null;
   kinds: BusinessKind[];
   category_label: string | null;
   working_hours: unknown;
@@ -60,9 +67,9 @@ export type PublicBusiness = {
 export type BusinessPhoto = { id: string; url: string; sort: number };
 
 export type BusinessDetail = PublicBusiness & {
-  neighbourhood_name: string | null;
   categories: ServiceCategoryLite[];
-  areas: Array<{ id: string; name: string }>;
+  /** Districts a service firm travels to (business_service_districts), in display order. */
+  service_district_ids: DistrictSlug[];
   photos: BusinessPhoto[];
 };
 
@@ -70,9 +77,8 @@ type RawDetail = Omit<PublicBusiness, "kinds" | "rating_avg" | "amenities"> & {
   kinds: string[] | null;
   rating_avg: number | string | null;
   amenities: string[] | null;
-  neighbourhoods: { name: string } | null;
   business_service_categories: Array<{ service_categories: ServiceCategoryLite | null }> | null;
-  business_service_areas: Array<{ neighbourhoods: { id: string; name: string } | null }> | null;
+  business_service_districts: Array<{ district_id: string }> | null;
   business_photos: BusinessPhoto[] | null;
 };
 
@@ -93,12 +99,12 @@ export const getServiceCategories = cache(async (): Promise<ServiceCategoryLite[
   return (data ?? []) as ServiceCategoryLite[];
 });
 
-/** Approved business by slug with categories, service areas and portfolio. null = not found / not public. */
+/** Approved business by slug with categories, service districts and portfolio. null = not found / not public. */
 export const getPublicBusinessBySlug = cache(async (slug: string): Promise<BusinessDetail | null> => {
   const { data, error } = await createPublicClient()
     .from("businesses")
     .select(
-      `${PUBLIC_BUSINESS_COLUMNS},neighbourhoods!businesses_neighbourhood_id_fkey(name),business_service_categories(service_categories(id,name,slug,parent_id,icon,sort)),business_service_areas(neighbourhoods(id,name)),business_photos(id,url,sort)`,
+      `${PUBLIC_BUSINESS_COLUMNS},business_service_categories(service_categories(id,name,slug,parent_id,icon,sort)),business_service_districts(district_id),business_photos(id,url,sort)`,
     )
     .eq("slug", slug)
     .eq("status", "approved")
@@ -106,22 +112,18 @@ export const getPublicBusinessBySlug = cache(async (slug: string): Promise<Busin
   if (error) throw new Error(error.message);
   if (!data) return null;
   const raw = data as unknown as RawDetail;
-  const { neighbourhoods, business_service_categories, business_service_areas, business_photos, ...rest } = raw;
+  const { business_service_categories, business_service_districts, business_photos, ...rest } = raw;
   return {
     ...rest,
     kinds: parseKinds(raw.kinds),
     rating_avg: toNumber(raw.rating_avg),
     amenities: raw.amenities ?? [],
     is_demo: raw.is_demo === true,
-    neighbourhood_name: neighbourhoods?.name ?? null,
     categories: (business_service_categories ?? [])
       .map((x) => x.service_categories)
       .filter((c): c is ServiceCategoryLite => !!c)
       .sort((a, b) => a.sort - b.sort || trCompare(a.name, b.name)),
-    areas: (business_service_areas ?? [])
-      .map((x) => x.neighbourhoods)
-      .filter((n): n is { id: string; name: string } => !!n)
-      .sort((a, b) => trCompare(a.name, b.name)),
+    service_district_ids: sortDistricts((business_service_districts ?? []).map((x) => x.district_id)),
     photos: [...(business_photos ?? [])].sort((a, b) => a.sort - b.sort),
   };
 });
@@ -206,7 +208,8 @@ export type DirectoryBusiness = {
   vacation_mode: boolean;
   /** Tatil modu return date; use isOnVacation() (lib/hours) for the active state. */
   vacation_until: string | null;
-  neighbourhood_name: string | null;
+  /** public.districts id (config/districts.ts). */
+  district_id: string | null;
   category_ids: string[];
   photo_count: number;
   has_description: boolean;
@@ -232,7 +235,7 @@ type RawDirectory = {
   description: string | null;
   working_hours: unknown;
   is_demo: boolean | null;
-  neighbourhoods: { name: string } | null;
+  district_id: string | null;
   business_service_categories: Array<{ category_id: string }> | null;
   business_photos: Array<{ count: number }> | null;
 };
@@ -242,7 +245,7 @@ export const listApprovedBusinesses = cache(async (limit = 500): Promise<Directo
   const { data, error } = await createPublicClient()
     .from("businesses")
     .select(
-      "id,slug,name,logo_url,cover_url,category_label,kinds,lat,lng,rating_avg,rating_count,verification_level,vacation_mode,vacation_until,description,working_hours,is_demo,neighbourhoods!businesses_neighbourhood_id_fkey(name),business_service_categories(category_id),business_photos(count)",
+      "id,slug,name,logo_url,cover_url,category_label,kinds,lat,lng,rating_avg,rating_count,verification_level,vacation_mode,vacation_until,description,working_hours,is_demo,district_id,business_service_categories(category_id),business_photos(count)",
     )
     .eq("status", "approved")
     .order("rating_avg", { ascending: false })
@@ -265,7 +268,7 @@ export const listApprovedBusinesses = cache(async (limit = 500): Promise<Directo
     verification_level: b.verification_level ?? 0,
     vacation_mode: !!b.vacation_mode,
     vacation_until: b.vacation_until ?? null,
-    neighbourhood_name: b.neighbourhoods?.name ?? null,
+    district_id: b.district_id ?? null,
     category_ids: (b.business_service_categories ?? []).map((c) => c.category_id),
     photo_count: b.business_photos?.[0]?.count ?? 0,
     has_description: !!b.description && b.description.trim().length >= 30,

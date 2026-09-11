@@ -87,7 +87,8 @@ export type CustomerRequestView = {
     public_code: string;
     status: RequestStatus;
     category: { id: string; name: string; slug: string; icon: string | null; parent_name: string | null; parent_slug: string | null };
-    neighbourhood: { id: string; name: string; district: string | null } | null;
+    /** districts row (id = slug); the legacy 'neighbourhood' field of the payload is not used any more. */
+    district: { id: string; name: string } | null;
     address_note: string | null;
     when_type: WhenType;
     when_date: string | null;
@@ -125,7 +126,8 @@ export type LeadDetailView = {
     id: string;
     status: RequestStatus;
     category: { id: string; name: string; slug: string; icon: string | null; parent_name: string | null };
-    neighbourhood: { id: string; name: string; district: string | null; lat: number | null; lng: number | null } | null;
+    /** districts row (id = slug) with its centre; the legacy 'neighbourhood' field of the payload is not used any more. */
+    district: { id: string; name: string; lat: number | null; lng: number | null } | null;
     when_type: WhenType;
     when_date: string | null;
     note: string | null;
@@ -162,8 +164,8 @@ export type MyLeadRow = {
   category_name: string;
   category_slug: string;
   category_icon: string | null;
-  neighbourhood_id: string | null;
-  neighbourhood_name: string | null;
+  district_id: string | null;
+  district_name: string | null;
   photo_count: number;
   has_note: boolean;
 };

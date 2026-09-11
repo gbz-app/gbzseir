@@ -12,7 +12,7 @@ import type { PickedImage } from "../editor/image-picker";
 export type BusinessEditData = {
   id: string;
   slug: string;
-  /** kinds contains "service": the service categories and areas step exists. */
+  /** kinds contains "service": the service categories and districts step exists. */
   isService: boolean;
   name: string;
   /** Read-only: the type is locked after the application. */
@@ -25,13 +25,15 @@ export type BusinessEditData = {
   instagram: string;
   address: string;
   location: LatLng | null;
-  neighbourhoodId: string | null;
+  /** The business's district (districts.id). */
+  districtId: string | null;
   priceLevel: number | null;
   starRating: number | null;
   amenities: string[];
   hours: WorkingHours;
   categoryIds: string[];
-  areaIds: string[];
+  /** Districts the business travels to (districts.id). */
+  serviceDistrictIds: string[];
 };
 
 export const DESC_MAX = 2000;
@@ -64,6 +66,6 @@ export function editStepTitle(step: BusinessEditStep, vertical: Vertical): strin
     case "ozellikler":
       return vertical === "otel" ? "Yıldız ve olanaklar" : "Fiyat ve olanaklar";
     case "hizmet-alani":
-      return "Hizmet kategorileri ve mahalleler";
+      return "Hizmet kategorileri ve ilçeler";
   }
 }

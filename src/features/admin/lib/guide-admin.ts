@@ -79,7 +79,6 @@ export function istanbulDate(input?: string | Date): string {
 export type GuideVocab = {
   institutionCategories: readonly InstitutionCategoryDef[];
   placeCategories: ReadonlyArray<{ key: string; label: string; active: boolean; subkinds: PlaceSubkindDef[] }>;
-  neighbourhoods: ReadonlyArray<{ id: string; name: string; lat: number | null; lng: number | null }>;
 };
 
 export type GuideOption = { value: string; label: string; group?: string };
@@ -129,7 +128,7 @@ export type GuideRowItem = {
   id: string;
   kind: GuideListKind;
   name: string;
-  /** "<category / bank / brand> · <mahalle> · <phone>" */
+  /** "<category / bank / brand> · <ilçe> · <phone>" */
   subtitle: string;
   address: string | null;
   hasPin: boolean;
@@ -149,7 +148,8 @@ export type GuideFormValue = {
   name: string;
   slug: string;
   address: string | null;
-  neighbourhoodId: string | null;
+  /** districts.id (DistrictSlug), null when unknown. */
+  districtId: string | null;
   lat: number | null;
   lng: number | null;
   phones: string[];

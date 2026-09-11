@@ -32,7 +32,8 @@ export type RequestDetail = {
   dispatchNote: string | null;
   isDemo: boolean;
   category: { id: string; name: string; parentName: string | null; autoDispatch: boolean; notifyPoolSize: number };
-  neighbourhood: string | null;
+  /** District (ilçe) display name. */
+  district: string | null;
   customer: { id: string; name: string | null; phone: string | null; status: string } | null;
   flowVersion: number | null;
   answers: Array<{ title: string; answer: string }>;

@@ -17,7 +17,7 @@ export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Firmalar",
-  description: `${CITY.name}'nin onaylı işletmeleri: temizlik, tadilat, nakliyat, tesisat, elektrik ve daha fazlası. Puanlar, yorumlar ve iletişim bilgileri ${APP_NAME}'de.`,
+  description: `${CITY.province}'nin onaylı işletmeleri: temizlik, tadilat, nakliyat, tesisat, elektrik ve daha fazlası. Puanlar, yorumlar ve iletişim bilgileri ${APP_NAME}'de.`,
   alternates: { canonical: routes.businesses.root() },
 };
 
@@ -51,7 +51,7 @@ function buildDirectory(businesses: DirectoryBusiness[], categories: ServiceCate
       verification_level: b.verification_level,
       vacation_mode: b.vacation_mode,
       vacation_until: b.vacation_until,
-      neighbourhood_name: b.neighbourhood_name,
+      district_id: b.district_id,
       is_demo: b.is_demo,
       lat: b.lat,
       lng: b.lng,
@@ -78,7 +78,7 @@ export default async function FirmsPage() {
 
   return (
     <>
-      <PageHeader title="Firmalar" subtitle={`${CITY.name}'nin onaylı işletmeleri`} backHref={routes.services.root()} />
+      <PageHeader title="Firmalar" subtitle={`${CITY.province}'nin onaylı işletmeleri`} backHref={routes.services.root()} />
       <div className="flex flex-col gap-6 px-4 py-4">
         {data ? (
           <>
@@ -87,7 +87,7 @@ export default async function FirmsPage() {
                 data={{
                   "@context": "https://schema.org",
                   "@type": "ItemList",
-                  name: `${CITY.name} firmaları`,
+                  name: `${CITY.province} firmaları`,
                   itemListElement: listed.map((b, i) => ({
                     "@type": "ListItem",
                     position: i + 1,

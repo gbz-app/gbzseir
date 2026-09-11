@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CalendarDays, MapPin, type LucideProps } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
+import { districtBySlug } from "@/config/districts";
 import { vocabIcon } from "@/features/business/lib/verticals";
 import { dateBadge, eventPriceLabel, eventWhenLine } from "../format";
 import type { EventItem } from "../queries";
@@ -26,9 +27,9 @@ export function EventCoverFallback({ icon, className, iconClassName }: { icon: s
   );
 }
 
-/** Where the event happens, for one card line: place name, the organizer business, or the neighbourhood. */
-export function eventPlaceLine(e: Pick<EventItem, "venue_name" | "neighbourhood_name" | "business">): string | null {
-  return e.venue_name ?? (e.neighbourhood_name ? `${e.neighbourhood_name} Mah.` : (e.business?.name ?? null));
+/** Where the event happens, for one card line: place name (or the organizer business) and the district, "Mor Salkım Otel · Gebze". */
+export function eventPlaceLine(e: Pick<EventItem, "venue_name" | "district_id" | "business">): string | null {
+  return [e.venue_name ?? e.business?.name, districtBySlug(e.district_id)?.name].filter(Boolean).join(" · ") || null;
 }
 
 /**

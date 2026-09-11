@@ -8,8 +8,10 @@ import { routes } from "@/core/routes";
 import { formatPhoneTR } from "@/core/format";
 import { formatPhoneInputTR, normalizePhoneTR } from "@/core/phone";
 import { istanbulDateKey } from "@/core/time";
+import { districtBySlug } from "@/config/districts";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { DistrictPicker } from "@/components/shared/district-picker";
 import { Wizard, type WizardStep } from "@/components/wizard/wizard";
 import { readWizardDraft } from "@/components/wizard/draft";
 import { notify } from "@/lib/notify";
@@ -45,7 +47,8 @@ export type WizardBusiness = {
   phone: string | null;
   lat: number | null;
   lng: number | null;
-  neighbourhoodId: string | null;
+  /** District slug (businesses.district_id). */
+  districtId: string | null;
 };
 
 export type EventWizardEdit = {
@@ -200,14 +203,15 @@ export function EventWizard({ categories, businesses, presetBusinessId, edit, pr
   const place = (d: EventDraft) => {
     const biz = businessOf(d.organizer);
     if (biz && d.place === "business") {
-      return { venue_name: biz.name, address: biz.address, lat: biz.lat, lng: biz.lng, neighbourhood_id: biz.neighbourhoodId, venue_business_id: biz.id };
+      return { venue_name: biz.name, address: biz.address, lat: biz.lat, lng: biz.lng, district_id: biz.districtId, venue_business_id: biz.id };
     }
     return {
       venue_name: d.venueName.trim() || null,
       address: d.address.trim() || null,
       lat: d.pin?.lat ?? null,
       lng: d.pin?.lng ?? null,
-      neighbourhood_id: d.neighbourhoodId,
+      // Drafts saved before the Kocaeli update have no districtId.
+      district_id: d.districtId ?? null,
       venue_business_id: null,
     };
   };
@@ -236,7 +240,7 @@ export function EventWizard({ categories, businesses, presetBusinessId, edit, pr
       ticket_url: ticketLink(d.ticketUrl) ?? null,
       phone: null,
       cover_url: d.cover?.url ?? null,
-      neighbourhood_name: null,
+      district_id: p.district_id,
       business: null,
       is_demo: false,
       organizer_name: null,
@@ -358,10 +362,11 @@ export function EventWizard({ categories, businesses, presetBusinessId, edit, pr
     {
       id: "yer",
       title: <StepTitle icon={MapPin}>Nerede?</StepTitle>,
-      help: "Katılacakların kolayca bulabilmesi için yeri ve adresi yaz.",
+      help: "Katılacakların kolayca bulabilmesi için yeri, ilçeyi ve adresi yaz.",
       validate: (d) => {
         if (businessOf(d.organizer) && d.place === "business") return null;
         if (d.venueName.trim().length < 2) return "Yerin adını yaz.";
+        if (!districtBySlug(d.districtId)) return "İlçeyi seç.";
         if (d.address.trim().length < 5) return "Adresi yaz.";
         return null;
       },
@@ -385,16 +390,26 @@ export function EventWizard({ categories, businesses, presetBusinessId, edit, pr
             {custom ? (
               <>
                 <Field label="Yerin adı" htmlFor="etk-yer">
-                  <Input id="etk-yer" value={ctx.data.venueName} maxLength={VENUE_MAX} placeholder="ör. Gebze Kültür Merkezi" onChange={(e) => ctx.setData({ venueName: e.target.value })} />
+                  <Input id="etk-yer" value={ctx.data.venueName} maxLength={VENUE_MAX} placeholder="Salon, kafe, park..." onChange={(e) => ctx.setData({ venueName: e.target.value })} />
+                </Field>
+                <Field label="İlçe" htmlFor="etk-ilce">
+                  <DistrictPicker
+                    id="etk-ilce"
+                    value={ctx.data.districtId}
+                    invalid={!!ctx.error && !districtBySlug(ctx.data.districtId)}
+                    onChange={(district) => ctx.setData({ districtId: district?.slug ?? null })}
+                  />
                 </Field>
                 <Field label="Adres" htmlFor="etk-adres">
-                  <Input id="etk-adres" value={ctx.data.address} maxLength={ADDRESS_MAX} placeholder="Mahalle, cadde, numara" onChange={(e) => ctx.setData({ address: e.target.value })} />
+                  <Input id="etk-adres" value={ctx.data.address} maxLength={ADDRESS_MAX} placeholder="Cadde, sokak, numara" onChange={(e) => ctx.setData({ address: e.target.value })} />
                 </Field>
                 <Field label="Haritada konum" optional hint="İğneyi koyarsan etkinlik sayfasında harita ve yol tarifi görünür.">
                   <LocationPicker
                     value={ctx.data.pin}
-                    onChange={(pin) => ctx.setData(pin ? { pin } : { pin: null, neighbourhoodId: null })}
-                    onNeighbourhood={(n) => ctx.setData({ neighbourhoodId: n.id })}
+                    fallbackCenter={districtBySlug(ctx.data.districtId)?.center ?? null}
+                    onChange={(pin) => ctx.setData({ pin })}
+                    // The pin decides the district (the database keeps a district the client sends).
+                    onDistrict={(district) => ctx.setData({ districtId: district.slug })}
                   />
                 </Field>
               </>
@@ -528,7 +543,11 @@ export function EventWizard({ categories, businesses, presetBusinessId, edit, pr
             <div className="flex flex-col gap-0.5 rounded-3xl bg-card p-1.5">
               <SummaryRow label="Düzenleyen" value={biz ? biz.name : "Sen"} />
               <SummaryRow label="Tarih" value={`${eventDateLabel(item.starts_at, item.ends_at)} · ${eventTimeLabel(item.starts_at, item.ends_at)}`} onEdit={() => ctx.goTo("tarih")} />
-              <SummaryRow label="Yer" value={[item.venue_name, item.address].filter(Boolean).join(", ") || "-"} onEdit={() => ctx.goTo("yer")} />
+              <SummaryRow
+                label="Yer"
+                value={[item.venue_name, item.address, districtBySlug(item.district_id)?.name].filter(Boolean).join(", ") || "-"}
+                onEdit={() => ctx.goTo("yer")}
+              />
               <SummaryRow label="Ücret" value={`${eventPriceLabel(item)}${item.price_note ? ` · ${item.price_note}` : ""}`} onEdit={() => ctx.goTo("ucret")} />
               {item.ticket_url ? <SummaryRow label="Bağlantı" value={item.ticket_url} onEdit={() => ctx.goTo("ucret")} /> : null}
               <SummaryRow

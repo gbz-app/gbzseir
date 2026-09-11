@@ -7,7 +7,7 @@ import { SectionHeader } from "@/components/shared/section-header";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SITE_URL } from "@/config/site";
+import { CITY, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { findCategory, getFirmsForCategories, getServiceCatalog } from "@/features/services/data";
 import { COMING_SOON_LABEL } from "@/features/services/labels";
@@ -31,7 +31,7 @@ export async function generateStaticParams(): Promise<Array<{ kategori: string }
 
 function describe(name: string, description: string | null, subNames: string[], maxProviders: number): string {
   const list = subNames.slice(0, 4).join(", ");
-  return `${description ? `${description}. ` : ""}Gebze'de ${list || name} için ücretsiz talep oluştur; en fazla ${maxProviders} onaylı firma seninle ilgilensin, fiyat tahminlerini gör ve dilediğini ara.`;
+  return `${description ? `${description}. ` : ""}${CITY.province}'de ${list || name} için ücretsiz talep oluştur; en fazla ${maxProviders} onaylı firma seninle ilgilensin, fiyat tahminlerini gör ve dilediğini ara.`;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!found) return { title: "Hizmet bulunamadı", robots: { index: false } };
   if (found.kind === "sub") return { title: found.category.name, robots: { index: false } };
   const c = found.category;
-  const title = `Gebze ${c.name} Hizmetleri`;
+  const title = `${CITY.province} ${c.name} Hizmetleri`;
   const description = describe(c.name, c.description, c.children.map((s) => s.name), c.max_providers);
   const url = routes.services.category(c.slug);
   return {
@@ -72,7 +72,9 @@ export default async function ServiceCategoryPage({ params }: Props) {
         <section className="flex items-start gap-4 rounded-3xl bg-brand-soft p-5">
           <ServiceIconBubble name={c.icon} size="lg" className="bg-card" />
           <div className="min-w-0">
-            <h2 className="text-xl leading-tight font-extrabold text-balance">Gebze {c.name} Hizmetleri</h2>
+            <h2 className="text-xl leading-tight font-extrabold text-balance">
+              {CITY.province} {c.name} Hizmetleri
+            </h2>
             {c.description ? <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{c.description}.</p> : null}
             <p className="mt-2 text-sm font-medium">Ücretsiz talep oluştur, en fazla {c.max_providers} firma seninle ilgilensin.</p>
           </div>
@@ -150,11 +152,11 @@ export default async function ServiceCategoryPage({ params }: Props) {
           {
             "@context": "https://schema.org",
             "@type": "Service",
-            name: `Gebze ${c.name} Hizmetleri`,
+            name: `${CITY.province} ${c.name} Hizmetleri`,
             serviceType: c.name,
             description,
             url,
-            areaServed: { "@type": "City", name: "Gebze", containedInPlace: { "@type": "AdministrativeArea", name: "Kocaeli" } },
+            areaServed: { "@type": "AdministrativeArea", name: CITY.province },
             ...(firms.length
               ? {
                   provider: firms.map((f) => ({

@@ -1,6 +1,7 @@
 /**
  * /rehber/[kategori] URL <-> list options, and the sub-filter chips of a section. Pure TS (server and client).
  */
+import { isDistrictSlug } from "@/config/districts";
 import { CATEGORY_KEY_RE } from "@/features/business/lib/category-visuals";
 import {
   BANKS,
@@ -18,8 +19,6 @@ import {
 import type { GuideCounts, GuideListOptions, GuideSection, InstitutionCategoryDef } from "./types";
 
 type SearchParams = Record<string, string | string[] | undefined>;
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function one(sp: SearchParams, key: string): string | null {
   const v = sp[key];
@@ -40,11 +39,11 @@ function keyParam(v: string | null): string | null {
  */
 export function guideListOptions(section: GuideSection, sp: SearchParams, presetCategory?: string | null, pageSize = 30): GuideListOptions {
   const page = Number(one(sp, GUIDE_PARAMS.page));
-  const hood = one(sp, GUIDE_PARAMS.neighbourhood);
+  const ilce = one(sp, GUIDE_PARAMS.district);
   const opts: GuideListOptions = {
     kind: section.kind,
     q: one(sp, GUIDE_PARAMS.q)?.slice(0, 80) ?? null,
-    neighbourhoodId: hood && UUID_RE.test(hood) ? hood : null,
+    districtId: isDistrictSlug(ilce) ? ilce : null,
     page: Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1,
     pageSize,
   };

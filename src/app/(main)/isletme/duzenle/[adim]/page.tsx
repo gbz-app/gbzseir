@@ -33,13 +33,13 @@ function toEditData(b: OwnerBusiness, userId: string): BusinessEditData {
     instagram: b.instagram ?? "",
     address: b.address ?? "",
     location: b.lat !== null && b.lng !== null ? { lat: b.lat, lng: b.lng } : null,
-    neighbourhoodId: b.neighbourhood_id,
+    districtId: b.district_id,
     priceLevel: b.price_level,
     starRating: b.star_rating,
     amenities: b.amenities,
     hours: hasAnyHours(hours) ? hours : defaultHours(),
     categoryIds: b.category_ids,
-    areaIds: b.area_ids,
+    serviceDistrictIds: b.service_district_ids,
   };
 }
 
@@ -52,7 +52,7 @@ export default async function BusinessEditStepPage({ params }: Props) {
   if (!b) redirect(routes.business.intro());
   if (b.status !== "approved") redirect(routes.business.root());
   const data = toEditData(b, user.id);
-  // Service categories and areas exist only for service firms.
+  // Service categories and districts exist only for service firms.
   if (step === "hizmet-alani" && !data.isService) redirect(routes.business.edit());
 
   return (

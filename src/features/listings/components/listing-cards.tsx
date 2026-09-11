@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, BadgeCheck, Banknote, Clock, MapPin, Play, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CITY } from "@/config/site";
+import { districtBySlug, districtName } from "@/config/districts";
 import { routes } from "@/core/routes";
 import { initials } from "@/core/format";
 import { DemoBadge } from "@/components/shared/badges";
@@ -54,7 +55,7 @@ function VideoTag() {
   );
 }
 
-/** 2. el card of the two-column grid: white card, rounded photo, bold price, title, neighbourhood + time, heart. */
+/** 2. el card of the two-column grid: white card, rounded photo, bold price, title, district + time, heart. */
 export function ClassifiedCard({
   item,
   headingLevel: H = "h3",
@@ -105,7 +106,7 @@ export function ClassifiedCard({
           <H className="mt-1 line-clamp-2 text-sm leading-snug font-medium">{item.title}</H>
           <p className="mt-auto flex min-w-0 items-center gap-1 pt-2 text-xs text-muted-foreground">
             <MapPin className="size-3.5 shrink-0" aria-hidden />
-            <span className="truncate">{item.neighbourhoodName ?? CITY.name}</span>
+            <span className="truncate">{districtName(item.districtId, CITY.province)}</span>
             <span aria-hidden>·</span>
             <RelativeTime date={item.postedAt} className="shrink-0" />
           </p>
@@ -122,6 +123,7 @@ export function ClassifiedCard({
 
 /** Compact 2. el card for horizontal rails. */
 export function ClassifiedRailCard({ item }: { item: ListingCardData }) {
+  const place = districtBySlug(item.districtId)?.name;
   return (
     <li className="w-[9.5rem] shrink-0 snap-start">
       <Link
@@ -145,7 +147,7 @@ export function ClassifiedRailCard({ item }: { item: ListingCardData }) {
         <div className="flex flex-1 flex-col px-1 pt-2 pb-1">
           <p className="text-[15px] leading-tight font-bold tabular-nums">{listingPriceText(item.price)}</p>
           <h3 className="mt-0.5 line-clamp-2 text-[13px] leading-snug font-medium">{item.title}</h3>
-          {item.neighbourhoodName ? <p className="mt-auto truncate pt-1 text-xs text-muted-foreground">{item.neighbourhoodName}</p> : null}
+          {place ? <p className="mt-auto truncate pt-1 text-xs text-muted-foreground">{place}</p> : null}
         </div>
       </Link>
     </li>
@@ -165,7 +167,7 @@ function InfoPill({ icon: Icon, children, className }: { icon?: LucideIcon; chil
 /** İş ilanı card: company logo circle, title, company, salary / place / work type chips, time and a black arrow. */
 export function JobCard({ item, headingLevel: H = "h3", className }: { item: ListingCardData; headingLevel?: HeadingLevel; className?: string }) {
   const work = optionLabel(WORK_TYPES, item.workType);
-  const place = [item.locationLabel, item.neighbourhoodName].filter(Boolean).join(" · ") || CITY.name;
+  const place = [item.locationLabel, districtBySlug(item.districtId)?.name].filter(Boolean).join(" · ") || CITY.province;
   const verified = (item.business?.verification_level ?? 0) >= 1;
   const showSalary = isSalaryVisible(item.salaryMin, item.salaryMax, item.salaryHidden);
   const benefits = benefitOptions(item.benefits).slice(0, 3);

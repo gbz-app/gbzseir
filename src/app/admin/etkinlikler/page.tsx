@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { DemoBadge } from "@/components/shared/badges";
 import { Badge } from "@/components/ui/badge";
 import { CITY } from "@/config/site";
+import { districtName } from "@/config/districts";
 import { formatPhoneTR, formatRelativeTime, truncate } from "@/core/format";
 import { routes, withQuery } from "@/core/routes";
 import { eventCategoryInfo } from "@/features/business/lib/verticals";
@@ -36,7 +37,7 @@ const TAB_LABELS: Record<Tab, string> = {
 };
 
 const ROW_COLUMNS =
-  "id,slug,title,description,category,starts_at,ends_at,status,is_free,price_try,cover_url,venue_name,address,is_demo,created_at,admin_hidden,rejection_reason,organizer_name,has_contact_phone,business_id,businesses(name,slug),creator:profiles!events_created_by_fkey(full_name)";
+  "id,slug,title,description,category,starts_at,ends_at,status,is_free,price_try,cover_url,venue_name,address,district_id,is_demo,created_at,admin_hidden,rejection_reason,organizer_name,has_contact_phone,business_id,businesses(name,slug),creator:profiles!events_created_by_fkey(full_name)";
 
 type Row = {
   id: string;
@@ -52,6 +53,7 @@ type Row = {
   cover_url: string | null;
   venue_name: string | null;
   address: string | null;
+  district_id: string | null;
   is_demo: boolean;
   created_at: string;
   admin_hidden: boolean;
@@ -137,7 +139,7 @@ export default async function AdminEventsPage({ searchParams }: Props) {
                     </div>
                     <h2 className="mt-1.5 font-bold break-words">{e.title}</h2>
                     <p className="text-sm text-muted-foreground">
-                      {eventWhenShort(e.starts_at, e.ends_at)} · {eventPriceLabel(e)} · {e.venue_name ?? "-"}
+                      {eventWhenShort(e.starts_at, e.ends_at)} · {eventPriceLabel(e)} · {[e.venue_name, districtName(e.district_id, "")].filter(Boolean).join(" · ") || "-"}
                     </p>
                     {e.address ? <p className="text-sm text-muted-foreground">{e.address}</p> : null}
                     <p className="text-xs text-muted-foreground">
@@ -187,7 +189,7 @@ export default async function AdminEventsPage({ searchParams }: Props) {
 
         <AdminCard title="Şehir etkinlikleri" description="Bir işletmeye bağlı olmayan, yönetimin eklediği etkinlikler (konser, festival, koşu...). Hemen yayına girer.">
           <EventsManager
-            business={{ id: null, name: CITY.name, address: null, phone: null, lat: CITY.center.lat, lng: CITY.center.lng, neighbourhoodId: null }}
+            business={{ id: null, name: CITY.name, address: null, phone: null, lat: CITY.center.lat, lng: CITY.center.lng, districtId: null }}
             initial={cityEvents}
             categories={vocab.eventCategories}
           />

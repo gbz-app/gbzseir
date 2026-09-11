@@ -28,6 +28,7 @@ import { DetailActions, DetailHero, DetailSheet, PRIMARY_CTA, SECONDARY_CTA } fr
 import { PriceText } from "@/components/shared/price-text";
 import { ReportSheet } from "@/components/shared/report-sheet";
 import { JsonLd } from "@/components/seo/json-ld";
+import { DISTRICT_SLUGS, districtBySlug } from "@/config/districts";
 import { APP_NAME, CITY, SITE_URL } from "@/config/site";
 import { formatDate, formatNumber, formatPrice, truncate } from "@/core/format";
 import { routes } from "@/core/routes";
@@ -62,7 +63,6 @@ import {
   type PublicReview,
   type ServiceCategoryLite,
 } from "@/features/business/lib/queries";
-import { createPublicClient } from "@/features/business/lib/public-client";
 import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { getBusinessMenu, getBusinessRooms, getBusinessServices, type BusinessService, type MenuSection, type Room } from "@/features/business/lib/vertical-queries";
 import { ServiceList } from "@/features/business/components/service-list";
@@ -103,9 +103,10 @@ const SCHEMA_TYPE: Partial<Record<Vertical, string>> = { yemek: "Restaurant", re
 /** Hero photo height: 100 px shorter than the shared DetailHero default. */
 const HERO_HEIGHT = "h-[calc(min(52vh,26rem)_-_100px)] min-h-[188px]";
 
-async function neighbourhoodTotal(): Promise<number> {
-  const { count } = await createPublicClient().from("neighbourhoods").select("id", { count: "exact", head: true });
-  return count ?? 0;
+/** "Gebze, Kocaeli" (just the province when the district is unknown). */
+function placeLine(districtId: string | null): string {
+  const district = districtBySlug(districtId);
+  return district ? `${district.name}, ${CITY.province}` : CITY.province;
 }
 
 function isAlwaysOpen(hours: WorkingHours): boolean {
@@ -125,10 +126,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const b = await getPublicBusinessBySlug(normalizeSlug(slug)).catch(() => null);
   if (!b) return { title: "Firma bulunamadı", robots: { index: false } };
-  const title = b.category_label ? `${b.name} - ${b.category_label}, ${CITY.name}` : `${b.name}, ${CITY.name}`;
+  const place = districtBySlug(b.district_id)?.name ?? CITY.province;
+  const title = b.category_label ? `${b.name} - ${b.category_label}, ${place}` : `${b.name}, ${place}`;
   const description = truncate(
     b.description?.trim() ||
-      `${b.name}: ${CITY.name}'de ${b.category_label ?? "işletme"}. Çalışma saatleri, müşteri yorumları, telefon ve yol tarifi ${APP_NAME}'de.`,
+      `${b.name}, ${placeLine(b.district_id)}: ${b.category_label ?? "işletme"}. Çalışma saatleri, müşteri yorumları, telefon ve yol tarifi ${APP_NAME}'de.`,
     160,
   );
   const url = routes.businesses.detail(b.slug);
@@ -260,11 +262,10 @@ export default async function FirmPage({ params }: Props) {
   const info = VERTICAL_INFO[vertical];
   const offersServices = b.kinds.includes("service") || vertical === "hizmet";
   const withDoctors = hasDoctors(vertical);
-  const [reviews, listings, allCategories, totalNeighbourhoods, menu, rooms, events, services, vocab, doctors, doctorBranches] = await Promise.all([
+  const [reviews, listings, allCategories, menu, rooms, events, services, vocab, doctors, doctorBranches] = await Promise.all([
     getBusinessReviews(b.id).catch(() => [] as PublicReview[]),
     getBusinessActiveListings(b.id).catch(() => [] as BusinessListing[]),
     getServiceCategories().catch(() => [] as ServiceCategoryLite[]),
-    neighbourhoodTotal().catch(() => 0),
     hasMenu(vertical) ? getBusinessMenu(b.id).catch(() => [] as MenuSection[]) : Promise.resolve([] as MenuSection[]),
     hasRooms(vertical) ? getBusinessRooms(b.id).catch(() => [] as Room[]) : Promise.resolve([] as Room[]),
     listBusinessEvents(b.id).catch(() => [] as EventItem[]),
@@ -287,7 +288,9 @@ export default async function FirmPage({ params }: Props) {
   const verified = b.verification_level >= 1;
   const hasLocation = typeof b.lat === "number" && typeof b.lng === "number";
   const groups = groupCategories(b.categories, allCategories);
-  const coversAll = totalNeighbourhoods > 0 && b.areas.length >= totalNeighbourhoods;
+  const district = districtBySlug(b.district_id);
+  const serviceDistricts = b.service_district_ids.map((id) => districtBySlug(id)).filter((d) => !!d);
+  const coversAll = DISTRICT_SLUGS.every((slug) => b.service_district_ids.includes(slug));
   const jobs = listings.filter((l) => l.type === "job");
   const classifieds = listings.filter((l) => l.type !== "job");
   const memberSince = b.approved_at ?? b.created_at;
@@ -298,7 +301,7 @@ export default async function FirmPage({ params }: Props) {
   const minRoomPrice = availableRooms.length ? Math.min(...availableRooms.map((r) => r.price_try!)) : null;
   const heroImages = [...new Set([b.cover_url, ...b.photos.map((p) => p.url)].filter((u): u is string => !!u))];
   const backHref = LISTABLE_VERTICALS.includes(vertical) ? routes.businesses.vertical(vertical) : routes.businesses.root();
-  const areaLine = `${b.neighbourhood_name ? `${b.neighbourhood_name} Mah., ` : ""}${CITY.name}`;
+  const areaLine = placeLine(b.district_id);
   const instagram = instagramLink(b.instagram);
   // Sample firm: shown like a real one, but its number is a placeholder: no call buttons at all (only directions)
   // and no LocalBusiness/review JSON-LD.
@@ -320,12 +323,18 @@ export default async function FirmPage({ params }: Props) {
     starRating: b.star_rating ? { "@type": "Rating", ratingValue: b.star_rating } : undefined,
     // schema.org hasMenu belongs to FoodEstablishment; a hotel's menu stays on the page but not in its Hotel JSON-LD.
     hasMenu: itemCount && vertical !== "otel" ? `${SITE_URL}${routes.businesses.menu(b.slug)}` : undefined,
-    address: { "@type": "PostalAddress", streetAddress: b.address ?? undefined, addressLocality: CITY.name, addressRegion: CITY.province, addressCountry: "TR" },
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: b.address ?? undefined,
+      addressLocality: district?.name,
+      addressRegion: CITY.province,
+      addressCountry: "TR",
+    },
     geo: hasLocation ? { "@type": "GeoCoordinates", latitude: b.lat, longitude: b.lng } : undefined,
     areaServed: isService
-      ? coversAll || b.areas.length === 0
-        ? { "@type": "City", name: CITY.name }
-        : b.areas.map((a) => ({ "@type": "Place", name: `${a.name}, ${CITY.name}` }))
+      ? coversAll || serviceDistricts.length === 0
+        ? { "@type": "AdministrativeArea", name: CITY.province }
+        : serviceDistricts.map((d) => ({ "@type": "City", name: `${d.name}, ${CITY.province}` }))
       : undefined,
     openingHoursSpecification: showHours ? openingHoursSpecification(hours) : undefined,
     aggregateRating:
@@ -404,7 +413,7 @@ export default async function FirmPage({ params }: Props) {
             address={b.address ?? areaLine}
             lat={b.lat}
             lng={b.lng}
-            query={[b.address, b.neighbourhood_name ? `${b.neighbourhood_name} Mah.` : null, CITY.name, CITY.province].filter(Boolean).join(", ")}
+            query={[b.address, district?.name, CITY.province].filter(Boolean).join(", ")}
           />
           {hasLocation ? (
             <div className="mt-3">
@@ -520,7 +529,7 @@ export default async function FirmPage({ params }: Props) {
     </div>
   ) : null;
 
-  const hasServiceInfo = isService && (services.length > 0 || groups.length > 0 || b.areas.length > 0);
+  const hasServiceInfo = isService && (services.length > 0 || groups.length > 0 || serviceDistricts.length > 0);
   const servicesPanel = hasServiceInfo ? (
     <div className="flex flex-col gap-7">
       {services.length ? (
@@ -562,15 +571,15 @@ export default async function FirmPage({ params }: Props) {
         </Section>
       ) : null}
 
-      {b.areas.length > 0 ? (
-        <Section title="Hizmet verdiği mahalleler" icon={MapPin}>
+      {serviceDistricts.length > 0 ? (
+        <Section title="Hizmet verdiği ilçeler" icon={MapPin}>
           {coversAll ? (
-            <p className="rounded-2xl bg-brand-soft px-4 py-3 text-sm font-semibold text-primary">{CITY.name}&apos;nin tüm mahallelerine hizmet veriyor.</p>
+            <p className="rounded-2xl bg-brand-soft px-4 py-3 text-sm font-semibold text-primary">{CITY.province}&apos;nin tüm ilçelerine hizmet veriyor.</p>
           ) : (
             <ul className="flex flex-wrap gap-1.5">
-              {b.areas.map((a) => (
-                <li key={a.id} className="rounded-full bg-card px-3 py-1.5 text-sm font-medium">
-                  {a.name}
+              {serviceDistricts.map((d) => (
+                <li key={d.slug} className="rounded-full bg-card px-3 py-1.5 text-sm font-medium">
+                  {d.name}
                 </li>
               ))}
             </ul>

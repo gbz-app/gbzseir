@@ -4,7 +4,7 @@ import { CITY } from "@/config/site";
 export function HomeHero() {
   return (
     <h1 className="text-[1.75rem] leading-[1.15] font-bold tracking-tight text-balance">
-      {CITY.name}&apos;yi keşfet, aradığını hemen bul
+      {CITY.province}&apos;yi keşfet, aradığını hemen bul
     </h1>
   );
 }

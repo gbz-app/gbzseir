@@ -77,14 +77,14 @@ export function toEntry(item: GuideItem, labels: Labels): GuideEntry {
   const inst = item.kind === "institution" ? institutionCategoryMeta(d.category, labels.institution) : null;
   const cat = inst ? inst.key : item.kind === "place" ? placeCategoryMeta(d.category, labels.place).value : null;
   const type = entryType(item, labels);
-  const hood = item.neighbourhoodName ? `${item.neighbourhoodName} Mah.` : null;
   return {
     id: item.id,
     kind: item.kind,
     name: item.name,
     href: item.href,
     type,
-    sub: [type, hood].filter(Boolean).join(" · ") || null,
+    sub: [type, item.districtName].filter(Boolean).join(" · ") || null,
+    district: item.districtId,
     cat,
     group: inst?.group ?? null,
     subkind: d.subkind,
@@ -98,7 +98,7 @@ export function toEntry(item: GuideItem, labels: Labels): GuideEntry {
     // List thumbnail: the 1024 px variant when there is one, not the original.
     photo: d.photos[0]?.thumbUrl || d.photos[0]?.url || null,
     icon: item.kind === "institution" ? institutionIconName(cat, labels.institution) : item.kind === "place" ? placeIconName(cat, labels.place) : null,
-    q: trNormalize([item.name, type, item.neighbourhoodName, item.address].filter(Boolean).join(" ")),
+    q: trNormalize([item.name, type, item.districtName, item.address].filter(Boolean).join(" ")),
   };
 }
 

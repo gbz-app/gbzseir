@@ -25,7 +25,7 @@ export function GuideEntryIcon({ entry, size = "lg", className }: { entry: Pick<
 }
 
 /**
- * White list card of a guide row: photo or icon, name, type · mahalle, "Doğrulandı" / "Özel" chips and the distance
+ * White list card of a guide row: photo or icon, name, type · ilçe, "Doğrulandı" / "Özel" chips and the distance
  * (`distanceM` from the server, else from the stored location on the client). Server-safe.
  */
 export function GuideCard({ entry, distanceM, className }: { entry: GuideEntry; distanceM?: number | null; className?: string }) {

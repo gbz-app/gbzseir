@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { routes, withQuery } from "@/core/routes";
-import { CITY } from "@/config/site";
+import { districtName } from "@/config/districts";
 import { JsonLd } from "@/components/seo/json-ld";
 import { EDITABLE_STATUSES } from "@/features/listings/constants";
 import { listingPriceText } from "@/features/listings/format";
@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const live = displayState(d.status, d.expires_at) === "live";
   return {
     title: `${d.title} - ${listingPriceText(d.price)}`,
-    description: (d.description || `${CITY.name}'de ikinci el ilan`).slice(0, 160),
+    description: (d.description || `${districtName(d.district_id)} ikinci el ilanı`).slice(0, 160),
     alternates: { canonical: routes.listings.classified(d.id) },
     robots: live ? undefined : { index: false, follow: true },
     openGraph: d.media[0] ? { images: [{ url: d.media[0].url }] } : undefined,

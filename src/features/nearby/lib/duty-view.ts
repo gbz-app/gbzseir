@@ -6,7 +6,7 @@ import { distanceMeters, type LatLng } from "@/core/geo";
 import { addDaysToKey, istanbulDateKey } from "@/core/time";
 import { trCompare } from "@/core/tr";
 
-type DutyLike = { duty_start: string; duty_end: string; name: string; neighbourhood_name: string | null; lat: number; lng: number };
+type DutyLike = { duty_start: string; duty_end: string; name: string; district_name?: string | null; lat: number; lng: number };
 
 export type DutyView<T> = {
   current: T[];
@@ -46,9 +46,9 @@ export function buildDutyView<T extends DutyLike>(rows: T[], now: number): DutyV
   };
 }
 
-/** Nearest first when a point is known, otherwise by neighbourhood then name (Turkish collation). */
+/** Nearest first when a point is known, otherwise by district then name (Turkish collation). */
 export function sortDutyRows<T extends DutyLike>(rows: T[], point: LatLng | null): Array<T & { distance: number | null }> {
   const withDistance = rows.map((r) => ({ ...r, distance: point ? distanceMeters(point, { lat: r.lat, lng: r.lng }) : null }));
   if (point) return withDistance.sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
-  return withDistance.sort((a, b) => trCompare(a.neighbourhood_name ?? "", b.neighbourhood_name ?? "") || trCompare(a.name, b.name));
+  return withDistance.sort((a, b) => trCompare(a.district_name ?? "", b.district_name ?? "") || trCompare(a.name, b.name));
 }

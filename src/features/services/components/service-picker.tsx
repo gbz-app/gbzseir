@@ -89,7 +89,7 @@ export function ServicePicker({ data, hrefFor, selectedSlug, onSelectedClick }: 
               e.currentTarget.blur();
             }
           }}
-          placeholder="Örn. ev temizliği, kombi, nakliyat"
+          placeholder="Ev temizliği, kombi, nakliyat…"
           aria-label="Hizmet ara"
           enterKeyHint="search"
           autoComplete="off"

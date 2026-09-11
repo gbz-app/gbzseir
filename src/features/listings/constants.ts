@@ -75,7 +75,7 @@ export const JOB_LOCATIONS: Array<{ key: string; label: string; hint: string }> 
   { key: "guzeller-osb", label: "Gebze Güzeller OSB", hint: "Güzeller Organize Sanayi Bölgesi" },
   { key: "dilovasi-osb", label: "Dilovası OSB", hint: "Dilovası Organize Sanayi Bölgesi" },
   { key: "tosb", label: "TOSB", hint: "TAYSAD Organize Sanayi Bölgesi" },
-  { key: "merkez", label: "Merkez", hint: "Gebze merkez ve mahalleler" },
+  { key: "merkez", label: "Merkez", hint: "İlçe merkezi ve çevresi" },
 ];
 
 export type SortKey = "yeni" | "fiyat-artan" | "fiyat-azalan";

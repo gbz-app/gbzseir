@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Store } from "lucide-react";
+import { CITY } from "@/config/site";
 import { routes } from "@/core/routes";
 import { cn } from "@/lib/utils";
 import { VERTICAL_INFO, type Vertical } from "@/features/business/lib/verticals";
@@ -12,14 +13,14 @@ function verticalInfo(key: string | null) {
   return key && key in VERTICAL_INFO ? VERTICAL_INFO[key as Vertical] : null;
 }
 
-/** White card: photo (or the category visual) with a type chip, then name and category / neighbourhood. Server-safe. */
+/** White card: photo (or the category visual) with a type chip, then name and category / district. Server-safe. */
 function PopularPlaceCard({ place, categories, priority }: { place: PopularPlace; categories?: readonly PlaceCategoryDef[]; priority?: boolean }) {
   const isPlace = place.kind === "place";
   const placeMeta = isPlace ? placeCategoryMeta(place.category, categories) : null;
   const vertical = isPlace ? null : verticalInfo(place.category);
   const Icon = placeMeta?.icon ?? vertical?.icon ?? Store;
   const chip = placeMeta?.label ?? vertical?.label ?? "İşletme";
-  const sub = [place.label, place.neighbourhoodName].filter(Boolean).join(" · ") || "Gebze";
+  const sub = [place.label, place.districtName].filter(Boolean).join(" · ") || CITY.province;
 
   return (
     <Link

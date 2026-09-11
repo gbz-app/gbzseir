@@ -7,7 +7,7 @@ import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
 import { DemoBadge, DutyBadge } from "@/components/shared/badges";
 import { DemoDataBanner } from "@/components/shared/demo-data-banner";
-import { ECZACI_ODASI_NAME, ECZACI_ODASI_URL } from "../config";
+import { ECZACI_ODASI_NAME, ECZACI_ODASI_URL, districtLabel } from "../config";
 import type { DutyRow } from "../types";
 import { KindIcon } from "./kind-icon";
 
@@ -23,8 +23,9 @@ export type DutyCardProps = {
   className?: string;
 };
 
-/** Pharmacy card for duty lists: name, neighbourhood, address, window, Ara + Yol tarifi. */
+/** Pharmacy card for duty lists: name, district, address, window, Ara + Yol tarifi. */
 export function DutyCard({ row, distance, windowText, onDuty, demo, className }: DutyCardProps) {
+  const district = districtLabel(row);
   return (
     <article className={cn("relative rounded-card bg-card p-4", className)}>
       <div className="flex items-start gap-3">
@@ -46,7 +47,7 @@ export function DutyCard({ row, distance, windowText, onDuty, demo, className }:
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             {onDuty ? <DutyBadge /> : null}
             {demo ? <DemoBadge /> : null}
-            {row.neighbourhood_name ? <span className="text-sm text-muted-foreground">{row.neighbourhood_name} Mah.</span> : null}
+            {district ? <span className="text-sm text-muted-foreground">{district}</span> : null}
           </div>
           {row.address ? <p className="mt-1.5 line-clamp-2 text-sm leading-snug">{row.address}</p> : null}
           <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-highlight-foreground dark:text-highlight">

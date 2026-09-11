@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
-import { SITE_URL } from "@/config/site";
+import { CITY, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { getServiceCatalog } from "@/features/services/data";
 import { servicePickerData } from "@/features/services/util";
@@ -10,8 +10,7 @@ export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: "Hizmetler",
-  description:
-    "Gebze'de ev temizliği, boya badana, nakliyat, kombi bakımı, tesisat ve daha fazlası için ücretsiz talep oluştur; uygun onaylı firmalar seninle ilgilensin.",
+  description: `${CITY.province}'de ev temizliği, boya badana, nakliyat, kombi bakımı, tesisat ve daha fazlası için ücretsiz talep oluştur; uygun onaylı firmalar seninle ilgilensin.`,
   alternates: { canonical: routes.services.root() },
 };
 
@@ -26,7 +25,7 @@ export default async function ServicesPage() {
         data={{
           "@context": "https://schema.org",
           "@type": "ItemList",
-          name: "Gebze hizmet kategorileri",
+          name: `${CITY.province} hizmet kategorileri`,
           itemListElement: catalog.parents.map((p, i) => ({
             "@type": "ListItem",
             position: i + 1,

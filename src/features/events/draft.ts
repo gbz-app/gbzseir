@@ -24,7 +24,8 @@ export type EventDraft = {
   venueName: string;
   address: string;
   pin: EventPin | null;
-  neighbourhoodId: string | null;
+  /** District slug (districts.id) of a custom place; a confirmed pin sets it. Missing in drafts saved before the Kocaeli update. */
+  districtId: string | null;
   cover: EventCover | null;
   /** null = not chosen yet. */
   paid: boolean | null;
@@ -49,7 +50,7 @@ export function emptyEventDraft(organizer: string | null): EventDraft {
     venueName: "",
     address: "",
     pin: null,
-    neighbourhoodId: null,
+    districtId: null,
     cover: null,
     paid: null,
     price: "",
@@ -77,7 +78,7 @@ export function draftFromEvent(e: OwnerEvent, phone: string | null): EventDraft 
     venueName: atBusiness ? "" : (e.venue_name ?? ""),
     address: atBusiness ? "" : (e.address ?? ""),
     pin: !atBusiness && e.lat != null && e.lng != null ? { lat: e.lat, lng: e.lng } : null,
-    neighbourhoodId: atBusiness ? null : e.neighbourhood_id,
+    districtId: atBusiness ? null : e.district_id,
     cover: e.cover_url ? { url: e.cover_url, path: null } : null,
     paid: !e.is_free,
     price: amountInput(e.price_try),

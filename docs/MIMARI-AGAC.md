@@ -23,7 +23,7 @@ Bu belge, eski sohbet olmadan projeye giren yeni bir Claude Code oturumu ya da g
 - **Barındırma:** Vercel functions `hnd1` (Tokyo), `vercel.json` içinde. DB'ye yakın kalsın diye bölgeyi değiştirme. `vercel.json` içinde `crons: []`: bütün zamanlanmış işler pg_cron'da.
 - **Push:** Web Push (VAPID, `web-push` paketi). Gönderici `/api/notifications/push`, tetikleyen DB trigger'ı ve pg_net.
 - **Medya:** Cloudflare R2 (S3 SigV4 presigned PUT, `src/lib/media/*`): ilan fotoğrafı, ilan videosu, video kapağı. Diğer görseller Supabase Storage `media` bucket'ında.
-- **Harita:** MapLibre GL v6 ve OpenFreeMap karoları (`src/features/nearby/map/*`). Google Maps JS API yalnız `LocationPicker` içinde kullanılıyor (Places Autocomplete ve ters geocode). Anahtar yoksa MapLibre'ye düşer.
+- **Harita:** her yerde Google Maps JavaScript API (11 Eylül 2026'dan beri; MapLibre ve OpenFreeMap kaldırıldı). Ortak katman `src/components/maps/**`, yükleyici `src/lib/maps/google.ts`, stiller `map-styles.ts` (Google'ın kendi POI'leri gizli). Pinler Map ID gerektirmeyen bir OverlayView katmanı (daire pinler). Harita öncelikli sayfalar (Yakınımda, rehber kategorisi) haritayı hemen yükler; detay sayfalarında `MapPreviewCard` dokununca yüklenir (maliyet). `LocationPicker` de Google sağlayıcısını kullanır.
 - **GebzemAI:** sağlayıcı katmanı OpenAI (Chat Completions) ve Anthropic (Messages) destekler, ikisi de fetch ile ve SDK'sız. Canlı ayar: `ai_provider = openai`, `ai_model = gpt-5.4-mini`, `ai_enabled = false`.
 - **Diğer servisler:** Open-Meteo (hava), AlAdhan (namaz vakitleri, Diyanet yöntemi), RSS haber kaynakları, Cloudflare Turnstile (isteğe bağlı, anahtar tanımlı değil).
 - Harici kaynaklar ayrıca `next.config.ts` içindeki CSP'de listeli (report-only).
@@ -195,7 +195,7 @@ src/features/
 |   |-- actions.ts                         # refreshMyBusinessPages(): sahibin sayfalarını revalidate eder
 |   |-- review-actions.ts                  # submit_business_review / delete_my_business_review
 |   |-- components/apply-wizard.tsx + apply/  # yeni işletme sihirbazı (tür adımı, "Sana neler açılır")
-|   |-- components/edit/*, editor/*       # bölüm bölüm düzenleyici; location-picker (Google Maps / MapLibre), hours-editor, area-picker, doc-upload
+|   |-- components/edit/*, editor/*       # bölüm bölüm düzenleyici; location-picker (Google Maps), hours-editor, area-picker, doc-upload
 |   |-- components/doctors/*              # doktor kartı/ızgarası, doctors-explorer (/kesfet/saglik#doktorlar), doctors-manager
 |   |-- components/                        # business-limit, business-switcher, firm-gallery, firm/*, menu-manager, menu-view, rooms-manager, room-card, services-manager, service-list, photos-manager, vertical-explorer, firms-directory, vacation-toggle, owner-gate ...
 |   `-- home-widgets.tsx, sitemap.ts
@@ -226,7 +226,7 @@ src/features/
 |   |-- server/duty-import.ts              # nöbet import adaptörü (NosyAPI)
 |   |-- server/poi-sync.ts                 # aylık KBB/OSM eşitleme (poi_sync_apply)
 |   |-- server/external.ts                 # AlAdhan namaz vakitleri
-|   |-- map/nearby-map.tsx, mini-map.tsx, lazy-map.tsx, markers.ts, attribution.tsx  # MapLibre + OpenFreeMap
+|   |-- (harita bileşenleri src/components/maps/** altında: Google Maps, OverlayView pin katmanı, MapPreviewCard)
 |   |-- lib/                               # duty-view, prayer, hours, taxi, weather kodları, use-nearby-data, use-reference-point
 |   `-- components/                        # nearby-explorer, nearby-sheet, duty-browser, duty-card, pharmacy-duty, info-report-sheet ("Bilgi hatalı mı?"), place-card, prayer-times ...
 |-- onboarding/                            # onboarding-gate, personalize-step (izin hazırlığı), pre-script, illustrations, storage
@@ -780,7 +780,7 @@ pg_net ile çağrılan işler `https://gbzsehir.vercel.app`'e `x-cron-secret` (p
 
 **Şehir rehberi:**
 - `poi` 10 türü tutar: pharmacy, mosque, bus_stop, place, taxi, atm, institution, fuel, ev_charge, bank.
-- `/yakinimda`: MapLibre haritası, chip'ler.
+- `/yakinimda`: Google Maps haritası (hemen yüklenir, Google POI'leri gizli, bizim daire pinlerimiz), chip'ler.
 - `/rehber` hub, `/rehber/[kategori]` (GUIDE_SECTIONS ya da kurum kategori slug'ı), `/kurum/[slug]`. Yerler `/gezilecek-yerler/[slug]`.
 - Kurum kategorileri `institution_categories` tablosunda, grupları yonetim, guvenlik, adalet, saglik, egitim, iletisim. Ör. belediye, kaymakamlik, nufus, tapu, vergi, sgk, emniyet, jandarma, adliye, hastane, aile_sagligi_merkezi, okullar, universite, kutuphane, ptt.
 - ATM/banka `details.bank`, akaryakıt `details.brand`, şarj `details.operator` alanını tutar.
@@ -804,7 +804,9 @@ pg_net ile çağrılan işler `https://gbzsehir.vercel.app`'e `x-cron-secret` (p
    - `ai_daily_messages` 20/gün, `ai_per_minute` 5, `ai_daily_budget_usd` 5 USD/gün global.
 3. Sağlayıcı: `runProviderAgent` (OpenAI ya da Anthropic), stream.
    - En fazla 4 tool turu, 800 çıktı token'ı, 50 sn süre.
-   - 6 uygulama içi tool, anon/RLS sorgularla.
+   - 9 araç (`src/features/ai/server/tools.ts`), anon/RLS sorgularla: `nobetci_eczane`, `isletme_ara`, `yer_ara`, `etkinlikler`, `taksi_duraklari`, `son_haberler`, `doktor_bul` (branşa göre doktor, arama kliniğe), `otobus_hatlari` (durağın/yerin yakınından geçen hatlar; `transit_route_stops` geometrik bağlantı, sefer saati yok), `internet_ara`.
+   - Hepsi isteğe bağlı `ilce` (12 ilçe slug'ı) alır; sonuçlarda mahalle değil ilçe döner.
+   - `internet_ara` yalnız veritabanında sonuç yoksa: `web-search.ts` OpenAI Responses API `web_search` aracını (gpt-5.4-mini, effort none, Kocaeli konumu) çağırır, kaynakları dış bağlantı kartı yapar. Arama başı ~0,015 USD; bu maliyet `costMicroUsd` ile turun maliyetine eklenir (günlük bütçe).
 4. Kullanım `ai_finish_turn` ile yazılır (service role).
 5. Yalnız kullanım metaverisi saklanır; konuşma metni saklanmaz ya da loglanmaz.
 6. Açık olması için iki şart: `ai_enabled = true` ve seçili sağlayıcının anahtarı (`OPENAI_API_KEY` ya da `ANTHROPIC_API_KEY`) public projede tanımlı. Ayarlar `/admin/gebzemai`'de.
@@ -895,8 +897,8 @@ Hangi projede olacağı koddan çıkarıldı. Vercel'deki gerçek tanımlar bu b
 - **Demo veri:** canlıya çıkmadan `/admin/veri` ya da `remove-demo.mjs` ile silinmeli. O zamana kadar `refresh-demo-dates.mjs` 2026-11-10'dan önce tekrar çalıştırılmalı.
 - **Ürün kararları kodla uyuşmuyor (hafızadan; doğrulanmadı):**
   - Kapsam tüm Kocaeli olacak ama `src/config/site.ts` `CITY` hâlâ Gebze.
-  - Mahalle alanları kaldırılacak ama `neighbourhood-picker` ve `location-chip` hâlâ var.
-  - Haritalarda her yerde Google Maps istenmiş ama harita görünümleri MapLibre + OpenFreeMap.
+  - (Çözüldü 12 Eylül, faz B) Mahalle arayüzden kalktı: ortak `DistrictPicker` (`src/components/shared/district-picker.tsx`), konum deposu `district` tutar (`src/lib/location/store.ts`, anahtar `gebzem.district.v1`), `useApproxLocation().district`, filtreler `?ilce=`. Yazmalar `district_id` / `p_district_id` / `p_district_ids` gönderir; `zz_fill_district` trigger'ı pin'den ilçe doldurur. Neighbourhood tabloları ve kolonları faz C'ye kadar veritabanında duruyor.
+  - (Çözüldü 11 Eylül) Haritalar her yerde Google Maps.
 - **Bekleyen adımlar:** admin 2FA (TOTP), GTFS otobüs hatları (feed URL'si ve lisans gerekiyor), R2 kurulum token'ının silinmesi.
 - **Repo OneDrive altında:** taşınması önerildi.
 - **Sonraki büyük adım:** PWA prototipi bitince Flutter + Go ile yerel uygulama. Bu PWA onun şartnamesi (ekranlar, akışlar, şema, iş kuralları).

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { BookOpen, ChevronRight, Landmark, MapPin } from "lucide-react";
+import { districtBySlug } from "@/config/districts";
 import { routes } from "@/core/routes";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
@@ -20,20 +21,10 @@ const PAGE_SIZE = 24;
 const TILE_MEDIA = "aspect-[4/3] w-full rounded-chip";
 
 /** Photo card of a place: photo (or category art), category, name and district. White surface, no shadow or ring. */
-function PlaceTile({
-  place,
-  categories,
-  district,
-  priority,
-}: {
-  place: PlaceSummary;
-  categories: readonly PlaceCategoryDef[];
-  district: string | undefined;
-  priority?: boolean;
-}) {
+function PlaceTile({ place, categories, priority }: { place: PlaceSummary; categories: readonly PlaceCategoryDef[]; priority?: boolean }) {
   const photo = place.details.photos[0];
   const type = placeTypeLabel(place.details.category, place.details.subkind, categories);
-  const where = district ?? (place.neighbourhoodName ? `${place.neighbourhoodName} Mah.` : null);
+  const where = districtBySlug(place.districtId)?.name;
   return (
     <Link
       href={routes.nearby.place(place.slug)}
@@ -60,16 +51,7 @@ function PlaceTile({
 }
 
 /** D6 /gezilecek-yerler: category chips (admin order) and a two-column grid of photo cards (curated places first). */
-export function GuidePlacesBrowser({
-  places,
-  categories = PLACE_CATEGORY_DEFS,
-  districtNames = {},
-}: {
-  places: PlaceSummary[];
-  categories?: readonly PlaceCategoryDef[];
-  /** Place id -> district name (poi.district_id). */
-  districtNames?: Readonly<Record<string, string>>;
-}) {
+export function GuidePlacesBrowser({ places, categories = PLACE_CATEGORY_DEFS }: { places: PlaceSummary[]; categories?: readonly PlaceCategoryDef[] }) {
   const [cat, setCat] = React.useState<string>(ALL);
   const [limit, setLimit] = React.useState(PAGE_SIZE);
   const keyOf = React.useCallback((p: PlaceSummary) => placeCategoryMeta(p.details.category, categories).value, [categories]);
@@ -116,7 +98,7 @@ export function GuidePlacesBrowser({
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {shown.map((p, i) => (
               <li key={p.id}>
-                <PlaceTile place={p} categories={categories} district={districtNames[p.id]} priority={i < 2} />
+                <PlaceTile place={p} categories={categories} priority={i < 2} />
               </li>
             ))}
           </ul>

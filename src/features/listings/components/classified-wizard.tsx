@@ -6,9 +6,11 @@ import { AlignLeft, Banknote, Eye, FileText, Images, LayoutGrid, MapPin, PenLine
 import { routes } from "@/core/routes";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
+import { DistrictPicker } from "@/components/shared/district-picker";
 import { Wizard, type WizardStep } from "@/components/wizard/wizard";
+import { districtBySlug, isDistrictSlug } from "@/config/districts";
 import { useAuth } from "@/lib/auth/auth-provider";
+import { getDefaultDistrict } from "@/lib/location/store";
 import { createClient } from "@/lib/supabase/client";
 import {
   BANNED_CATEGORIES_TEXT,
@@ -23,7 +25,7 @@ import {
 } from "../constants";
 import type { AttributeField, AttributeValue, ListingCategory } from "../types";
 import { categoryPath, describeAttributes, type ClassifiedViewModel } from "../view-models";
-import { digitsInput, type ClassifiedDraft } from "../wizard-drafts";
+import { digitsInput, districtPatch, draftDistrict, type ClassifiedDraft } from "../wizard-drafts";
 import { ChoiceChips } from "./choice-chips";
 import { ClassifiedMediaStep } from "./classified-media-step";
 import { ClassifiedDetailView } from "./detail-views";
@@ -40,8 +42,7 @@ const EMPTY: ClassifiedDraft = {
   condition: null,
   attrs: {},
   description: "",
-  neighbourhoodId: null,
-  neighbourhoodName: null,
+  districtId: null,
   video: null,
 };
 
@@ -120,7 +121,8 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
   const [uploading, setUploading] = React.useState(false);
 
   const initialData = React.useMemo<ClassifiedDraft>(
-    () => initial ?? { ...EMPTY, neighbourhoodId: profile?.neighbourhood_id != null ? String(profile.neighbourhood_id) : null },
+    // New listing: the profile's home district, else the district chosen on this device.
+    () => initial ?? { ...EMPTY, districtId: isDistrictSlug(profile?.district_id) ? profile.district_id : getDefaultDistrict() },
     // Only the first render matters (the Wizard keeps its own state and draft).
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -139,7 +141,7 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
       categoryIcon: path.category?.icon ?? path.parent?.icon ?? null,
       conditionLabel: optionLabel(CONDITIONS, d.condition),
       attributes: describeAttributes(schemaFor(categories, d.categoryId), d.attrs),
-      neighbourhoodName: d.neighbourhoodName,
+      districtName: districtBySlug(draftDistrict(d))?.name ?? null,
       postedAt: new Date().toISOString(),
       listingNo: null,
       images: d.images.map((i) => ({ url: i.url, thumbUrl: i.thumbUrl })),
@@ -209,7 +211,7 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
         return (
           <div className="flex flex-col gap-5">
             <Field id="ilan-baslik" label="Başlık" icon={PenLine} hint={`${d.title.length}/${TITLE_MAX}`}>
-              <Input id="ilan-baslik" value={d.title} maxLength={TITLE_MAX} placeholder="Örn. Az kullanılmış çocuk bisikleti" onChange={(e) => ctx.setData({ title: e.target.value })} />
+              <Input id="ilan-baslik" value={d.title} maxLength={TITLE_MAX} placeholder="Ürünü birkaç kelimeyle anlat" onChange={(e) => ctx.setData({ title: e.target.value })} />
             </Field>
             <Field id="ilan-fiyat" label="Fiyat" icon={Banknote}>
               <div className="relative">
@@ -261,15 +263,10 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
       id: "konum",
       title: "İlan nerede?",
       icon: MapPin,
-      help: "İlanda sadece mahalle görünür; açık adresin paylaşılmaz.",
-      validate: (d) => (d.neighbourhoodId ? null : "Mahalle seç."),
+      help: "İlanda sadece ilçe görünür; açık adresin paylaşılmaz.",
+      validate: (d) => (draftDistrict(d) ? null : "İlçe seç."),
       render: (ctx) => (
-        <NeighbourhoodPicker
-          value={ctx.data.neighbourhoodId}
-          onChange={(n) => ctx.setData({ neighbourhoodId: n ? String(n.id) : null, neighbourhoodName: n?.name ?? null })}
-          persistDefault={false}
-          showUseLocation
-        />
+        <DistrictPicker value={draftDistrict(ctx.data)} onChange={(dist) => ctx.setData(districtPatch(dist?.slug ?? null))} showUseLocation />
       ),
     },
     {
@@ -288,6 +285,8 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
   const onComplete = async (d: ClassifiedDraft): Promise<string | void> => {
     if (!user) return "Oturumun kapanmış. Lütfen tekrar giriş yap.";
     if (!d.categoryId) return "Bir kategori seç.";
+    const district = draftDistrict(d);
+    if (!district) return "İlçe seç.";
     const supabase = createClient();
     const attributes: Record<string, AttributeValue> = {};
     for (const f of schemaFor(categories, d.categoryId)) {
@@ -301,13 +300,21 @@ export function ClassifiedWizard({ categories, editId, initial }: ClassifiedWiza
       description: d.description.trim(),
       price_try: Number(d.price),
       attributes,
-      neighbourhood_id: d.neighbourhoodId,
+      district_id: district,
     };
 
     let id = editId;
     let status: string | null = null;
     if (editId) {
-      const { data, error } = await supabase.from("listings").update(payload).eq("id", editId).eq("owner_id", user.id).select("id,status").single();
+      // A new district drops the listing's old neighbourhood (it would contradict the district until the column goes).
+      const moved = district !== (initial?.districtId ?? null);
+      const { data, error } = await supabase
+        .from("listings")
+        .update(moved ? { ...payload, neighbourhood_id: null } : payload)
+        .eq("id", editId)
+        .eq("owner_id", user.id)
+        .select("id,status")
+        .single();
       if (error) return error.message;
       status = data.status;
     } else {

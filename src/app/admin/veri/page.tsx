@@ -44,8 +44,6 @@ const COUNT_LABELS: Record<string, string> = {
   businesses_approved: "Onaylı işletme",
   listings_active: "Aktif ilan",
   requests: "Hizmet talebi",
-  neighbourhoods: "Mahalle",
-  neighbourhoods_without_center: "Merkezi olmayan mahalle",
   service_categories: "Hizmet kategorisi",
   sub_categories_without_flow: "Soru akışı olmayan alt kategori",
   listing_categories: "İlan kategorisi",
@@ -165,14 +163,17 @@ export default async function AdminDataPage() {
 
         <AdminCard title="Sayımlar">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
-            {Object.entries(h.counts).map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-2 border-b py-1.5">
-                <dt className="text-muted-foreground">{COUNT_LABELS[k] ?? k}</dt>
-                <dd className={v && (k === "neighbourhoods_without_center" || k === "sub_categories_without_flow" || k === "notifications_unsent") ? "font-semibold text-amber-700" : "font-semibold"}>
-                  {formatNumber(v)}
-                </dd>
-              </div>
-            ))}
+            {/* admin_data_health still counts neighbourhoods until phase C; the app no longer uses them. */}
+            {Object.entries(h.counts)
+              .filter(([k]) => !k.startsWith("neighbourhoods"))
+              .map(([k, v]) => (
+                <div key={k} className="flex justify-between gap-2 border-b py-1.5">
+                  <dt className="text-muted-foreground">{COUNT_LABELS[k] ?? k}</dt>
+                  <dd className={v && (k === "sub_categories_without_flow" || k === "notifications_unsent") ? "font-semibold text-amber-700" : "font-semibold"}>
+                    {formatNumber(v)}
+                  </dd>
+                </div>
+              ))}
           </dl>
         </AdminCard>
 

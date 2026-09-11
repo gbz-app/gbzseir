@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { BottomSheet } from "@/components/shared/bottom-sheet";
-import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
+import { DistrictPicker } from "@/components/shared/district-picker";
 import { CONDITIONS, EXPERIENCE_LEVELS, JOB_LOCATIONS, WORK_TYPES } from "../constants";
 import { attributeFilterFields, emptyQuery, pickAttrFilters, type ListingsQuery } from "../filters";
 import { digitsOnly, groupDigits } from "../format";
-import type { ListingCategory, NeighbourhoodRef } from "../types";
+import type { ListingCategory } from "../types";
 import { ChoiceChips } from "./choice-chips";
 
 export type FilterSheetProps = {
@@ -18,7 +18,6 @@ export type FilterSheetProps = {
   query: ListingsQuery;
   /** Categories of the current tab (2. el categories or job sectors). */
   categories: ListingCategory[];
-  neighbourhood: NeighbourhoodRef | null;
   onApply: (q: ListingsQuery) => void;
 };
 
@@ -37,9 +36,8 @@ function Section({ id, title, children }: { id: string; title: string; children:
 const numberText = (v: string) => v.replace(/[^\d.,]/g, "").slice(0, 16) || null;
 
 /** E2: filter bottom sheet. Mount with a new `key` every time it opens so the draft starts from the URL state. */
-export function FilterSheet({ open, onOpenChange, query, categories, neighbourhood, onApply }: FilterSheetProps) {
+export function FilterSheet({ open, onOpenChange, query, categories, onApply }: FilterSheetProps) {
   const [draft, setDraft] = React.useState<ListingsQuery>(query);
-  const [nb, setNb] = React.useState<NeighbourhoodRef | null>(neighbourhood);
   const isJob = query.tab === "is-ilanlari";
 
   const tops = categories.filter((c) => !c.parent_id);
@@ -64,14 +62,13 @@ export function FilterSheet({ open, onOpenChange, query, categories, neighbourho
   const apply = () => {
     let { min, max } = draft;
     if (min != null && max != null && min > max) [min, max] = [max, min];
-    onApply({ ...draft, min, max, mahalle: nb?.slug || null, attrs: pickAttrFilters(draft.attrs, attrFields) });
+    onApply({ ...draft, min, max, attrs: pickAttrFilters(draft.attrs, attrFields) });
     onOpenChange(false);
   };
 
   const clear = () => {
     const e = emptyQuery(query.tab);
     setDraft({ ...e, q: query.q, sirala: query.sirala });
-    setNb(null);
   };
 
   const priceValue = (n: number | null) => (n == null ? "" : groupDigits(String(n)));
@@ -122,6 +119,17 @@ export function FilterSheet({ open, onOpenChange, query, categories, neighbourho
           ) : null}
         </Section>
 
+        <Section id="filtre-ilce" title="İlçe">
+          <DistrictPicker
+            value={draft.ilce}
+            onChange={(d) => patch({ ilce: d?.slug ?? null })}
+            allowClear
+            clearLabel="Tüm ilçeler"
+            placeholder="Tüm ilçeler"
+            title="İlçe seç"
+          />
+        </Section>
+
         {!isJob ? (
           <>
             <Section id="filtre-fiyat" title="Fiyat aralığı (TL)">
@@ -141,16 +149,6 @@ export function FilterSheet({ open, onOpenChange, query, categories, neighbourho
                   onChange={(e) => patch({ max: parsePrice(e.target.value) })}
                 />
               </div>
-            </Section>
-            <Section id="filtre-mahalle" title="Mahalle">
-              <NeighbourhoodPicker
-                value={nb?.id ?? null}
-                onChange={(n) => setNb(n && n.slug ? { id: String(n.id), name: n.name, slug: n.slug } : null)}
-                persistDefault={false}
-                allowClear
-                placeholder="Tüm mahalleler"
-                title="Mahalle seç"
-              />
             </Section>
             <Section id="filtre-durum" title="Durum">
               <ChoiceChips

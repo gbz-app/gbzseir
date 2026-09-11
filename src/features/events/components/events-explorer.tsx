@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CalendarDays, CalendarPlus, ChevronRight, History, Map as MapIcon, Search, X } from "lucide-react";
 import { routes } from "@/core/routes";
 import { slugifyTr } from "@/core/tr";
+import { districtName } from "@/config/districts";
 import { Button } from "@/components/ui/button";
 import { ExploreHeader, useNow } from "@/components/shared/explore-header";
 import { EVENT_CATEGORIES, type EventCategory, type EventCategoryDef } from "@/features/business/lib/verticals";
@@ -76,7 +77,7 @@ export function EventsExplorer({
         (!freeOnly || e.is_free) &&
         (!range || eventInWindow(e.starts_at, e.ends_at, range)) &&
         (!needle ||
-          slugifyTr(`${e.title} ${e.venue_name ?? ""} ${e.address ?? ""} ${e.neighbourhood_name ?? ""} ${e.business?.name ?? ""} ${e.category_label} ${e.organizer_name ?? ""}`).includes(
+          slugifyTr(`${e.title} ${e.venue_name ?? ""} ${e.address ?? ""} ${districtName(e.district_id, "")} ${e.business?.name ?? ""} ${e.category_label} ${e.organizer_name ?? ""}`).includes(
             needle,
           )),
     );
@@ -103,7 +104,7 @@ export function EventsExplorer({
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Etkinlik ara: isim, yer, mahalle"
+          placeholder="Etkinlik ara: isim, yer, ilçe"
           enterKeyHint="search"
           className="h-12 w-full rounded-full bg-card pr-11 pl-12 text-[15px] outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:hidden"
         />

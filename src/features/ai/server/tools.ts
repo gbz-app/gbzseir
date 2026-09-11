@@ -6,15 +6,18 @@ import { addDaysToKey, istanbulDateKey } from "@/core/time";
 import { trNormalize } from "@/core/tr";
 import { getDutyData, getPlaces } from "@/features/nearby/server/queries";
 import { createPublicClient as createNearbyClient } from "@/features/nearby/server/public-client";
-import { displayStopName, placeCategoryMeta, poiHref } from "@/features/nearby/config";
-import type { PoiKind, PoiRow } from "@/features/nearby/types";
+import { placeCategoryMeta, poiHref } from "@/features/nearby/config";
+import type { PoiKind } from "@/features/nearby/types";
 import { createPublicClient as createBusinessClient } from "@/features/business/lib/public-client";
-import { describeOpenStatus, openStatusAt, parseWorkingHours, type OpenStatus } from "@/features/business/lib/hours";
+import { DAY_LABELS, describeOpenStatus, openStatusAt, parseWorkingHours, type DayKey, type OpenStatus } from "@/features/business/lib/hours";
+import { DISTRICT_SLUGS, KOCAELI_DISTRICTS, districtName, isDistrictSlug } from "@/config/districts";
 import { BUSINESS_VERTICALS, LISTABLE_VERTICALS, VERTICAL_INFO, parseVertical, resolveVertical, type Vertical } from "@/features/business/lib/verticals";
 import { listUpcomingEvents } from "@/features/events/queries";
 import { listPublishedArticles } from "@/features/content/articles/queries";
 import type { AiCard, AiCardIcon } from "../lib/types";
 import type { AgentTool as ApiTool } from "./agent";
+import { providerApiKey } from "./config";
+import { webSearch } from "./web-search";
 
 /**
  * GebzemAI tools: app data only, through the same public (anon, RLS) queries the pages use. Each result is compact
@@ -27,7 +30,8 @@ const MAX_ITEMS = 10;
 /** A sentence the answer must carry: the route appends `text` when the answer does not mention `keyword` (trNormalize'd). */
 export type AiNotice = { text: string; keyword: string };
 
-export type AiToolOutput = { content: string; cards: AiCard[]; isError?: boolean; notice?: AiNotice };
+/** costMicroUsd: paid work the tool did itself (the web search request), added to the turn's cost by the route. */
+export type AiToolOutput = { content: string; cards: AiCard[]; isError?: boolean; notice?: AiNotice; costMicroUsd?: number };
 
 /** Duty answers in duty_data_mode 'demo' must always say the list is sample data (enforced by the route, not only the prompt). */
 export const DEMO_DUTY_NOTICE: AiNotice = {
@@ -70,8 +74,12 @@ function asRecord(v: unknown): Record<string, unknown> {
 }
 const arr = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
-/** Filler words that should not filter results ("açık kafe" -> "kafe"). */
-const FILLER = new Set(["ve", "ile", "icin", "bir", "en", "yakin", "yakinda", "yakinimda", "gebze", "gebzede", "var", "mi", "mu", "neler", "nerede", "lazim", "iyi", "acik", "yer", "yerler", "yerleri", "hangi", "hangisi"]);
+/** Filler words that should not filter results ("açık kafe" -> "kafe"); a district is the `ilce` argument, not a word. */
+const FILLER = new Set([
+  "ve", "ile", "icin", "bir", "en", "yakin", "yakinda", "yakinimda", "gebzede", "var", "mi", "mu", "neler", "nerede", "lazim", "iyi", "acik",
+  "yer", "yerler", "yerleri", "hangi", "hangisi", "kocaeli", "kocaelide",
+  ...KOCAELI_DISTRICTS.map((d) => trNormalize(d.name)),
+]);
 
 function tokens(q: string | undefined): string[] {
   return trNormalize(q)
@@ -87,14 +95,20 @@ function matchesAll(hay: string, toks: string[]): boolean {
 
 const phoneText = (p: string | null | undefined): string | undefined => (p ? formatPhoneTR(p) || p : undefined);
 
-type NbEmbed = { name: string } | Array<{ name: string }> | null | undefined;
-const nbName = (n: NbEmbed): string | null => (Array.isArray(n) ? (n[0]?.name ?? null) : (n?.name ?? null));
-
 // ---------------------------------------------------------------------------------------------------------------------------
 // global_search (anon, RLS; same RPC as the search page)
 // ---------------------------------------------------------------------------------------------------------------------------
 type ServiceHit = { id: string; slug: string; name: string; parent_id: string | null; parent_name: string | null };
-type PoiHit = { id: string; kind: PoiKind; slug: string; name: string; address: string | null; neighbourhood_name: string | null; category: string | null };
+type PoiHit = {
+  id: string;
+  kind: PoiKind;
+  slug: string;
+  name: string;
+  address: string | null;
+  category: string | null;
+  district_id?: string | null;
+  district_name?: string | null;
+};
 
 async function globalSearch(q: string, limit: number): Promise<{ businessIds: string[]; services: ServiceHit[]; pois: PoiHit[] }> {
   const { data, error } = await createNearbyClient(120, ["nearby", "search"]).rpc("global_search", { p_q: q, p_limit: limit }, { get: true });
@@ -140,6 +154,8 @@ async function nobetciEczane(input: Record<string, unknown>): Promise<AiToolOutp
   }
   const now = new Date();
   const day = parseDutyDay(str(input.tarih, 20), now);
+  const ilce = str(input.ilce, 20);
+  const district = isDistrictSlug(ilce) ? ilce : null;
   let rows = duty.rows;
   let gun = "Şu an nöbette olanlar";
   if (day) {
@@ -148,6 +164,13 @@ async function nobetciEczane(input: Record<string, unknown>): Promise<AiToolOutp
     gun = describeDutyWindow(w, now);
   } else {
     rows = rows.filter((r) => isDutyActive(r.duty_start, r.duty_end, now));
+  }
+  // The asked district's pharmacies; when it has none on duty, every district's (the answer says so).
+  let districtNote: string | undefined;
+  if (district) {
+    const inDistrict = rows.filter((r) => r.district_id === district);
+    if (inDistrict.length) rows = inDistrict;
+    else if (rows.length) districtNote = `${districtName(district)} için nöbet kaydı yok; diğer ilçelerdeki nöbetçi eczaneler listelendi.`;
   }
   const demo = duty.mode === "demo";
   const list = rows.slice(0, MAX_ITEMS);
@@ -160,7 +183,7 @@ async function nobetciEczane(input: Record<string, unknown>): Promise<AiToolOutp
     eczaneler: list.map((r) =>
       compact({
         ad: r.name,
-        mahalle: r.neighbourhood_name,
+        ilce: r.district_name ?? (r.district_id ? districtName(r.district_id) : undefined),
         adres: r.address,
         telefon: phoneText(r.phone),
         nobet: describeDutyWindow({ start: r.duty_start, end: r.duty_end }, now),
@@ -168,13 +191,14 @@ async function nobetciEczane(input: Record<string, unknown>): Promise<AiToolOutp
       }),
     ),
     not: note,
+    ilce_notu: districtNote,
     tum_liste: routes.nearby.dutyPharmacies(),
   };
   const cards: AiCard[] = list.map((r) => ({
     id: `duty:${r.duty_id}`,
     icon: "duty",
     title: r.name,
-    subtitle: [r.neighbourhood_name, describeDutyWindow({ start: r.duty_start, end: r.duty_end }, now)].filter(Boolean).join(" · "),
+    subtitle: [r.district_name ?? (r.district_id ? districtName(r.district_id) : null), describeDutyWindow({ start: r.duty_start, end: r.duty_end }, now)].filter(Boolean).join(" · "),
     href: routes.nearby.pharmacy(r.slug),
     badge: demo ? "Örnek veri" : undefined,
     // Pharmacy numbers are real even when the duty list is a sample (same as the duty page).
@@ -187,7 +211,7 @@ async function nobetciEczane(input: Record<string, unknown>): Promise<AiToolOutp
 // 2) isletme_ara
 // ---------------------------------------------------------------------------------------------------------------------------
 const BIZ_COLUMNS =
-  "id,slug,name,category_label,vertical,kinds,working_hours,vacation_mode,vacation_until,is_demo,phone,neighbourhoods!businesses_neighbourhood_id_fkey(name)";
+  "id,slug,name,category_label,vertical,kinds,working_hours,vacation_mode,vacation_until,is_demo,phone,district_id";
 
 type BizRow = {
   id: string;
@@ -201,7 +225,7 @@ type BizRow = {
   vacation_until: string | null;
   is_demo: boolean | null;
   phone: string | null;
-  neighbourhoods: NbEmbed;
+  district_id: string | null;
 };
 
 const VERTICAL_ICON: Partial<Record<Vertical, AiCardIcon>> = {
@@ -230,7 +254,8 @@ async function isletmeAra(input: Record<string, unknown>): Promise<AiToolOutput>
   const q = str(input.sorgu);
   const v = parseVertical(str(input.tur, 20));
   const vertical = v && v !== "etkinlik" ? v : null;
-  const mahalle = trNormalize(str(input.mahalle, 60));
+  const ilce = str(input.ilce, 20);
+  const district = isDistrictSlug(ilce) ? ilce : null;
   const openNow = bool(input.simdi_acik);
   const client = createBusinessClient();
 
@@ -251,6 +276,7 @@ async function isletmeAra(input: Record<string, unknown>): Promise<AiToolOutput>
   if (!rows.length && (vertical || !q)) {
     let query = client.from("businesses").select(BIZ_COLUMNS).eq("status", "approved");
     if (vertical) query = query.eq("vertical", vertical);
+    if (district) query = query.eq("district_id", district);
     // nullsFirst false: unrated businesses after rated ones (Postgres puts NULLs first in DESC).
     const { data, error } = await query.order("rating_avg", { ascending: false, nullsFirst: false }).order("name").limit(300);
     if (error) throw new Error(`businesses: ${error.code ?? "error"}`);
@@ -262,13 +288,13 @@ async function isletmeAra(input: Record<string, unknown>): Promise<AiToolOutput>
   const now = new Date();
   let list = rows.map((r) => ({
     r,
-    nb: nbName(r.neighbourhoods),
+    ilce: r.district_id ? districtName(r.district_id) : null,
     vertical: resolveVertical(r.vertical, r.kinds),
     status: openStatusAt(parseWorkingHours(r.working_hours), now, { vacation_mode: r.vacation_mode, vacation_until: r.vacation_until }),
   }));
   // Real businesses before sample (demo) records; otherwise the order is kept (sort is stable).
   list.sort((a, b) => Number(a.r.is_demo === true) - Number(b.r.is_demo === true));
-  if (mahalle) list = list.filter((x) => trNormalize(x.nb).includes(mahalle));
+  if (district) list = list.filter((x) => x.r.district_id === district);
   const beforeOpen = list.length;
   if (openNow) list = list.filter((x) => x.status.known && x.status.open);
   const top = list.slice(0, MAX_ITEMS);
@@ -281,11 +307,11 @@ async function isletmeAra(input: Record<string, unknown>): Promise<AiToolOutput>
     : undefined;
 
   const data = {
-    isletmeler: top.map(({ r, nb, vertical: vt, status }) =>
+    isletmeler: top.map(({ r, ilce: il, vertical: vt, status }) =>
       compact({
         ad: r.name,
         tur: r.category_label || VERTICAL_INFO[vt].label,
-        mahalle: nb,
+        ilce: il,
         durum: statusText(status),
         ornek: r.is_demo ? "Örnek kayıt (gerçek işletme değil)" : undefined,
         telefon: r.is_demo ? undefined : phoneText(r.phone),
@@ -300,11 +326,11 @@ async function isletmeAra(input: Record<string, unknown>): Promise<AiToolOutput>
     tumu: moreHref,
   };
 
-  const cards: AiCard[] = top.map(({ r, nb, vertical: vt, status }) => ({
+  const cards: AiCard[] = top.map(({ r, ilce: il, vertical: vt, status }) => ({
     id: `business:${r.id}`,
     icon: VERTICAL_ICON[vt] ?? "business",
     title: r.name,
-    subtitle: [r.category_label || VERTICAL_INFO[vt].label, nb, status.known ? (status.open ? "Açık" : status.vacation ? "Tatilde" : "Kapalı") : null].filter(Boolean).join(" · "),
+    subtitle: [r.category_label || VERTICAL_INFO[vt].label, il, status.known ? (status.open ? "Açık" : status.vacation ? "Tatilde" : "Kapalı") : null].filter(Boolean).join(" · "),
     href: routes.businesses.detail(r.slug),
     call: r.phone && !r.is_demo ? { phone: r.phone, subjectType: "business", subjectId: r.id } : undefined,
   }));
@@ -375,6 +401,12 @@ const KIND_ICON: Partial<Record<PoiKind, AiCardIcon>> = {
 };
 const kindLabel = (k: PoiKind): string => KIND_LABEL[k] ?? "Yer";
 const kindIcon = (k: PoiKind): AiCardIcon => KIND_ICON[k] ?? "place";
+/** KBB utility rows stored as kind 'place' (not places to visit): their own label instead of "Gezilecek yer". */
+const UTILITY_PLACE_LABEL: Record<string, string> = { kocaelikart: "KocaeliKart noktası", toplanma_alani: "Toplanma alanı", otopark: "Otopark" };
+function poiLabel(kind: PoiKind, category: string | null | undefined): string {
+  if (kind === "place" && category && Object.prototype.hasOwnProperty.call(UTILITY_PLACE_LABEL, category)) return UTILITY_PLACE_LABEL[category];
+  return kindLabel(kind);
+}
 
 /** Words that mean "places to visit", mapped to a place category when they name one. */
 const PLACE_WORDS: Array<[RegExp, string | null]> = [
@@ -401,7 +433,7 @@ async function places(q: string | undefined): Promise<AiToolOutput> {
       compact({
         ad: p.name,
         kategori: placeCategoryMeta(p.details.category).label,
-        mahalle: p.neighbourhoodName,
+        ilce: p.districtId ? districtName(p.districtId) : undefined,
         aciklama: p.details.description ? truncate(p.details.description, 160) : undefined,
         saatler: p.details.hours,
         ucret: p.details.fee,
@@ -416,7 +448,7 @@ async function places(q: string | undefined): Promise<AiToolOutput> {
     id: `place:${p.id}`,
     icon: "place",
     title: p.name,
-    subtitle: [placeCategoryMeta(p.details.category).label, p.neighbourhoodName].filter(Boolean).join(" · "),
+    subtitle: [placeCategoryMeta(p.details.category).label, p.districtId ? districtName(p.districtId) : null].filter(Boolean).join(" · "),
     href: routes.nearby.place(p.slug),
   }));
   return result(data, cards.length ? cards : [{ id: "page:places", icon: "place", title: "Gezilecek yerler", subtitle: "Tüm liste", href: routes.nearby.places() }]);
@@ -429,35 +461,60 @@ async function poiPhones(ids: string[]): Promise<Map<string, string>> {
   return new Map((data ?? []).filter((r) => r.phone).map((r) => [r.id, r.phone as string]));
 }
 
-function poiName(kind: PoiKind, name: string, nb: string | null): string {
-  return kind === "bus_stop" ? displayStopName(name, nb) : name;
-}
-
 async function yerAra(input: Record<string, unknown>): Promise<AiToolOutput> {
   const q = str(input.sorgu);
   const turRaw = trNormalize(str(input.tur, 20));
+  const ilce = str(input.ilce, 20);
+  const district = isDistrictSlug(ilce) ? ilce : null;
   // Own keys only: the model's "tur" must not reach Object.prototype ("constructor").
   const kind: PoiKind | undefined = Object.prototype.hasOwnProperty.call(KIND_BY_TUR, turRaw) ? KIND_BY_TUR[turRaw] : undefined;
   if (kind === "place" || (!kind && q && PLACE_WORDS.some(([re]) => re.test(trNormalize(q))))) return places(q);
   if (!q && !kind) return { content: JSON.stringify({ hata: "sorgu ya da tur gerekli" }), cards: [], isError: true };
 
   const mapHref = kind ? routes.nearby.root(TUR_BY_KIND[kind]) : routes.nearby.root();
-  type Item = { id: string; kind: PoiKind; slug: string; name: string; address: string | null; nb: string | null; phone: string | null };
+  type Item = { id: string; kind: PoiKind; label: string; slug: string; name: string; address: string | null; district: string | null; phone: string | null };
   let items: Item[];
   if (q) {
     const found = await globalSearch(q, 20);
-    const pois = found.pois.filter((p) => !kind || p.kind === kind).slice(0, MAX_ITEMS);
+    // The asked district's rows first; others stay as a fallback.
+    const pois = districtFirst(found.pois.filter((p) => !kind || p.kind === kind), district).slice(0, MAX_ITEMS);
     const phones = await poiPhones(pois.map((p) => p.id));
-    items = pois.map((p) => ({ id: p.id, kind: p.kind, slug: p.slug, name: p.name, address: p.address, nb: p.neighbourhood_name, phone: phones.get(p.id) ?? null }));
+    items = pois.map((p) => ({
+      id: p.id,
+      kind: p.kind,
+      label: poiLabel(p.kind, p.category),
+      slug: p.slug,
+      name: p.name,
+      address: p.address,
+      district: p.district_name ?? (p.district_id ? districtName(p.district_id) : null),
+      phone: phones.get(p.id) ?? null,
+    }));
   } else {
-    const { data, error } = await createNearbyClient(3600, ["nearby", "poi"]).rpc("nearby_pois", { p_kind: kind, p_limit: MAX_ITEMS }, { get: true });
+    // No position: the kind's rows by name (only the asked district's when there is one).
+    const { data, error } = await createNearbyClient(3600, ["nearby", "poi"]).rpc(
+      "nearby_pois",
+      { p_kind: kind, p_limit: district ? 500 : MAX_ITEMS },
+      { get: true },
+    );
     if (error) throw new Error(`nearby_pois: ${error.code ?? "error"}`);
-    items = ((data ?? []) as PoiRow[]).map((p) => ({ id: p.id, kind: p.kind, slug: p.slug, name: p.name, address: p.address, nb: p.neighbourhood_name, phone: p.phone }));
+    items = (data ?? [])
+      .filter((p) => !district || p.district_id === district)
+      .slice(0, MAX_ITEMS)
+      .map((p) => ({
+        id: p.id,
+        kind: p.kind as PoiKind,
+        label: kindLabel(p.kind as PoiKind),
+        slug: p.slug,
+        name: p.name,
+        address: p.address,
+        district: p.district_name,
+        phone: p.phone,
+      }));
   }
 
   const data = {
     yerler: items.map((p) =>
-      compact({ ad: poiName(p.kind, p.name, p.nb), tur: kindLabel(p.kind), mahalle: p.nb, adres: p.address, telefon: phoneText(p.phone), sayfa: poiHref(p.kind, p.slug) }),
+      compact({ ad: p.name, tur: p.label, ilce: p.district, adres: p.address, telefon: phoneText(p.phone), sayfa: poiHref(p.kind, p.slug) }),
     ),
     not: items.length ? (q ? undefined : "Konum bilinmediği için ada göre ilk kayıtlar; yakındakiler için Keşfet haritası.") : "Uygun yer bulunamadı.",
     harita: mapHref,
@@ -465,8 +522,8 @@ async function yerAra(input: Record<string, unknown>): Promise<AiToolOutput> {
   const cards: AiCard[] = items.map((p) => ({
     id: `poi:${p.id}`,
     icon: kindIcon(p.kind),
-    title: poiName(p.kind, p.name, p.nb),
-    subtitle: [kindLabel(p.kind), p.nb ?? p.address].filter(Boolean).join(" · "),
+    title: p.name,
+    subtitle: [p.label, p.district ?? p.address].filter(Boolean).join(" · "),
     href: poiHref(p.kind, p.slug),
     call: p.phone ? { phone: p.phone, subjectType: "poi", subjectId: p.id } : undefined,
   }));
@@ -478,9 +535,11 @@ async function yerAra(input: Record<string, unknown>): Promise<AiToolOutput> {
 // ---------------------------------------------------------------------------------------------------------------------------
 async function etkinlikler(input: Record<string, unknown>): Promise<AiToolOutput> {
   const days = int(input.gun_sayisi, 1, 60, 7);
+  const ilce = str(input.ilce, 20);
+  const district = isDistrictSlug(ilce) ? ilce : null;
   const until = Date.now() + days * 86_400_000;
   const all = await listUpcomingEvents(200);
-  const list = all.filter((e) => Date.parse(e.starts_at) <= until);
+  const list = all.filter((e) => Date.parse(e.starts_at) <= until && (!district || e.district_id === district));
   const top = list.slice(0, MAX_ITEMS);
   const when = (iso: string) => `${formatDate(iso, { month: "long", weekday: true })} ${formatTime(iso)}`;
   const price = (e: (typeof all)[number]) => (e.is_free ? "Ücretsiz" : e.price_try !== null ? formatPrice(e.price_try) : (e.price_note ?? undefined));
@@ -493,7 +552,7 @@ async function etkinlikler(input: Record<string, unknown>): Promise<AiToolOutput
         zaman: when(e.starts_at),
         bitis: e.ends_at ? when(e.ends_at) : undefined,
         mekan: e.venue_name,
-        mahalle: e.neighbourhood_name,
+        ilce: e.district_id ? districtName(e.district_id) : undefined,
         ucret: price(e),
         duzenleyen: e.business?.name,
         ornek: e.is_demo ? "Örnek etkinlik (gerçek değil)" : undefined,
@@ -523,26 +582,32 @@ async function etkinlikler(input: Record<string, unknown>): Promise<AiToolOutput
 // 5) taksi_duraklari
 // ---------------------------------------------------------------------------------------------------------------------------
 async function taksiDuraklari(input: Record<string, unknown>): Promise<AiToolOutput> {
-  const mahalle = trNormalize(str(input.mahalle, 60));
+  const ilce = str(input.ilce, 20);
+  const district = isDistrictSlug(ilce) ? ilce : null;
   const { data, error } = await createNearbyClient(3600, ["nearby", "poi"]).rpc("nearby_pois", { p_kind: "taxi", p_limit: 300 }, { get: true });
   if (error) throw new Error(`nearby_pois: ${error.code ?? "error"}`);
-  const all = (data ?? []) as PoiRow[];
-  const inArea = mahalle ? all.filter((p) => trNormalize(`${p.neighbourhood_name ?? ""} ${p.address ?? ""} ${p.name}`).includes(mahalle)) : all;
+  const all = data ?? [];
+  const inArea = district ? all.filter((p) => p.district_id === district) : all;
   const list = inArea.length ? inArea : all;
   // Stands with a phone number first.
   const top = [...list].sort((a, b) => Number(!!b.phone) - Number(!!a.phone)).slice(0, MAX_ITEMS);
   const mapHref = routes.nearby.root("taksi");
   const payload = {
-    duraklar: top.map((p) => compact({ ad: p.name, mahalle: p.neighbourhood_name, adres: p.address, telefon: phoneText(p.phone), sayfa: mapHref })),
+    duraklar: top.map((p) => compact({ ad: p.name, ilce: p.district_name, adres: p.address, telefon: phoneText(p.phone), sayfa: mapHref })),
     toplam: list.length,
-    not: mahalle && !inArea.length && all.length ? "Bu mahallede kayıtlı durak yok; Gebze genelindeki duraklar listelendi." : all.length ? undefined : "Kayıtlı taksi durağı yok.",
+    not:
+      district && !inArea.length && all.length
+        ? `${districtName(district)} ilçesinde kayıtlı durak yok; Kocaeli genelindeki duraklar listelendi.`
+        : all.length
+          ? undefined
+          : "Kayıtlı taksi durağı yok.",
     harita: mapHref,
   };
   const cards: AiCard[] = top.map((p) => ({
     id: `poi:${p.id}`,
     icon: "taxi",
     title: p.name,
-    subtitle: [p.neighbourhood_name, p.address].filter(Boolean).join(" · ") || "Taksi durağı",
+    subtitle: [p.district_name, p.address].filter(Boolean).join(" · ") || "Taksi durağı",
     href: mapHref,
     call: p.phone ? { phone: p.phone, subjectType: "poi", subjectId: p.id } : undefined,
   }));
@@ -580,16 +645,276 @@ async function sonHaberler(input: Record<string, unknown>): Promise<AiToolOutput
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
+// 7) doktor_bul
+// ---------------------------------------------------------------------------------------------------------------------------
+type Embed<T> = T | T[] | null | undefined;
+function one<T>(v: Embed<T>): T | null {
+  return Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
+}
+
+/** Active doctors of public sağlık businesses (business_staff "public read" policy); calls go to the clinic's phone. */
+const DOCTOR_COLUMNS =
+  "id,slug,name,title,branch,days,hours_note,is_demo,doctor_branches(label),businesses!inner(id,slug,name,phone,district_id,is_demo)";
+
+type DoctorRow = {
+  id: string;
+  slug: string;
+  name: string;
+  title: string;
+  branch: string;
+  days: string[] | null;
+  hours_note: string | null;
+  is_demo: boolean | null;
+  doctor_branches: Embed<{ label: string }>;
+  businesses: Embed<{ id: string; slug: string; name: string; phone: string | null; district_id: string | null; is_demo: boolean | null }>;
+};
+
+const doctorName = (r: Pick<DoctorRow, "title" | "name">): string => (r.title && r.title !== "Diğer" ? `${r.title} ${r.name}` : r.name);
+
+function dayList(days: string[] | null): string | undefined {
+  const labels = (days ?? []).filter((d): d is DayKey => Object.prototype.hasOwnProperty.call(DAY_LABELS, d)).map((d) => DAY_LABELS[d]);
+  return labels.length ? labels.join(", ") : undefined;
+}
+
+async function doktorBul(input: Record<string, unknown>): Promise<AiToolOutput> {
+  const bransQ = trNormalize(str(input.brans, 60));
+  const q = str(input.sorgu);
+  const ilce = str(input.ilce, 20);
+  const district = isDistrictSlug(ilce) ? ilce : null;
+  const client = createBusinessClient();
+
+  const { data: branchRows, error: bErr } = await client.from("doctor_branches").select("key,label").eq("active", true);
+  if (bErr) throw new Error(`doctor_branches: ${bErr.code ?? "error"}`);
+  const branches = (branchRows ?? []) as Array<{ key: string; label: string }>;
+  const bransKey = bransQ.replace(/\s+/g, "_");
+  const branchKeys = bransQ
+    ? branches
+        .filter((b) => {
+          const l = trNormalize(b.label);
+          return b.key === bransKey || l.includes(bransQ) || bransQ.includes(l);
+        })
+        .map((b) => b.key)
+    : [];
+
+  let query = client.from("business_staff").select(DOCTOR_COLUMNS).eq("is_active", true);
+  if (branchKeys.length) query = query.in("branch", branchKeys);
+  if (district) query = query.eq("businesses.district_id", district);
+  const { data, error } = await query.order("sort").limit(200);
+  if (error) throw new Error(`business_staff: ${error.code ?? "error"}`);
+  let rows = (data ?? []) as unknown as DoctorRow[];
+  // A branch the app does not have: no list of every doctor (that would read as a recommendation).
+  if (bransQ && !branchKeys.length) rows = [];
+  const toks = tokens(q);
+  if (toks.length) rows = rows.filter((r) => matchesAll(`${r.title} ${r.name}`, toks));
+  // Real doctors before sample (demo) records.
+  rows.sort((a, b) => Number(a.is_demo === true || one(a.businesses)?.is_demo === true) - Number(b.is_demo === true || one(b.businesses)?.is_demo === true));
+  const top = rows.slice(0, MAX_ITEMS);
+
+  const data2 = {
+    doktorlar: top.map((r) => {
+      const biz = one(r.businesses);
+      const sample = r.is_demo === true || biz?.is_demo === true;
+      return compact({
+        ad: doctorName(r),
+        brans: one(r.doctor_branches)?.label,
+        klinik: biz?.name,
+        ilce: biz?.district_id ? districtName(biz.district_id) : undefined,
+        gunler: dayList(r.days),
+        saat: r.hours_note,
+        ornek: sample ? "Örnek kayıt (gerçek doktor değil)" : undefined,
+        sayfa: routes.doctors.detail(r.slug),
+      });
+    }),
+    toplam: rows.length,
+    not: bransQ && !branchKeys.length
+      ? `Uygulamada "${str(input.brans, 60)}" branşı yok. Hastane ya da sağlık kuruluşu için yer_ara aracını kullanabilirsin.`
+      : top.length
+        ? undefined
+        : "Uygulamada şu an bu aramaya uyan doktor yok. Hastane ya da sağlık kuruluşu için yer_ara aracını kullanabilirsin.",
+    tumu: routes.doctors.list(),
+  };
+  const cards: AiCard[] = top.map((r) => {
+    const biz = one(r.businesses);
+    const sample = r.is_demo === true || biz?.is_demo === true;
+    return {
+      id: `doctor:${r.id}`,
+      icon: "doctor",
+      title: doctorName(r),
+      subtitle: [one(r.doctor_branches)?.label, biz?.name, biz?.district_id ? districtName(biz.district_id) : null].filter(Boolean).join(" · "),
+      href: routes.doctors.detail(r.slug),
+      badge: sample ? "Örnek" : undefined,
+      call: biz?.phone && !sample ? { phone: biz.phone, subjectType: "business", subjectId: biz.id } : undefined,
+    };
+  });
+  return result(data2, cards.length ? cards : [{ id: "page:doctors", icon: "doctor", title: "Doktorlar", subtitle: "Tüm doktorlar", href: routes.doctors.list() }]);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// 8) otobus_hatlari
+// ---------------------------------------------------------------------------------------------------------------------------
+/** GTFS route_type -> label (3 = bus is the default and not repeated before the line number). */
+const ROUTE_TYPE_LABEL: Record<number, string> = { 0: "Tramvay", 4: "Feribot", 6: "Teleferik" };
+/** Stops within this distance of a place count as "near" it. */
+const STOP_RADIUS_M = 700;
+/** Which row a place name most likely means: institutions (schools, hospitals) and sights before taxi stands and ATMs. */
+const TARGET_KIND_RANK: Partial<Record<PoiKind, number>> = { institution: 0, place: 1, mosque: 2, pharmacy: 3, fuel: 6, ev_charge: 6, bank: 7, atm: 8, taxi: 9 };
+
+type StopItem = { id: string; name: string; slug: string; district: string | null; distance?: number };
+type LinkRow = { poi_id: string | null; transit_routes: Embed<{ short_name: string; long_name: string | null; route_type: number; active: boolean }> };
+
+/** Rows of the asked district first (order kept inside each part). */
+function districtFirst<T extends { district_id?: string | null }>(list: T[], district: string | null): T[] {
+  return district ? [...list.filter((p) => p.district_id === district), ...list.filter((p) => p.district_id !== district)] : list;
+}
+
+/**
+ * Lines that pass a stop, or the stops near a place. KBB's GTFS feed has no stop_times.txt: the route -> stop links are
+ * geometric (the stop is within 25 m of the line's shape, transit_route_stops.method 'geometric'), and there is no
+ * timetable or live vehicle data at all.
+ */
+async function otobusHatlari(input: Record<string, unknown>): Promise<AiToolOutput> {
+  const durak = str(input.durak);
+  const yer = str(input.yer);
+  const ilce = str(input.ilce, 20);
+  const district = isDistrictSlug(ilce) ? ilce : null;
+  const mapHref = routes.nearby.root("durak");
+  if (!durak && !yer) return { content: JSON.stringify({ hata: "durak ya da yer gerekli" }), cards: [], isError: true };
+  const client = createNearbyClient(3600, ["nearby", "poi"]);
+
+  let target: PoiHit | null = null;
+  let stops: StopItem[] = [];
+  if (durak) {
+    const found = await globalSearch(durak, 20);
+    stops = districtFirst(found.pois.filter((p) => p.kind === "bus_stop"), district)
+      .slice(0, 5)
+      .map((p) => ({ id: p.id, name: p.name, slug: p.slug, district: p.district_name ?? (p.district_id ? districtName(p.district_id) : null) }));
+  }
+  if (!stops.length) {
+    // The place (school, hospital, institution, sight...), then the stops around its pin. A row whose name holds every
+    // query word wins; else stops named after the place ("Fatih Devlet Hastanesi 6"); else the closest guess.
+    const q = yer ?? durak ?? "";
+    const found = await globalSearch(q, 20);
+    const toks = tokens(q);
+    const named = (p: PoiHit) => toks.length > 0 && matchesAll(p.name, toks);
+    const ranked = found.pois
+      .filter((p) => p.kind !== "bus_stop")
+      .sort((a, b) => Number(!named(a)) - Number(!named(b)) || (TARGET_KIND_RANK[a.kind] ?? 5) - (TARGET_KIND_RANK[b.kind] ?? 5));
+    const best = districtFirst(ranked, district)[0] ?? null;
+    const namedStops = districtFirst(found.pois.filter((p) => p.kind === "bus_stop" && named(p)), district);
+    if (best && named(best)) target = best;
+    else if (namedStops.length) {
+      stops = namedStops
+        .slice(0, 5)
+        .map((p) => ({ id: p.id, name: p.name, slug: p.slug, district: p.district_name ?? (p.district_id ? districtName(p.district_id) : null) }));
+    } else target = best;
+    if (target) {
+      const { data: pt, error: pErr } = await client.from("poi").select("lat,lng").eq("id", target.id).maybeSingle();
+      if (pErr) throw new Error(`poi: ${pErr.code ?? "error"}`);
+      if (pt?.lat != null && pt?.lng != null) {
+        const { data, error } = await client.rpc(
+          "nearby_pois",
+          { p_kind: "bus_stop", p_lat: pt.lat, p_lng: pt.lng, p_radius_m: STOP_RADIUS_M, p_limit: 5 },
+          { get: true },
+        );
+        if (error) throw new Error(`nearby_pois: ${error.code ?? "error"}`);
+        stops = (data ?? []).map((p) => ({ id: p.id, name: p.name, slug: p.slug, district: p.district_name ?? null, distance: Math.round(p.distance_m) }));
+      }
+    }
+  }
+  if (!stops.length) {
+    return result(
+      {
+        not: target ? `${target.name} için ${STOP_RADIUS_M} m içinde kayıtlı durak yok.` : "Bu adla bir durak ya da yer bulunamadı.",
+        harita: mapHref,
+      },
+      [{ id: "page:stops", icon: "bus_stop", title: "Duraklar", subtitle: "Keşfet haritası", href: mapHref }],
+    );
+  }
+
+  const { data: links, error: lErr } = await client
+    .from("transit_route_stops")
+    .select("poi_id,transit_routes(short_name,long_name,route_type,active)")
+    .in("poi_id", stops.map((s) => s.id))
+    .limit(600);
+  if (lErr) throw new Error(`transit_route_stops: ${lErr.code ?? "error"}`);
+  const byStop = new Map<string, Set<string>>();
+  for (const l of (links ?? []) as unknown as LinkRow[]) {
+    const r = one(l.transit_routes);
+    if (!r || !r.active || !l.poi_id) continue;
+    const type = ROUTE_TYPE_LABEL[r.route_type];
+    const label = `${type ? `${type} ` : ""}${r.short_name}${r.long_name ? ` (${truncate(r.long_name, 60)})` : ""}`;
+    const set = byStop.get(l.poi_id) ?? new Set<string>();
+    set.add(label);
+    byStop.set(l.poi_id, set);
+  }
+  const linesOf = (id: string): string[] => [...(byStop.get(id) ?? [])].sort((a, b) => a.localeCompare(b, "tr", { numeric: true }));
+
+  const data = {
+    hedef: target ? compact({ ad: target.name, tur: kindLabel(target.kind), ilce: target.district_name }) : undefined,
+    duraklar: stops.map((s) =>
+      compact({ ad: s.name, ilce: s.district, uzaklik_m: s.distance, hatlar: linesOf(s.id).slice(0, 15), sayfa: poiHref("bus_stop", s.slug) }),
+    ),
+    not: "Uygulamada sefer saati ve canlı araç konumu verisi yok; hatlar durağın yakınından geçen güzergahlardan çıkarıldı. Aracın ne zaman geleceğini söyleme.",
+    harita: mapHref,
+  };
+  const cards: AiCard[] = stops.map((s) => {
+    const n = byStop.get(s.id)?.size ?? 0;
+    return {
+      id: `poi:${s.id}`,
+      icon: "bus_stop",
+      title: s.name,
+      subtitle: [n ? `${n} hat` : "Hat bilgisi yok", s.distance !== undefined ? `${s.distance} m` : null, s.district].filter(Boolean).join(" · "),
+      href: poiHref("bus_stop", s.slug),
+    };
+  });
+  return result(data, cards);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// 9) internet_ara (fallback)
+// ---------------------------------------------------------------------------------------------------------------------------
+const KOCAELI_WORDS = ["kocaeli", ...KOCAELI_DISTRICTS.map((d) => trNormalize(d.name))];
+
+/** Web search when the app's data has nothing; one OpenAI Responses request (its cost is added to the turn). */
+async function internetAra(input: Record<string, unknown>, signal?: AbortSignal): Promise<AiToolOutput> {
+  const q = str(input.sorgu, 200);
+  if (!q) return { content: JSON.stringify({ hata: "sorgu gerekli" }), cards: [], isError: true };
+  const key = providerApiKey("openai");
+  if (!key) return { content: JSON.stringify({ hata: "İnternet araması şu an kullanılamıyor. Kullanıcıya Arama sayfasını öner." }), cards: [], isError: true };
+  const qn = trNormalize(q);
+  const scoped = KOCAELI_WORDS.some((w) => qn.includes(w)) ? q : `${q} Kocaeli`;
+  const r = await webSearch(scoped, key, signal);
+  const data = {
+    kaynak: "internet",
+    ozet: r.text || undefined,
+    kaynak_siteler: r.sources.map((s) => s.title),
+    not: r.text ? "Bu bilgi internetteki kaynaklardan geldi, uygulamanın kendi verisi değil; yanıtında bunu belirt." : "İnternette uygun bilgi bulunamadı.",
+  };
+  const cards: AiCard[] = r.sources.map((s, i) => ({
+    id: `web:${i}`,
+    icon: "web",
+    title: s.title,
+    subtitle: new URL(s.url).hostname.replace(/^www\./, ""),
+    href: s.url,
+    external: true,
+  }));
+  return { ...result(data, cards), costMicroUsd: r.costMicroUsd };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------
 // Definitions
 // ---------------------------------------------------------------------------------------------------------------------------
 export const AI_TOOLS: ApiTool[] = [
   {
     name: "nobetci_eczane",
     description:
-      "Gebze'deki nöbetçi eczaneleri uygulamanın nöbet listesinden verir: ad, mahalle, adres, telefon, nöbet saati. Tarih verilmezse şu an nöbette olanlar gelir. Nöbet günü 08:30'da değişir. Sonuçta ornek_veri true ise liste örnek veridir ve bunu kullanıcıya söylemelisin.",
+      "Kocaeli'deki nöbetçi eczaneleri uygulamanın nöbet listesinden verir: ad, ilçe, adres, telefon, nöbet saati. Tarih verilmezse şu an nöbette olanlar gelir. Nöbet günü 08:30'da değişir. Sonuçta ornek_veri true ise liste örnek veridir ve bunu kullanıcıya söylemelisin.",
     input_schema: {
       type: "object",
-      properties: { tarih: { type: "string", description: "İstenen gün (YYYY-MM-DD). Bugün ya da şu an için boş bırak." } },
+      properties: {
+        tarih: { type: "string", description: "İstenen gün (YYYY-MM-DD). Bugün ya da şu an için boş bırak." },
+        ilce: { type: "string", enum: [...DISTRICT_SLUGS], description: "Kocaeli ilçesi (isteğe bağlı)." },
+      },
       additionalProperties: false,
     },
   },
@@ -602,7 +927,7 @@ export const AI_TOOLS: ApiTool[] = [
       properties: {
         sorgu: { type: "string", description: "Aranan şey: işletme adı ya da ne arandığı (ör. 'tesisatçı', 'kahvaltı', 'döner'). Türü zaten 'tur' ile verdiysen boş bırakabilirsin." },
         tur: { type: "string", enum: [...BUSINESS_VERTICALS], description: "İşletme türü." },
-        mahalle: { type: "string", description: "Mahalle adı (ör. 'Hacı Halil')." },
+        ilce: { type: "string", enum: [...DISTRICT_SLUGS], description: "Kocaeli ilçesi (isteğe bağlı)." },
         simdi_acik: { type: "boolean", description: "true: yalnızca şu an açık olanlar." },
       },
       additionalProperties: false,
@@ -611,7 +936,7 @@ export const AI_TOOLS: ApiTool[] = [
   {
     name: "yer_ara",
     description:
-      "Gebze'deki yerleri arar: eczane, cami, otobüs durağı, taksi durağı, ATM, banka, akaryakıt ve şarj istasyonu, kurumlar ve gezilecek yerler (tarihi yerler, parklar, müzeler, doğa, AVM). Adres, telefon ve sayfa verir.",
+      "Kocaeli'deki yerleri arar: eczane, cami, otobüs durağı, taksi durağı, ATM, banka, akaryakıt ve şarj istasyonu, kurumlar (hastane, okul, belediye, emniyet...) ve gezilecek yerler (tarihi yerler, parklar, müzeler, doğa, AVM). İlçe, adres, telefon ve sayfa verir.",
     input_schema: {
       type: "object",
       properties: {
@@ -621,25 +946,29 @@ export const AI_TOOLS: ApiTool[] = [
           enum: ["eczane", "cami", "durak", "taksi", "atm", "banka", "akaryakit", "sarj", "kurum", "gezilecek"],
           description: "Yer türü.",
         },
+        ilce: { type: "string", enum: [...DISTRICT_SLUGS], description: "Kocaeli ilçesi (isteğe bağlı; o ilçedekiler önce gelir)." },
       },
       additionalProperties: false,
     },
   },
   {
     name: "etkinlikler",
-    description: "Gebze'de yayındaki yaklaşan etkinlikleri verir: başlık, tarih ve saat, mekan, ücret, sayfa.",
+    description: "Kocaeli'de yayındaki yaklaşan etkinlikleri verir: başlık, tarih ve saat, mekan, ücret, sayfa.",
     input_schema: {
       type: "object",
-      properties: { gun_sayisi: { type: "integer", minimum: 1, maximum: 60, description: "Kaç gün ileriye bakılsın (varsayılan 7)." } },
+      properties: {
+        gun_sayisi: { type: "integer", minimum: 1, maximum: 60, description: "Kaç gün ileriye bakılsın (varsayılan 7)." },
+        ilce: { type: "string", enum: [...DISTRICT_SLUGS], description: "Kocaeli ilçesi (isteğe bağlı)." },
+      },
       additionalProperties: false,
     },
   },
   {
     name: "taksi_duraklari",
-    description: "Gebze'deki taksi duraklarını telefon numaralarıyla verir. Mahalle verilirse o mahalledekiler önce gelir.",
+    description: "Kocaeli'deki taksi duraklarını telefon numaralarıyla verir. İlçe verilirse o ilçedekiler gelir.",
     input_schema: {
       type: "object",
-      properties: { mahalle: { type: "string", description: "Mahalle adı (isteğe bağlı)." } },
+      properties: { ilce: { type: "string", enum: [...DISTRICT_SLUGS], description: "Kocaeli ilçesi (isteğe bağlı)." } },
       additionalProperties: false,
     },
   },
@@ -652,15 +981,57 @@ export const AI_TOOLS: ApiTool[] = [
       additionalProperties: false,
     },
   },
+  {
+    name: "doktor_bul",
+    description:
+      "Uygulamadaki klinik ve hastanelerde çalışan doktorları branşa, ada ya da ilçeye göre bulur: unvan, ad, branş, klinik, ilçe, çalışma günleri ve profil sayfası. Arama kliniğin telefonuna gider. Şikayet anlatan kullanıcı için uygun branşı sen seç (ör. menisküs, diz, kırık, bel fıtığı -> Ortopedi; cilt -> Dermatoloji; kulak, burun, boğaz -> KBB; göz -> Göz; diş -> Diş hekimi; çocuk -> Çocuk sağlığı; kalp -> Kardiyoloji).",
+    input_schema: {
+      type: "object",
+      properties: {
+        brans: { type: "string", description: "Branş adı (ör. 'Ortopedi', 'Göz', 'Diş hekimi', 'Dahiliye', 'Fizik tedavi')." },
+        sorgu: { type: "string", description: "Doktorun adı (isteğe bağlı)." },
+        ilce: { type: "string", enum: [...DISTRICT_SLUGS], description: "Kocaeli ilçesi (isteğe bağlı)." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "otobus_hatlari",
+    description:
+      "Bir otobüs durağından ya da bir yerin (okul, hastane, kurum, gezilecek yer) yakınındaki duraklardan geçen otobüs, tramvay ve feribot hatlarını verir. Sefer saati ve canlı araç konumu bilgisi YOKTUR.",
+    input_schema: {
+      type: "object",
+      properties: {
+        durak: { type: "string", description: "Durak adı (ör. 'Gebze Otogar')." },
+        yer: { type: "string", description: "Gidilecek yerin adı (ör. 'Atatürk Anadolu Lisesi', 'Fatih Devlet Hastanesi')." },
+        ilce: { type: "string", enum: [...DISTRICT_SLUGS], description: "Kocaeli ilçesi (isteğe bağlı; aynı adlı yerleri ayırır)." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "internet_ara",
+    description:
+      "İnternette arama yapar ve kısa bir özet ile kaynak siteleri verir. YALNIZCA uygulamanın diğer araçları sonuç vermediğinde ya da uygulamada olmayan bir bilgi (ör. bir okulun ya da kurumun adresi, çalışma saati, bir yere nasıl gidileceği) gerektiğinde kullan.",
+    input_schema: {
+      type: "object",
+      properties: { sorgu: { type: "string", description: "Aranacak şey, Türkçe ve kısa (ör. 'Gebze Atatürk Anadolu Lisesi adresi')." } },
+      required: ["sorgu"],
+      additionalProperties: false,
+    },
+  },
 ];
 
-const RUNNERS: Record<string, (input: Record<string, unknown>) => Promise<AiToolOutput>> = {
+const RUNNERS: Record<string, (input: Record<string, unknown>, signal?: AbortSignal) => Promise<AiToolOutput>> = {
   nobetci_eczane: nobetciEczane,
   isletme_ara: isletmeAra,
   yer_ara: yerAra,
   etkinlikler,
   taksi_duraklari: taksiDuraklari,
   son_haberler: sonHaberler,
+  doktor_bul: doktorBul,
+  otobus_hatlari: otobusHatlari,
+  internet_ara: internetAra,
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -670,6 +1041,9 @@ const STATUS_LABELS: Record<string, string> = {
   etkinlikler: "Etkinliklere bakıyorum",
   taksi_duraklari: "Taksi duraklarına bakıyorum",
   son_haberler: "Haberlere bakıyorum",
+  doktor_bul: "Doktorlara bakıyorum",
+  otobus_hatlari: "Otobüs hatlarına bakıyorum",
+  internet_ara: "İnternette arıyorum",
 };
 
 export function toolStatusLabel(name: string): string {
@@ -677,11 +1051,11 @@ export function toolStatusLabel(name: string): string {
 }
 
 /** Runs a tool; unknown tools and failures become an is_error result (logged without any user text). */
-export async function runAiTool(name: string, input: Record<string, unknown>): Promise<AiToolOutput> {
+export async function runAiTool(name: string, input: Record<string, unknown>, signal?: AbortSignal): Promise<AiToolOutput> {
   const run = Object.prototype.hasOwnProperty.call(RUNNERS, name) ? RUNNERS[name] : undefined;
   if (!run) return { content: JSON.stringify({ hata: "Bilinmeyen araç." }), cards: [], isError: true };
   try {
-    return await run(input && typeof input === "object" ? input : {});
+    return await run(input && typeof input === "object" ? input : {}, signal);
   } catch (e) {
     console.error("[gebzemai] tool failed", name, e instanceof Error ? e.message.slice(0, 120) : typeof e);
     return { content: JSON.stringify({ hata: "Bu bilgiye şu an ulaşılamadı. Kullanıcıya ilgili uygulama sayfasını öner." }), cards: [], isError: true };

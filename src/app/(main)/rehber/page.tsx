@@ -33,8 +33,8 @@ import { KIND_META, OSM_COPYRIGHT_URL } from "@/features/nearby/config";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: `Şehir Rehberi - ${CITY.name}`,
-  description: `${CITY.name}'de resmî kurumlar, okullar, hastaneler, noterler, ATM ve bankalar, akaryakıt ve şarj istasyonları, tarihi yerler ve acil numaralar: adres, telefon ve yol tarifi.`,
+  title: `Şehir Rehberi - ${CITY.province}`,
+  description: `${CITY.province}'de resmî kurumlar, okullar, hastaneler, noterler, ATM ve bankalar, akaryakıt ve şarj istasyonları, tarihi yerler ve acil numaralar: adres, telefon ve yol tarifi.`,
   alternates: { canonical: routes.guide.root() },
 };
 
@@ -154,7 +154,7 @@ export default async function GuideHubPage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: `${CITY.name} Şehir Rehberi`,
+    name: `${CITY.province} Şehir Rehberi`,
     itemListElement: listed.map((r, i) => ({ "@type": "ListItem", position: i + 1, name: r.label, url: `${SITE_URL}${r.href}` })),
   };
 

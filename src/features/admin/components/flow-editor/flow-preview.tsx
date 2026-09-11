@@ -95,7 +95,7 @@ export function FlowPreview({ steps, focusId, focusNonce }: { steps: FlowStep[];
                   </div>
                 ))}
               </dl>
-              <p className="mt-4 text-xs text-muted-foreground">Gerçek formda ardından mahalle, zaman, not ve fotoğraf adımları gelir.</p>
+              <p className="mt-4 text-xs text-muted-foreground">Gerçek formda ardından konum (ilçe), zaman, not ve fotoğraf adımları gelir.</p>
               <div className="mt-4 flex gap-2">
                 <Button variant="outline" onClick={back}>
                   <ArrowLeft aria-hidden /> Geri

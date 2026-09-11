@@ -3,7 +3,8 @@
 import * as React from "react";
 import { BellRing, CircleCheck, Loader2, LocateFixed, MapPin, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
+import { DistrictPicker } from "@/components/shared/district-picker";
+import { districtName } from "@/config/districts";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useApproxLocation } from "@/lib/location/use-approx-location";
 import { getPushState, isPushSubscribed, subscribePush, type PushState } from "@/lib/push/client";
@@ -12,8 +13,8 @@ import { enter } from "./motion";
 /**
  * Last onboarding step: three optional, benefit-first rows (permission priming). Each native prompt is asked only
  * from its own tap, nothing blocks "Başla", and every row shows its result in place.
- *  - Mahalle: the shared NeighbourhoodPicker (saved on this device).
- *  - Konum: useApproxLocation().request(); the nearest neighbourhood fills the Mahalle row by itself.
+ *  - İlçe: the shared DistrictPicker (saved as this device's default district).
+ *  - Konum: useApproxLocation().request(); the district of the fix fills the İlçe row by itself.
  *  - Bildirim: subscribePush() needs a signed-in user, so guests get a short "after login" line instead of a button.
  */
 export function PersonalizeStep({ className }: { className?: string }) {
@@ -41,7 +42,9 @@ export function PersonalizeStep({ className }: { className?: string }) {
     };
   }, [user, pushState]);
 
-  const hood = location.neighbourhood;
+  // Manual choice or the district of the GPS fix.
+  const district = location.district;
+  const districtLabel = district ? districtName(district) : null;
   const gps = location.status === "granted" && !!location.coords;
   const locating = location.status === "locating";
 
@@ -98,11 +101,11 @@ export function PersonalizeStep({ className }: { className?: string }) {
     <div className={cn("flex flex-col gap-2.5", className)}>
       <Row
         icon={MapPin}
-        title={hood ? hood.name : "Mahalleni seç"}
-        sub={hood ? "Mahallen seçildi, istediğin zaman değiştirebilirsin." : "Yakınındaki yerleri öne çıkaralım."}
-        state={hood ? "done" : "idle"}
-        action={hood ? "Değiştir" : "Seç"}
-        label={hood ? `Mahalleni değiştir, şu an ${hood.name}` : "Mahalleni seç"}
+        title={districtLabel ?? "İlçeni seç"}
+        sub={districtLabel ? "İlçen seçildi, istediğin zaman değiştirebilirsin." : "İlçendeki yerleri öne çıkaralım."}
+        state={districtLabel ? "done" : "idle"}
+        action={districtLabel ? "Değiştir" : "Seç"}
+        label={districtLabel ? `İlçeni değiştir, şu an ${districtLabel}` : "İlçeni seç"}
         haspopup
         onClick={() => setPickerOpen(true)}
         d={260}
@@ -124,7 +127,7 @@ export function PersonalizeStep({ className }: { className?: string }) {
       />
       {pushRow}
 
-      <NeighbourhoodPicker open={pickerOpen} onOpenChange={setPickerOpen} showTrigger={false} value={hood?.id ?? null} title="Mahalleni seç" />
+      <DistrictPicker open={pickerOpen} onOpenChange={setPickerOpen} showTrigger={false} value={district} persistDefault />
     </div>
   );
 }

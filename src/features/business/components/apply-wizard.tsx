@@ -8,9 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
+import { DistrictPicker } from "@/components/shared/district-picker";
+import { DISTRICT_SLUGS, districtBySlug, type KocaeliDistrict } from "@/config/districts";
 import { createClient } from "@/lib/supabase/client";
-import { useNeighbourhoods } from "@/lib/neighbourhoods";
 import { formatPhoneTR } from "@/core/format";
 import type { LatLng } from "@/core/geo";
 import { routes, withQuery } from "@/core/routes";
@@ -41,9 +41,11 @@ export type ApplyData = {
   phone: string;
   address: string;
   location: LatLng | null;
-  neighbourhoodId: string | null;
+  /** The business's district (districts.id). */
+  districtId: string | null;
   serviceCategoryIds: string[];
-  areaIds: string[];
+  /** Districts a service firm travels to (districts.id). */
+  serviceDistrictIds: string[];
   hours: WorkingHours;
   document: UploadedDoc | null;
 };
@@ -59,7 +61,8 @@ export type ApplyWizardProps = {
 
 type Ctx = WizardStepContext<ApplyData>;
 
-const DRAFT_KEY = "isletme-basvuru-v2";
+/** v3: district fields replaced the neighbourhood ones (older drafts are not restored). */
+const DRAFT_KEY = "isletme-basvuru-v3";
 const NAME_MAX = 80;
 const LABEL_MAX = 60;
 const DESC_MAX = 2000;
@@ -71,6 +74,7 @@ const RESULT_MESSAGES: Record<string, string> = {
   invalid_kinds: "Geçerli bir işletme türü seç.",
   invalid_vertical: "Geçerli bir işletme türü seç.",
   invalid_phone: "İşletme telefonu geçersiz görünüyor. Kontrol edip tekrar dene.",
+  invalid_district: "Geçerli bir ilçe seç.",
   categories_required: "Hizmet veren firmalar için en az bir hizmet kategorisi seçmelisin.",
   business_limit: businessLimitText(1),
   vertical_locked: "İşletme türü değiştirilemez. Farklı bir tür için destek ekibimize yaz.",
@@ -80,22 +84,28 @@ const RESULT_MESSAGES: Record<string, string> = {
 };
 
 const LABEL_PLACEHOLDER: Record<Vertical, string> = {
-  yemek: "Örn. Ev yemekleri, Dürüm ve kebap",
-  restoran: "Örn. Balık restoranı, Ocakbaşı",
-  kafe: "Örn. Kahve ve kahvaltı",
-  otel: "Örn. Butik otel, Apart otel",
-  hizmet: "Örn. Ev temizliği, Boya badana",
-  magaza: "Örn. Kırtasiye, Telefon aksesuarı",
-  saglik: "Örn. Diş kliniği, Fizik tedavi",
-  dugun: "Örn. Düğün salonu, Organizasyon",
-  egitim: "Örn. Dil kursu, Etüt merkezi",
-  etkinlik: "Örn. Etkinlik alanı",
-  diger: "Örn. Oto yıkama, Kuru temizleme",
+  yemek: "Ev yemekleri, Dürüm ve kebap",
+  restoran: "Balık restoranı, Ocakbaşı",
+  kafe: "Kahve ve kahvaltı",
+  otel: "Butik otel, Apart otel",
+  hizmet: "Ev temizliği, Boya badana",
+  magaza: "Kırtasiye, Telefon aksesuarı",
+  saglik: "Diş kliniği, Fizik tedavi",
+  dugun: "Düğün salonu, Organizasyon",
+  egitim: "Dil kursu, Etüt merkezi",
+  etkinlik: "Etkinlik alanı",
+  diger: "Oto yıkama, Kuru temizleme",
 };
 
 /** Kinds follow the vertical: service firms receive leads, every other type is a place customers visit. */
 function kindsFor(vertical: Vertical | null): BusinessKind[] {
   return [vertical === "hizmet" ? "service" : "shop"];
+}
+
+/** The business's district changes; an empty service district list starts with it (editable on the services step). */
+function withDistrict(d: ApplyData, district: KocaeliDistrict | null): ApplyData {
+  const slug = district?.slug ?? null;
+  return { ...d, districtId: slug, serviceDistrictIds: d.serviceDistrictIds.length || !slug ? d.serviceDistrictIds : [slug] };
 }
 
 function BasicsStep({ ctx, deleteReplaced, onUploading }: { ctx: Ctx; deleteReplaced: boolean; onUploading: (b: boolean) => void }) {
@@ -111,7 +121,7 @@ function BasicsStep({ ctx, deleteReplaced, onUploading }: { ctx: Ctx; deleteRepl
           maxLength={NAME_MAX}
           autoComplete="organization"
           autoCapitalize="words"
-          placeholder="Örn. Parlak Temizlik"
+          placeholder="İşletmenin adı"
           onChange={(e) => setData({ name: e.target.value })}
           className="h-12"
         />
@@ -154,7 +164,7 @@ function BasicsStep({ ctx, deleteReplaced, onUploading }: { ctx: Ctx; deleteRepl
           rows={5}
           value={data.description}
           maxLength={DESC_MAX}
-          placeholder="Örn. 10 yıldır Gebze'de ev ve ofis temizliği yapıyoruz. Kendi ekipmanımızla geliyoruz."
+          placeholder="Ne sunuyorsun, seni farklı kılan ne?"
           onChange={(e) => setData({ description: e.target.value })}
           className="min-h-32"
         />
@@ -167,23 +177,15 @@ function BasicsStep({ ctx, deleteReplaced, onUploading }: { ctx: Ctx; deleteRepl
 
 function ContactStep({ ctx }: { ctx: Ctx }) {
   const { data, setData } = ctx;
-  const { neighbourhoods } = useNeighbourhoods();
-  const selected = neighbourhoods.find((n) => String(n.id) === data.neighbourhoodId);
-  const centroid = selected && typeof selected.lat === "number" && typeof selected.lng === "number" ? { lat: selected.lat, lng: selected.lng } : null;
+  const district = districtBySlug(data.districtId);
   const isShop = data.kinds.includes("shop");
   return (
     <div className="flex flex-col gap-5">
       <Field label="İşletme telefonu" htmlFor="biz-phone" hint="İşletme sayfanda herkese açık görünür; müşteriler seni doğrudan arar. Giriş numaran hazır geldi, istersen değiştir.">
         <PhoneField id="biz-phone" value={data.phone} onChange={(phone) => setData({ phone })} />
       </Field>
-      <Field label="Mahalle" htmlFor="biz-neighbourhood">
-        <NeighbourhoodPicker
-          id="biz-neighbourhood"
-          value={data.neighbourhoodId}
-          onChange={(n) => setData({ neighbourhoodId: n ? String(n.id) : null })}
-          persistDefault={false}
-          title="İşletmen hangi mahallede?"
-        />
+      <Field label="İlçe" htmlFor="biz-district">
+        <DistrictPicker id="biz-district" value={data.districtId} onChange={(d) => ctx.setData((s) => withDistrict(s, d))} title="İşletmen hangi ilçede?" />
       </Field>
       <Field
         label="Açık adres"
@@ -205,8 +207,9 @@ function ContactStep({ ctx }: { ctx: Ctx }) {
         <LocationPicker
           value={data.location}
           onChange={(location) => setData({ location })}
-          fallbackCenter={centroid}
-          onNeighbourhood={(n) => ctx.setData((d) => (d.neighbourhoodId ? d : { ...d, neighbourhoodId: n.id }))}
+          fallbackCenter={district?.center ?? null}
+          // The pin is exact: its district wins over the one picked above.
+          onDistrict={(d) => ctx.setData((s) => withDistrict(s, d))}
         />
       </Field>
     </div>
@@ -219,11 +222,9 @@ function ServicesStep({ ctx }: { ctx: Ctx }) {
     <div className="flex flex-col gap-8">
       <CategoryPicker value={data.serviceCategoryIds} onChange={(serviceCategoryIds) => setData({ serviceCategoryIds })} />
       <div>
-        <h3 className="mb-1 text-lg font-bold">Hangi mahallelere gidiyorsun?</h3>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Bu mahallelerdeki talepler önce sana gelir. Yakınında firma olmayan başka mahallelerden de talep gelebilir.
-        </p>
-        <AreaPicker value={data.areaIds} onChange={(areaIds) => setData({ areaIds })} />
+        <h3 className="mb-1 text-lg font-bold">Hangi ilçelere gidiyorsun?</h3>
+        <p className="mb-4 text-sm text-muted-foreground">Seçtiğin ilçelerdeki talepler önce sana gelir. Yakın ilçelerden de talep gelebilir.</p>
+        <AreaPicker value={data.serviceDistrictIds} onChange={(serviceDistrictIds) => setData({ serviceDistrictIds })} />
       </div>
     </div>
   );
@@ -248,11 +249,11 @@ function PreviewRow({ icon: Icon, title, children, onEdit }: { icon: typeof Phon
 
 function PreviewStep({ ctx, resubmit }: { ctx: Ctx; resubmit: boolean }) {
   const { data, goTo } = ctx;
-  const { neighbourhoods } = useNeighbourhoods();
   const categoryNames = useServiceCategoryNames();
-  const neighbourhoodName = neighbourhoods.find((n) => String(n.id) === data.neighbourhoodId)?.name;
+  const districtLabel = districtBySlug(data.districtId)?.name;
   const isService = data.kinds.includes("service");
-  const allAreas = neighbourhoods.length > 0 && neighbourhoods.every((n) => data.areaIds.includes(String(n.id)));
+  const serviceDistricts = data.serviceDistrictIds.map((id) => districtBySlug(id)?.name).filter(Boolean) as string[];
+  const allDistricts = DISTRICT_SLUGS.every((slug) => data.serviceDistrictIds.includes(slug));
   const phone = businessPhoneE164(data.phone);
   const categories = data.serviceCategoryIds.map((id) => categoryNames.get(id)).filter(Boolean) as string[];
 
@@ -264,7 +265,7 @@ function PreviewStep({ ctx, resubmit }: { ctx: Ctx; resubmit: boolean }) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-lg leading-tight font-extrabold">{data.name.trim() || "İşletme adı"}</p>
             <p className="truncate text-sm text-muted-foreground">
-              {[data.categoryLabel.trim(), neighbourhoodName ? `${neighbourhoodName} Mah.` : null].filter(Boolean).join(" · ")}
+              {[data.categoryLabel.trim(), districtLabel].filter(Boolean).join(" · ")}
             </p>
           </div>
         </div>
@@ -284,7 +285,7 @@ function PreviewStep({ ctx, resubmit }: { ctx: Ctx; resubmit: boolean }) {
         </PreviewRow>
         <PreviewRow icon={Phone} title="İletişim ve konum" onEdit={() => goTo("iletisim")}>
           <p className="tabular-nums">{phone ? formatPhoneTR(phone) : "Telefon eksik"}</p>
-          <p>{[data.address.trim(), neighbourhoodName ? `${neighbourhoodName} Mah.` : null].filter(Boolean).join(", ") || "Adres eklenmedi"}</p>
+          <p>{[data.address.trim(), districtLabel].filter(Boolean).join(", ") || "Adres eklenmedi"}</p>
           <p className="flex items-center gap-1">
             <MapPin className="size-3.5" aria-hidden />
             {data.location ? "Haritada işaretli" : "Harita konumu eklenmedi"}
@@ -293,7 +294,7 @@ function PreviewStep({ ctx, resubmit }: { ctx: Ctx; resubmit: boolean }) {
         {isService ? (
           <PreviewRow icon={Wrench} title="Hizmetler" onEdit={() => goTo("hizmetler")}>
             <p>{categories.length ? categories.join(", ") : `${data.serviceCategoryIds.length} hizmet`}</p>
-            <p>{allAreas ? "Tüm Gebze" : `${data.areaIds.length} mahalle`}</p>
+            <p>{allDistricts ? "Tüm Kocaeli" : serviceDistricts.length ? serviceDistricts.join(", ") : "İlçe seçilmedi"}</p>
           </PreviewRow>
         ) : null}
         <PreviewRow icon={Clock} title="Çalışma saatleri" onEdit={() => goTo("saatler")}>
@@ -348,7 +349,7 @@ export function ApplyWizard({ initial, businessId, resubmit, rejectionReason }: 
           const name = d.name.trim();
           if (name.length < 2) return "İşletme adını yaz (en az 2 karakter).";
           if (name.length > NAME_MAX) return `İşletme adı en fazla ${NAME_MAX} karakter olabilir.`;
-          if (d.categoryLabel.trim().length < 2) return "Ne iş yaptığını kısaca yaz (örn. Ev temizliği).";
+          if (d.categoryLabel.trim().length < 2) return "Ne iş yaptığını kısaca yaz.";
           return waitForUploads();
         },
         render: (ctx) => <BasicsStep ctx={ctx} deleteReplaced={!resubmit} onUploading={onUploading} />,
@@ -358,8 +359,8 @@ export function ApplyWizard({ initial, businessId, resubmit, rejectionReason }: 
         title: "İletişim ve konum",
         help: "Seni nerede ve nasıl bulabilirler?",
         validate: (d) => {
-          if (!businessPhoneE164(d.phone)) return "Geçerli bir telefon numarası yaz (örn. 5XX XXX XX XX ya da 262 XXX XX XX).";
-          if (!d.neighbourhoodId) return "İşletmenin bulunduğu mahalleyi seç.";
+          if (!businessPhoneE164(d.phone)) return "Geçerli bir telefon numarası yaz (5XX XXX XX XX ya da 262 XXX XX XX).";
+          if (!districtBySlug(d.districtId)) return "İşletmenin bulunduğu ilçeyi seç.";
           if (d.kinds.includes("shop") && d.address.trim().length < 5) return "İşletmenin açık adresini yaz.";
           return null;
         },
@@ -372,7 +373,7 @@ export function ApplyWizard({ initial, businessId, resubmit, rejectionReason }: 
         isVisible: (d) => d.kinds.includes("service"),
         validate: (d) => {
           if (d.serviceCategoryIds.length === 0) return "En az bir hizmet kategorisi seç.";
-          if (d.areaIds.length === 0) return "Hizmet verdiğin en az bir mahalle seç (ya da Tüm Gebze).";
+          if (!d.serviceDistrictIds.some((id) => districtBySlug(id))) return "Hizmet verdiğin en az bir ilçe seç (ya da Tüm Kocaeli).";
           return null;
         },
         render: (ctx) => <ServicesStep ctx={ctx} />,
@@ -412,9 +413,10 @@ export function ApplyWizard({ initial, businessId, resubmit, rejectionReason }: 
       p_category_label: d.categoryLabel.trim() || undefined,
       p_description: d.description.trim() || undefined,
       p_address: d.address.trim() || undefined,
-      p_neighbourhood_id: d.neighbourhoodId ?? undefined,
+      // District only (no neighbourhood); an empty service list means the business's own district.
+      p_district_id: d.districtId ?? undefined,
       p_service_category_ids: isService ? d.serviceCategoryIds : [],
-      p_service_area_ids: isService ? d.areaIds : [],
+      p_service_district_ids: isService ? d.serviceDistrictIds : [],
       p_working_hours: hoursToJson(d.hours),
       p_lat: d.location?.lat,
       p_lng: d.location?.lng,

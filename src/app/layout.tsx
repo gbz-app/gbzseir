@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Google_Sans } from "next/font/google";
 import "./globals.css";
 import { APP_DESCRIPTION, APP_FULL_NAME, APP_NAME, BRAND_COLORS, SITE_URL } from "@/config/site";
+import { KOCAELI_DISTRICTS } from "@/config/districts";
 import { IS_ADMIN_SITE } from "@/config/app-mode";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { AppProviders } from "@/components/providers/app-providers";
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   title: { default: APP_FULL_NAME, template: `%s | ${APP_NAME}` },
   description: APP_DESCRIPTION,
   applicationName: APP_NAME,
-  keywords: ["Gebze", "nöbetçi eczane", "Gebze ilanlar", "Gebze iş ilanları", "Gebze usta", "Kocaeli", "şehir rehberi"],
+  keywords: ["Kocaeli", "şehir rehberi", "nöbetçi eczane", "Kocaeli ilanlar", "Kocaeli iş ilanları", "Kocaeli usta", ...KOCAELI_DISTRICTS.map((d) => d.name)],
   appleWebApp: { capable: true, title: APP_NAME, statusBarStyle: "default" },
   formatDetection: { telephone: false, email: false, address: false },
   openGraph: {

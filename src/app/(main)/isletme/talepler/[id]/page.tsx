@@ -16,7 +16,8 @@ import { LeadActions, LeadTip } from "@/features/services/components/lead-action
 import { SERVICE_GATE_COPY, getServiceBusiness } from "@/features/services/business";
 import { whenLabel } from "@/features/services/labels";
 import type { LeadDetailView } from "@/features/services/types";
-import { UUID_RE, neighbourhoodLabel } from "@/features/services/util";
+import { UUID_RE } from "@/features/services/util";
+import { districtName } from "@/config/districts";
 
 export const metadata: Metadata = { title: "Talep detayı", robots: { index: false } };
 
@@ -57,7 +58,7 @@ const BANNER_TONE = {
   warning: "bg-highlight-soft text-highlight-foreground",
 } as const;
 
-/** H5: lead detail for the business (answers, photos, neighbourhood; contact only after "İlgileniyorum"). */
+/** H5: lead detail for the business (answers, photos, district; contact only after "İlgileniyorum"). */
 export default async function LeadDetailPage({ params }: Props) {
   const { id } = await params;
   await requireAuth(routes.business.lead(id));
@@ -169,7 +170,7 @@ export default async function LeadDetailPage({ params }: Props) {
           <FactList
             className="mt-4 border-t pt-3"
             items={[
-              { label: "Mahalle", value: neighbourhoodLabel(r.neighbourhood?.name) },
+              { label: "İlçe", value: districtName(r.district?.id) },
               { label: "Ne zaman", value: whenLabel(r.when_type, r.when_date) },
             ]}
           />

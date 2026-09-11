@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { routes, withQuery } from "@/core/routes";
-import { CITY } from "@/config/site";
+import { districtName } from "@/config/districts";
 import { JsonLd } from "@/components/seo/json-ld";
 import { EDITABLE_STATUSES } from "@/features/listings/constants";
 import { jobPostingJsonLd } from "@/features/listings/seo";
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const company = d.business?.name;
   return {
     title: company ? `${d.title} - ${company}` : d.title,
-    description: (d.description || `${CITY.name} iş ilanı`).slice(0, 160),
+    description: (d.description || `${districtName(d.district_id)} iş ilanı`).slice(0, 160),
     alternates: { canonical: routes.listings.job(d.id) },
     robots: live ? undefined : { index: false, follow: true },
   };

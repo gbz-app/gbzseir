@@ -32,8 +32,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!v) return { title: "Bulunamadı", robots: { index: false } };
   const info = VERTICAL_INFO[v];
   return {
-    title: `${info.plural} - ${CITY.name}`,
-    description: `${CITY.name}'deki ${info.plural.toLocaleLowerCase("tr-TR")}: ${info.subtitle.toLocaleLowerCase("tr-TR")}. Puanlar, fotoğraflar, çalışma saatleri ve telefon ${APP_NAME}'de.`,
+    title: `${info.plural} - ${CITY.province}`,
+    description: `${CITY.province}'deki${info.plural.toLocaleLowerCase("tr-TR")}: ${info.subtitle.toLocaleLowerCase("tr-TR")}. Puanlar, fotoğraflar, çalışma saatleri ve telefon ${APP_NAME}'de.`,
     alternates: { canonical: routes.businesses.vertical(v) },
   };
 }
@@ -67,7 +67,7 @@ export default async function VerticalPage({ params }: Props) {
           data={{
             "@context": "https://schema.org",
             "@type": "ItemList",
-            name: `${CITY.name} ${VERTICAL_INFO[v].plural}`,
+            name: `${CITY.province} ${VERTICAL_INFO[v].plural}`,
             itemListElement: listed.map((b, i) => ({
               "@type": "ListItem",
               position: i + 1,

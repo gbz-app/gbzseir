@@ -2,14 +2,15 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Clock3, Loader2, LocateFixed, MapPin, Navigation } from "lucide-react";
+import { ChevronDown, Clock3, Loader2, LocateFixed, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { describeDutyWindow } from "@/core/duty";
+import { districtBySlug, type DistrictSlug } from "@/config/districts";
 import { Button } from "@/components/ui/button";
 import { DataSourceNote } from "@/components/shared/data-source-note";
+import { DistrictPicker } from "@/components/shared/district-picker";
 import { EmptyState } from "@/components/shared/empty-state";
-import { NeighbourhoodPicker } from "@/components/shared/neighbourhood-picker";
 import { useApproxLocation } from "@/lib/location/use-approx-location";
 import { ECZACI_ODASI_NAME, ECZACI_ODASI_URL } from "../config";
 import { buildDutyView, sortDutyRows } from "../lib/duty-view";
@@ -30,11 +31,15 @@ export type DutyBrowserProps = {
 
 type Tab = "now" | "next";
 
+/** A district picked on this page, "all" for every district, null to follow the user's district (GPS fix or choice). */
+type DistrictChoice = DistrictSlug | "all" | null;
+
 const DEMO_SOURCE = "Örnek veri (gerçek liste değil)";
 
 /**
- * D2 list: "Bugün / Yarın" tabs, filtered at render time (the HTML may come from ISR or the service worker),
- * sorted by distance when a location is known, refreshed automatically at the 08:30 switch.
+ * D2 list: "Bugün / Yarın" tabs, filtered at render time (the HTML may come from ISR or the service worker), narrowed to
+ * one district (the user's by default) when the rows carry it, sorted by distance when a location or district is known,
+ * refreshed automatically at the 08:30 switch.
  */
 export function DutyBrowser({ rows, serverNow, fetchedAt, ok, mode }: DutyBrowserProps) {
   const demo = mode === "demo";
@@ -43,12 +48,26 @@ export function DutyBrowser({ rows, serverNow, fetchedAt, ok, mode }: DutyBrowse
   const loc = useApproxLocation();
   const [tab, setTab] = React.useState<Tab>("now");
   const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [choice, setChoice] = React.useState<DistrictChoice>(null);
 
-  const view = React.useMemo(() => buildDutyView(rows, now), [rows, now]);
-  const point = loc.pointSource === "city" ? null : loc.point;
+  // The list can be narrowed to a district only when the rows carry it (duty RPCs of 2026091380).
+  const canFilter = React.useMemo(() => rows.some((r) => !!r.district_id), [rows]);
+  const picked = choice && choice !== "all" ? choice : null;
+  const filter = canFilter && choice !== "all" ? (picked ?? loc.district) : null;
+  const filterDistrict = districtBySlug(filter);
+  // Sort point: the GPS fix, else the centre of the picked (or the user's) district.
+  const refDistrict = districtBySlug(picked ?? loc.district);
+  const point = loc.coords ?? refDistrict?.center ?? null;
   const pLat = point?.lat;
   const pLng = point?.lng;
-  const list = tab === "now" ? view.current : view.next;
+
+  const view = React.useMemo(() => buildDutyView(rows, now), [rows, now]);
+  const { current: currentAll, next: nextAll } = view;
+  const current = React.useMemo(() => (filter ? currentAll.filter((r) => r.district_id === filter) : currentAll), [currentAll, filter]);
+  const next = React.useMemo(() => (filter ? nextAll.filter((r) => r.district_id === filter) : nextAll), [nextAll, filter]);
+  const list = tab === "now" ? current : next;
+  // Rows of the tab hidden by the district filter (the empty state then offers "Tüm ilçeleri göster").
+  const others = (tab === "now" ? currentAll : nextAll).length - list.length;
   const sorted = React.useMemo(
     () => sortDutyRows(list, typeof pLat === "number" && typeof pLng === "number" ? { lat: pLat, lng: pLng } : null),
     [list, pLat, pLng],
@@ -75,13 +94,26 @@ export function DutyBrowser({ rows, serverNow, fetchedAt, ok, mode }: DutyBrowse
   };
 
   const tabs: Array<{ id: Tab; label: string; count: number }> = [
-    { id: "now", label: view.currentLabel, count: view.current.length },
-    { id: "next", label: view.nextLabel, count: view.next.length },
+    { id: "now", label: view.currentLabel, count: current.length },
+    { id: "next", label: view.nextLabel, count: next.length },
   ];
+  const chipLabel = canFilter ? (filterDistrict?.name ?? "Tüm ilçeler") : (refDistrict?.name ?? "İlçe seç");
 
   return (
     <div className="flex flex-col gap-3">
       {demo ? <DutyDemoNote /> : null}
+
+      <button
+        type="button"
+        onClick={() => setPickerOpen(true)}
+        aria-haspopup="dialog"
+        aria-label={`İlçe: ${chipLabel}`}
+        className="inline-flex h-9 max-w-full items-center gap-1.5 self-start rounded-full bg-card px-3.5 text-[13px] font-semibold transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <MapPin className="size-4 shrink-0 text-primary" aria-hidden />
+        <span className="truncate">{chipLabel}</span>
+        <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      </button>
 
       <div role="tablist" aria-label="Nöbet günü" className="grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1">
         {tabs.map((t) => {
@@ -117,25 +149,30 @@ export function DutyBrowser({ rows, serverNow, fetchedAt, ok, mode }: DutyBrowse
         <p className="text-xs text-muted-foreground">Nöbet her gün 08:30&apos;da değişir.</p>
       </div>
 
-      {loc.pointSource === "city" ? (
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" className="flex-1" onClick={locate} disabled={loc.status === "locating"}>
-            {loc.status === "locating" ? <Loader2 className="animate-spin" /> : <LocateFixed />}
-            Konumuma göre sırala
-          </Button>
-          <Button type="button" variant="ghost" onClick={() => setPickerOpen(true)}>
-            <MapPin />
-            Mahalle seç
-          </Button>
-        </div>
-      ) : (
+      {loc.coords ? (
         <p className="flex items-center gap-1.5 px-1 text-sm text-muted-foreground">
           <Navigation className="size-4 shrink-0 text-primary" aria-hidden />
-          {loc.pointSource === "gps" ? "Sana en yakın olan en üstte." : `${loc.neighbourhood?.name ?? "Mahallen"} merkezine en yakın olan en üstte.`}
-          <button type="button" onClick={() => setPickerOpen(true)} className="ml-auto min-h-11 shrink-0 px-1 font-semibold text-primary">
-            Değiştir
+          Sana en yakın olan en üstte.
+        </p>
+      ) : refDistrict ? (
+        <p className="flex items-center gap-1.5 px-1 text-sm text-muted-foreground">
+          <Navigation className="size-4 shrink-0 text-primary" aria-hidden />
+          {refDistrict.name} merkezine en yakın olan en üstte.
+          <button
+            type="button"
+            onClick={locate}
+            disabled={loc.status === "locating"}
+            className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1 px-1 font-semibold text-primary disabled:opacity-70"
+          >
+            {loc.status === "locating" ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <LocateFixed className="size-4" aria-hidden />}
+            Konumum
           </button>
         </p>
+      ) : (
+        <Button type="button" variant="outline" onClick={locate} disabled={loc.status === "locating"}>
+          {loc.status === "locating" ? <Loader2 className="animate-spin" /> : <LocateFixed />}
+          Konumuma göre sırala
+        </Button>
       )}
 
       <div id="nobet-listesi" role="tabpanel" aria-labelledby={`nobet-tab-${tab}`}>
@@ -153,6 +190,18 @@ export function DutyBrowser({ rows, serverNow, fetchedAt, ok, mode }: DutyBrowse
               </li>
             ))}
           </ul>
+        ) : filterDistrict && others > 0 ? (
+          <EmptyState
+            compact
+            icon={MapPin}
+            title={`${filterDistrict.name} için nöbet listesi yok`}
+            description="Diğer ilçelerin nöbetçi eczanelerine bakabilirsin."
+            action={
+              <Button type="button" variant="secondary" className="rounded-full" onClick={() => setChoice("all")}>
+                Tüm ilçeleri göster
+              </Button>
+            }
+          />
         ) : tab === "now" || !ok ? (
           <DutyUnverified />
         ) : (
@@ -181,13 +230,18 @@ export function DutyBrowser({ rows, serverNow, fetchedAt, ok, mode }: DutyBrowse
         }
       />
 
-      <NeighbourhoodPicker
+      {/* Only this list: the pick narrows it (and sorts by that district's centre) without changing the saved district. */}
+      <DistrictPicker
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         showTrigger={false}
         showUseLocation
-        value={loc.neighbourhood?.id ?? null}
-        title="Mahalleni seç"
+        value={canFilter ? filter : (refDistrict?.slug ?? null)}
+        onChange={(d) => setChoice(d ? d.slug : "all")}
+        allowClear={canFilter}
+        clearLabel="Tüm ilçeler"
+        title={canFilter ? "İlçe seç" : undefined}
+        description={canFilter ? "Seçtiğin ilçenin nöbetçi eczanelerini gösteririz." : undefined}
       />
     </div>
   );

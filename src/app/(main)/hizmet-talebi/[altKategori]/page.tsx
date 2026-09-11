@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Info } from "lucide-react";
+import { CITY } from "@/config/site";
 import { routes } from "@/core/routes";
 import { findCategory, getPublishedFlow, getServiceCatalog } from "@/features/services/data";
 import { servicePickerData } from "@/features/services/util";
@@ -17,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const c = found.category;
   return {
     title: `${c.name} talebi oluştur`,
-    description: `Gebze'de ${c.name.toLocaleLowerCase("tr-TR")} için birkaç soruyu cevapla; en fazla ${c.max_providers} uygun firma seninle ilgilensin.`,
+    description: `${CITY.province}'de ${c.name.toLocaleLowerCase("tr-TR")} için birkaç soruyu cevapla; en fazla ${c.max_providers} uygun firma seninle ilgilensin.`,
     robots: { index: false, follow: true },
   };
 }

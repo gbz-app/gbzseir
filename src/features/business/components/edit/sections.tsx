@@ -8,7 +8,9 @@ import { routes } from "@/core/routes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { DistrictPicker } from "@/components/shared/district-picker";
 import { FilterChip } from "@/components/shared/explore-header";
+import { districtBySlug } from "@/config/districts";
 import type { WorkingHours } from "../../lib/hours";
 import { PRICE_LEVELS, VERTICAL_INFO, type AmenityOption } from "../../lib/verticals";
 import { AreaPicker } from "../editor/area-picker";
@@ -66,7 +68,7 @@ export function BasicsSection({
         <Field label="İşletme adı" htmlFor="ad">
           <Input id="ad" value={d.name} maxLength={80} onChange={(e) => set("name", e.target.value)} autoComplete="organization" />
         </Field>
-        <Field label="Kısa tanım" htmlFor="kategori" optional hint="Kartlarda adın üstünde görünür. Örnek: Balık restoranı, Üçüncü dalga kahve.">
+        <Field label="Kısa tanım" htmlFor="kategori" optional hint="Kartlarda adın üstünde görünür.">
           <Input id="kategori" value={d.categoryLabel} maxLength={60} onChange={(e) => set("categoryLabel", e.target.value)} />
         </Field>
       </EditCard>
@@ -115,7 +117,7 @@ export function ContactSection({ d, set }: SectionProps) {
         <PhoneField id="telefon" value={d.phone} onChange={(v) => set("phone", v)} />
       </Field>
       <Field label="Web sitesi" htmlFor="web" optional>
-        <Input id="web" inputMode="url" value={d.website} maxLength={200} onChange={(e) => set("website", e.target.value)} placeholder="ornek.com" />
+        <Input id="web" inputMode="url" value={d.website} maxLength={200} onChange={(e) => set("website", e.target.value)} placeholder="https://" />
       </Field>
       <Field label="Instagram" htmlFor="instagram" optional>
         <Input id="instagram" value={d.instagram} maxLength={60} onChange={(e) => set("instagram", e.target.value)} placeholder="@kullaniciadi" />
@@ -126,11 +128,19 @@ export function ContactSection({ d, set }: SectionProps) {
 
 export function LocationSection({ d, set }: SectionProps) {
   return (
-    <EditCard text="Haritada ve yol tarifinde kullanılır. Pini koyunca mahallen de seçilir.">
+    <EditCard text="Haritada ve yol tarifinde kullanılır. Pini koyunca ilçen de seçilir.">
+      <Field label="İlçe" htmlFor="ilce">
+        <DistrictPicker id="ilce" value={d.districtId} onChange={(x) => set("districtId", x?.slug ?? null)} title="İşletmen hangi ilçede?" />
+      </Field>
       <Field label="Adres" htmlFor="adres" optional>
         <Input id="adres" value={d.address} maxLength={200} onChange={(e) => set("address", e.target.value)} />
       </Field>
-      <LocationPicker value={d.location} onChange={(v) => set("location", v)} onNeighbourhood={(n) => set("neighbourhoodId", n.id)} />
+      <LocationPicker
+        value={d.location}
+        onChange={(v) => set("location", v)}
+        fallbackCenter={districtBySlug(d.districtId)?.center ?? null}
+        onDistrict={(x) => set("districtId", x.slug)}
+      />
     </EditCard>
   );
 }
@@ -195,12 +205,8 @@ export function ServiceScopeSection({ d, set }: SectionProps) {
       <EditCard title="Hizmet kategorileri" text="Bu kategorilerdeki talepler sana gelir.">
         <CategoryPicker value={d.categoryIds} onChange={(v) => set("categoryIds", v)} />
       </EditCard>
-      <EditCard
-        id="bolgeler"
-        title="Hizmet verdiğin mahalleler"
-        text="Bu mahallelerdeki talepler önce sana gelir. Yakınında firma olmayan başka mahallelerden de talep gelebilir."
-      >
-        <AreaPicker value={d.areaIds} onChange={(v) => set("areaIds", v)} />
+      <EditCard id="bolgeler" title="Hizmet verdiğin ilçeler" text="Seçtiğin ilçelerdeki talepler önce sana gelir. Yakın ilçelerden de talep gelebilir.">
+        <AreaPicker value={d.serviceDistrictIds} onChange={(v) => set("serviceDistrictIds", v)} />
       </EditCard>
     </>
   );

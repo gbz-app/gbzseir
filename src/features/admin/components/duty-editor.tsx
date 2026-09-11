@@ -11,16 +11,16 @@ import { saveDutyListAction } from "../actions/duty";
 import { ConfirmDialog } from "./confirm-dialog";
 import { useAdminAction } from "./use-admin-action";
 
-export type DutyPharmacy = { id: string; name: string; neighbourhood: string | null; phone: string | null };
+export type DutyPharmacy = { id: string; name: string; /** İlçe name. */ district: string | null; phone: string | null };
 
-/** Nöbet listesi: search pharmacies by name or neighbourhood, tick the day's duty pharmacies and save. */
+/** Nöbet listesi: search pharmacies by name or district, tick the day's duty pharmacies and save. */
 export function DutyEditor({ day, pharmacies, initialIds, hasList }: { day: string; pharmacies: DutyPharmacy[]; initialIds: string[]; hasList: boolean }) {
   const { pending, run } = useAdminAction();
   const [selected, setSelected] = React.useState<string[]>(initialIds);
   const [q, setQ] = React.useState("");
   const byId = React.useMemo(() => new Map(pharmacies.map((p) => [p.id, p])), [pharmacies]);
   const selectedSet = React.useMemo(() => new Set(selected), [selected]);
-  const filtered = React.useMemo(() => pharmacies.filter((p) => trIncludes(`${p.name} ${p.neighbourhood ?? ""}`, q)), [pharmacies, q]);
+  const filtered = React.useMemo(() => pharmacies.filter((p) => trIncludes(`${p.name} ${p.district ?? ""}`, q)), [pharmacies, q]);
   const dirty = selected.length !== initialIds.length || initialIds.some((id) => !selectedSet.has(id));
 
   const toggle = (id: string, on: boolean) => setSelected((cur) => (on ? (cur.includes(id) ? cur : [...cur, id]) : cur.filter((x) => x !== id)));
@@ -52,7 +52,7 @@ export function DutyEditor({ day, pharmacies, initialIds, hasList }: { day: stri
 
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Eczane ya da mahalle ara" aria-label="Eczane ara" className="h-11 pl-9" />
+        <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Eczane ya da ilçe ara" aria-label="Eczane ara" className="h-11 pl-9" />
       </div>
 
       <ul className="max-h-[26rem] divide-y overflow-y-auto rounded-2xl bg-muted/40">
@@ -64,7 +64,7 @@ export function DutyEditor({ day, pharmacies, initialIds, hasList }: { day: stri
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium">{p.name}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {[p.neighbourhood, p.phone ? formatPhoneTR(p.phone) : null].filter(Boolean).join(" · ") || "Mahalle bilgisi yok"}
+                    {[p.district, p.phone ? formatPhoneTR(p.phone) : null].filter(Boolean).join(" · ") || "İlçe bilgisi yok"}
                   </span>
                 </span>
               </label>

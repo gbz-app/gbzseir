@@ -9,7 +9,7 @@ import { getDutyMode } from "@/features/nearby/server/queries";
 
 export const metadata: Metadata = {
   title: "Yakınımda",
-  description: `${CITY.name}'de yakınındaki nöbetçi eczane, eczane, cami, otobüs durağı, gezilecek yer ve işletmeleri haritada gör; tek dokunuşla ara ya da yol tarifi al.`,
+  description: `${CITY.province}'de yakınındaki nöbetçi eczane, eczane, cami, otobüs durağı, gezilecek yer ve işletmeleri haritada gör; tek dokunuşla ara ya da yol tarifi al.`,
   alternates: { canonical: routes.nearby.root() },
 };
 
