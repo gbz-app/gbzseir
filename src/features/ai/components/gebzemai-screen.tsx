@@ -21,7 +21,6 @@ import { AiAvatar } from "./ai-intro";
 import { AiPrivacyText } from "./ai-privacy";
 import {
   AI_COUNTER_FROM,
-  AI_EXAMPLES,
   AI_HISTORY_ASSISTANT_CHARS,
   AI_HISTORY_LIMIT,
   AI_IMAGE_DATA_URL,
@@ -64,12 +63,18 @@ const PLACEHOLDER = "GebzemAI'a sorun";
 const PRIVACY = <AiPrivacyText />;
 const BLACK_CTA = "bg-foreground text-background shadow-none hover:bg-foreground/90";
 /** The white composer card. */
-const COMPOSER_CARD = "rounded-[1.75rem] bg-card px-4 pt-3 pb-2";
+const COMPOSER_CARD = "rounded-[1.75rem] bg-card px-3 pt-3 pb-3 [&_textarea]:px-1";
 const SEND_BUTTON = "flex size-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
-/** Typed one after another under the greeting; the first one is the owner's example. */
+/** Typed one after another under the greeting: five short example questions (owner, 12.09), each with a page to open. */
 type Suggestion = { text: string; href: string };
-const SUGGESTIONS: readonly Suggestion[] = [{ text: "Gebze'nin en iyi kebapçısı", href: routes.search("kebap") }, ...AI_EXAMPLES];
+const SUGGESTIONS: readonly Suggestion[] = [
+  { text: "Gebze'de en iyi kebapçı", href: routes.search("kebap") },
+  { text: "Şu an açık nöbetçi eczane", href: routes.nearby.dutyPharmacies() },
+  { text: "Bu hafta sonu etkinlikler", href: routes.events.root() },
+  { text: "En yakın taksi durağı", href: routes.nearby.root("taksi") },
+  { text: "Gebze'de kahvaltı mekânları", href: routes.search("kahvaltı") },
+];
 
 let idSeq = 0;
 const newId = () => `m${Date.now().toString(36)}${(idSeq++).toString(36)}`;
@@ -141,27 +146,30 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 // ---------------------------------------------------------------------------------------------------------------------------
 
 /**
- * Back, centred title, new chat on the right (only once there is a chat). See-through over the page background until the
- * chat starts; then a plain bg-background band (no line) so the messages scrolling underneath are cut off at its edge.
+ * Back, centred title, "new chat" (a bubble with a plus) always on the right. See-through over the page background until
+ * the chat starts (`solid`); then a plain bg-background band (no line) so the messages scrolling underneath are cut off.
  */
-function AiHeader({ onNewChat }: { onNewChat?: () => void }) {
+function AiHeader({ onNewChat, solid = false }: { onNewChat?: () => void; solid?: boolean }) {
   const router = useRouter();
   const goBack = () => (canGoBack() ? router.back() : router.push(routes.home()));
   return (
-    <header className={cn("sticky top-0 z-40 pt-safe", onNewChat ? "bg-background" : "bg-transparent")}>
+    <header className={cn("sticky top-0 z-40 pt-safe", solid ? "bg-background" : "bg-transparent")}>
       <div className="grid h-(--topbar-h) grid-cols-[2.75rem_1fr_2.75rem] items-center gap-1 px-2">
-        {/* Bare arrow, no circle behind it. */}
+        {/* Bare icons, no circle behind them. */}
         <Button variant="ghost" size="icon" className="rounded-full hover:bg-transparent active:opacity-60" onClick={goBack} aria-label="Geri">
           <ArrowLeft className="size-6" strokeWidth={2.6} />
         </Button>
         <h1 className="truncate text-center text-xl leading-tight font-bold">GebzemAI</h1>
-        {onNewChat ? (
-          <Button variant="ghost" size="icon" className="rounded-full" onClick={onNewChat} aria-label="Yeni sohbet">
-            <MessageCirclePlus className="size-5" strokeWidth={2} />
-          </Button>
-        ) : (
-          <span aria-hidden />
-        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full hover:bg-transparent active:opacity-60"
+          onClick={onNewChat}
+          disabled={!onNewChat}
+          aria-label="Yeni sohbet"
+        >
+          <MessageCirclePlus className="size-6" strokeWidth={2.2} />
+        </Button>
       </div>
     </header>
   );
@@ -180,7 +188,7 @@ function AiGlow() {
 function Welcome({ name, children }: { name?: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-5 py-10 text-center">
-      <h2 className="max-w-[19rem] text-[26px] leading-[1.2] font-bold tracking-tight text-balance">
+      <h2 className="max-w-[20rem] text-[28px] leading-[1.2] font-bold tracking-tight text-balance">
         {name ? `${name}, sana hangi konuda yardımcı olabilirim?` : "Sana hangi konuda yardımcı olabilirim?"}
       </h2>
       {children}
@@ -216,15 +224,15 @@ function TypedSuggestion({ onPick, hrefFor }: { onPick?: (text: string) => void;
   const { index, shown } = useTypewriter(SUGGESTIONS);
   const s = SUGGESTIONS[index];
   const cls =
-    "inline-flex min-h-11 max-w-full items-center gap-2 rounded-full px-3 text-[15px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50";
+    "inline-flex min-h-11 max-w-full items-center gap-2 rounded-full px-3 text-[17px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50";
   const label = `Örnek soru: ${s.text}`;
   const inner = (
     <>
-      <TrendingUp className="size-[18px] shrink-0" strokeWidth={2} aria-hidden />
+      <TrendingUp className="size-5 shrink-0" strokeWidth={2} aria-hidden />
       <span className="truncate" aria-hidden>
         {shown}
       </span>
-      <span className="-ml-1.5 h-5 w-[1.5px] shrink-0 animate-pulse bg-current motion-reduce:hidden" aria-hidden />
+      <span className="-ml-1.5 h-6 w-[1.5px] shrink-0 animate-pulse bg-current motion-reduce:hidden" aria-hidden />
     </>
   );
   if (hrefFor) {
@@ -276,7 +284,10 @@ type ComposerProps = {
   describedBy?: string;
 };
 
-/** White card: the question (grows up to TEXTAREA_MAX_PX), "+" on the left, black send / stop on the right. */
+/**
+ * White card: the question (grows up to TEXTAREA_MAX_PX), then two 40 px circles the same distance from the card's
+ * edges: "+" on grey on the left, black send / stop on the right.
+ */
 function Composer({ value, onChange, onSubmit, onPlus, canSend, disabled, placeholder = PLACEHOLDER, streaming, onStop, inputRef, preview, describedBy }: ComposerProps) {
   const ownRef = React.useRef<HTMLTextAreaElement>(null);
   const ref = inputRef ?? ownRef;
@@ -326,14 +337,14 @@ function Composer({ value, onChange, onSubmit, onPlus, canSend, disabled, placeh
         }}
         className="block max-h-36 min-h-7 w-full resize-none bg-transparent py-0.5 text-base leading-6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
       />
-      <div className="mt-1 flex items-center justify-between">
+      <div className="mt-1.5 flex items-center justify-between">
         <button
           type="button"
           onClick={onPlus}
           aria-label="Fotoğraf ekle"
-          className="-ml-2 flex size-10 items-center justify-center rounded-full text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground outline-none transition-colors hover:bg-muted/70 focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          <Plus className="size-6" strokeWidth={1.75} aria-hidden />
+          <Plus className="size-5" strokeWidth={2.2} aria-hidden />
         </button>
         {streaming ? (
           <button type="button" onClick={onStop} aria-label="Yanıtı durdur" className={SEND_BUTTON}>
@@ -362,6 +373,14 @@ export function GebzemAiScreen({
   initialRemaining?: number | null;
 }) {
   const [current, setCurrent] = React.useState<GebzemAiMode>(mode);
+  // The composer takes the bottom menu's place here: toasts show above it, not on top of it (ui/sonner --toast-bottom).
+  React.useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--toast-bottom", "calc(env(safe-area-inset-bottom, 0px) + 7.5rem)");
+    return () => {
+      root.style.removeProperty("--toast-bottom");
+    };
+  }, []);
   if (current === "inactive") return <InactiveView />;
   if (current === "guest") return <GuestView />;
   return <ChatGate initialLimit={initialLimit} initialRemaining={initialRemaining} onInactive={() => setCurrent("inactive")} />;
@@ -369,14 +388,16 @@ export function GebzemAiScreen({
 
 /** Key missing or switched off: same screen; the question can be typed, sending (or "+") says GebzemAI is not on yet. */
 function InactiveView() {
+  const { profile } = useAuth();
+  const firstName = nameWords(profile?.full_name)[0];
   const [value, setValue] = React.useState("");
   const notYet = () => notify.info("GebzemAI henüz aktif değil", "Yakında buradan sorabileceksin. Şimdilik aradığını aramada bulabilirsin.");
   return (
     <>
       <AiGlow />
-      <AiHeader />
+      <AiHeader onNewChat={() => setValue("")} />
       <div className="relative z-10 flex flex-1 flex-col px-4">
-        <Welcome>
+        <Welcome name={firstName}>
           <TypedSuggestion hrefFor={(s) => s.href} />
         </Welcome>
       </div>
@@ -401,7 +422,7 @@ function GuestView() {
   return (
     <>
       <AiGlow />
-      <AiHeader />
+      <AiHeader onNewChat={() => setValue("")} />
       <div className="relative z-10 flex flex-1 flex-col px-4">
         <Welcome>
           <TypedSuggestion hrefFor={() => login} />
@@ -679,7 +700,7 @@ function Chat({ initialLimit, initialRemaining, onInactive }: { initialLimit: Ai
   return (
     <>
       <AiGlow />
-      <AiHeader onNewChat={empty ? undefined : newChat} />
+      <AiHeader onNewChat={newChat} solid={!empty} />
 
       {/* Not a live region: streamed deltas would be read piece by piece. The finished answer is announced once below. */}
       <div role="region" aria-label="GebzemAI sohbeti" aria-busy={streaming} className="relative z-10 flex flex-1 flex-col gap-4 px-4 pt-4 pb-4">
