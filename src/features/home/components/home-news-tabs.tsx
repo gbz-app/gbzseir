@@ -77,14 +77,14 @@ export function HomeNewsTabs({
           <li key={a.id} className="w-[15.5rem] shrink-0 snap-start">
             <Link
               href={routes.content.newsArticle(a.slug)}
-              className="relative block h-[15rem] overflow-hidden rounded-media outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="relative block h-[15rem] overflow-hidden rounded-[1.75rem] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               <ArticleCover coverUrl={a.coverUrl} alt="" className="absolute inset-0 size-full" iconClassName="-mt-16 size-12" />
               <span className="absolute top-3 right-3 inline-flex h-7 items-center rounded-full bg-white/95 px-2.5 text-xs font-semibold text-neutral-900">
                 {newsCategoryLabel(a.category, categories)}
               </span>
-              <span className="absolute inset-x-2.5 bottom-2.5 rounded-xl bg-card p-3.5">
-                <span className="line-clamp-3 text-[15px] leading-snug font-semibold">{a.title}</span>
+              <span className="absolute inset-x-2.5 bottom-2.5 rounded-[1.25rem] bg-card p-3.5">
+                <span className="line-clamp-2 text-[15px] leading-snug font-semibold">{a.title}</span>
                 {/* The home HTML is cached, so the server's "x saat önce" can differ from the client's; like RelativeTime. */}
                 <span className="mt-2 block text-xs text-muted-foreground" suppressHydrationWarning>
                   {ago(a.publishedAt)}

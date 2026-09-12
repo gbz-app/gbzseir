@@ -29,14 +29,14 @@ const KINDS: ReadonlyArray<{ kind: PoiKind; label: string }> = [
 const RADIUS_M = 25_000;
 const NEXT_BUSES = 2;
 const MAX_LINES = 3;
-/** Short and a little wider than before: kind on top, the name and one small line at the bottom, so the strip lines up. */
+/** Short sideways cards with the home page's 28 px corners: kind on top, the name and one small line at the bottom. */
 const CARD =
-  "flex h-full min-h-[7.5rem] w-full flex-col rounded-3xl bg-card p-3.5 text-left outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50";
+  "flex h-full min-h-[8.5rem] w-full flex-col rounded-[1.75rem] bg-card p-4 text-left outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50";
 /** No scroll snapping: a snapped strip jumps to its old card when the location card is added in front after hydration. */
-const ITEM = "w-[11.5rem] shrink-0";
-const LABEL = "min-w-0 flex-1 truncate text-[13px] font-semibold text-muted-foreground";
-const NAME = "mt-auto truncate pt-2.5 text-[15px] leading-snug font-semibold";
-const FOOT = "mt-1 truncate text-xs font-semibold";
+const ITEM = "w-[12.5rem] shrink-0";
+const LABEL = "min-w-0 flex-1 truncate text-[15px] font-semibold text-muted-foreground";
+const NAME = "mt-auto truncate pt-2.5 text-[17px] leading-snug font-semibold";
+const FOOT = "mt-1 truncate text-sm font-semibold";
 
 type Nearest = {
   key: string;
@@ -103,8 +103,8 @@ async function loadNearest(point: { lat: number; lng: number }, dutyMode: DutyMo
 function MiniIcon({ kind }: { kind: MarkerKind }) {
   const meta = KIND_META[kind];
   return (
-    <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl", meta.tone)} aria-hidden>
-      <meta.icon className="size-4" strokeWidth={2.2} />
+    <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", meta.tone)} aria-hidden>
+      <meta.icon className="size-[18px]" strokeWidth={2.2} />
     </span>
   );
 }
@@ -116,7 +116,7 @@ function BusPill({ d }: { d: Departure }) {
   return (
     <span
       className={cn(
-        "inline-flex h-7 max-w-full items-center gap-1.5 rounded-full px-2.5 text-xs font-bold whitespace-nowrap tabular-nums",
+        "inline-flex h-8 max-w-full items-center gap-1.5 rounded-full px-3 text-[13px] font-bold whitespace-nowrap tabular-nums",
         now ? "bg-red-600 text-white" : soon ? "bg-emerald-600 text-white" : "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-200",
       )}
     >
@@ -144,11 +144,11 @@ function StopFoot({ stop }: { stop: NonNullable<Nearest["stop"]> }) {
   return (
     <span className="mt-2 flex gap-1 overflow-hidden" aria-label={`Hatlar: ${lines.join(", ")}`}>
       {lines.slice(0, MAX_LINES).map((l) => (
-        <span key={l} className="inline-flex h-7 items-center rounded-full bg-sky-100 px-2.5 text-xs font-bold text-sky-800 tabular-nums dark:bg-sky-500/15 dark:text-sky-200">
+        <span key={l} className="inline-flex h-8 items-center rounded-full bg-sky-100 px-3 text-[13px] font-bold text-sky-800 tabular-nums dark:bg-sky-500/15 dark:text-sky-200">
           {l}
         </span>
       ))}
-      {lines.length > MAX_LINES ? <span className="self-center text-xs font-semibold text-muted-foreground">+{lines.length - MAX_LINES}</span> : null}
+      {lines.length > MAX_LINES ? <span className="self-center text-[13px] font-semibold text-muted-foreground">+{lines.length - MAX_LINES}</span> : null}
     </span>
   );
 }
@@ -206,8 +206,8 @@ export function HomeNearby({ dutyMode }: { dutyMode: DutyMode }) {
         <li className={ITEM}>
           <button type="button" onClick={() => void loc.request()} disabled={loc.status === "locating"} className={CARD}>
             <span className="flex items-center gap-2">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-primary" aria-hidden>
-                {loc.status === "locating" ? <Loader2 className="size-4 animate-spin" /> : <LocateFixed className="size-4" strokeWidth={2.2} />}
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-primary" aria-hidden>
+                {loc.status === "locating" ? <Loader2 className="size-[18px] animate-spin" /> : <LocateFixed className="size-[18px]" strokeWidth={2.2} />}
               </span>
               <span className={LABEL}>Konum</span>
             </span>
@@ -219,7 +219,7 @@ export function HomeNearby({ dutyMode }: { dutyMode: DutyMode }) {
       {!settled
         ? Array.from({ length: 3 }, (_, i) => (
             <li key={`bos-${i}`} className={ITEM} aria-hidden>
-              <span className="block h-[7.5rem] animate-pulse rounded-3xl bg-card motion-reduce:animate-none" />
+              <span className="block h-[8.5rem] animate-pulse rounded-[1.75rem] bg-card motion-reduce:animate-none" />
             </li>
           ))
         : state.items?.length
@@ -232,8 +232,8 @@ export function HomeNearby({ dutyMode }: { dutyMode: DutyMode }) {
               <li className={ITEM}>
                 <Link href={routes.nearby.root()} className={CARD}>
                   <span className="flex items-center gap-2">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-primary" aria-hidden>
-                      <Compass className="size-4" strokeWidth={2.2} />
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-primary" aria-hidden>
+                      <Compass className="size-[18px]" strokeWidth={2.2} />
                     </span>
                     <span className={LABEL}>Keşfet</span>
                   </span>

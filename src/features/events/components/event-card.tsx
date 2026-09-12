@@ -51,10 +51,10 @@ function whenLine(e: Pick<EventItem, "starts_at" | "ends_at">, now?: Date | null
 }
 
 /**
- * Event card: white surface, a rounded 16:9 photo with the price as a pill ("Ücretsiz" green, "250 TL" white), then one
- * line with the category icon, "12 Eyl · 20:00 · Konser", the title and the place. No shadows or borders. Server-safe.
- * `interactive={false}` renders it without a link (wizard preview). `now` (client, after mount) turns the date into
- * "Bugün" / "Yarın".
+ * Event card: white surface with the home page's 28 px corners, a rounded 16:9 photo with the price as a pill
+ * ("Ücretsiz" green, "250 TL" white), then one line with the category icon, "12 Eyl · 20:00 · Konser", the title and the
+ * place. No shadows or borders. Server-safe. `interactive={false}` renders it without a link (wizard preview). `now`
+ * (client, after mount) turns the date into "Bugün" / "Yarın".
  */
 export function EventCard({
   event,
@@ -72,10 +72,10 @@ export function EventCard({
   const where = eventPlaceLine(event);
   const price = event.is_free ? "Ücretsiz" : event.price_try != null ? eventPriceLabel(event) : null;
   const line = [whenLine(event, now), event.category_label].filter(Boolean).join(" · ");
-  const cls = cn("group block h-full rounded-media bg-card p-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50", className);
+  const cls = cn("group block h-full rounded-[1.75rem] bg-card p-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50", className);
   const body = (
     <>
-      <div className="relative aspect-video w-full overflow-hidden rounded-card bg-muted">
+      <div className="relative aspect-video w-full overflow-hidden rounded-[1.25rem] bg-muted">
         {event.cover_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

@@ -99,12 +99,12 @@ const CATEGORIES: Tile[] = [
 function SectionHeader({ id, title, href }: { id?: string; title: string; href?: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <h2 id={id} className="text-lg font-semibold">
+      <h2 id={id} className="text-xl font-semibold">
         {title}
       </h2>
       {href ? (
-        <Link href={href} className="inline-flex min-h-11 items-center gap-0.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-          Tümü <ChevronRight className="size-4" aria-hidden />
+        <Link href={href} className="inline-flex min-h-11 items-center gap-0.5 text-base font-medium text-muted-foreground transition-colors hover:text-foreground">
+          Tümü <ChevronRight className="size-[18px]" aria-hidden />
         </Link>
       ) : null}
     </div>
@@ -180,7 +180,7 @@ export default function HomePage() {
       <section aria-labelledby="yakinimda">
         <SectionHeader id="yakinimda" title="Yakınımda" href={routes.nearby.root()} />
         <div className="mt-1">
-          <Suspense fallback={<div className="h-[7.5rem]" />}>
+          <Suspense fallback={<div className="h-[8.5rem]" />}>
             <NearbyStrip />
           </Suspense>
         </div>
