@@ -7,7 +7,6 @@ import { istanbulDateTime } from "@/core/time";
 import {
   PRAYER_KEYS,
   PRAYER_LABELS,
-  PRAYER_METHOD_NOTE,
   countdownLead,
   currentPrayerKey,
   formatCountdown,
@@ -42,7 +41,7 @@ export function PrayerTimesPanel({ days, serverNow, className }: PrayerTimesProp
   const highlight = next && !next.isTomorrow ? next.key : null;
 
   return (
-    <section aria-labelledby="namaz-vakitleri" className={cn("rounded-card bg-card p-4", className)}>
+    <section aria-labelledby="namaz-vakitleri" className={cn("rounded-[1.75rem] bg-card p-4", className)}>
       <h2 id="namaz-vakitleri" className="text-base font-bold">
         Bugünkü namaz vakitleri
       </h2>
@@ -67,7 +66,7 @@ export function PrayerTimesPanel({ days, serverNow, className }: PrayerTimesProp
           <li
             key={k}
             className={cn(
-              "rounded-xl px-2 py-2.5 text-center",
+              "rounded-2xl px-2 py-2.5 text-center",
               k === highlight ? "bg-emerald-600 text-white shadow-sm dark:bg-emerald-500 dark:text-emerald-950" : k === current ? "bg-muted" : "bg-muted/50",
             )}
           >
@@ -76,7 +75,7 @@ export function PrayerTimesPanel({ days, serverNow, className }: PrayerTimesProp
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-xs text-muted-foreground">{PRAYER_METHOD_NOTE}. Vakitler Gebze merkezine göredir.</p>
+      <p className="mt-3 text-xs text-muted-foreground">Vakitler Gebze merkezine göredir.</p>
     </section>
   );
 }

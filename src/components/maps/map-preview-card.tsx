@@ -17,16 +17,18 @@ export type MapPreviewCardProps = {
   name: string;
   /** Shown under the pattern; the name is used when missing. */
   address?: string | null;
+  /** Load the Google map with the page (no "Haritada göster" tap; each visit is a billed map load). */
+  autoLoad?: boolean;
   className?: string;
 };
 
 /**
  * Detail-page location card: a CSS map pattern with the kind's pin, the address and a black "Haritada göster" button.
- * The interactive Google map (a billed map load) is created inline only after that tap, with cooperative gestures
- * (two fingers) so the page keeps scrolling. Directions stay a plain Google Maps link on the page (no JS API).
+ * The interactive Google map (a billed map load) is created inline only after that tap (or at once with `autoLoad`),
+ * with cooperative gestures (two fingers) so the page keeps scrolling. Directions stay a plain Google Maps link.
  */
-export function MapPreviewCard({ lat, lng, kind, name, address, className }: MapPreviewCardProps) {
-  const [open, setOpen] = React.useState(false);
+export function MapPreviewCard({ lat, lng, kind, name, address, autoLoad = false, className }: MapPreviewCardProps) {
+  const [open, setOpen] = React.useState(autoLoad);
   const available = useGoogleMapsAvailable();
   const areaRef = React.useRef<HTMLDivElement>(null);
   const points = React.useMemo<MapPoint[]>(() => [{ id: "self", lat, lng, kind, label: name }], [lat, lng, kind, name]);
@@ -43,7 +45,7 @@ export function MapPreviewCard({ lat, lng, kind, name, address, className }: Map
   };
 
   return (
-    <div className={cn("overflow-hidden rounded-3xl bg-card", className)}>
+    <div className={cn("overflow-hidden rounded-[1.75rem] bg-card", className)}>
       <div ref={areaRef} tabIndex={-1} className="relative aspect-[16/9] w-full outline-none">
         {open ? (
           <>

@@ -19,7 +19,7 @@ export function DetailHero({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-card bg-card p-4", className)}>
+    <section className={cn("rounded-[1.75rem] bg-card p-4", className)}>
       <div className="flex items-start gap-3.5">
         {icon}
         <div className="min-w-0 flex-1">
@@ -33,9 +33,9 @@ export function DetailHero({
   );
 }
 
-/** Definition list container for address / phone / hours rows. */
+/** Definition list container for address / phone / hours rows (the home page's 28 px corners). */
 export function InfoList({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <dl className={cn("divide-y overflow-hidden rounded-card bg-card", className)}>{children}</dl>;
+  return <dl className={cn("divide-y overflow-hidden rounded-[1.75rem] bg-card", className)}>{children}</dl>;
 }
 
 export function InfoRow({

@@ -11,7 +11,7 @@ export function NearbyMiniList({ title, rows, className }: { title: string; rows
   if (rows.length === 0) return null;
   return (
     <DetailSection title={title} className={className}>
-      <ul className="divide-y overflow-hidden rounded-card bg-card">
+      <ul className="divide-y overflow-hidden rounded-[1.75rem] bg-card">
         {rows.map((r) => (
           <li key={r.id}>
             <Link

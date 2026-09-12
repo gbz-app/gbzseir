@@ -77,6 +77,7 @@ export default async function StopPage({ params }: Props) {
         {hasPoint ? <MapPreviewCard lat={poi.lat as number} lng={poi.lng as number} kind="bus_stop" name={name} address={poi.address} /> : null}
         <NearbyMiniList title="Yakındaki duraklar" rows={nearby} />
         <DataSourceNote
+          variant="card"
           source={poi.source === "osm" ? OSM_SOURCE : KBB_SOURCE}
           sourceUrl={poi.source === "osm" ? OSM_COPYRIGHT_URL : undefined}
           updatedAt={poi.updated_at}

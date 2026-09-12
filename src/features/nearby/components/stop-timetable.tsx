@@ -22,11 +22,11 @@ export function StopTimetable({ stopId, lat, lng, lines: known }: { stopId: stri
     <>
       <DetailSection title="Yaklaşan otobüsler">
         {t.status === "loading" ? (
-          <div className="h-40 animate-pulse rounded-3xl bg-card motion-reduce:animate-none" aria-hidden />
+          <div className="h-40 animate-pulse rounded-[1.75rem] bg-card motion-reduce:animate-none" aria-hidden />
         ) : t.status === "none" ? (
           <p className="text-sm text-muted-foreground">Bu durak için sefer saati bulunamadı.</p>
         ) : t.upcoming.length ? (
-          <ul className="flex flex-col rounded-3xl bg-card p-1.5" aria-label="Yaklaşan otobüsler">
+          <ul className="flex flex-col rounded-[1.75rem] bg-card p-2" aria-label="Yaklaşan otobüsler">
             {t.upcoming.map((d, i) => (
               <li key={`${d.line}-${d.minutes}`} className="flex min-h-12 items-center gap-3 px-2.5 py-1.5">
                 <span className={LINE_CHIP}>{d.line}</span>
