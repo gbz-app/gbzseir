@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { ChevronRight, Loader2, LocateFixed, Search, SearchX, X } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ChevronRight, LayoutGrid, Loader2, LocateFixed, Search, SearchX, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { isDutyActive } from "@/core/duty";
@@ -46,8 +46,8 @@ import { NearbySheet, sheetOffsets, type SheetSnap } from "./nearby-sheet";
 const COACH_KEY = "gebzem.coach.yakinimda.v1";
 /** Space kept for the chip row at the top of the map. */
 const CHIPS_SPACE = 64;
-/** "Tümü": cards shown per kind before its "Tümü" link. */
-const PER_GROUP = 3;
+/** "Yakınımdakiler": the nearest card of each kind, then its "Tümü" link. */
+const PER_GROUP = 1;
 
 /** "Nöbetçi" is preselected between 19:00 and 08:30 (Istanbul), but only when the duty list is real ("live"). */
 function defaultFilterFor(now: number, dutyMode: DutyMode): NearbyFilter {
@@ -57,8 +57,15 @@ function defaultFilterFor(now: number, dutyMode: DutyMode): NearbyFilter {
   return minutes >= 19 * 60 || minutes < 8 * 60 + 30 ? "nobetci" : "eczane";
 }
 
-/** No "Nöbetçi" chip: it is the second option of the Eczane tab (PharmacySwitch in the list). "Tümü" leads the row. */
-const CHIP_OPTIONS: ChipOption<NearbyFilter>[] = NEARBY_FILTERS.filter((f) => f.value !== "nobetci").map((f) => ({ value: f.value, label: f.label, icon: f.icon }));
+/**
+ * "Tümü" leads the row and opens the Şehir Rehberi (it is never the selected chip), then "Yakınımdakiler" (every kind,
+ * grouped) and the kinds. No "Nöbetçi" chip: it is the second option of the Eczane tab (PharmacySwitch in the list).
+ */
+const GUIDE_CHIP = "rehber";
+const CHIP_OPTIONS: ChipOption<NearbyFilter | typeof GUIDE_CHIP>[] = [
+  { value: GUIDE_CHIP, label: "Tümü", icon: LayoutGrid },
+  ...NEARBY_FILTERS.filter((f) => f.value !== "nobetci").map((f) => ({ value: f.value, label: f.label, icon: f.icon })),
+];
 
 /** Tüm eczaneler / Nöbetçi, above the pharmacy list (same look as the guide's ATM / banka switch). */
 function PharmacySwitch({ value, onChange }: { value: "eczane" | "nobetci"; onChange: (f: NearbyFilter) => void }) {
@@ -138,6 +145,7 @@ function sourceFor(filter: NearbyFilter, dutyMode: DutyMode): { source: string; 
  */
 export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const now = useNow();
   const loc = useApproxLocation();
   const onboardingActive = useOnboardingActive();
@@ -292,7 +300,13 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-background/95 via-background/70 to-transparent px-4 pt-2.5 pb-5">
         <div ref={chipsRef} className="pointer-events-auto">
           {/* Nöbetçi is part of the Eczane tab: its chip stays on while the switch below picks the list. */}
-          <ChipFilter options={CHIP_OPTIONS} value={filter === "nobetci" ? "eczane" : filter} onChange={onFilterChange} ariaLabel="Ne arıyorsun?" centerSelected />
+          <ChipFilter
+            options={CHIP_OPTIONS}
+            value={filter === "nobetci" ? "eczane" : filter}
+            onChange={(v) => (v === GUIDE_CHIP ? router.push(routes.guide.root()) : onFilterChange(v))}
+            ariaLabel="Ne arıyorsun?"
+            centerSelected
+          />
         </div>
       </div>
 
