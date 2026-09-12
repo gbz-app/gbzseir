@@ -2,11 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Bell, CloudSun } from "lucide-react";
+import { Bell, CloudSun, Smile } from "lucide-react";
 import { routes } from "@/core/routes";
 import { nameWords } from "@/core/name";
 import { istanbulParts } from "@/core/time";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useUnreadNotifications } from "@/lib/notifications/use-unread-notifications";
 import { useIsClient } from "@/lib/use-is-client";
@@ -69,56 +68,36 @@ function NotificationBell() {
   );
 }
 
-/** Home avatar: the profile photo, or just a plain card-coloured circle (no icon, no initials, no outline). */
-function HomeAvatar() {
-  const { profile } = useAuth();
-  return (
-    <Avatar className="size-11 after:hidden">
-      {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt="" /> : null}
-      <AvatarFallback className="bg-card" />
-    </Avatar>
-  );
-}
-
 /**
- * Home page header: signed in, avatar + first name on the left; a guest gets no avatar, just the greeting of the hour
- * (Günaydın / İyi günler / İyi akşamlar / İyi geceler) over "Misafir", which opens sign-in. Weather and notifications
- * on the right; it scrolls away with the page. Rendered by the home page itself (not the shared layout), so the server
- * HTML always contains it. The greeting is worked out in the browser (the cached HTML can be minutes old).
+ * Home page header: one line with the greeting of the hour (Günaydın / İyi günler / İyi akşamlar / İyi geceler), a
+ * comma, the first name ("Misafir" for a guest) and a smile icon; it opens the profile, or sign-in for a guest. Weather
+ * and notifications on the right; it scrolls away with the page. Rendered by the home page itself (not the shared
+ * layout), so the server HTML always contains it. The greeting is worked out in the browser (the cached HTML can be
+ * minutes old), "Merhaba" until then.
  */
 export function TopBar() {
-  const { user, profile, profileLoading } = useAuth();
+  const { user, profile } = useAuth();
   const painted = usePainted();
   const isClient = useIsClient();
   const profileHref = user ? routes.profile.root() : routes.auth.login(routes.home());
-  // First word of the profile name ("Ahmet Yılmaz" -> "Ahmet"); left empty while the profile loads so "Profilim" doesn't flash.
+  // First word of the profile name ("Ahmet Yılmaz" -> "Ahmet"); nothing while it loads, so no placeholder flashes.
   const first = nameWords(profile?.full_name)[0];
-  const name = first ?? (profileLoading ? "" : "Profilim");
+  const who = user ? (first ?? "") : "Misafir";
   const greeting = isClient ? greetingFor(istanbulParts().hour) : "Merhaba";
+  const line = who ? `${greeting}, ${who}` : greeting;
 
   return (
     <header className="pt-safe">
       <div className="mt-[5px] flex h-(--topbar-h) items-center gap-3 px-4">
-        {user ? (
-          // The visible name leads the accessible name (WCAG 2.5.3): "Ahmet, profilim".
-          <Link
-            href={profileHref}
-            aria-label={first ? `${first}, profilim` : "Profilim"}
-            className="flex min-w-0 items-center gap-3 rounded-full pr-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <HomeAvatar />
-            <span className="truncate text-[19px] leading-tight font-semibold tracking-tight">{name}</span>
-          </Link>
-        ) : (
-          <Link
-            href={profileHref}
-            aria-label={`${greeting}, Misafir. Giriş yap`}
-            className="flex min-w-0 flex-col rounded-2xl pr-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <span className="truncate text-[13px] leading-tight font-medium text-muted-foreground">{greeting}</span>
-            <span className="truncate text-[19px] leading-tight font-semibold tracking-tight">Misafir</span>
-          </Link>
-        )}
+        {/* The visible text leads the accessible name (WCAG 2.5.3). */}
+        <Link
+          href={profileHref}
+          aria-label={user ? `${line}, profilim` : `${line}. Giriş yap`}
+          className="flex min-w-0 items-center gap-1.5 rounded-full pr-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <span className="truncate text-[21px] leading-tight font-semibold tracking-tight">{line}</span>
+          <Smile className="size-[22px] shrink-0 text-amber-500" strokeWidth={2.25} aria-hidden />
+        </Link>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {painted ? <WeatherButton className={BARE_BUTTON} /> : <WeatherPlaceholder />}
           {user ? (
