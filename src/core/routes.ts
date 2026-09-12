@@ -215,8 +215,6 @@ export const routes = {
     emergency: () => "/acil-durum",
     /** Destek merkezi; `konu` opens a form: sikayet | teknik_destek | reklam | isletme | oneri | diger */
     help: (konu?: string) => withQuery("/yardim", { konu }),
-    /** Şikayetler: how it works, write one (the support form's "sikayet" topic), sample complaints and their answers. */
-    complaints: () => "/sikayetler",
     sources: () => "/kaynaklar",
   },
 

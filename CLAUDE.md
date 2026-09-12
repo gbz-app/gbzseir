@@ -415,10 +415,13 @@ olmadığını ele verir. SMS bağlanınca (`otp_golive.sql`) bu yol kapanır.
 ### 7.1 Ana sayfa (`src/app/(main)/page.tsx`, `src/features/home`)
 Üst bar ana sayfanın içinde (hydration dersi): solda avatar + saate göre selam (Günaydın / İyi günler / İyi akşamlar / İyi geceler),
 sağda hava durumu (5 günlük çekmece, Open-Meteo `/api/hava`) ve zil. Arama kutusu, geniş GebzemAI kartı + hızlı kartlar (Nöbetçi
-Eczane, Durak, Şehir Rehberi, Taksi), 4'lü kategoriler (Yemek, Restoran, Kafe, Hizmetler, Otel, İkinci El, İş İlanı, Sağlık, Düğün,
+Eczane, Durak, Şehir Rehberi, Taksi), 4'lü kategoriler (Yemek, Kafe, Hizmetler, Otel, İkinci El, İş İlanı, Sağlık, Düğün,
 Eğitim ...), sinema bölümü, Gezilecek Yerler, haberler (yalnız kendi yazılarımız), etkinlik şeridi. Header kaydırınca kaybolmaz.
-**Bilerek kaldırılanlar, geri getirme:** döviz/altın, slider, Gebze Gündemi, Öne çıkan işletmeler, son ilanlar, popüler hizmetler, Acil
-Durum hızlı kartı (yerine Taksi).
+Slider 12.09'da sahibin isteğiyle tek görselle geri geldi. Restoranlar Yemek sayfasının "Yemek · Restoran" başlığından açılır
+(`vertical-explorer.tsx` `VerticalTitle`).
+**Bilerek kaldırılanlar, geri getirme:** döviz/altın, eski slider, Gebze Gündemi, Öne çıkan işletmeler, son ilanlar, popüler hizmetler,
+Acil Durum hızlı kartı (yerine Taksi); 12.09: Restoran kategori kutucuğu, "Kesintiler ve afet" kartı, Şikayetler panosu (`/sikayetler`;
+sahip: "şimdilik işletmeler için yorumlar yeterli"). Admin'deki Şikayetler (içerik bildirimi) ayrı sistemdir ve duruyor.
 
 **Tanıtım / PWA:** 5 adımlı dinamik tanıtım (parallax, ilerleme çubukları, `prefers-reduced-motion`), `onboarding-gate` + `<head>`
 pre-script, izin hazırlığı adımı; install prompt 2. ziyaretten itibaren. Admin sitesinde SW, analitik ve tanıtım yok.

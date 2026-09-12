@@ -10,14 +10,17 @@ import { IDLE_CHIP_BG } from "./chip-filter";
 export const ROUND_ICON_BUTTON =
   "flex size-11 shrink-0 items-center justify-center rounded-full bg-card text-foreground shadow-soft ring-1 ring-foreground/[0.06] transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50";
 
-/** Large-title header of the explore lists (Keşfet, Etkinlikler): round back button, title, subtitle, right slot. */
+/**
+ * Large-title header of the explore lists (Keşfet, Etkinlikler): round back button, title, subtitle, right slot.
+ * The title is usually text; Yemek and Restoran put their "Yemek · Restoran" switch there.
+ */
 export function ExploreHeader({
   title,
   subtitle,
   backHref = "/",
   right,
 }: {
-  title: string;
+  title: React.ReactNode;
   subtitle?: React.ReactNode;
   backHref?: string;
   right?: React.ReactNode;

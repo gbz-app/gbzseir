@@ -29,6 +29,33 @@ const NOUN: Partial<Record<Vertical, string>> = { hizmet: "firma", otel: "otel",
 
 const NO_SUBCATEGORIES: readonly VerticalSubcategory[] = [];
 
+/** Yemek and Restoran share one title, "Yemek · Restoran" (owner, 12.09; no Restoran tile on the home page). */
+const TITLE_SWITCH: readonly Vertical[] = ["yemek", "restoran"];
+
+/**
+ * Page title: the vertical's name, or for Yemek / Restoran both names with a bold dot between them; the page you are
+ * on is black, the other one grey and a tap away (replace, so Geri still goes back to where you came from).
+ */
+function VerticalTitle({ vertical }: { vertical: Vertical }) {
+  if (!TITLE_SWITCH.includes(vertical)) return VERTICAL_INFO[vertical].plural;
+  return (
+    <span className="flex items-center gap-3">
+      {TITLE_SWITCH.map((v, i) => (
+        <React.Fragment key={v}>
+          {i ? <span aria-hidden className="size-2 shrink-0 rounded-full bg-foreground" /> : null}
+          {v === vertical ? (
+            <span aria-current="page">{VERTICAL_INFO[v].label}</span>
+          ) : (
+            <Link href={routes.businesses.vertical(v)} replace className="text-muted-foreground transition-colors hover:text-foreground">
+              {VERTICAL_INFO[v].label}
+            </Link>
+          )}
+        </React.Fragment>
+      ))}
+    </span>
+  );
+}
+
 /** /kesfet/[tur]: search, sub-category chips, one-column photo cards and a map view of one vertical (no district filter, owner 12.09). */
 export function VerticalExplorer({
   vertical,
@@ -94,7 +121,7 @@ export function VerticalExplorer({
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-32">
-      <ExploreHeader title={info.plural} subtitle={info.subtitle} />
+      <ExploreHeader title={<VerticalTitle vertical={vertical} />} subtitle={info.subtitle} />
 
       {doctors ? <ExploreSegments value={segment} onChange={setSegment} counts={{ isletmeler: items.length, doktorlar: doctors.length }} /> : null}
 

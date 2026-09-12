@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Briefcase, Castle, ChevronRight, Hospital, Landmark, Mail, MessageSquareWarning, Scale, School, Siren, Sparkles, Stamp, Tag, Trees, type LucideIcon } from "lucide-react";
+import { Briefcase, Castle, ChevronRight, Hospital, Landmark, Mail, Scale, School, Siren, Sparkles, Stamp, Tag, Trees, type LucideIcon } from "lucide-react";
 import { APP_DESCRIPTION, APP_FULL_NAME, APP_NAME, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,7 +14,6 @@ import { EventsRail } from "@/features/events/components/events-rail";
 import { listUpcomingEvents } from "@/features/events/queries";
 import { HomeNearby } from "@/features/home/components/home-nearby";
 import { HomeNews } from "@/features/home/components/home-news";
-import { HomeOutages } from "@/features/home/components/home-outages";
 import { HomePlaces } from "@/features/home/components/home-places";
 import { HomeSearch } from "@/features/home/components/home-search";
 import { HomeSlider } from "@/features/home/components/home-slider";
@@ -80,11 +79,13 @@ const GUIDE: Tile[] = [
   { href: guide("tarihi"), label: "Tarihi Yer", icon: Castle, tone: TONE.amber },
 ];
 
-/** Category cards, 4 per row; GebzemAI leads them. Icons, except Yemek and Restoran: the owner's 3D art (döner, restaurant). */
+/**
+ * Category cards, 4 per row; GebzemAI leads them. All icons (owner, 12.09: no döner picture on Yemek). No Restoran tile
+ * (owner, 12.09): restaurants are one tap away in the Yemek page's "Yemek · Restoran" title.
+ */
 const CATEGORIES: Tile[] = [
   { href: routes.ai(), label: "GebzemAI", icon: Sparkles, tone: "bg-brand-soft text-primary" },
-  { ...vertical("yemek"), image: "/images/home/yemek-doner.webp" },
-  { ...vertical("restoran"), image: "/images/home/restoran.webp" },
+  vertical("yemek"),
   vertical("kafe"),
   vertical("hizmet", "Hizmetler"),
   vertical("otel"),
@@ -95,8 +96,6 @@ const CATEGORIES: Tile[] = [
   vertical("egitim"),
   vertical("spor"),
   vertical("etkinlik"),
-  // Complaint board (/sikayetler): write one, see how it works and example complaints with their answers.
-  { href: routes.content.complaints(), label: "Şikayetler", icon: MessageSquareWarning, tone: "bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300" },
 ];
 
 function SectionHeader({ id, title, href }: { id?: string; title: string; href?: string }) {
@@ -151,8 +150,8 @@ async function EventsSection() {
 
 /**
  * C1 - Ana sayfa: arama ve slider (görünür başlık yok, h1 yalnız ekran okuyucu için), Yakınımda (Nöbetçi Eczane, durak, cami, taksi, şarj, akaryakıt kartları), Şehir
- * Rehberi (tek satır, yana kayan), kategoriler (başta GebzemAI), kesintiler ve afet, yaklaşan etkinlikler, sinema,
- * gezilecek yerler, haberler.
+ * Rehberi (tek satır, yana kayan), kategoriler (başta GebzemAI), yaklaşan etkinlikler, sinema, gezilecek yerler, haberler.
+ * "Kesintiler ve afet" kartı ve Şikayetler kaldırıldı (sahip, 12.09).
  */
 export default function HomePage() {
   return (
@@ -215,8 +214,6 @@ export default function HomePage() {
           ))}
         </ul>
       </section>
-
-      <HomeOutages />
 
       <Suspense fallback={null}>
         <EventsSection />
