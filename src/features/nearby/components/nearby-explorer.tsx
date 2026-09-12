@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ChevronRight, LayoutGrid, Loader2, LocateFixed, Search, SearchX, X } from "lucide-react";
+import { ChevronRight, Loader2, LocateFixed, Search, SearchX, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { isDutyActive } from "@/core/duty";
@@ -21,8 +21,6 @@ import { GoogleMap } from "@/components/maps/google-map";
 import type { FlyRequest, MapPadding, MapPoint } from "@/components/maps/types";
 import { useApproxLocation } from "@/lib/location/use-approx-location";
 import { useOnboardingActive } from "@/features/onboarding";
-import { districtBySlug } from "@/config/districts";
-import { CITY } from "@/config/site";
 import {
   ECZACI_ODASI_NAME,
   ECZACI_ODASI_URL,
@@ -215,8 +213,6 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
   };
 
   const fitKey = !data.loading && visible.length > 0 ? `${data.cacheKey}|${fitQuery}` : "";
-  const refDistrict = loc.pointSource === "district" ? districtBySlug(loc.district) : undefined;
-  const sortHint = loc.pointSource === "gps" ? "en yakından uzağa" : `${refDistrict?.name ?? CITY.name} merkezine göre`;
   const source = filter ? sourceFor(filter, dutyMode) : null;
 
   const coachSteps: CoachStep[] = [
@@ -249,23 +245,8 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-background/95 via-background/70 to-transparent px-4 pt-2.5 pb-5">
-        {/* "Hepsi" (the whole city guide) stays pinned on the left; the filter chips scroll beside it to the screen edge. */}
-        <div ref={chipsRef} className="pointer-events-auto flex items-center gap-2">
-          <Link
-            href={routes.guide.root()}
-            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-card px-4 text-sm font-semibold whitespace-nowrap text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <LayoutGrid className="size-4" aria-hidden /> Hepsi
-          </Link>
-          <ChipFilter
-            options={CHIP_OPTIONS}
-            value={filter}
-            onChange={onFilterChange}
-            ariaLabel="Ne arıyorsun?"
-            centerSelected
-            bleed={false}
-            className="-mr-4 min-w-0 flex-1 pr-4"
-          />
+        <div ref={chipsRef} className="pointer-events-auto">
+          <ChipFilter options={CHIP_OPTIONS} value={filter} onChange={onFilterChange} ariaLabel="Ne arıyorsun?" centerSelected />
         </div>
       </div>
 
@@ -292,13 +273,10 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
             </>
           }
           header={
-            // Title on the left, the count in the right corner ("60 taksi durağı"); the sort note under the title.
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="truncate text-xl leading-tight font-bold">{meta.title}</h2>
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">{sortHint}</p>
-              </div>
-              <p className="shrink-0 pt-0.5 text-sm font-semibold text-muted-foreground tabular-nums" aria-live="polite">
+            // Same on every tab (the taxi layout): the title on the left, the count in the right corner.
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="min-w-0 truncate text-xl leading-tight font-bold">{meta.title}</h2>
+              <p className="shrink-0 text-sm font-semibold text-muted-foreground tabular-nums" aria-live="polite">
                 {data.loading ? "Yükleniyor…" : `${visible.length} ${meta.noun}`}
               </p>
             </div>
@@ -315,7 +293,7 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
                   onFocus={() => {
                     if (snap === "peek") setSnap("half");
                   }}
-                  placeholder="İsim ya da adres ara"
+                  placeholder="Ara"
                   aria-label={`${meta.title} içinde ara`}
                   enterKeyHint="search"
                   autoComplete="off"

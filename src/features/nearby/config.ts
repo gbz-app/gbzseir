@@ -53,17 +53,18 @@ export type FilterMeta = {
 };
 
 export const NEARBY_FILTERS: FilterMeta[] = [
-  { value: "nobetci", label: "Nöbetçi", icon: Cross, marker: "duty", title: "Nöbetçi eczaneler", noun: "nöbetçi eczane" },
-  { value: "eczane", label: "Eczane", icon: Pill, marker: "pharmacy", title: "Yakındaki eczaneler", noun: "eczane" },
-  { value: "cami", label: "Cami", icon: MoonStar, marker: "mosque", title: "Yakındaki camiler", noun: "cami" },
-  { value: "durak", label: "Durak", icon: Bus, marker: "bus_stop", title: "Yakındaki duraklar", noun: "durak" },
+  // Titles in the taxi style ("Taksi Durakları"): the list header shows the count in the right corner, no "Yakındaki".
+  { value: "nobetci", label: "Nöbetçi", icon: Cross, marker: "duty", title: "Nöbetçi Eczaneler", noun: "nöbetçi eczane" },
+  { value: "eczane", label: "Eczane", icon: Pill, marker: "pharmacy", title: "Eczaneler", noun: "eczane" },
+  { value: "cami", label: "Cami", icon: MoonStar, marker: "mosque", title: "Camiler", noun: "cami" },
+  { value: "durak", label: "Durak", icon: Bus, marker: "bus_stop", title: "Duraklar", noun: "durak" },
   { value: "taksi", label: "Taksi", icon: CarTaxiFront, marker: "taxi", title: "Taksi Durakları", noun: "taksi durağı" },
-  { value: "atm", label: "ATM", icon: Banknote, marker: "atm", title: "Yakındaki ATM'ler", noun: "ATM" },
-  { value: "banka", label: "Banka", icon: Vault, marker: "bank", title: "Yakındaki banka şubeleri", noun: "banka şubesi" },
-  { value: "akaryakit", label: "Akaryakıt", icon: Fuel, marker: "fuel", title: "Yakındaki akaryakıt istasyonları", noun: "akaryakıt istasyonu" },
-  { value: "sarj", label: "Şarj", icon: EvCharger, marker: "ev_charge", title: "Yakındaki şarj istasyonları", noun: "şarj istasyonu" },
-  { value: "kurum", label: "Kurum", icon: Building2, marker: "institution", title: "Yakındaki resmî kurumlar", noun: "resmî kurum" },
-  { value: "gezilecek", label: "Gezilecek", icon: Landmark, marker: "place", title: "Gezilecek yerler", noun: "yer" },
+  { value: "atm", label: "ATM", icon: Banknote, marker: "atm", title: "ATM'ler", noun: "ATM" },
+  { value: "banka", label: "Banka", icon: Vault, marker: "bank", title: "Banka Şubeleri", noun: "banka şubesi" },
+  { value: "akaryakit", label: "Akaryakıt", icon: Fuel, marker: "fuel", title: "Akaryakıt İstasyonları", noun: "akaryakıt istasyonu" },
+  { value: "sarj", label: "Şarj", icon: EvCharger, marker: "ev_charge", title: "Şarj İstasyonları", noun: "şarj istasyonu" },
+  { value: "kurum", label: "Kurum", icon: Building2, marker: "institution", title: "Resmî Kurumlar", noun: "resmî kurum" },
+  { value: "gezilecek", label: "Gezilecek", icon: Landmark, marker: "place", title: "Gezilecek Yerler", noun: "yer" },
   // "isletme" is no longer a chip: ?tur=isletme is not parsed and falls back to the default tab.
 ];
 
