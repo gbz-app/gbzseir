@@ -30,11 +30,24 @@ const KINDS: ReadonlyArray<{ kind: PoiKind; label: string }> = [
 ];
 
 /**
- * MOCKUP (owner's request, 12.09): sample prices and a sample taxi driver until real sources are connected. The card
- * always says "örnek" next to them, so nobody takes them for real.
+ * MOCKUP (owner's request, 12.09): sample prices and a sample taxi driver until real sources are connected (shown
+ * without an "örnek" label, owner's decision).
  */
-const SAMPLE_PRICE: Partial<Record<PoiKind, string>> = { ev_charge: "8,50 TL/kWh", fuel: "47,90 TL/L" };
-const SAMPLE_HAIRCUT = "Kesim 350 TL";
+type PriceRow = { label: string; price: string };
+const SAMPLE_PRICES: Partial<Record<PoiKind, PriceRow[]>> = {
+  fuel: [
+    { label: "Benzin", price: "47,90 TL" },
+    { label: "Motorin", price: "49,10 TL" },
+  ],
+  ev_charge: [
+    { label: "AC şarj", price: "8,50 TL/kWh" },
+    { label: "DC hızlı", price: "12,90 TL/kWh" },
+  ],
+};
+const SAMPLE_HAIR: PriceRow[] = [
+  { label: "Saç kesimi", price: "350 TL" },
+  { label: "Sakal", price: "150 TL" },
+];
 const SAMPLE_DRIVER = "Ali Yıldız";
 /** Taximeter minimum fare ("indi-bindi"), a sample until the UKOME tariff is connected. */
 const SAMPLE_TAXI_MIN = "İndi-bindi 100 TL";
@@ -54,10 +67,10 @@ const MAX_LINES = 3;
 /** Short sideways cards with the home page's 28 px corners: kind on top, the name and one small line at the bottom. */
 const CARD =
   "flex h-full min-h-[8.5rem] w-full flex-col rounded-[1.75rem] bg-card p-4 text-left outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50";
-/** No scroll snapping: a snapped strip jumps to its old card when the location card is added in front after hydration. */
-const ITEM = "w-[12.5rem] shrink-0";
-/** The Nöbetçi Eczane card is a little wider: its duty hours ("Bugün 08:30 - Yarın 08:30") fit on one line. */
-const DUTY_ITEM = "w-[14.25rem] shrink-0";
+/** Soft snapping (proximity), so a swipe comes to rest on a card without pulling the strip back. */
+const ITEM = "w-[12.5rem] shrink-0 snap-start";
+/** The Nöbetçi Eczane card is wider: kind, distance and tag on one row, the duty hours on one line. */
+const DUTY_ITEM = "w-[17.5rem] shrink-0 snap-start";
 const LABEL = "min-w-0 flex-1 truncate text-[15px] font-semibold text-muted-foreground";
 const NAME = "mt-auto truncate pt-2.5 text-[17px] leading-snug font-semibold";
 const FOOT = "mt-1 truncate text-sm font-semibold";
@@ -70,7 +83,7 @@ type Foot =
   | { kind: "stop"; stopId: string | null; lat: number; lng: number; lines: string[] }
   | { kind: "prayer" }
   | { kind: "taxi" }
-  | { kind: "price"; price: string }
+  | { kind: "price"; rows: PriceRow[] }
   | { kind: "park"; category: string };
 
 type Nearest = {
@@ -92,8 +105,8 @@ function footFor(r: PoiRow): Foot {
   }
   if (r.kind === "mosque") return { kind: "prayer" };
   if (r.kind === "taxi") return { kind: "taxi" };
-  const price = SAMPLE_PRICE[r.kind];
-  return price ? { kind: "price", price } : { kind: "text" };
+  const rows = SAMPLE_PRICES[r.kind];
+  return rows ? { kind: "price", rows } : { kind: "text" };
 }
 
 function fromPoi(r: PoiRow, label: string, extra: Partial<Pick<Nearest, "key" | "icon" | "tone" | "foot">> = {}): Nearest {
@@ -180,7 +193,7 @@ async function loadNearest(point: { lat: number; lng: number }, dutyMode: DutyMo
       href: routes.businesses.detail(best.slug),
       distance: bestD,
       district: districtBySlug(best.district_id)?.name ?? null,
-      foot: { kind: "price", price: SAMPLE_HAIRCUT },
+      foot: { kind: "price", rows: SAMPLE_HAIR },
     };
   };
   const optional = (job: () => Promise<Nearest | null>) => job().catch(() => null);
@@ -263,10 +276,7 @@ function PrayerFoot({ days, fallback }: { days: PrayerDay[]; fallback: string | 
   );
 }
 
-/**
- * Taksi: a round profile picture (3D avatar, not a real person), a sample driver name and the taximeter's minimum fare
- * ("İndi-bindi"), marked "örnek" (mockup).
- */
+/** Taksi: a round profile picture (3D avatar, not a real person), the driver's name and the taximeter's minimum fare. */
 function TaxiFoot() {
   return (
     <span className="mt-2 flex items-center gap-2">
@@ -274,22 +284,23 @@ function TaxiFoot() {
         <Image src="/images/emoji/man-3d.webp" alt="" width={32} height={32} className="size-8" />
       </span>
       <span className="min-w-0 leading-tight">
-        <span className="flex items-baseline gap-1.5">
-          <span className="min-w-0 truncate text-sm font-semibold">{SAMPLE_DRIVER}</span>
-          <span className="shrink-0 text-xs font-semibold text-muted-foreground">örnek</span>
-        </span>
+        <span className="block truncate text-sm font-semibold">{SAMPLE_DRIVER}</span>
         <span className="block truncate text-[13px] font-bold text-amber-700 tabular-nums">{SAMPLE_TAXI_MIN}</span>
       </span>
     </span>
   );
 }
 
-/** Şarj / akaryakıt / kuaför: the price pill, marked as a sample (mockup). */
-function PriceFoot({ price }: { price: string }) {
+/** Şarj / akaryakıt / kuaför: two price rows ("Benzin 47,90 TL", "Motorin 49,10 TL"). */
+function PriceFoot({ rows }: { rows: PriceRow[] }) {
   return (
-    <span className="mt-2 flex items-center gap-1.5">
-      <span className={cn(PILL, "bg-muted text-foreground")}>{price}</span>
-      <span className="text-xs font-semibold text-muted-foreground">örnek</span>
+    <span className="mt-2 flex flex-col gap-0.5 text-[13px] tabular-nums">
+      {rows.slice(0, 2).map((r) => (
+        <span key={r.label} className="flex items-baseline justify-between gap-2">
+          <span className="min-w-0 truncate font-medium text-muted-foreground">{r.label}</span>
+          <span className="shrink-0 font-bold">{r.price}</span>
+        </span>
+      ))}
     </span>
   );
 }
@@ -302,9 +313,9 @@ function ParkFoot({ category, distance }: { category: string; distance: number |
 }
 
 function NearestCard({ n, showDistance, sample, prayerDays }: { n: Nearest; showDistance: boolean; sample: boolean; prayerDays: PrayerDay[] }) {
-  // With a GPS fix the distance sits on the right of the kind ("Durak 120 m"); the Nöbetçi Eczane card shows its hours.
+  // With a GPS fix the distance sits on the right of the kind ("Durak 120 m", "Nöbetçi Eczane 850 m").
   const distance = showDistance && n.distance != null ? n.distance : null;
-  const right = distance != null && n.foot.kind !== "duty" ? formatDistance(distance) : null;
+  const right = distance != null ? formatDistance(distance) : null;
   // The sample duty list (demo mode) is marked with a small "örnek", like the sample prices: a made-up duty would send
   // people to a closed pharmacy at night.
   const tag = n.foot.kind === "duty" && sample ? "örnek" : null;
@@ -323,7 +334,7 @@ function NearestCard({ n, showDistance, sample, prayerDays }: { n: Nearest; show
       foot = <TaxiFoot />;
       break;
     case "price":
-      foot = <PriceFoot price={n.foot.price} />;
+      foot = <PriceFoot rows={n.foot.rows} />;
       break;
     case "park":
       foot = <ParkFoot category={n.foot.category} distance={distance} />;
@@ -347,11 +358,11 @@ function NearestCard({ n, showDistance, sample, prayerDays }: { n: Nearest; show
 
 /**
  * Home "Yakınımda": what is near the user, one short sideways card each: the nearest Nöbetçi Eczane with today's duty
- * hours (else the nearest eczane), durak with its next buses, cami with the next prayer, taksi (sample driver), şarj,
- * akaryakıt and kuaför (sample prices) and park; with a GPS fix the distance sits on the right. A card opens the
- * place's page. Client-only (the location lives on the device); the first card asks for the location when there is no
- * GPS fix. Only the rounded point is sent. `dutyMode`: app setting (the sample duty list is marked "Örnek liste");
- * `prayerDays`: today's and tomorrow's prayer times (Gebze).
+ * hours (else the nearest eczane), durak with its next buses, cami with the next prayer, taksi (driver and minimum
+ * fare), şarj, akaryakıt and kuaför (two price rows) and park; with a GPS fix the distance sits on the right. A card
+ * opens the place's page. Client-only (the location lives on the device); the first card asks for the location when
+ * there is no GPS fix. Only the rounded point is sent. `dutyMode`: app setting (the sample duty list gets a small
+ * "örnek"); `prayerDays`: today's and tomorrow's prayer times (Gebze).
  */
 export function HomeNearby({ dutyMode, prayerDays }: { dutyMode: DutyMode; prayerDays: PrayerDay[] }) {
   const isClient = useIsClient();
@@ -376,7 +387,7 @@ export function HomeNearby({ dutyMode, prayerDays }: { dutyMode: DutyMode; praye
   const place = districtBySlug(loc.district)?.name ?? CITY.name;
 
   return (
-    <ul className="no-scrollbar -mx-4 flex items-stretch gap-3 overflow-x-auto px-4 pb-1" aria-busy={!settled}>
+    <ul className="no-scrollbar -mx-4 flex snap-x snap-proximity scroll-px-4 items-stretch gap-3 overflow-x-auto overscroll-x-contain px-4 pb-1" aria-busy={!settled}>
       {isClient && !gps ? (
         <li className={ITEM}>
           <button type="button" onClick={() => void loc.request()} disabled={loc.status === "locating"} className={CARD}>
