@@ -371,14 +371,15 @@ export function formatServicePrice(min: number | null, max: number | null, unit:
 // ---------------------------------------------------------------------------
 // Price level (1-4)
 // ---------------------------------------------------------------------------
-export const PRICE_LEVELS: Record<1 | 2 | 3 | 4, { symbol: string; label: string }> = {
-  1: { symbol: "₺", label: "Ekonomik" },
-  2: { symbol: "₺₺", label: "Orta" },
-  3: { symbol: "₺₺₺", label: "Üst segment" },
-  4: { symbol: "₺₺₺₺", label: "Lüks" },
+/** Shown by its label: the app writes no currency glyph ("₺") anywhere, amounts are "1.250 TL". */
+export const PRICE_LEVELS: Record<1 | 2 | 3 | 4, { label: string }> = {
+  1: { label: "Ekonomik" },
+  2: { label: "Orta" },
+  3: { label: "Üst segment" },
+  4: { label: "Lüks" },
 };
 
-export function priceLevelInfo(level: number | null | undefined): { symbol: string; label: string } | null {
+export function priceLevelInfo(level: number | null | undefined): { label: string } | null {
   return level === 1 || level === 2 || level === 3 || level === 4 ? PRICE_LEVELS[level] : null;
 }
 

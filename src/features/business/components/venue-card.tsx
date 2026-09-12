@@ -39,7 +39,7 @@ function priceLine(item: VerticalCard): { strong: string; rest?: string } | null
     return item.min_room_price != null ? { strong: formatPrice(item.min_room_price), rest: " / gece" } : null;
   }
   const level = priceLevelInfo(item.price_level);
-  return level ? { strong: level.symbol, rest: ` · ${level.label}` } : null;
+  return level ? { strong: level.label, rest: " fiyatlar" } : null;
 }
 
 /** "Gebze · 1,2 km": the district and the distance, whichever is known. */

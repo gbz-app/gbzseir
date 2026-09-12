@@ -177,7 +177,7 @@ export function FeaturesSection({ d, set, amenityOptions }: SectionProps & { ame
           <div className="flex flex-wrap gap-2">
             {([1, 2, 3, 4] as const).map((n) => (
               <FilterChip key={n} active={d.priceLevel === n} onClick={() => set("priceLevel", d.priceLevel === n ? null : n)}>
-                {PRICE_LEVELS[n].symbol} {PRICE_LEVELS[n].label}
+                {PRICE_LEVELS[n].label}
               </FilterChip>
             ))}
           </div>

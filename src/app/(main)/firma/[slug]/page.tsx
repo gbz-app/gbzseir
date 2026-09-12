@@ -319,7 +319,7 @@ export default async function FirmPage({ params }: Props) {
     telephone: isDemo ? undefined : (b.phone ?? undefined),
     image: heroImages.slice(0, 4),
     logo: b.logo_url ?? undefined,
-    priceRange: priceLevel?.symbol,
+    priceRange: priceLevel?.label,
     starRating: b.star_rating ? { "@type": "Rating", ratingValue: b.star_rating } : undefined,
     // schema.org hasMenu belongs to FoodEstablishment; a hotel's menu stays on the page but not in its Hotel JSON-LD.
     hasMenu: itemCount && vertical !== "otel" ? `${SITE_URL}${routes.businesses.menu(b.slug)}` : undefined,
@@ -365,7 +365,7 @@ export default async function FirmPage({ params }: Props) {
   // Third stat tile depends on the vertical.
   let thirdTile: { label: string; value: React.ReactNode; href?: string } | null = null;
   if (vertical === "otel" && minRoomPrice != null) thirdTile = { label: "gecelik, en düşük", value: formatPrice(minRoomPrice), href: "#odalar" };
-  else if (priceLevel) thirdTile = { label: priceLevel.label, value: priceLevel.symbol };
+  else if (priceLevel) thirdTile = { label: "fiyat seviyesi", value: priceLevel.label };
   else if (isService) thirdTile = { label: "yanıtlanan talep", value: formatNumber(b.leads_accepted_count) };
   else thirdTile = { label: "üyelik", value: <span className="capitalize">{monthYear.format(new Date(memberSince)).split(" ")[1]}</span> };
 
