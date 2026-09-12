@@ -7,8 +7,7 @@ import { routes } from "@/core/routes";
 import { slugifyTr } from "@/core/tr";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/shared/explore-header";
-import { districtBySlug, type DistrictSlug } from "@/config/districts";
-import { DistrictFilterChip } from "../district-filter";
+import { districtBySlug } from "@/config/districts";
 import { DoctorCard } from "./doctor-card";
 import { DOCTOR_BRANCHES, branchIcon, branchLabel, findBranch, type DirectoryDoctor, type DoctorBranch } from "./doctor-meta";
 
@@ -75,20 +74,15 @@ export function ExploreSegments({ value, onChange, counts }: { value: ExploreSeg
 }
 
 // ---------------------------------------------------------------------------
-// Doctors list: search, branch chips (horizontal rail), the clinic's district filter (shared with the İşletmeler segment
-// through ?ilce=), two-column cards linking to each doctor's profile page.
+// Doctors list: search, branch chips (horizontal rail), two-column cards linking to each doctor's profile page (no
+// district filter, owner 12.09).
 // ---------------------------------------------------------------------------
 export function DoctorsExplorer({
   doctors,
   branches = DOCTOR_BRANCHES,
-  district = null,
-  onDistrictChange,
 }: {
   doctors: DirectoryDoctor[];
   branches?: readonly DoctorBranch[];
-  /** Clinic district filter; the chip shows only with `onDistrictChange`. */
-  district?: DistrictSlug | null;
-  onDistrictChange?: (slug: DistrictSlug | null) => void;
 }) {
   const [q, setQ] = React.useState("");
   const [branchKey, setBranchKey] = React.useState<string | null>(null);
@@ -107,27 +101,19 @@ export function DoctorsExplorer({
       doctors.filter(
         (d) =>
           (!branchKey || d.branch === branchKey) &&
-          (!district || d.clinic.district_id === district) &&
           (!needle ||
             slugifyTr(`${d.title} ${d.name} ${branchLabel(d.branch, branches)} ${d.clinic.name} ${districtBySlug(d.clinic.district_id)?.name ?? ""}`).includes(needle)),
       ),
-    [doctors, branches, branchKey, district, needle],
+    [doctors, branches, branchKey, needle],
   );
   const activeChip = chips.find((c) => c.key === branchKey) ?? null;
-  const districtInfo = districtBySlug(district);
 
   const clearAll = () => {
     setQ("");
     setBranchKey(null);
-    onDistrictChange?.(null);
   };
-  // One filter alone gets its own empty message.
-  const emptyTitle =
-    activeChip && !needle && !districtInfo
-      ? `${activeChip.label} için henüz doktor yok`
-      : districtInfo && !needle && !activeChip
-        ? `${districtInfo.name} için henüz doktor yok`
-        : "Aramana uygun doktor bulunamadı";
+  // A branch chip alone gets its own empty message.
+  const emptyTitle = activeChip && !needle ? `${activeChip.label} için henüz doktor yok` : "Aramana uygun doktor bulunamadı";
 
   return (
     <>
@@ -177,17 +163,14 @@ export function DoctorsExplorer({
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground" aria-live="polite">
-              {filtered.length} doktor
-            </p>
-            {onDistrictChange ? <DistrictFilterChip value={district} onChange={onDistrictChange} /> : null}
-          </div>
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            {filtered.length} doktor
+          </p>
           {filtered.length === 0 ? (
             <div className="rounded-3xl bg-card px-6 py-8 text-center">
               <p className="font-semibold">{emptyTitle}</p>
               <Button variant="outline" className="mt-4" onClick={clearAll}>
-                {activeChip || districtInfo ? "Tümünü göster" : "Aramayı temizle"}
+                {activeChip ? "Tümünü göster" : "Aramayı temizle"}
               </Button>
             </div>
           ) : (

@@ -10,16 +10,14 @@ export type LocationPromptProps = {
   loc: ApproxLocation;
   /** Ask for the GPS position (from a tap). */
   onLocate: () => void;
-  /** Open the district picker. */
-  onPickDistrict: () => void;
   className?: string;
 };
 
 /**
- * Shown when there is no GPS fix: "Konum izni ver" + "İlçe seç". With a chosen district it becomes a one-line hint
- * ("Darıca merkezine göre").
+ * Shown when there is no GPS fix: one "Konum izni ver" button (no district picking, owner 12.09). A district saved on
+ * this device earlier still centres the list; then it is a one-line hint ("Darıca merkezine göre") with "Konumum".
  */
-export function LocationPrompt({ loc, onLocate, onPickDistrict, className }: LocationPromptProps) {
+export function LocationPrompt({ loc, onLocate, className }: LocationPromptProps) {
   if (loc.pointSource === "gps") return null;
   const locating = loc.status === "locating";
   const district = loc.pointSource === "district" ? districtBySlug(loc.district) : undefined;
@@ -31,9 +29,6 @@ export function LocationPrompt({ loc, onLocate, onPickDistrict, className }: Loc
         <p className="min-w-0 flex-1 truncate">
           <span className="font-semibold">{district.name}</span> merkezine göre
         </p>
-        <Button type="button" variant="ghost" size="sm" className="h-11 text-primary" onClick={onPickDistrict}>
-          Değiştir
-        </Button>
         <Button type="button" variant="ghost" size="sm" className="h-11 text-primary" onClick={onLocate} disabled={locating}>
           {locating ? <Loader2 className="animate-spin" /> : <LocateFixed />}
           Konumum
@@ -45,20 +40,12 @@ export function LocationPrompt({ loc, onLocate, onPickDistrict, className }: Loc
   return (
     <div className={cn("rounded-2xl bg-brand-soft p-4", className)}>
       <p className="font-bold text-primary">Yakınındakileri görmek için konumunu paylaş</p>
-      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-        Yaklaşık konumun yalnızca bu cihazda tutulur. İstersen ilçeni seçebilirsin.
-      </p>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Yaklaşık konumun yalnızca bu cihazda tutulur.</p>
       {loc.error ? <p className="mt-2 text-sm font-medium text-destructive">{loc.error}</p> : null}
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Button type="button" onClick={onLocate} disabled={locating} className="flex-1">
-          {locating ? <Loader2 className="animate-spin" /> : <LocateFixed />}
-          Konum izni ver
-        </Button>
-        <Button type="button" variant="outline" onClick={onPickDistrict} className="flex-1">
-          <MapPin />
-          İlçe seç
-        </Button>
-      </div>
+      <Button type="button" onClick={onLocate} disabled={locating} className="mt-3 w-full">
+        {locating ? <Loader2 className="animate-spin" /> : <LocateFixed />}
+        Konum izni ver
+      </Button>
     </div>
   );
 }

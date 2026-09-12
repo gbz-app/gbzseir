@@ -105,14 +105,14 @@ export function useApproxLocation(): ApproxLocation {
       if (code === 1) {
         // PERMISSION_DENIED
         setStatus("denied");
-        setError("Konum izni verilmedi. İlçeni listeden seçebilirsin.");
+        setError("Konum izni verilmedi. Telefonunun ayarlarından konum iznini açabilirsin.");
       } else if (code === 3) {
         // TIMEOUT
         setStatus("error");
-        setError("Konum bulunamadı (zaman aşımı). Tekrar dene ya da ilçeni seç.");
+        setError("Konum bulunamadı (zaman aşımı). Tekrar dene.");
       } else {
         setStatus("error");
-        setError("Konum alınamadı. Tekrar dene ya da ilçeni seç.");
+        setError("Konum alınamadı. Tekrar dene.");
       }
       return null;
     }

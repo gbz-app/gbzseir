@@ -15,7 +15,6 @@ import { distanceMeters, formatDistance } from "@/core/geo";
 import { trIncludes } from "@/core/tr";
 import { useApproxLocation } from "@/lib/location/use-approx-location";
 import { BusinessRow, type BusinessRowData } from "./business-card";
-import { DistrictFilterChip, useDistrictParam } from "./district-filter";
 
 export type DirectoryItem = BusinessRowData & { id: string; lat: number | null; lng: number | null; keys: string[] };
 export type DirectoryChip = { key: string; label: string; count: number };
@@ -23,7 +22,7 @@ export type DirectoryChip = { key: string; label: string; count: number };
 type SortMode = "puan" | "mesafe";
 const ALL = "__tumu";
 
-/** F7 directory: category chips, district filter (?ilce=), name search, sort by rating or distance (location only on tap). */
+/** F7 directory: category chips, name search, sort by rating or distance (location only on tap); no district filter (owner 12.09). */
 export function FirmsDirectory({ items, chips }: { items: DirectoryItem[]; chips: DirectoryChip[] }) {
   const searchParams = useSearchParams();
   const [chip, setChip] = React.useState<string | null>(() => {
@@ -32,7 +31,6 @@ export function FirmsDirectory({ items, chips }: { items: DirectoryItem[]; chips
   });
   const [sort, setSort] = React.useState<SortMode>(() => (searchParams.get("sirala") === "mesafe" ? "mesafe" : "puan"));
   const [query, setQuery] = React.useState("");
-  const [district, setDistrict] = useDistrictParam();
   const loc = useApproxLocation();
   // Client clock for the "Tatilde" check (null before mount: the rows use the raw flag, same as the server HTML).
   const now = useNow();
@@ -52,7 +50,7 @@ export function FirmsDirectory({ items, chips }: { items: DirectoryItem[]; chips
     if (mode === "mesafe" && loc.pointSource === "city") {
       const coords = await loc.request();
       if (!coords) {
-        toast.error("Konumun alınamadı. İlçeni seçerek de mesafeye göre sıralayabilirsin.");
+        toast.error("Konumun alınamadı. Telefonunun konum iznini kontrol edip tekrar dene.");
         return;
       }
     }
@@ -64,10 +62,9 @@ export function FirmsDirectory({ items, chips }: { items: DirectoryItem[]; chips
     return items.filter(
       (b) =>
         (!chip || b.keys.includes(chip)) &&
-        (!district || b.district_id === district) &&
         (!q || trIncludes(`${b.name} ${b.category_label ?? ""} ${districtBySlug(b.district_id)?.name ?? ""}`, q)),
     );
-  }, [items, chip, district, query]);
+  }, [items, chip, query]);
 
   const rows = React.useMemo(() => {
     const withDistance = filtered.map((b) => ({
@@ -114,7 +111,9 @@ export function FirmsDirectory({ items, chips }: { items: DirectoryItem[]; chips
       ) : null}
 
       <div className="flex items-center justify-between gap-3">
-        <DistrictFilterChip value={district} onChange={setDistrict} />
+        <p className="text-sm font-semibold text-muted-foreground" aria-live="polite">
+          {filtered.length} firma
+        </p>
         <div role="radiogroup" aria-label="Sıralama" className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
           {(
             [
@@ -144,10 +143,6 @@ export function FirmsDirectory({ items, chips }: { items: DirectoryItem[]; chips
         </div>
       </div>
 
-      <p className="-mt-1 text-sm font-semibold text-muted-foreground" aria-live="polite">
-        {filtered.length} firma
-      </p>
-
       {sort === "mesafe" && referenceLabel ? (
         <p className="-mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
           <LocateFixed className="size-3.5" aria-hidden />
@@ -172,7 +167,6 @@ export function FirmsDirectory({ items, chips }: { items: DirectoryItem[]; chips
                 variant="outline"
                 onClick={() => {
                   setChip(null);
-                  setDistrict(null);
                   setQuery("");
                 }}
               >

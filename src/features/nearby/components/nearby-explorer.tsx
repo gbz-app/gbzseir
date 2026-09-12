@@ -15,7 +15,6 @@ import { ChipFilter, type ChipOption } from "@/components/shared/chip-filter";
 import { DataSourceNote } from "@/components/shared/data-source-note";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
-import { DistrictPicker } from "@/components/shared/district-picker";
 import { ListSkeleton } from "@/components/shared/skeletons";
 import { GoogleMap } from "@/components/maps/google-map";
 import type { FlyRequest, MapPadding, MapPoint } from "@/components/maps/types";
@@ -204,7 +203,6 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
 
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [fly, setFly] = React.useState<FlyRequest | null>(null);
-  const [pickerOpen, setPickerOpen] = React.useState(false);
   const listRef = React.useRef<HTMLDivElement>(null);
   const chipsRef = React.useRef<HTMLDivElement>(null);
   const locateRef = React.useRef<HTMLButtonElement>(null);
@@ -248,10 +246,7 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
     }
     const coords = await loc.request();
     if (coords) toast.success("Konumun bulundu, en yakından uzağa sıralandı.");
-    else {
-      toast.error("Konum alınamadı. İlçeni seçebilirsin.");
-      setPickerOpen(true);
-    }
+    else toast.error("Konum alınamadı. Telefonunun konum iznini kontrol edip tekrar dene.");
   };
 
   const clearQuery = () => {
@@ -380,7 +375,7 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
           }
         >
           {/* Hidden while searching so the matches start right under the search bar. */}
-          {query.trim() ? null : <LocationPrompt loc={loc} onLocate={locate} onPickDistrict={() => setPickerOpen(true)} className="mb-3" />}
+          {query.trim() ? null : <LocationPrompt loc={loc} onLocate={locate} className="mb-3" />}
           {filter === "nobetci" && demoDuty && !query.trim() && !data.loading && !data.error && items.length > 0 ? <DutyDemoNote className="mb-3" /> : null}
 
           {data.loading ? (
@@ -456,13 +451,10 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
         </NearbySheet>
       ) : null}
 
-      {/* The pick becomes the reference point (district centre) of every nearby list. */}
-      <DistrictPicker open={pickerOpen} onOpenChange={setPickerOpen} showTrigger={false} showUseLocation persistDefault value={loc.district} />
-
       <CoachMarks
         steps={coachSteps}
         storageKey={COACH_KEY}
-        enabled={!!filter && !data.loading && areaH > 0 && !pickerOpen && !onboardingActive}
+        enabled={!!filter && !data.loading && areaH > 0 && !onboardingActive}
       />
     </div>
   );

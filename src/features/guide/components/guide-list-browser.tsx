@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ChevronDown, Loader2, LocateFixed, MapPin, MapPinOff, Search, SearchX, X } from "lucide-react";
+import { ArrowLeft, Loader2, LocateFixed, MapPinOff, Search, SearchX, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { districtBySlug, isDistrictSlug, type DistrictSlug } from "@/config/districts";
@@ -17,7 +17,6 @@ import { ChipFilter, type ChipOption } from "@/components/shared/chip-filter";
 import { DataSourceNote, type DataSourceNoteProps } from "@/components/shared/data-source-note";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
-import { DistrictPicker } from "@/components/shared/district-picker";
 import { GoogleMap } from "@/components/maps/google-map";
 import { MapPattern } from "@/components/maps/map-states";
 import type { FlyRequest, MapPadding, MapPoint } from "@/components/maps/types";
@@ -44,7 +43,7 @@ export type GuideListBrowserProps = {
 
 const STEP = 40;
 const ALL = "tumu";
-/** Space kept for the back button and the chip row at the top of the map. */
+/** Space kept for the back button at the top of the map. */
 const TOP_SPACE = 64;
 /** Pins drawn at most (the nearest ones); the list keeps every row. */
 const MAX_PINS = 400;
@@ -56,6 +55,7 @@ const BACK_BUTTON =
 
 const NOTE = "mt-3 rounded-2xl bg-muted/70 px-4 py-3 text-xs leading-relaxed text-muted-foreground";
 
+/** `ilce` only comes from an old link (?ilce=): there is no district picking any more (owner 12.09). */
 type Filters = { chip: string | null; own: Ownership | null; q: string; ilce: DistrictSlug | null };
 
 type Pinned = GuideEntry & { lat: number; lng: number };
@@ -132,7 +132,7 @@ function Segmented<T extends string>({
   );
 }
 
-/** ATM / Şube: links between /rehber/atm and /rehber/banka. */
+/** ATM / Şube: links between /rehber/atm and /rehber/banka (in the sheet, like the Eczane tab's Nöbetçi switch). */
 function BankSwitch({ current, counts }: { current: ClientListConfig["kind"]; counts?: { atm: number; bank: number } }) {
   const items = [
     { kind: "atm", label: "ATM", href: routes.guide.category("atm"), count: counts?.atm },
@@ -149,12 +149,12 @@ function BankSwitch({ current, counts }: { current: ClientListConfig["kind"]; co
             replace
             aria-current={active ? "page" : undefined}
             className={cn(
-              "inline-flex h-10 items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-              active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+              "inline-flex h-9 items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {it.label}
-            {typeof it.count === "number" ? <span className={cn("text-xs font-medium", active ? "text-primary-foreground/80" : "")}>{it.count}</span> : null}
+            {typeof it.count === "number" ? <span className={cn("text-xs font-medium", active ? "text-background/75" : "")}>{it.count}</span> : null}
           </Link>
         );
       })}
@@ -221,11 +221,12 @@ export function GuideListFallback({ config, entries, chips }: GuideListBrowserPr
 }
 
 /**
- * /rehber/[kategori]: map-first like /yakinimda's taxi tab. The map (loaded with the page) shows the pins of the filtered
- * rows; the draggable sheet lists every row (rows without a location only there), nearest first when a location or
- * district is known, else A-Z. Chips (category / group / subkind / bank / brand / operator), İlçe, Devlet / Özel and the
- * search are local and mirrored into the URL (?alt=, ?banka=, ?marka=, ?operator=, ?ilce=, ?sahiplik=, ?q=) with
- * history.replaceState. A pin tap highlights and scrolls to its row; a row tap opens the detail page.
+ * /rehber/[kategori]: map-first like /yakinimda's taxi tab. Only a back button sits on the map; the draggable sheet holds
+ * the filters, like the Eczane tab's Nöbetçi switch: ATM / Şube, the chips (category / group / subkind / bank / brand /
+ * operator) and the search, then Devlet / Özel and every row (rows without a location only there), nearest first when a
+ * location (or a district saved earlier) is known, else A-Z. No district picking (owner 12.09). Filters are local and
+ * mirrored into the URL (?alt=, ?banka=, ?marka=, ?operator=, ?sahiplik=, ?q=) with history.replaceState. A pin tap
+ * highlights and scrolls to its row; a row tap opens the detail page.
  */
 export function GuideListBrowser({ config, entries, chips, ok, bankCounts, params = null }: GuideListBrowserProps & { params?: URLSearchParams | null }) {
   const router = useRouter();
@@ -235,8 +236,6 @@ export function GuideListBrowser({ config, entries, chips, ok, bankCounts, param
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [fly, setFly] = React.useState<FlyRequest | null>(null);
   const [snap, setSnap] = React.useState<SheetSnap>("half");
-  const [pickerOpen, setPickerOpen] = React.useState(false);
-  const [districtFilterOpen, setDistrictFilterOpen] = React.useState(false);
   const searchRef = React.useRef<HTMLInputElement>(null);
   const listRef = React.useRef<HTMLDivElement>(null);
 
@@ -255,11 +254,6 @@ export function GuideListBrowser({ config, entries, chips, ok, bankCounts, param
     touched.current = true;
     window.history.replaceState(null, "", guideListHref(config, { chip: filters.chip, own: filters.own, q: filters.q, ilce: filters.ilce }));
   }, [key, config, filters]);
-
-  // The İlçe filter only when the list spans more than one district (or the URL already asks for one).
-  const districtCount = React.useMemo(() => new Set(entries.map((e) => e.district).filter(Boolean)).size, [entries]);
-  const showDistrictFilter = districtCount > 1 || !!filters.ilce;
-  const ilceName = districtBySlug(filters.ilce)?.name;
 
   const hasBothOwnerships = React.useMemo(
     () => config.ownership && entries.some((e) => e.own === "devlet") && entries.some((e) => e.own === "ozel"),
@@ -366,10 +360,7 @@ export function GuideListBrowser({ config, entries, chips, ok, bankCounts, param
     }
     const coords = await loc.request();
     if (coords) toast.success("Konumun bulundu, en yakından uzağa sıralandı.");
-    else {
-      toast.error("Konum alınamadı. İlçeni seçebilirsin.");
-      setPickerOpen(true);
-    }
+    else toast.error("Konum alınamadı. Telefonunun konum iznini kontrol edip tekrar dene.");
   };
 
   const goBack = () => (canGoBack() ? router.back() : router.push(routes.guide.root()));
@@ -385,40 +376,71 @@ export function GuideListBrowser({ config, entries, chips, ok, bankCounts, param
   const sortHint = loc.pointSource === "gps" ? "en yakından uzağa" : refDistrict ? `${refDistrict.name} merkezine göre` : "A'dan Z'ye";
   const header = <SheetTitle title={config.title} line={`${filtered.length} kayıt · ${sortHint}`} />;
 
+  // Sheet toolbar (stays above the scrolling rows): ATM / Şube, the chips, then the search.
+  const toolbar =
+    config.bankSwitch || chipOptions.length || entries.length ? (
+      <div className="flex flex-col gap-3">
+        {config.bankSwitch ? <BankSwitch current={config.kind} counts={bankCounts} /> : null}
+        {chipOptions.length ? (
+          <ChipFilter
+            options={chipOptions}
+            value={filters.chip ?? ALL}
+            onChange={(v) => {
+              update({ chip: !v || v === ALL ? null : v });
+              listRef.current?.scrollTo({ top: 0 });
+            }}
+            ariaLabel="Alt kategori"
+            size="sm"
+            centerSelected
+            className="py-0"
+          />
+        ) : null}
+        {entries.length ? (
+          <div role="search" className="relative">
+            <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              ref={searchRef}
+              type="search"
+              value={filters.q}
+              onChange={(e) => update({ q: e.target.value.slice(0, 80) })}
+              onFocus={() => {
+                if (snap === "peek") setSnap("half");
+              }}
+              placeholder="İsim ya da adres ara"
+              aria-label={`${config.title} içinde ara`}
+              enterKeyHint="search"
+              autoComplete="off"
+              className="h-11 w-full rounded-full bg-card pr-11 pl-12 text-[15px] outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:hidden"
+            />
+            {filters.q ? (
+              <button
+                type="button"
+                onClick={clearQuery}
+                aria-label="Aramayı temizle"
+                className="absolute top-1/2 right-1 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    ) : null;
+
   const content = (
     <>
-      {config.bankSwitch || hasBothOwnerships || showDistrictFilter ? (
-        <div className="mb-3 flex flex-col gap-2.5">
-          {config.bankSwitch ? <BankSwitch current={config.kind} counts={bankCounts} /> : null}
-          {hasBothOwnerships || showDistrictFilter ? (
-            <div className="flex flex-wrap items-start gap-2">
-              {hasBothOwnerships ? (
-                <Segmented<"hepsi" | Ownership>
-                  ariaLabel="Devlet ya da özel"
-                  value={filters.own ?? "hepsi"}
-                  onChange={(v) => update({ own: v === "hepsi" ? null : v })}
-                  options={[
-                    { value: "hepsi", label: "Tümü" },
-                    { value: "devlet", label: "Devlet" },
-                    { value: "ozel", label: "Özel" },
-                  ]}
-                />
-              ) : null}
-              {showDistrictFilter ? (
-                <button
-                  type="button"
-                  onClick={() => setDistrictFilterOpen(true)}
-                  aria-haspopup="dialog"
-                  aria-label={`İlçe: ${ilceName ?? "Tüm ilçeler"}`}
-                  className="inline-flex h-11 max-w-full items-center gap-1.5 rounded-full bg-card px-3.5 text-[13px] font-semibold transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  <MapPin className="size-4 shrink-0 text-primary" aria-hidden />
-                  <span className="truncate">{ilceName ?? "Tüm ilçeler"}</span>
-                  <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                </button>
-              ) : null}
-            </div>
-          ) : null}
+      {hasBothOwnerships ? (
+        <div className="mb-3">
+          <Segmented<"hepsi" | Ownership>
+            ariaLabel="Devlet ya da özel"
+            value={filters.own ?? "hepsi"}
+            onChange={(v) => update({ own: v === "hepsi" ? null : v })}
+            options={[
+              { value: "hepsi", label: "Tümü" },
+              { value: "devlet", label: "Devlet" },
+              { value: "ozel", label: "Özel" },
+            ]}
+          />
         </div>
       ) : null}
 
@@ -511,34 +533,11 @@ export function GuideListBrowser({ config, entries, chips, ok, bankCounts, param
         )}
       </div>
 
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-x-0 top-0 z-20 pt-2.5 pb-5 pl-4",
-          chipOptions.length ? "bg-gradient-to-b from-background/95 via-background/70 to-transparent" : "pr-4",
-        )}
-      >
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={goBack} aria-label="Geri" className={BACK_BUTTON}>
-            <ArrowLeft className="size-5" strokeWidth={2.2} aria-hidden />
-          </button>
-          {chipOptions.length ? (
-            <div className="pointer-events-auto min-w-0 flex-1">
-              <ChipFilter
-                options={chipOptions}
-                value={filters.chip ?? ALL}
-                onChange={(v) => {
-                  update({ chip: !v || v === ALL ? null : v });
-                  listRef.current?.scrollTo({ top: 0 });
-                }}
-                ariaLabel="Alt kategori"
-                size="sm"
-                bleed={false}
-                centerSelected
-                className="pr-4"
-              />
-            </div>
-          ) : null}
-        </div>
+      {/* Only the back button on the map; the filters live in the sheet. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-4 pt-2.5">
+        <button type="button" onClick={goBack} aria-label="Geri" className={BACK_BUTTON}>
+          <ArrowLeft className="size-5" strokeWidth={2.2} aria-hidden />
+        </button>
       </div>
 
       {areaH > 0 ? (
@@ -562,61 +561,13 @@ export function GuideListBrowser({ config, entries, chips, ok, bankCounts, param
             ) : null
           }
           header={header}
-          toolbar={
-            entries.length ? (
-              <div role="search" className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-                <input
-                  ref={searchRef}
-                  type="search"
-                  value={filters.q}
-                  onChange={(e) => update({ q: e.target.value.slice(0, 80) })}
-                  onFocus={() => {
-                    if (snap === "peek") setSnap("half");
-                  }}
-                  placeholder="İsim, ilçe ya da adres ara"
-                  aria-label={`${config.title} içinde ara`}
-                  enterKeyHint="search"
-                  autoComplete="off"
-                  className="h-11 w-full rounded-full bg-card pr-11 pl-12 text-[15px] outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:hidden"
-                />
-                {filters.q ? (
-                  <button
-                    type="button"
-                    onClick={clearQuery}
-                    aria-label="Aramayı temizle"
-                    className="absolute top-1/2 right-1 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    <X className="size-4" aria-hidden />
-                  </button>
-                ) : null}
-              </div>
-            ) : null
-          }
+          toolbar={toolbar}
         >
           {content}
         </NearbySheet>
       ) : (
         <StaticSheet header={header}>{content}</StaticSheet>
       )}
-
-      {/* Where the user is: the pick becomes the reference point (district centre) of the distance sort. */}
-      <DistrictPicker open={pickerOpen} onOpenChange={setPickerOpen} showTrigger={false} showUseLocation persistDefault value={loc.district} />
-      {/* List filter (?ilce=): only this list, the saved district stays. */}
-      <DistrictPicker
-        open={districtFilterOpen}
-        onOpenChange={setDistrictFilterOpen}
-        showTrigger={false}
-        value={filters.ilce}
-        onChange={(d) => {
-          update({ ilce: d?.slug ?? null });
-          listRef.current?.scrollTo({ top: 0 });
-        }}
-        allowClear
-        clearLabel="Tüm ilçeler"
-        title="İlçe seç"
-        description="Listede yalnızca seçtiğin ilçedeki kayıtlar kalır."
-      />
     </div>
   );
 }

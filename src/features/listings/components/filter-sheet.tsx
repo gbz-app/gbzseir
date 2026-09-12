@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { BottomSheet } from "@/components/shared/bottom-sheet";
-import { DistrictPicker } from "@/components/shared/district-picker";
 import { CONDITIONS, EXPERIENCE_LEVELS, JOB_LOCATIONS, WORK_TYPES } from "../constants";
 import { attributeFilterFields, emptyQuery, pickAttrFilters, type ListingsQuery } from "../filters";
 import { digitsOnly, groupDigits } from "../format";
@@ -35,7 +34,10 @@ function Section({ id, title, children }: { id: string; title: string; children:
 /** Typed decimal for a number filter (kept as text while editing; normalised on apply). */
 const numberText = (v: string) => v.replace(/[^\d.,]/g, "").slice(0, 16) || null;
 
-/** E2: filter bottom sheet. Mount with a new `key` every time it opens so the draft starts from the URL state. */
+/**
+ * E2: filter bottom sheet (no İlçe section: no district picking, owner 12.09). Mount with a new `key` every time it opens
+ * so the draft starts from the URL state.
+ */
 export function FilterSheet({ open, onOpenChange, query, categories, onApply }: FilterSheetProps) {
   const [draft, setDraft] = React.useState<ListingsQuery>(query);
   const isJob = query.tab === "is-ilanlari";
@@ -117,17 +119,6 @@ export function FilterSheet({ open, onOpenChange, query, categories, onApply }: 
               />
             </div>
           ) : null}
-        </Section>
-
-        <Section id="filtre-ilce" title="İlçe">
-          <DistrictPicker
-            value={draft.ilce}
-            onChange={(d) => patch({ ilce: d?.slug ?? null })}
-            allowClear
-            clearLabel="Tüm ilçeler"
-            placeholder="Tüm ilçeler"
-            title="İlçe seç"
-          />
         </Section>
 
         {!isJob ? (
