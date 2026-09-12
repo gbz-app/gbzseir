@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, MapPin, Ticket } from "lucide-react";
+import { Clock, Navigation, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { districtName } from "@/config/districts";
 import { routes } from "@/core/routes";
@@ -76,7 +76,8 @@ export function HomePlaces({ places, categories = PLACE_CATEGORY_DEFS }: { place
                   {meta.label}
                 </span>
                 <span className="absolute inset-x-2.5 bottom-2.5 rounded-[1.25rem] bg-card p-3.5">
-                  <span className="line-clamp-2 text-base leading-snug font-semibold">{p.name}</span>
+                  {/* Always two lines tall (22 px each), so a one-line name (Eskihisar) gives the same card as a long one. */}
+                  <span className="line-clamp-2 min-h-[2.75rem] text-base leading-snug font-semibold">{p.name}</span>
                   <span className="mt-1 block truncate text-sm text-muted-foreground">{districtName(p.districtId)}</span>
                   <span className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                     {p.details.hours ? (
@@ -86,7 +87,7 @@ export function HomePlaces({ places, categories = PLACE_CATEGORY_DEFS }: { place
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1">
-                        <MapPin className="size-3.5" aria-hidden /> Yol tarifi
+                        <Navigation className="size-3.5" fill="currentColor" aria-hidden /> Yol tarifi
                       </span>
                     )}
                     <span className="inline-flex shrink-0 items-center gap-1">
