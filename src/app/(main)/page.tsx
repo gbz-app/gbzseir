@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Briefcase, Castle, ChevronRight, Hospital, Landmark, Mail, Scale, School, Siren, Sparkles, Stamp, Tag, Trees, type LucideIcon } from "lucide-react";
+import { Briefcase, Castle, ChevronRight, Landmark, Mail, Scale, School, Sparkles, Stamp, Stethoscope, Tag, Trees, type LucideIcon } from "lucide-react";
 import { APP_DESCRIPTION, APP_FULL_NAME, APP_NAME, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,7 +33,21 @@ async function NearbyStrip() {
   return <HomeNearby dutyMode={dutyMode} prayerDays={prayerDays} />;
 }
 
-type Tile = { href: string; label: string; image?: string; video?: string; icon?: LucideIcon; tone?: string; imageClassName?: string; imageFit?: string };
+type Tile = {
+  href: string;
+  label: string;
+  image?: string;
+  video?: string;
+  /** Photo in the tile's top-right corner behind the icon (Kategoriler). */
+  backdrop?: string;
+  icon?: LucideIcon;
+  tone?: string;
+  imageClassName?: string;
+  imageFit?: string;
+};
+
+/** The owner's category photos (public/images/home/kategori, 320 px WebP), shown in the tile's top-right corner. */
+const photo = (name: string) => `/images/home/kategori/${name}.webp`;
 
 const vertical = (v: Vertical, label?: string): Tile => ({
   href: v === "etkinlik" ? routes.events.root() : routes.businesses.vertical(v),
@@ -59,14 +73,16 @@ const TONE = {
 
 const guide = routes.guide.category;
 
-/** Şehir Rehberi (one row, scrolls sideways), most needed first. Same destinations as the rows of the /rehber hub. */
+/**
+ * Şehir Rehberi (one row, scrolls sideways), most needed first; every tile an icon (owner, 12.09). Nöbetçi, then Aile
+ * Sağlık Merkezi, Durak, Taksi; no Hastane or Emniyet tile (owner, 12.09). Same destinations as the /rehber hub.
+ */
 const GUIDE: Tile[] = [
-  // Opens Keşfet on the Eczane tab with "Nöbetçi" already selected. The owner's 3D art: red cross, taxi (moved right a bit).
-  { href: routes.nearby.root("nobetci"), label: "Nöbetçi Eczane", ...kind(KIND_META.duty), image: "/images/home/eczane.webp" },
-  { href: guide("saglik"), label: "Hastane", icon: Hospital, tone: TONE.rose },
-  { href: routes.nearby.root("taksi"), label: "Taksi", ...kind(KIND_META.taxi), image: "/images/home/taksi.webp", imageFit: "translate-x-[14%]" },
+  // Opens Keşfet on the Eczane tab with "Nöbetçi" already selected.
+  { href: routes.nearby.root("nobetci"), label: "Nöbetçi Eczane", ...kind(KIND_META.duty) },
+  { href: guide("aile-sagligi-merkezi"), label: "Aile Sağlık Merkezi", icon: Stethoscope, tone: TONE.rose },
   { href: routes.nearby.root("durak"), label: "Durak", ...kind(KIND_META.bus_stop) },
-  { href: guide("guvenlik"), label: "Emniyet", icon: Siren, tone: TONE.red },
+  { href: routes.nearby.root("taksi"), label: "Taksi", ...kind(KIND_META.taxi) },
   { href: guide("kamu"), label: "Belediye", icon: Landmark, tone: TONE.indigo },
   { href: guide("atm"), label: "ATM", ...kind(KIND_META.atm) },
   { href: guide("banka"), label: "Banka", ...kind(KIND_META.bank) },
@@ -81,8 +97,8 @@ const GUIDE: Tile[] = [
 
 /**
  * Category cards, 4 per row; GebzemAI leads them with the owner's short video (its first frame is the poster). The others
- * are icons (owner, 12.09: no döner picture on Yemek). No Restoran tile (owner, 12.09): restaurants are one tap away in
- * the Yemek page's "Yemek · Restoran" title.
+ * keep their icon on their colour with the owner's photo in the top-right corner (owner, 12.09). No Restoran tile
+ * (owner, 12.09): restaurants are one tap away in the Yemek page's "Yemek · Restoran" title.
  */
 const CATEGORIES: Tile[] = [
   {
@@ -93,17 +109,23 @@ const CATEGORIES: Tile[] = [
     image: "/images/home/gebzemai.webp",
     video: "/images/home/gebzemai.mp4",
   },
-  vertical("yemek"),
-  vertical("kafe"),
-  vertical("hizmet", "Hizmetler"),
-  vertical("otel"),
-  { href: routes.listings.classifieds(), label: "İkinci El", icon: Tag, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" },
-  { href: routes.listings.jobs(), label: "İş İlanı", icon: Briefcase, tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300" },
-  vertical("saglik"),
-  vertical("dugun"),
-  vertical("egitim"),
-  vertical("spor"),
-  vertical("etkinlik"),
+  { ...vertical("yemek"), backdrop: photo("yemek") },
+  { ...vertical("kafe"), backdrop: photo("kafe") },
+  { ...vertical("hizmet", "Hizmetler"), backdrop: photo("hizmet") },
+  { ...vertical("otel"), backdrop: photo("otel") },
+  { href: routes.listings.classifieds(), label: "İkinci El", icon: Tag, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300", backdrop: photo("ikinci-el") },
+  {
+    href: routes.listings.jobs(),
+    label: "İş İlanı",
+    icon: Briefcase,
+    tone: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
+    backdrop: photo("is-ilani"),
+  },
+  { ...vertical("saglik"), backdrop: photo("saglik") },
+  { ...vertical("dugun"), backdrop: photo("dugun") },
+  { ...vertical("egitim"), backdrop: photo("egitim") },
+  { ...vertical("spor"), backdrop: photo("spor") },
+  { ...vertical("etkinlik"), backdrop: photo("etkinlik") },
 ];
 
 function SectionHeader({ id, title, href }: { id?: string; title: string; href?: string }) {
@@ -222,6 +244,7 @@ export default function HomePage() {
                 label={c.label}
                 image={c.image}
                 video={c.video}
+                backdrop={c.backdrop}
                 imageFit={c.imageFit}
                 icon={c.icon}
                 tone={c.tone}
