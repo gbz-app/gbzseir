@@ -20,7 +20,7 @@ const FIT_MAX_ZOOM = 16;
 const SINGLE_ZOOM = 15;
 const DEFAULT_PADDING: MapPadding = { top: 40, right: 40, bottom: 40, left: 40 };
 /** Same tones as .gz-map-pattern, so the map div does not flash grey while tiles load. */
-const MAP_BG = { light: "#efe9e1", dark: "#1f2826" } as const;
+const MAP_BG = { light: "#f3f4f6", dark: "#1c1c1e" } as const;
 const NOTICE_TEXT = "Yol tarifi çalışmaya devam eder.";
 
 const ZOOM_BUTTON =

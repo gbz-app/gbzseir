@@ -6,11 +6,12 @@
 import { KIND_META } from "../config";
 import type { MarkerKind } from "../types";
 
-const PLUS = '<path d="M5 12h14"/><path d="M12 5v14"/>';
+/** Pharmacies (the nöbetçi ones too) carry the letter "E" instead of a glyph. */
+const LETTERS: Partial<Record<MarkerKind, string>> = { duty: "E", pharmacy: "E" };
 
-const GLYPHS: Record<MarkerKind, string> = {
-  duty: PLUS,
-  pharmacy: PLUS,
+type GlyphKind = Exclude<MarkerKind, "duty" | "pharmacy">;
+
+const GLYPHS: Record<GlyphKind, string> = {
   mosque:
     '<path d="M18 5h4"/><path d="M20 3v4"/><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/>',
   bus_stop:
@@ -33,16 +34,19 @@ const GLYPHS: Record<MarkerKind, string> = {
 };
 
 /**
- * 40x40 round pin SVG, centred on the point: the kind's colour with a 2px white border and its glyph. About 20% larger
- * than the former teardrop head (38px across instead of 32px, glyph 21.6px instead of 18px).
+ * 40x40 round pin SVG, centred on the point: the kind's light colour with a thin (1.25px) white border and its dark
+ * glyph, or the letter "E" for pharmacies. Same 38px outer size as before; flat (no shadow, maps.css).
  */
 export function pinSvg(kind: MarkerKind): string {
   const meta = KIND_META[kind];
-  const strokeWidth = kind === "duty" || kind === "pharmacy" ? 3.4 : 2.3;
+  const letter = LETTERS[kind];
+  const inner = letter
+    ? `<text x="20" y="20.5" text-anchor="middle" dominant-baseline="central" font-size="19" font-weight="700" fill="${meta.glyph}">${letter}</text>`
+    : `<g transform="translate(9.2 9.2) scale(0.9)" fill="none" stroke="${meta.glyph}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">${GLYPHS[kind as GlyphKind]}</g>`;
   return (
     '<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" focusable="false">' +
-    `<circle cx="20" cy="20" r="18" fill="${meta.pin}" stroke="#fff" stroke-width="2"/>` +
-    `<g transform="translate(9.2 9.2) scale(0.9)" fill="none" stroke="${meta.glyph}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">${GLYPHS[kind]}</g>` +
+    `<circle cx="20" cy="20" r="18.4" fill="${meta.pin}" stroke="#fff" stroke-width="1.25"/>` +
+    inner +
     "</svg>"
   );
 }
