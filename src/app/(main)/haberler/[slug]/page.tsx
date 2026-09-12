@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, Clock } from "lucide-react";
-import { PageHeader } from "@/components/shared/page-header";
+import { CalendarDays, ChevronRight, Clock, Newspaper } from "lucide-react";
+import { DetailHero, DetailSheet } from "@/components/shared/detail-hero";
 import { ShareButton } from "@/components/shared/share-button";
 import { JsonLd } from "@/components/seo/json-ld";
 import { APP_NAME, SITE_URL } from "@/config/site";
@@ -10,7 +10,7 @@ import { formatDate, truncate } from "@/core/format";
 import { routes } from "@/core/routes";
 import { getVocabularies } from "@/features/business/lib/vocabularies";
 import { ArticleBody, articlePlainText } from "@/features/content/articles/article-body";
-import { ArticleCover, ArticleRow } from "@/features/content/articles/article-ui";
+import { ArticleRow } from "@/features/content/articles/article-ui";
 import { newsCategoryLabel, readingMinutes } from "@/features/content/articles/meta";
 import { getPublishedArticle, listPublishedArticles, listPublishedArticleSlugs } from "@/features/content/articles/queries";
 
@@ -58,7 +58,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** Our own story: full-width cover, category chip, big title, date + reading time, reading column, share, other stories. */
+/**
+ * Our own story, laid out like a business page: the cover full-bleed at the top (no rounded corners) with only a back
+ * button on it, no page header; the story in the sheet that overlaps it: category, date and reading time, the big
+ * title, "Gebzem Haber" with the share button under the photo, the summary, the text (its photos without rounded
+ * corners) and other stories. The bottom nav is hidden, as on business pages.
+ */
 export default async function NewsArticlePage({ params }: Props) {
   const slug = normalizeSlug((await params).slug);
   const [a, { newsCategories }, recent] = await Promise.all([getPublishedArticle(slug), getVocabularies(), listPublishedArticles(6).catch(() => [])]);
@@ -88,65 +93,88 @@ export default async function NewsArticlePage({ params }: Props) {
           publisher: { "@type": "Organization", name: APP_NAME, url: SITE_URL },
         }}
       />
-      <PageHeader title="Haberler" backHref={routes.content.news()} actions={<ShareButton title={a.title} text={a.summary ?? undefined} url={path} iconOnly />} />
 
-      <div className="pb-nav">
-        <article>
-          <ArticleCover coverUrl={a.coverUrl} alt={a.title} eager className="aspect-[16/10] w-full" iconClassName="size-16" />
+      <article>
+        <DetailHero
+          images={a.coverUrl ? [a.coverUrl] : []}
+          alt={a.title}
+          backHref={routes.content.news()}
+          shareTitle={a.title}
+          showShare={false}
+          fallbackIcon={<Newspaper className="size-16" strokeWidth={1.5} aria-hidden />}
+          className="h-[min(46vh,22rem)]"
+        />
 
-          <div className="mx-auto max-w-[40rem] px-5 pt-6">
+        <DetailSheet className="pb-4">
+          <div className="mx-auto max-w-[40rem]">
             <header>
-              <span className="inline-flex h-7 items-center rounded-full bg-brand-soft px-3 text-xs font-semibold text-primary">{label}</span>
-              <h1 className="mt-3 text-[1.75rem] leading-[1.2] font-bold tracking-tight text-balance">{a.title}</h1>
-              <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                <time dateTime={a.publishedAt}>{formatDate(a.publishedAt, { month: "long", year: true })}</time>
-                <span aria-hidden>·</span>
+              <p className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] font-medium text-muted-foreground">
+                <span className="inline-flex h-7 items-center rounded-full bg-brand-soft px-3 text-xs font-semibold text-primary">{label}</span>
+                <span className="inline-flex items-center gap-1">
+                  <CalendarDays className="size-3.5" aria-hidden />
+                  <time dateTime={a.publishedAt}>{formatDate(a.publishedAt, { month: "long", year: true })}</time>
+                </span>
                 <span className="inline-flex items-center gap-1">
                   <Clock className="size-3.5" aria-hidden />
                   {readingMinutes(a.summary, a.body)} dk okuma
                 </span>
               </p>
-              {a.summary ? <p className="mt-5 text-lg leading-relaxed font-medium text-foreground">{a.summary}</p> : null}
+              <h1 className="mt-3 text-[1.75rem] leading-[1.2] font-bold tracking-tight text-balance">{a.title}</h1>
+
+              {/* Under the photo: who wrote it and the share button. */}
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <p className="flex min-w-0 items-center gap-2.5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background" aria-hidden>
+                    <Newspaper className="size-4" strokeWidth={2} />
+                  </span>
+                  <span className="min-w-0 leading-tight">
+                    <span className="block truncate text-sm font-semibold">{APP_NAME} Haber</span>
+                    <span className="block truncate text-xs text-muted-foreground">Kocaeli&apos;den haberler</span>
+                  </span>
+                </p>
+                <ShareButton
+                  title={a.title}
+                  text={a.summary ?? undefined}
+                  url={path}
+                  label="Paylaş"
+                  variant="secondary"
+                  className="h-10 shrink-0 rounded-full bg-card px-4 shadow-none hover:bg-muted"
+                />
+              </div>
+
+              {a.summary ? <p className="mt-6 text-lg leading-relaxed font-medium text-foreground">{a.summary}</p> : null}
             </header>
 
             <ArticleBody body={a.body} className="mt-6" />
-
-            <ShareButton
-              title={a.title}
-              text={a.summary ?? undefined}
-              url={path}
-              label="Haberi paylaş"
-              variant="default"
-              size="lg"
-              className="mt-10 w-full bg-foreground text-background shadow-none hover:bg-foreground/90"
-            />
           </div>
-        </article>
+        </DetailSheet>
+      </article>
 
-        {/* Outside <article>: related stories are not part of this one. */}
-        {others.length ? (
-          <section aria-labelledby="diger-haberler" className="mx-auto mt-10 max-w-[40rem] px-4">
-            <div className="flex items-center justify-between gap-3 px-1">
-              <h2 id="diger-haberler" className="text-lg font-semibold">
-                Diğer haberler
-              </h2>
-              <Link
-                href={routes.content.news()}
-                className="inline-flex min-h-11 items-center gap-0.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Tümü <ChevronRight className="size-4" aria-hidden />
-              </Link>
-            </div>
-            <ul className="mt-1 flex flex-col gap-2.5">
-              {others.map((o) => (
-                <li key={o.id}>
-                  <ArticleRow article={o} categories={newsCategories} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-      </div>
+      {/* Outside <article>: related stories are not part of this one. */}
+      {others.length ? (
+        <section aria-labelledby="diger-haberler" className="mx-auto mt-8 w-full max-w-[40rem] px-4 pb-10">
+          <div className="flex items-center justify-between gap-3 px-1">
+            <h2 id="diger-haberler" className="text-xl font-semibold">
+              Diğer haberler
+            </h2>
+            <Link
+              href={routes.content.news()}
+              className="inline-flex min-h-11 items-center gap-0.5 text-base font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Tümü <ChevronRight className="size-[18px]" aria-hidden />
+            </Link>
+          </div>
+          <ul className="mt-1 flex flex-col gap-2.5">
+            {others.map((o) => (
+              <li key={o.id}>
+                <ArticleRow article={o} categories={newsCategories} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : (
+        <div className="pb-10" />
+      )}
     </>
   );
 }

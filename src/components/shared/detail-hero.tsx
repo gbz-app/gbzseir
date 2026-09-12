@@ -24,6 +24,8 @@ export type DetailHeroProps = {
   shareText?: string;
   favorite?: { targetType: FavoriteTargetType; targetId: string };
   fallbackIcon?: React.ReactNode;
+  /** Share button on the photo (default true; the news page puts it under the photo instead). */
+  showShare?: boolean;
   /** Extra classes for the hero box (e.g. a different height). */
   className?: string;
 };
@@ -32,7 +34,7 @@ export type DetailHeroProps = {
  * Full-bleed swipeable photo header of detail pages (firm, event) with back / share / favorite buttons on top.
  * The page content follows in a sheet that overlaps the bottom edge (`-mt-8 rounded-t-card`). Hides the bottom nav.
  */
-export function DetailHero({ images, alt, backHref = "/", shareTitle, shareText, favorite, fallbackIcon, className }: DetailHeroProps) {
+export function DetailHero({ images, alt, backHref = "/", shareTitle, shareText, favorite, fallbackIcon, showShare = true, className }: DetailHeroProps) {
   const router = useRouter();
   const scroller = React.useRef<HTMLDivElement>(null);
   const [index, setIndex] = React.useState(0);
@@ -75,7 +77,7 @@ export function DetailHero({ images, alt, backHref = "/", shareTitle, shareText,
           <ArrowLeft className="size-5" strokeWidth={2} />
         </button>
         <div className="flex items-center gap-2">
-          <ShareButton title={shareTitle} text={shareText} iconOnly variant="secondary" label="Paylaş" className={OVERLAY_BUTTON} />
+          {showShare ? <ShareButton title={shareTitle} text={shareText} iconOnly variant="secondary" label="Paylaş" className={OVERLAY_BUTTON} /> : null}
           {/* "ghost" (not "overlay"): its only background is hover:bg-muted, which OVERLAY_BUTTON overrides; overlay's shadow-soft would survive the merge. */}
           {favorite ? <FavoriteButton targetType={favorite.targetType} targetId={favorite.targetId} variant="ghost" className={OVERLAY_BUTTON} /> : null}
         </div>

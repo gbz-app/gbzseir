@@ -208,7 +208,7 @@ export function ArticleBody({ body, className }: { body: string; className?: str
               <figure key={k} className="my-1">
                 {/* Plain <img>: an editor may link any https host (next/image would reject it). */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={b.src} alt={b.caption} loading="lazy" decoding="async" className="w-full rounded-3xl bg-muted object-cover" />
+                <img src={b.src} alt={b.caption} loading="lazy" decoding="async" className="w-full bg-muted object-cover" />
                 {b.caption ? <figcaption className="mt-2 px-1 text-sm leading-relaxed text-muted-foreground">{b.caption}</figcaption> : null}
               </figure>
             );
