@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { getVocabularies } from "@/features/business/lib/vocabularies";
-import { PopularPlacesRail } from "@/features/search/components/popular-places";
-import { SearchCategories } from "@/features/search/components/search-categories";
 import { SearchScreen } from "@/features/search/components/search-screen";
 import { SEARCH_MIN, cleanQuery, parseSearchGroup, type SearchAnswer } from "@/features/search/query";
-import { getPopularPlaces, getPopularSearches, searchAll } from "@/features/search/server";
+import { getPopularSearches, searchAll } from "@/features/search/server";
 
 export const metadata: Metadata = { title: "Ara", robots: { index: false } };
 
@@ -20,10 +18,9 @@ export default async function SearchPage({ searchParams }: Props) {
   const active = q.length >= SEARCH_MIN;
   const focus = active ? parseSearchGroup(sp.tur) : undefined;
 
-  const [data, popular, places, vocab] = await Promise.all([
+  const [data, popular, vocab] = await Promise.all([
     active ? searchAll(q, focus ? 20 : 8) : Promise.resolve(undefined),
     getPopularSearches(10),
-    getPopularPlaces(10),
     getVocabularies(),
   ]);
   const initial: SearchAnswer | null = data === undefined ? null : { q, data };
@@ -36,8 +33,6 @@ export default async function SearchPage({ searchParams }: Props) {
       popular={popular}
       newsCategories={vocab.newsCategories}
       placeCategories={vocab.placeCategories}
-      categories={<SearchCategories />}
-      places={<PopularPlacesRail places={places} categories={vocab.placeCategories} />}
     />
   );
 }

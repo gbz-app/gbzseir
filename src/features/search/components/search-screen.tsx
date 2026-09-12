@@ -106,16 +106,13 @@ export type SearchScreenProps = {
   popular: string[];
   newsCategories?: readonly NewsCategoryDef[];
   placeCategories?: readonly PlaceCategoryDef[];
-  /** Server-rendered idle sections. */
-  categories: React.ReactNode;
-  places: React.ReactNode;
 };
 
 /**
- * J1 - Arama: big input on top; before typing recent + popular searches, categories and popular places; while typing
+ * J1 - Arama: big input on top; before typing only recent + popular searches (owner: no categories / popular places here); while typing
  * (250 ms debounce, 2+ letters) instant shortcuts and grouped global_search results right under the input.
  */
-export function SearchScreen({ initialQ, initial, focus, popular, newsCategories, placeCategories, categories, places }: SearchScreenProps) {
+export function SearchScreen({ initialQ, initial, focus, popular, newsCategories, placeCategories }: SearchScreenProps) {
   const urlQ = effective(useSearchParams().get("q"));
   const [text, setText] = React.useState(() => urlQ || initialQ);
   const [answer, setAnswer] = React.useState<SearchAnswer | null>(initial);
@@ -284,8 +281,6 @@ export function SearchScreen({ initialQ, initial, focus, popular, newsCategories
                 <TermChips terms={popularTerms} icon={TrendingUp} onPick={runTerm} />
               </section>
             ) : null}
-            {categories}
-            {places}
           </>
         ) : failed ? (
           <EmptyState
