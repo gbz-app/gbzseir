@@ -42,19 +42,19 @@ export function DataSourceNote({ source, sourceUrl, updatedAt, callAhead, note, 
   if (variant === "card") {
     return (
       <section aria-label="Kaynak" className={cn("rounded-[1.75rem] bg-card p-4", className)}>
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground" aria-hidden>
-            <Database className="size-5" strokeWidth={2} />
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-hidden>
+            <Database className="size-4" strokeWidth={2} />
           </span>
-          <div className="min-w-0 flex-1 text-sm leading-snug">
-            <p className="text-xs font-medium text-muted-foreground">Kaynak</p>
-            <p className="mt-0.5 break-words">
+          <div className="min-w-0 flex-1 leading-snug">
+            <p className="text-[11px] font-medium text-muted-foreground">Kaynak</p>
+            <p className="mt-0.5 text-[13px] break-words">
               <SourceName source={source} sourceUrl={sourceUrl} />
             </p>
           </div>
         </div>
         {updatedAt || callAhead || note ? (
-          <div className="mt-3 flex flex-col gap-1.5 text-xs leading-relaxed text-muted-foreground">
+          <div className="mt-3 flex flex-col gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
             {updatedAt ? (
               <p>
                 Son güncelleme: <span className="font-semibold text-foreground">{formatDateTime(updatedAt)}</span>

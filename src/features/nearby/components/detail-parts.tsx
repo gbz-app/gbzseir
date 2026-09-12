@@ -33,11 +33,15 @@ export function DetailHero({
   );
 }
 
-/** Definition list container for address / phone / hours rows (the home page's 28 px corners). */
+/**
+ * Definition list card for address / phone / hours rows: the home page's corner family (28 px card), rows kept apart by
+ * spacing instead of divider lines.
+ */
 export function InfoList({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <dl className={cn("divide-y overflow-hidden rounded-[1.75rem] bg-card", className)}>{children}</dl>;
+  return <dl className={cn("flex flex-col gap-1 rounded-[1.75rem] bg-card p-2", className)}>{children}</dl>;
 }
 
+/** One row of InfoList: a tinted icon tile, the label (13 px, muted), the value (15 px) and an optional action on the right. */
 export function InfoRow({
   icon: Icon,
   label,
@@ -50,10 +54,12 @@ export function InfoRow({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-14 items-center gap-3 px-4 py-3">
-      <Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+    <div className="flex min-h-14 items-center gap-3 px-2 py-2">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground" aria-hidden>
+        <Icon className="size-5" />
+      </span>
       <div className="min-w-0 flex-1">
-        <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+        <dt className="text-[13px] leading-tight font-medium text-muted-foreground">{label}</dt>
         <dd className="mt-0.5 text-[15px] leading-snug font-medium break-words">{children}</dd>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}

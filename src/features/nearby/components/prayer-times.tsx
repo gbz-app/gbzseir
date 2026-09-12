@@ -45,7 +45,7 @@ export function PrayerTimesPanel({ days, serverNow, className }: PrayerTimesProp
       <h2 id="namaz-vakitleri" className="text-base font-bold">
         Bugünkü namaz vakitleri
       </h2>
-      <p className="text-xs text-muted-foreground">{formatDate(istanbulDateTime(today.date, "12:00"), { month: "long", weekday: true, year: false })} · Gebze</p>
+      <p className="mt-1 text-xs text-muted-foreground">{formatDate(istanbulDateTime(today.date, "12:00"), { month: "long", weekday: true, year: false })}</p>
 
       {next ? (
         <div className="mt-3 flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-3 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-100">
@@ -75,7 +75,6 @@ export function PrayerTimesPanel({ days, serverNow, className }: PrayerTimesProp
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-xs text-muted-foreground">Vakitler Gebze merkezine göredir.</p>
     </section>
   );
 }

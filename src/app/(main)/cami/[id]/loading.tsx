@@ -17,7 +17,7 @@ export default function Loading() {
           <Skeleton aria-hidden className="mt-1 h-9 w-3/4 rounded-xl motion-reduce:animate-none" />
           <Skeleton aria-hidden className="mt-2 h-4 w-1/3 rounded-md motion-reduce:animate-none" />
         </div>
-        <Skeleton aria-hidden className="h-20 rounded-[1.75rem] motion-reduce:animate-none" />
+        <Skeleton aria-hidden className="h-[15.75rem] rounded-[1.75rem] motion-reduce:animate-none" />
         <Skeleton aria-hidden className="h-64 rounded-[1.75rem] motion-reduce:animate-none" />
         <Skeleton aria-hidden className="aspect-[16/9] w-full rounded-[1.75rem] motion-reduce:animate-none" />
       </div>
