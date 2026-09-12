@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Briefcase, Castle, ChevronRight, Hospital, Landmark, Mail, MessageSquareWarning, Scale, School, Siren, Sparkles, Stamp, Tag, Trees, type LucideIcon } from "lucide-react";
-import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/config/site";
+import { APP_DESCRIPTION, APP_FULL_NAME, APP_NAME, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TopBar } from "@/components/layout/top-bar";
@@ -12,7 +12,6 @@ import { HomeCinemaSection } from "@/features/cinema/components/home-cinema-sect
 import { listPublishedArticles } from "@/features/content/articles/queries";
 import { EventsRail } from "@/features/events/components/events-rail";
 import { listUpcomingEvents } from "@/features/events/queries";
-import { HomeHero } from "@/features/home/components/home-hero";
 import { HomeNearby } from "@/features/home/components/home-nearby";
 import { HomeNews } from "@/features/home/components/home-news";
 import { HomeOutages } from "@/features/home/components/home-outages";
@@ -151,7 +150,7 @@ async function EventsSection() {
 }
 
 /**
- * C1 - Ana sayfa: başlık, arama, Yakınımda (Nöbetçi Eczane, durak, cami, taksi, şarj, akaryakıt kartları), Şehir
+ * C1 - Ana sayfa: arama ve slider (görünür başlık yok, h1 yalnız ekran okuyucu için), Yakınımda (Nöbetçi Eczane, durak, cami, taksi, şarj, akaryakıt kartları), Şehir
  * Rehberi (tek satır, yana kayan), kategoriler (başta GebzemAI), kesintiler ve afet, yaklaşan etkinlikler, sinema,
  * gezilecek yerler, haberler.
  */
@@ -176,8 +175,10 @@ export default function HomePage() {
         }}
       />
 
+      {/* No visible headline (owner, 12.09): the top bar greets the user; the page keeps its h1 for screen readers and search. */}
+      <h1 className="sr-only">{APP_FULL_NAME}</h1>
+
       <div className="flex flex-col gap-4">
-        <HomeHero />
         <HomeSearch />
         <HomeSlider />
       </div>

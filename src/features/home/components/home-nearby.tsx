@@ -69,16 +69,21 @@ const MAX_LINES = 6;
 /*
  * Every card is the same (owner, 12.09): 15 rem wide, three rows - the kind (and the distance), the name, a row of
  * pills that scrolls sideways inside the card - with the same type sizes, so the names line up across the strip.
+ * The card stays still under the finger (no press scale): a shrinking card made the pill row hard to swipe on a phone.
  */
-const CARD =
-  "flex h-full w-full flex-col rounded-[1.75rem] bg-card p-4 text-left outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50";
-/** Soft snapping (proximity), so a swipe comes to rest on a card without pulling the strip back. */
-const ITEM = "w-[15rem] shrink-0 snap-start";
+const CARD = "flex h-full w-full flex-col rounded-[1.75rem] bg-card p-4 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+/** No scroll snapping on the strip: snapping fought the pill rows' own sideways scroll. */
+const ITEM = "w-[15rem] shrink-0";
 const LABEL = "min-w-0 flex-1 truncate text-[15px] font-semibold text-muted-foreground";
 const NAME = "mt-3 truncate text-[17px] leading-snug font-semibold";
-/** Third row: one line of pills, scrolling sideways inside the card (to its edges). */
-const PILLS = "no-scrollbar -mx-4 mt-3 flex h-8 gap-1.5 overflow-x-auto px-4";
-const PILL = "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold whitespace-nowrap tabular-nums";
+/**
+ * Third row: one line of pills, scrolling sideways inside the card (to its edges). overscroll-x-contain keeps a swipe
+ * on it from dragging the strip once the pills reach their end; touch-action stays default, so a vertical swipe that
+ * starts on a card still scrolls the page.
+ */
+const PILLS = "no-scrollbar -mx-4 mt-3 flex h-8 gap-1.5 overflow-x-auto overscroll-x-contain px-4";
+/** A 32 px pill in the home corner family (rounded-xl, not rounded-full), so it reads like the app's other buttons. */
+const PILL = "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[13px] font-bold whitespace-nowrap tabular-nums";
 const MUTED_PILL = `${PILL} bg-muted text-foreground`;
 /** A card's height (p-4, the three rows and their gaps), for the loading placeholders. */
 const CARD_H = "h-[9.25rem]";
@@ -320,8 +325,9 @@ function NearestCard({ n, showDistance, prayerDays }: { n: Nearest; showDistance
     default:
       pills = n.district ? <span className={MUTED_PILL}>{n.district}</span> : null;
   }
+  // draggable={false}: iOS would otherwise start a link drag when the finger rests on the card before swiping.
   return (
-    <Link href={n.href} className={CARD}>
+    <Link href={n.href} draggable={false} className={CARD}>
       <span className="flex items-center gap-2">
         <MiniIcon icon={n.icon} tone={n.tone} />
         <span className={LABEL}>{n.label}</span>
@@ -334,8 +340,8 @@ function NearestCard({ n, showDistance, prayerDays }: { n: Nearest; showDistance
 }
 
 /**
- * Home "Yakınımda": what is near the user, one card each (all the same: kind and distance, the name, a pill row that
- * scrolls sideways): the nearest Nöbetçi Eczane with today's duty hours (else the nearest eczane), durak with its next
+ * Home "Yakınımda": what is near the user, one card each in a free-scrolling strip (all the same: kind and distance,
+ * the name, a pill row that scrolls sideways on its own): the nearest Nöbetçi Eczane with today's duty hours (else the nearest eczane), durak with its next
  * buses, cami with the next prayer, taksi (driver and minimum fare), şarj, akaryakıt and kuaför (prices) and park. A
  * card opens the place's page. Client-only (the location lives on the device); the first card asks for the location
  * when there is no GPS fix. Only the rounded point is sent. `dutyMode`: app setting; `prayerDays`: today's and
@@ -364,7 +370,7 @@ export function HomeNearby({ dutyMode, prayerDays }: { dutyMode: DutyMode; praye
   const place = districtBySlug(loc.district)?.name ?? CITY.name;
 
   return (
-    <ul className="no-scrollbar -mx-4 flex snap-x snap-proximity scroll-px-4 items-stretch gap-3 overflow-x-auto overscroll-x-contain px-4 pb-1" aria-busy={!settled}>
+    <ul className="no-scrollbar -mx-4 flex items-stretch gap-3 overflow-x-auto overscroll-x-contain px-4 pb-1" aria-busy={!settled}>
       {isClient && !gps ? (
         <li className={ITEM}>
           <button type="button" onClick={() => void loc.request()} disabled={loc.status === "locating"} className={CARD}>
@@ -395,7 +401,7 @@ export function HomeNearby({ dutyMode, prayerDays }: { dutyMode: DutyMode; praye
             ))
           : (
               <li className={ITEM}>
-                <Link href={routes.nearby.root()} className={CARD}>
+                <Link href={routes.nearby.root()} draggable={false} className={CARD}>
                   <span className="flex items-center gap-2">
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-primary" aria-hidden>
                       <Compass className="size-[18px]" strokeWidth={2.2} />

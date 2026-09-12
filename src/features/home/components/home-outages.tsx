@@ -116,7 +116,7 @@ function TopicIcon({ topic, size = "md" }: { topic: Topic; size?: "sm" | "md" | 
 function OutageSheet({ topic, onClose }: { topic: Topic | null; onClose: () => void }) {
   return (
     <Drawer open={!!topic} onOpenChange={(o) => !o && onClose()}>
-      <DrawerContent className="mx-auto max-w-2xl border-0 bg-background data-[vaul-drawer-direction=bottom]:rounded-t-[1.75rem]">
+      <DrawerContent className="mx-auto max-w-2xl border-0 bg-background data-[vaul-drawer-direction=bottom]:rounded-t-[1.75rem]!">
         {topic ? (
           <div className="px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
             <div className="flex items-center gap-3 px-1">
