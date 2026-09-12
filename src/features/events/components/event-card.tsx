@@ -1,6 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import { CalendarDays, MapPin, type LucideProps } from "lucide-react";
+import { CalendarDays, Navigation, type LucideProps } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { formatTime } from "@/core/format";
@@ -52,8 +52,9 @@ function whenLine(e: Pick<EventItem, "starts_at" | "ends_at">, now?: Date | null
 
 /**
  * Event card: white surface with the home page's 28 px corners, a rounded 16:9 photo with the price as a pill
- * ("Ücretsiz" green, "250 TL" white), then one line with the category icon, "12 Eyl · 20:00 · Konser", the title and the
- * place. No shadows or borders. Server-safe. `interactive={false}` renders it without a link (wizard preview). `now`
+ * ("Ücretsiz" green, "250 TL" white), then one line with the category icon, "12 Eyl · 20:00 · Konser", the title (always
+ * two lines tall) and the place, always at the bottom with a filled navigation arrow, so the cards of a row line up. No
+ * shadows or borders. Server-safe. `interactive={false}` renders it without a link (wizard preview). `now`
  * (client, after mount) turns the date into "Bugün" / "Yarın".
  */
 export function EventCard({
@@ -72,7 +73,7 @@ export function EventCard({
   const where = eventPlaceLine(event);
   const price = event.is_free ? "Ücretsiz" : event.price_try != null ? eventPriceLabel(event) : null;
   const line = [whenLine(event, now), event.category_label].filter(Boolean).join(" · ");
-  const cls = cn("group block h-full rounded-[1.75rem] bg-card p-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50", className);
+  const cls = cn("group flex h-full flex-col rounded-[1.75rem] bg-card p-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50", className);
   const body = (
     <>
       <div className="relative aspect-video w-full overflow-hidden rounded-[1.25rem] bg-muted">
@@ -100,15 +101,16 @@ export function EventCard({
         ) : null}
       </div>
 
-      <div className="px-2 pt-3 pb-1.5">
+      <div className="flex flex-1 flex-col px-2 pt-3 pb-1.5">
         <p className="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold text-primary">
           <EventCategoryIcon icon={event.category_icon} className="size-4 shrink-0" aria-hidden />
           <span className="truncate">{line}</span>
         </p>
-        <h3 className="mt-1 line-clamp-2 text-base leading-snug font-semibold">{event.title}</h3>
+        {/* Two lines tall (22 px each) even for a short title such as "Teras Caz Gecesi". */}
+        <h3 className="mt-1 line-clamp-2 min-h-[2.75rem] text-base leading-snug font-semibold">{event.title}</h3>
         {where ? (
-          <p className="mt-1 flex min-w-0 items-center gap-1 text-[13px] text-muted-foreground">
-            <MapPin className="size-3.5 shrink-0" aria-hidden />
+          <p className="mt-auto flex min-w-0 items-center gap-1 pt-1.5 text-[13px] text-muted-foreground">
+            <Navigation className="size-3.5 shrink-0" fill="currentColor" aria-hidden />
             <span className="truncate">{where}</span>
           </p>
         ) : null}
