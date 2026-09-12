@@ -60,7 +60,7 @@ export function HomePlaces({ places, categories = PLACE_CATEGORY_DEFS }: { place
             <li key={p.id} className="w-[15.5rem] shrink-0 snap-start">
               <Link
                 href={routes.nearby.place(p.slug)}
-                className="group relative block h-[21rem] overflow-hidden rounded-media outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="group relative block h-[16rem] overflow-hidden rounded-media outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 {photo && src ? (
                   // Our stores (R2, Supabase media) go through the next/image resizer: a 248px card gets a ~750px

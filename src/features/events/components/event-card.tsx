@@ -3,9 +3,11 @@ import Link from "next/link";
 import { CalendarDays, MapPin, type LucideProps } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
+import { formatTime } from "@/core/format";
+import { addDaysToKey, istanbulDateKey } from "@/core/time";
 import { districtBySlug } from "@/config/districts";
 import { vocabIcon } from "@/features/business/lib/verticals";
-import { dateBadge, eventPriceLabel, eventWhenLine } from "../format";
+import { dateBadge, eventPriceLabel, isMultiDay } from "../format";
 import type { EventItem } from "../queries";
 
 /** Lucide icon of an event category (the icon name stored in event_categories); CalendarDays when unknown. Server-safe. */
@@ -32,11 +34,27 @@ export function eventPlaceLine(e: Pick<EventItem, "venue_name" | "district_id" |
   return [e.venue_name ?? e.business?.name, districtBySlug(e.district_id)?.name].filter(Boolean).join(" · ") || null;
 }
 
+/** "12 Eyl · 20:00", "Bugün · 20:00" / "Yarın · 20:00" once `now` is known, "12 Eyl - 14 Eyl · 10:00" for several days. */
+function whenLine(e: Pick<EventItem, "starts_at" | "ends_at">, now?: Date | null): string {
+  const start = dateBadge(e.starts_at);
+  let day = `${start.day} ${start.month}`;
+  if (e.ends_at && isMultiDay(e.starts_at, e.ends_at)) {
+    const end = dateBadge(e.ends_at);
+    day = `${day} - ${end.day} ${end.month}`;
+  } else if (now) {
+    const key = istanbulDateKey(new Date(e.starts_at));
+    const today = istanbulDateKey(now);
+    if (key === today) day = "Bugün";
+    else if (key === addDaysToKey(today, 1)) day = "Yarın";
+  }
+  return `${day} · ${formatTime(e.starts_at)}`;
+}
+
 /**
- * Event card: white surface, rounded photo (small date badge, category pill) and a calm text block under it
- * ("Cumartesi · 20:00", title, place and price). No shadows or borders. Server-safe.
- * `interactive={false}` renders it without a link (wizard preview). `now` (client, after mount) turns the weekday
- * into "Bugün" / "Yarın".
+ * Event card: white surface, a rounded 16:9 photo with the price as a pill ("Ücretsiz" green, "250 TL" white), then one
+ * line with the category icon, "12 Eyl · 20:00 · Konser", the title and the place. No shadows or borders. Server-safe.
+ * `interactive={false}` renders it without a link (wizard preview). `now` (client, after mount) turns the date into
+ * "Bugün" / "Yarın".
  */
 export function EventCard({
   event,
@@ -51,13 +69,13 @@ export function EventCard({
   interactive?: boolean;
   now?: Date | null;
 }) {
-  const badge = dateBadge(event.starts_at);
   const where = eventPlaceLine(event);
   const price = event.is_free ? "Ücretsiz" : event.price_try != null ? eventPriceLabel(event) : null;
+  const line = [whenLine(event, now), event.category_label].filter(Boolean).join(" · ");
   const cls = cn("group block h-full rounded-media bg-card p-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50", className);
   const body = (
     <>
-      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-card bg-muted">
+      <div className="relative aspect-video w-full overflow-hidden rounded-card bg-muted">
         {event.cover_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -70,28 +88,28 @@ export function EventCard({
         ) : (
           <EventCoverFallback icon={event.category_icon} iconClassName="size-12" />
         )}
-        <span className="absolute top-2.5 left-2.5 flex min-w-12 flex-col items-center rounded-2xl bg-card px-2.5 pt-1.5 pb-1 leading-none">
-          <span className="text-lg font-bold tabular-nums">{badge.day}</span>
-          <span className="mt-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">{badge.month}</span>
-        </span>
-        <span className="absolute top-2.5 right-2.5 inline-flex h-7 max-w-[55%] items-center gap-1.5 rounded-full bg-card px-2.5 text-xs font-semibold">
-          <EventCategoryIcon icon={event.category_icon} className="size-3.5 shrink-0 text-primary" aria-hidden />
-          <span className="truncate">{event.category_label}</span>
-        </span>
+        {price ? (
+          <span
+            className={cn(
+              "absolute top-2.5 right-2.5 inline-flex h-7 items-center rounded-full px-3 text-xs font-bold tabular-nums",
+              event.is_free ? "bg-emerald-500 text-white" : "bg-card text-foreground",
+            )}
+          >
+            {price}
+          </span>
+        ) : null}
       </div>
 
-      <div className="px-2.5 pt-3 pb-2">
-        <p className="truncate text-[13px] font-semibold text-primary">{eventWhenLine(event.starts_at, event.ends_at, now)}</p>
-        <h3 className="mt-1 line-clamp-2 text-[17px] leading-snug font-semibold">{event.title}</h3>
-        {where || price ? (
-          <p className="mt-1.5 flex min-w-0 items-center gap-3 text-[13px] text-muted-foreground">
-            {where ? (
-              <span className="flex min-w-0 flex-1 items-center gap-1">
-                <MapPin className="size-3.5 shrink-0" aria-hidden />
-                <span className="truncate">{where}</span>
-              </span>
-            ) : null}
-            {price ? <span className={cn("shrink-0 font-semibold", event.is_free ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>{price}</span> : null}
+      <div className="px-2 pt-3 pb-1.5">
+        <p className="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold text-primary">
+          <EventCategoryIcon icon={event.category_icon} className="size-4 shrink-0" aria-hidden />
+          <span className="truncate">{line}</span>
+        </p>
+        <h3 className="mt-1 line-clamp-2 text-base leading-snug font-semibold">{event.title}</h3>
+        {where ? (
+          <p className="mt-1 flex min-w-0 items-center gap-1 text-[13px] text-muted-foreground">
+            <MapPin className="size-3.5 shrink-0" aria-hidden />
+            <span className="truncate">{where}</span>
           </p>
         ) : null}
       </div>

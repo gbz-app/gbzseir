@@ -77,9 +77,9 @@ export function HomeNewsTabs({
           <li key={a.id} className="w-[15.5rem] shrink-0 snap-start">
             <Link
               href={routes.content.newsArticle(a.slug)}
-              className="relative block h-[19rem] overflow-hidden rounded-media outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="relative block h-[15rem] overflow-hidden rounded-media outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              <ArticleCover coverUrl={a.coverUrl} alt="" className="absolute inset-0 size-full" iconClassName="-mt-24 size-12" />
+              <ArticleCover coverUrl={a.coverUrl} alt="" className="absolute inset-0 size-full" iconClassName="-mt-16 size-12" />
               <span className="absolute top-3 right-3 inline-flex h-7 items-center rounded-full bg-white/95 px-2.5 text-xs font-semibold text-neutral-900">
                 {newsCategoryLabel(a.category, categories)}
               </span>
