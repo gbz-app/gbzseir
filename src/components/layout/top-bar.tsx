@@ -93,10 +93,10 @@ export function TopBar() {
           className="flex min-w-0 items-center gap-3 rounded-full pr-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <HomeAvatar />
-          <span className="truncate text-[17px] leading-tight font-semibold tracking-tight">{name}</span>
+          <span className="truncate text-[19px] leading-tight font-semibold tracking-tight">{name}</span>
         </Link>
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          {painted ? <WeatherButton className="shadow-none ring-0" /> : <WeatherPlaceholder />}
+          {painted ? <WeatherButton className={BARE_BUTTON} /> : <WeatherPlaceholder />}
           {user ? (
             <NotificationBell />
           ) : (

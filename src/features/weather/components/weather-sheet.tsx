@@ -25,7 +25,10 @@ function dayLabel(date: string): string {
 
 const round = (v: number) => Math.round(v);
 
-/** Header weather pill (icon + temperature) that opens the 5-day forecast sheet. `className` overrides the look. */
+/**
+ * Header weather pill (icon + temperature) that opens the 5-day forecast sheet. `className` replaces the default round
+ * look (ROUND_ICON_BUTTON has a shadow and a ring that tailwind-merge cannot cancel with shadow-none).
+ */
 export function WeatherButton({ className }: { className?: string }) {
   const [open, setOpen] = React.useState(false);
   const { data, error, loading, reload } = useJson<Forecast>("/api/hava", 30 * 60_000);
@@ -38,7 +41,7 @@ export function WeatherButton({ className }: { className?: string }) {
         <button
           type="button"
           aria-label={data ? `Hava durumu: ${round(data.now.temperature)} derece, ${info?.label}` : "Hava durumu"}
-          className={cn(ROUND_ICON_BUTTON, data && "w-auto gap-1 px-3", className)}
+          className={cn(className ?? ROUND_ICON_BUTTON, data && "w-auto gap-1 px-3")}
         >
           <Icon className="size-5" strokeWidth={2.25} />
           {data ? <span className="text-sm font-semibold tabular-nums">{round(data.now.temperature)}°</span> : null}
