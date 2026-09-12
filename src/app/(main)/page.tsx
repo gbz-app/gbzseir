@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Briefcase, Castle, ChevronRight, Hospital, Landmark, Mail, Scale, School, Siren, Sparkles, Stamp, Tag, Trees, type LucideIcon } from "lucide-react";
+import { Briefcase, Castle, ChevronRight, Hospital, Landmark, Mail, MessageSquareWarning, Scale, School, Siren, Sparkles, Stamp, Tag, Trees, type LucideIcon } from "lucide-react";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -151,6 +151,8 @@ const CATEGORIES: Tile[] = [
   vertical("egitim"),
   vertical("spor"),
   vertical("etkinlik"),
+  // Complaint board (/sikayetler): write one, see how it works and example complaints with their answers.
+  { href: routes.content.complaints(), label: "Şikayetler", icon: MessageSquareWarning, tone: "bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300" },
 ];
 
 function SectionHeader({ id, title, href }: { id?: string; title: string; href?: string }) {
