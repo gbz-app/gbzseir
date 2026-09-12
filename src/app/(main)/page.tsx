@@ -18,6 +18,11 @@ import { HomeNews } from "@/features/home/components/home-news";
 import { HomeOutages } from "@/features/home/components/home-outages";
 import { HomePlaces } from "@/features/home/components/home-places";
 import { HomeSearch } from "@/features/home/components/home-search";
+import { HomeSlider, type HeroSlide } from "@/features/home/components/home-slider";
+import { eventPlaceLine } from "@/features/events/components/event-card";
+import { dateBadge } from "@/features/events/format";
+import { formatTime } from "@/core/format";
+import { districtName } from "@/config/districts";
 import { ImageTile } from "@/features/home/components/image-tile";
 import { KIND_META, type KindMeta } from "@/features/nearby/config";
 import { getPrayerDays } from "@/features/nearby/server/external";
@@ -32,6 +37,57 @@ export const revalidate = 300;
 async function NearbyStrip() {
   const [dutyMode, prayerDays] = await Promise.all([getDutyMode().catch(() => "off" as const), getPrayerDays().catch(() => [])]);
   return <HomeNearby dutyMode={dutyMode} prayerDays={prayerDays} />;
+}
+
+/**
+ * Slider under the search: our own content with a photo, mixed (event, place, event, place, then the latest story).
+ * Hidden when nothing has a photo.
+ */
+async function HeroSlider() {
+  const [events, places, articles] = await Promise.all([
+    listUpcomingEvents().catch(() => []),
+    getPlaces().catch(() => []),
+    listPublishedArticles(3).catch(() => []),
+  ]);
+  const eventSlides: HeroSlide[] = events
+    .filter((e) => !!e.cover_url)
+    .slice(0, 2)
+    .map((e) => {
+      const d = dateBadge(e.starts_at);
+      return {
+        key: `e-${e.id}`,
+        href: routes.events.detail(e.slug),
+        image: e.cover_url as string,
+        kicker: "Etkinlik",
+        title: e.title,
+        sub: [`${d.day} ${d.month} · ${formatTime(e.starts_at)}`, eventPlaceLine(e)].filter(Boolean).join(" · "),
+      };
+    });
+  const placeSlides: HeroSlide[] = places
+    .filter((p) => !!p.details.photos[0])
+    .slice(0, 2)
+    .map((p) => {
+      const photo = p.details.photos[0];
+      return {
+        key: `p-${p.id}`,
+        href: routes.nearby.place(p.slug),
+        image: photo.thumbUrl ?? photo.url,
+        kicker: "Gezilecek yer",
+        title: p.name,
+        sub: districtName(p.districtId),
+      };
+    });
+  const newsSlides: HeroSlide[] = articles
+    .filter((a) => !!a.coverUrl)
+    .slice(0, 1)
+    .map((a) => ({ key: `n-${a.id}`, href: routes.content.newsArticle(a.slug), image: a.coverUrl as string, kicker: "Haber", title: a.title }));
+  const slides: HeroSlide[] = [];
+  for (let i = 0; i < 2; i++) {
+    if (eventSlides[i]) slides.push(eventSlides[i]);
+    if (placeSlides[i]) slides.push(placeSlides[i]);
+  }
+  slides.push(...newsSlides);
+  return <HomeSlider slides={slides} />;
 }
 
 type Tile = { href: string; label: string; image?: string; icon?: LucideIcon; tone?: string; imageClassName?: string; imageFit?: string };
@@ -176,6 +232,9 @@ export default function HomePage() {
       <div className="flex flex-col gap-4">
         <HomeHero />
         <HomeSearch />
+        <Suspense fallback={<div className="h-[350px] rounded-[1.75rem] bg-card" aria-hidden />}>
+          <HeroSlider />
+        </Suspense>
       </div>
 
       <section aria-labelledby="yakinimda">
