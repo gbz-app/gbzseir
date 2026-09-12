@@ -13,6 +13,7 @@ import { useIsClient } from "@/lib/use-is-client";
 import { districtLabel, poiHref } from "@/features/nearby/config";
 import { KindIcon } from "@/features/nearby/components/kind-icon";
 import { parseStopDetails } from "@/features/nearby/lib/details";
+import { formatWait, useStopTimes } from "@/features/nearby/lib/stop-times";
 import type { PoiKind, PoiRow } from "@/features/nearby/types";
 
 /** One card per kind: the nearest place of that kind (GPS, else the chosen district's centre, else the city centre). */
@@ -27,8 +28,10 @@ const KINDS: ReadonlyArray<{ kind: PoiKind; label: string }> = [
 
 const RADIUS_M = 25_000;
 const MAX_LINES = 5;
+const NEXT_BUSES = 3;
 /** Cards a bit larger than a category tile; all the same size in the sideways strip. */
 const CARD = "flex h-full min-h-[9.5rem] w-full flex-col rounded-3xl bg-card p-3.5 text-left outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50";
+const LINE_CHIP = "inline-flex h-6 items-center rounded-md bg-sky-100 px-1.5 text-xs font-bold text-sky-700 tabular-nums dark:bg-sky-500/15 dark:text-sky-300";
 
 type Nearest = { kind: PoiKind; label: string; row: PoiRow };
 
@@ -45,9 +48,38 @@ async function loadNearest(point: { lat: number; lng: number }): Promise<Nearest
   return rows.filter((r): r is Nearest => !!r);
 }
 
+/** Durak card foot: the next buses by the timetable, soonest first ("55 · 4 dk"); else the stop's lines. */
+function StopFoot({ row }: { row: PoiRow }) {
+  const stop = parseStopDetails(row.details);
+  const times = useStopTimes(stop.stopId, row.lat, row.lng, NEXT_BUSES);
+  if (times.upcoming.length) {
+    return (
+      <span className="mt-auto flex flex-col gap-1 pt-2" aria-label="Yaklaşan otobüsler">
+        {times.upcoming.map((d) => (
+          <span key={`${d.line}-${d.minutes}`} className="flex items-center justify-between gap-2">
+            <span className={LINE_CHIP}>{d.line}</span>
+            <span className="text-xs font-bold text-foreground tabular-nums">{formatWait(d)}</span>
+          </span>
+        ))}
+      </span>
+    );
+  }
+  const lines = stop.lines.length ? stop.lines : times.lines;
+  if (!lines.length) return null;
+  return (
+    <span className="mt-auto flex flex-wrap gap-1 pt-2" aria-label={`Hatlar: ${lines.join(", ")}`}>
+      {lines.slice(0, MAX_LINES).map((l) => (
+        <span key={l} className={LINE_CHIP}>
+          {l}
+        </span>
+      ))}
+      {lines.length > MAX_LINES ? <span className="self-center text-xs font-semibold text-muted-foreground">+{lines.length - MAX_LINES}</span> : null}
+    </span>
+  );
+}
+
 function NearestCard({ n, showDistance }: { n: Nearest; showDistance: boolean }) {
   const r = n.row;
-  const lines = r.kind === "bus_stop" ? parseStopDetails(r.details).lines : [];
   const where = showDistance && typeof r.distance_m === "number" ? formatDistance(r.distance_m) : districtLabel(r);
   return (
     <Link href={poiHref(r.kind, r.slug)} className={CARD}>
@@ -57,24 +89,15 @@ function NearestCard({ n, showDistance }: { n: Nearest; showDistance: boolean })
       </span>
       <span className="mt-3 truncate text-xs font-medium text-muted-foreground">{n.label}</span>
       <span className="mt-0.5 line-clamp-2 text-sm leading-snug font-semibold">{r.name}</span>
-      {lines.length ? (
-        <span className="mt-auto flex flex-wrap gap-1 pt-2" aria-label={`Hatlar: ${lines.join(", ")}`}>
-          {lines.slice(0, MAX_LINES).map((l) => (
-            <span key={l} className="inline-flex h-6 items-center rounded-md bg-sky-100 px-1.5 text-xs font-bold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
-              {l}
-            </span>
-          ))}
-          {lines.length > MAX_LINES ? <span className="self-center text-xs font-semibold text-muted-foreground">+{lines.length - MAX_LINES}</span> : null}
-        </span>
-      ) : null}
+      {r.kind === "bus_stop" ? <StopFoot row={r} /> : null}
     </Link>
   );
 }
 
 /**
- * Home "Yakınımda": what is actually near the user, one sideways card per kind (nearest eczane, durak with its lines,
- * cami, taksi durağı, şarj, akaryakıt); a card opens the place's page. Client-only (the location lives on the device);
- * the first card asks for the location when there is no GPS fix. Only the rounded point is sent (nearby_pois).
+ * Home "Yakınımda": what is actually near the user, one sideways card per kind (nearest eczane, durak with its next
+ * buses, cami, taksi durağı, şarj, akaryakıt); a card opens the place's page. Client-only (the location lives on the
+ * device); the first card asks for the location when there is no GPS fix. Only the rounded point is sent (nearby_pois).
  */
 export function HomeNearby() {
   const isClient = useIsClient();

@@ -9,11 +9,12 @@ import { DirectionsButton } from "@/components/shared/directions-button";
 import { ShareButton } from "@/components/shared/share-button";
 import { DataSourceNote } from "@/components/shared/data-source-note";
 import { JsonLd } from "@/components/seo/json-ld";
-import { DetailHero, DetailSection, InfoList, InfoRow, STICKY_BAR_SPACE, StickyActionBar } from "@/features/nearby/components/detail-parts";
+import { DetailHero, InfoList, InfoRow, STICKY_BAR_SPACE, StickyActionBar } from "@/features/nearby/components/detail-parts";
 import { KindIcon } from "@/features/nearby/components/kind-icon";
 import { DistanceLabel } from "@/features/nearby/components/distance-label";
 import { NearbyMiniList } from "@/features/nearby/components/nearby-mini-list";
 import { InfoReportSheet } from "@/features/nearby/components/info-report-sheet";
+import { StopTimetable } from "@/features/nearby/components/stop-timetable";
 import { MapPreviewCard } from "@/components/maps/map-preview-card";
 import { KBB_SOURCE, OSM_COPYRIGHT_URL, OSM_SOURCE } from "@/features/nearby/config";
 import { parseStopDetails } from "@/features/nearby/lib/details";
@@ -30,12 +31,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!poi) return { title: "Durak bulunamadı", robots: { index: false } };
   return {
     title: `${poi.name} - ${districtName(poi.district_id)}`,
-    description: `${poi.name}: konum, geçen hatlar ve yol tarifi.`,
+    description: `${poi.name}: yaklaşan otobüsler, geçen hatlar, konum ve yol tarifi.`,
     alternates: { canonical: routes.nearby.stop(poi.slug) },
   };
 }
 
-/** D5 - Otobüs durağı detay. */
+/** D5 - Otobüs durağı detay: yaklaşan otobüsler (tarife), geçen hatlar, harita, yakındaki duraklar. */
 export default async function StopPage({ params }: Props) {
   const { id } = await params;
   const poi = await getPoi("bus_stop", id);
@@ -72,26 +73,14 @@ export default async function StopPage({ params }: Props) {
             ) : null}
           </InfoList>
         ) : null}
-        <DetailSection title="Geçen hatlar">
-          {stop.lines.length ? (
-            <ul className="flex flex-wrap gap-2">
-              {stop.lines.map((l) => (
-                <li key={l} className="rounded-full bg-info-soft px-3 py-1.5 text-sm font-bold text-info tabular-nums">
-                  {l}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">Bu durak için hat bilgisi henüz yok.</p>
-          )}
-        </DetailSection>
+        <StopTimetable stopId={stop.stopId} lat={poi.lat} lng={poi.lng} lines={stop.lines} />
         {hasPoint ? <MapPreviewCard lat={poi.lat as number} lng={poi.lng as number} kind="bus_stop" name={name} address={poi.address} /> : null}
         <NearbyMiniList title="Yakındaki duraklar" rows={nearby} />
         <DataSourceNote
           source={poi.source === "osm" ? OSM_SOURCE : KBB_SOURCE}
           sourceUrl={poi.source === "osm" ? OSM_COPYRIGHT_URL : undefined}
           updatedAt={poi.updated_at}
-          note="Canlı sefer saatleri için Kocaeli Büyükşehir Belediyesi'nin e-Komobil uygulamasını kullanabilirsin."
+          note="Sefer saatleri Kocaeli Büyükşehir Belediyesi toplu ulaşım tarifesinden. Canlı araç konumu için e-Komobil uygulamasını kullanabilirsin."
         />
         <InfoReportSheet subject={`Durak: ${name}`} path={path} />
       </div>

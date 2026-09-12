@@ -82,6 +82,7 @@ export function parseStopDetails(details: Json | null | undefined): StopDetails 
   return {
     lines,
     stopCode: str(d.stop_code),
+    stopId: str(d.stop_id),
     shelter: typeof d.shelter === "boolean" ? d.shelter : null,
   };
 }

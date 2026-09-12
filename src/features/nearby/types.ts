@@ -159,6 +159,8 @@ export type PlaceDetails = {
 export type StopDetails = {
   lines: string[];
   stopCode: string | null;
+  /** GTFS stop_id of the Kocaeli feed (KBB stops); null on older OpenStreetMap stops. Keys the timetable (stop-times.ts). */
+  stopId: string | null;
   shelter: boolean | null;
 };
 
