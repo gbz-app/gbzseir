@@ -52,11 +52,11 @@ function CardFoot({ entry, tab, now }: { entry: FilmEntry; tab: CinemaTab; now: 
 export function HomeCinema({
   films,
   showtimes,
-  venue,
   serverNow,
 }: {
   films: CinemaFilm[];
   showtimes: CinemaShowtime[];
+  /** The cinema (not shown on the home rail any more: no "Seanslar: ..." line, owner 12.09). */
   venue: CinemaVenue;
   serverNow: string;
 }) {
@@ -136,13 +136,6 @@ export function HomeCinema({
           ) : null}
         </div>
       )}
-
-      <p className="mt-1 text-xs text-muted-foreground">
-        Seanslar:{" "}
-        <a href={venue.url} target="_blank" rel="noopener noreferrer" className="font-medium underline-offset-2 hover:underline">
-          {venue.cinema}
-        </a>
-      </p>
     </div>
   );
 }
