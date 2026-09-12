@@ -80,11 +80,11 @@ const GUIDE: Tile[] = [
   { href: guide("tarihi"), label: "Tarihi Yer", icon: Castle, tone: TONE.amber },
 ];
 
-/** Category cards, 4 per row; GebzemAI leads them. Icons, except Yemek: the owner's 3D döner. */
+/** Category cards, 4 per row; GebzemAI leads them. Icons, except Yemek and Restoran: the owner's 3D art (döner, restaurant). */
 const CATEGORIES: Tile[] = [
   { href: routes.ai(), label: "GebzemAI", icon: Sparkles, tone: "bg-brand-soft text-primary" },
   { ...vertical("yemek"), image: "/images/home/yemek-doner.webp" },
-  vertical("restoran"),
+  { ...vertical("restoran"), image: "/images/home/restoran.webp" },
   vertical("kafe"),
   vertical("hizmet", "Hizmetler"),
   vertical("otel"),
