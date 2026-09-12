@@ -21,7 +21,9 @@ type CacheEntry = { at: number; items: NearbyItem[] };
 /** Per-tab cache so switching chips back and forth is instant (stale-while-revalidate). */
 const cache = new Map<string, CacheEntry>();
 
-const FILTER_KIND: Record<Exclude<NearbyFilter, "nobetci" | "isletme">, PoiKind> = {
+type KindFilter = Exclude<NearbyFilter, "hepsi" | "nobetci" | "isletme">;
+
+const FILTER_KIND: Record<KindFilter, PoiKind> = {
   eczane: "pharmacy",
   cami: "mosque",
   durak: "bus_stop",
@@ -33,6 +35,12 @@ const FILTER_KIND: Record<Exclude<NearbyFilter, "nobetci" | "isletme">, PoiKind>
   kurum: "institution",
   gezilecek: "place",
 };
+
+/** "Tümü" (?tur=hepsi): these tabs, in this order, each with its nearest HEPSI_PER_KIND places; the list groups by kind. */
+export const HEPSI_GROUPS: ReadonlyArray<{ filter: KindFilter; kind: PoiKind }> = (
+  ["eczane", "durak", "cami", "taksi", "atm", "banka", "akaryakit", "sarj", "kurum", "gezilecek"] as const
+).map((filter) => ({ filter, kind: FILTER_KIND[filter] }));
+const HEPSI_PER_KIND = 5;
 
 type Labels = { placeCategories: readonly PlaceCategoryDef[]; institutionCategories: readonly InstitutionCategoryDef[] };
 
@@ -139,8 +147,16 @@ async function loadBusinesses(point: LatLng): Promise<NearbyItem[]> {
   return items.sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0)).slice(0, LIMIT);
 }
 
-/** Fetch the items for a chip around a (rounded) point. */
-export async function loadNearby(filter: NearbyFilter, point: LatLng): Promise<NearbyItem[]> {
+/** Fetch the items for a chip around a (rounded) point; `limit` = rows per kind. */
+export async function loadNearby(filter: NearbyFilter, point: LatLng, limit = LIMIT): Promise<NearbyItem[]> {
+  if (filter === "hepsi") {
+    // Every kind at once; one kind that cannot be read leaves only its own group out.
+    const settled = await Promise.allSettled(HEPSI_GROUPS.map((g) => loadNearby(g.filter, point, HEPSI_PER_KIND)));
+    if (settled.every((s) => s.status === "rejected")) throw new Error("Liste yüklenemedi.");
+    return settled
+      .flatMap((s) => (s.status === "fulfilled" ? s.value : []))
+      .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+  }
   const supabase = createClient();
   const at = { p_lat: point.lat, p_lng: point.lng };
   if (filter === "nobetci") {
@@ -154,7 +170,7 @@ export async function loadNearby(filter: NearbyFilter, point: LatLng): Promise<N
 
   const kind = FILTER_KIND[filter];
   const [pois, duty, cats, instCats] = await Promise.all([
-    supabase.rpc("nearby_pois", { p_kind: kind, ...at, p_radius_m: RADIUS_M, p_limit: LIMIT }),
+    supabase.rpc("nearby_pois", { p_kind: kind, ...at, p_radius_m: RADIUS_M, p_limit: limit }),
     kind === "pharmacy" ? supabase.rpc("duty_pharmacies_now", at) : Promise.resolve(null),
     // Admin labels of the place categories (public read); the built-in list when they cannot be read.
     kind === "place" ? supabase.from("place_categories").select("key,label,icon,active").order("sort").order("label") : Promise.resolve(null),

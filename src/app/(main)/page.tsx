@@ -179,7 +179,8 @@ export default function HomePage() {
       </div>
 
       <section aria-labelledby="yakinimda">
-        <SectionHeader id="yakinimda" title="Yakınımda" href={routes.nearby.root()} />
+        {/* "Tümü": the Keşfet map with every kind nearby, the list grouped by kind. */}
+        <SectionHeader id="yakinimda" title="Yakınımda" href={routes.nearby.root("hepsi")} />
         <div className="mt-1">
           <Suspense fallback={<div className="h-[8.5rem]" />}>
             <NearbyStrip />

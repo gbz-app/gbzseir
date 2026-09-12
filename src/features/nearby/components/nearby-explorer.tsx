@@ -32,7 +32,7 @@ import {
   nearbyFilterHref,
   parseFilter,
 } from "../config";
-import { useNearbyData } from "../lib/use-nearby-data";
+import { HEPSI_GROUPS, useNearbyData } from "../lib/use-nearby-data";
 import { useNow } from "../lib/use-now";
 import type { DutyMode, NearbyFilter, NearbyItem } from "../types";
 import { CoachMarks, type CoachStep } from "./coach-marks";
@@ -46,6 +46,8 @@ import { NearbySheet, sheetOffsets, type SheetSnap } from "./nearby-sheet";
 const COACH_KEY = "gebzem.coach.yakinimda.v1";
 /** Space kept for the chip row at the top of the map. */
 const CHIPS_SPACE = 64;
+/** "Tümü": cards shown per kind before its "Tümü" link. */
+const PER_GROUP = 3;
 
 /** "Nöbetçi" is preselected between 19:00 and 08:30 (Istanbul), but only when the duty list is real ("live"). */
 function defaultFilterFor(now: number, dutyMode: DutyMode): NearbyFilter {
@@ -55,7 +57,7 @@ function defaultFilterFor(now: number, dutyMode: DutyMode): NearbyFilter {
   return minutes >= 19 * 60 || minutes < 8 * 60 + 30 ? "nobetci" : "eczane";
 }
 
-/** No "Nöbetçi" chip: it is the second option of the Eczane tab (PharmacySwitch in the list). */
+/** No "Nöbetçi" chip: it is the second option of the Eczane tab (PharmacySwitch in the list). "Tümü" leads the row. */
 const CHIP_OPTIONS: ChipOption<NearbyFilter>[] = NEARBY_FILTERS.filter((f) => f.value !== "nobetci").map((f) => ({ value: f.value, label: f.label, icon: f.icon }));
 
 /** Tüm eczaneler / Nöbetçi, above the pharmacy list (same look as the guide's ATM / banka switch). */
@@ -91,6 +93,8 @@ function PharmacySwitch({ value, onChange }: { value: "eczane" | "nobetci"; onCh
 
 function sourceFor(filter: NearbyFilter, dutyMode: DutyMode): { source: string; sourceUrl?: string; callAhead?: boolean; note?: React.ReactNode } {
   switch (filter) {
+    case "hepsi":
+      return { source: `${KBB_SOURCE}, ${OSM_SOURCE}`, sourceUrl: OSM_COPYRIGHT_URL };
     case "nobetci":
       return {
         source: dutyMode === "demo" ? "Örnek veri (gerçek liste değil)" : "Nöbet listesi",
@@ -128,7 +132,10 @@ function sourceFor(filter: NearbyFilter, dutyMode: DutyMode): { source: string; 
   }
 }
 
-/** D1: map + draggable list of nearby places with filter chips. `dutyMode` (app setting) drives the duty labels and night default. */
+/**
+ * D1: map + draggable list of nearby places with filter chips. `dutyMode` (app setting) drives the duty labels and night
+ * default. "Tümü" (?tur=hepsi, the home page's Yakınımda "Tümü") puts every kind on the map and groups the list by kind.
+ */
 export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
   const searchParams = useSearchParams();
   const now = useNow();
@@ -252,6 +259,12 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
     { targetRef: locateRef, text: "Haritada kaybolursan buraya dokun", placement: "top" },
     { targetRef: handleRef, text: "Listeyi yukarı çek, en yakından uzağa sıralı gör", placement: "top" },
   ];
+
+  const card = (item: NearbyItem) => (
+    <li key={item.id}>
+      <NearbyCard item={item} now={now} showDistance={showDistance} selected={item.id === selectedId} demoDuty={demoDuty} onShowOnMap={showOnMap} />
+    </li>
+  );
 
   return (
     <div ref={areaRef} className={NEARBY_AREA_CLASS}>
@@ -384,13 +397,35 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
                 </Button>
               }
             />
+          ) : filter === "hepsi" ? (
+            // Every kind nearby, grouped: the nearest few of each, then "Tümü" opens that tab.
+            <div className="flex flex-col gap-5">
+              {HEPSI_GROUPS.map((g) => {
+                const list = visible.filter((i) => i.kind === g.kind);
+                if (!list.length) return null;
+                const gm = filterMeta(g.filter);
+                return (
+                  <section key={g.filter} aria-label={gm.title}>
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <h3 className="min-w-0 truncate text-[17px] font-semibold">
+                        {gm.title} <span className="font-medium text-muted-foreground tabular-nums">{list.length}</span>
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => onFilterChange(g.filter)}
+                        className="inline-flex min-h-9 shrink-0 items-center gap-0.5 rounded-full text-sm font-semibold text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                      >
+                        Tümü <ChevronRight className="size-4" aria-hidden />
+                      </button>
+                    </div>
+                    <ul className="flex flex-col gap-3">{list.slice(0, PER_GROUP).map(card)}</ul>
+                  </section>
+                );
+              })}
+            </div>
           ) : (
             <ul className="flex flex-col gap-3" aria-label={meta.title}>
-              {visible.map((item) => (
-                <li key={item.id}>
-                  <NearbyCard item={item} now={now} showDistance={showDistance} selected={item.id === selectedId} demoDuty={demoDuty} onShowOnMap={showOnMap} />
-                </li>
-              ))}
+              {visible.map(card)}
             </ul>
           )}
 

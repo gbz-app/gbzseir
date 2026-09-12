@@ -11,8 +11,9 @@ import type { ContactSubjectType } from "@/lib/db-contract";
  */
 export type PoiKind = "pharmacy" | "mosque" | "bus_stop" | "place" | "taxi" | "atm" | "institution" | "fuel" | "ev_charge" | "bank";
 
-/** Chip filters on /yakinimda (?tur=). */
+/** Chip filters on /yakinimda (?tur=); "hepsi" = the nearest few of every kind, grouped by kind in the list. */
 export type NearbyFilter =
+  | "hepsi"
   | "nobetci"
   | "eczane"
   | "cami"

@@ -13,6 +13,7 @@ import {
   Flower2,
   Fuel,
   Landmark,
+  LayoutGrid,
   MoonStar,
   Mountain,
   Pill,
@@ -54,6 +55,8 @@ export type FilterMeta = {
 
 export const NEARBY_FILTERS: FilterMeta[] = [
   // Titles in the taxi style ("Taksi Durakları"): the list header shows the count in the right corner, no "Yakındaki".
+  // "Tümü": every kind at once (the home page's Yakınımda "Tümü"); the list is grouped by kind.
+  { value: "hepsi", label: "Tümü", icon: LayoutGrid, marker: "place", title: "Yakınımdakiler", noun: "yer" },
   { value: "nobetci", label: "Nöbetçi", icon: Cross, marker: "duty", title: "Nöbetçi Eczaneler", noun: "nöbetçi eczane" },
   { value: "eczane", label: "Eczane", icon: Pill, marker: "pharmacy", title: "Eczaneler", noun: "eczane" },
   { value: "cami", label: "Cami", icon: MoonStar, marker: "mosque", title: "Camiler", noun: "cami" },
@@ -69,7 +72,7 @@ export const NEARBY_FILTERS: FilterMeta[] = [
 ];
 
 export function filterMeta(f: NearbyFilter): FilterMeta {
-  return NEARBY_FILTERS.find((x) => x.value === f) ?? NEARBY_FILTERS[1];
+  return NEARBY_FILTERS.find((x) => x.value === f) ?? NEARBY_FILTERS.find((x) => x.value === "eczane")!;
 }
 
 export function parseFilter(v: string | null | undefined): NearbyFilter | null {

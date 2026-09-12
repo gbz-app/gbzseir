@@ -57,7 +57,7 @@ const enc = (v: string | number) => encodeURIComponent(String(v));
 export type ListingsTab = "ikinci-el" | "is-ilanlari";
 /** One focused screen of the business page editor (/isletme/duzenle/<adim>). */
 export type BusinessEditStep = "temel" | "iletisim" | "konum" | "saatler" | "ozellikler" | "hizmet-alani";
-export type NearbyKind = "eczane" | "nobetci" | "cami" | "durak" | "taksi" | "atm" | "banka" | "akaryakit" | "sarj" | "kurum" | "gezilecek";
+export type NearbyKind = "hepsi" | "eczane" | "nobetci" | "cami" | "durak" | "taksi" | "atm" | "banka" | "akaryakit" | "sarj" | "kurum" | "gezilecek";
 
 export const routes = {
   home: () => "/",
