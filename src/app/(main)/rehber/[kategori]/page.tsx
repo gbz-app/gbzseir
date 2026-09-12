@@ -7,9 +7,12 @@ import { routes } from "@/core/routes";
 import { GUIDE_SECTIONS } from "@/features/guide/lib/constants";
 import { getGuideCounts, getInstitutionCategories } from "@/features/guide/lib/queries";
 import { buildChipDefs, loadGuideList } from "@/features/guide/components/entries";
-import { GuideListBrowserFromUrl, GuideListFallback, type GuideListBrowserProps } from "@/features/guide/components/guide-list-browser";
-import { GUIDE_EXTRA_LIST_SLUGS, resolveGuideList, type GuideListConfig } from "@/features/guide/components/list-config";
+import { GuideListFallback } from "@/features/guide/components/guide-list-browser";
+import { GUIDE_EXTRA_LIST_SLUGS, resolveGuideList, toClientListConfig, type GuideListConfig } from "@/features/guide/components/list-config";
 import type { GuideCounts } from "@/features/guide/lib/types";
+import { ExploreMap } from "@/features/nearby/components/explore-map";
+import type { GuideDatasetSeed } from "@/features/nearby/lib/use-guide-dataset";
+import { getDutyMode } from "@/features/nearby/server/queries";
 
 export const revalidate = 3600;
 
@@ -31,7 +34,7 @@ function decode(v: string): string {
 async function resolve(params: Props["params"]) {
   const slug = decode((await params).kategori);
   const defs = await getInstitutionCategories();
-  return { slug, cfg: slug.length <= 60 ? resolveGuideList(slug, defs) : null };
+  return { slug, defs, cfg: slug.length <= 60 ? resolveGuideList(slug, defs) : null };
 }
 
 /** Visible rows of a section or preset category (null for the combined lists, which always have rows). */
@@ -59,29 +62,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * /rehber/[kategori]: one guide list (section, combined list or institution category) as a map-first view: the map with
- * the category's pins and the draggable list sheet (like /yakinimda). No top bar; the back button floats on the map.
+ * /rehber/[kategori]: one guide list (section, combined list or institution category) on the one explore screen, the
+ * same map, chips and cards as Keşfet (owner 12.09: "ikisi de aynı harita olacak"). The page hands the list it loaded to
+ * the screen (no second fetch), keeps its metadata, JSON-LD and server-painted first rows, and adds a back button to
+ * the Şehir Rehberi. The duty mode lets the Eczane chip work here too.
  */
 export default async function GuideListPage({ params }: Props) {
-  const { slug, cfg } = await resolve(params);
+  const { slug, defs, cfg } = await resolve(params);
   if (!cfg) notFound();
 
-  const [{ entries, ok, labels }, counts] = await Promise.all([loadGuideList(cfg), cfg.bankSwitch ? getGuideCounts() : Promise.resolve(null)]);
-  const props: GuideListBrowserProps = {
-    config: {
-      slug: cfg.slug,
-      title: cfg.title,
-      kind: cfg.kind,
-      chip: cfg.chip,
-      chipParam: cfg.chipParam,
-      preset: cfg.preset,
-      ownership: cfg.ownership,
-      bankSwitch: cfg.bankSwitch,
-    },
-    entries,
-    chips: buildChipDefs(cfg, entries, labels),
-    ok,
-    bankCounts: counts ? { atm: counts.byKind.atm ?? 0, bank: counts.byKind.bank ?? 0 } : undefined,
+  const [{ entries, ok, labels }, counts, dutyMode] = await Promise.all([
+    loadGuideList(cfg),
+    cfg.bankSwitch ? getGuideCounts() : Promise.resolve(null),
+    getDutyMode().catch(() => "off" as const),
+  ]);
+  const config = toClientListConfig(cfg);
+  const chips = buildChipDefs(cfg, entries, labels);
+  const seed: GuideDatasetSeed = {
+    slug: cfg.slug,
+    data: { ok, config, entries, chips, bankCounts: counts?.ok ? { atm: counts.byKind.atm ?? 0, bank: counts.byKind.bank ?? 0 } : undefined },
   };
 
   const listed = (cfg.preset ? entries.filter((e) => e.cat === cfg.preset) : entries).slice(0, 50);
@@ -111,9 +110,9 @@ export default async function GuideListPage({ params }: Props) {
       <h1 className="sr-only">{cfg.presetLabel ?? cfg.title}</h1>
       {/* Keeps the map below the status bar / notch (the page has no top bar). */}
       <div aria-hidden className="pt-safe" />
-      {/* The server paints the first rows with the path's filters; the URL's ?alt= / ?q= ... are applied on the client. */}
-      <Suspense fallback={<GuideListFallback {...props} />}>
-        <GuideListBrowserFromUrl {...props} />
+      {/* The server paints the first rows of the path's chip; the URL's ?alt= / ?q= ... are applied on the client. */}
+      <Suspense fallback={<GuideListFallback config={config} entries={entries} chips={chips} />}>
+        <ExploreMap dutyMode={dutyMode} defs={defs} seed={seed} backHref={routes.guide.root()} />
       </Suspense>
     </>
   );

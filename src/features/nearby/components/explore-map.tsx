@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ChevronRight, Loader2, LocateFixed, MapPinOff, SearchX } from "lucide-react";
 import { toast } from "sonner";
 import { isDutyActive } from "@/core/duty";
-import { distanceMeters, type LatLng } from "@/core/geo";
+import { distanceMeters } from "@/core/geo";
 import { routes } from "@/core/routes";
 import { istanbulParts } from "@/core/time";
 import { trNormalize } from "@/core/tr";
@@ -21,10 +21,9 @@ import { ListSkeleton } from "@/components/shared/skeletons";
 import { GoogleMap } from "@/components/maps/google-map";
 import type { FlyRequest, MapPadding, MapPoint } from "@/components/maps/types";
 import { useOnboardingActive } from "@/features/onboarding";
-import { guideIcon } from "@/features/guide/lib/constants";
 import type { InstitutionCategoryDef, Ownership } from "@/features/guide/lib/types";
-import { entryDimValue, type GuideEntry } from "@/features/guide/components/list-config";
-import { KIND_META, filterMeta } from "../config";
+import { entryDimValue } from "@/features/guide/components/list-config";
+import { filterMeta } from "../config";
 import {
   BANK_NODES,
   DEFAULT_NODE,
@@ -41,6 +40,7 @@ import {
   type DrillDataset,
   type ExploreSel,
 } from "../explore-tree";
+import { entryToItem, hasPin, type PinnedEntry } from "../lib/guide-items";
 import { useGuideDataset, type GuideDatasetSeed } from "../lib/use-guide-dataset";
 import { HEPSI_GROUPS, useNearbyData } from "../lib/use-nearby-data";
 import { useNow } from "../lib/use-now";
@@ -76,27 +76,6 @@ function nightDuty(now: number, dutyMode: DutyMode): boolean {
   const p = istanbulParts(now);
   const minutes = p.hour * 60 + p.minute;
   return minutes >= 19 * 60 || minutes < 8 * 60 + 30;
-}
-
-type Pinned = GuideEntry & { lat: number; lng: number };
-const hasPin = (e: GuideEntry): e is Pinned => typeof e.lat === "number" && typeof e.lng === "number";
-
-/** A guide row as a Keşfet card (same card for both doors): category icon, type · ilçe, address, Ara, Yol tarifi. */
-function entryToItem(e: GuideEntry, ref: LatLng | null): NearbyItem {
-  const base = {
-    id: e.id,
-    kind: e.kind,
-    name: e.name,
-    href: e.href,
-    subtitle: e.sub,
-    address: e.address ?? null,
-    phone: e.phone ?? null,
-    subjectType: "poi" as const,
-    verified: e.verified,
-    icon: e.icon ? guideIcon(e.icon, KIND_META[e.kind].icon) : undefined,
-  };
-  if (!hasPin(e)) return { ...base, lat: 0, lng: 0, distance: null, noPin: true };
-  return { ...base, lat: e.lat, lng: e.lng, distance: ref ? distanceMeters(ref, { lat: e.lat, lng: e.lng }) : null };
 }
 
 export type ExploreMapProps = {
@@ -181,7 +160,7 @@ export function ExploreMap({ dutyMode, defs, seed = null, backHref }: ExploreMap
       .sort((a, b) => a.d - b.d)
       .map((x) => x.e);
   }, [pre, dim, shown.chip, byDistance, refLat, refLng]);
-  const guidePins = React.useMemo<Pinned[]>(() => {
+  const guidePins = React.useMemo<PinnedEntry[]>(() => {
     const ref = { lat: refLat, lng: refLng };
     return guideRows
       .filter(hasPin)
@@ -238,13 +217,6 @@ export function ExploreMap({ dutyMode, defs, seed = null, backHref }: ExploreMap
     const id = window.setTimeout(() => setFitQuery(q), 450);
     return () => window.clearTimeout(id);
   }, [q, fitQuery]);
-  const fitKey =
-    loading || !points.length
-      ? ""
-      : isGuide
-        ? `${node.id}|${shown.chip}|${shown.own}|${shown.ilce}|${fitQuery}|${byDistance ? `${refLat.toFixed(3)},${refLng.toFixed(3)}` : "az"}`
-        : `${nearby.cacheKey}|${fitQuery}`;
-
   // Layout: the measured area height drives the sheet snap points and the map padding.
   const areaRef = React.useRef<HTMLDivElement>(null);
   const [areaH, setAreaH] = React.useState(0);
@@ -258,6 +230,15 @@ export function ExploreMap({ dutyMode, defs, seed = null, backHref }: ExploreMap
   const [snap, setSnap] = React.useState<SheetSnap>("half");
   const visibleSheet = areaH ? areaH - sheetOffsets(areaH, TOP_SPACE)[snap] : 0;
   const padding: MapPadding = { top: TOP_SPACE + 12, right: 36, bottom: Math.min(visibleSheet, Math.round(areaH * 0.62)) + 20, left: 36 };
+
+  // Fit only once the area is measured: a list the page handed over is there on the first render, before the sheet's
+  // height is known, and a fit then would hide the pins behind the sheet.
+  const fitKey =
+    loading || !points.length || !areaH
+      ? ""
+      : isGuide
+        ? `${node.id}|${shown.chip}|${shown.own}|${shown.ilce}|${fitQuery}|${byDistance ? `${refLat.toFixed(3)},${refLng.toFixed(3)}` : "az"}`
+        : `${nearby.cacheKey}|${fitQuery}`;
 
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [fly, setFly] = React.useState<FlyRequest | null>(null);
