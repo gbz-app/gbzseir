@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { Compass, Loader2, LocateFixed, Scissors, Trees, UserRound, type LucideIcon } from "lucide-react";
+import { Compass, Loader2, LocateFixed, Scissors, Trees, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isDutyActive } from "@/core/duty";
+import { describeDutyWindow, isDutyActive } from "@/core/duty";
 import { distanceMeters, formatDistance } from "@/core/geo";
 import { routes } from "@/core/routes";
 import { districtBySlug } from "@/config/districts";
@@ -29,16 +30,21 @@ const KINDS: ReadonlyArray<{ kind: PoiKind; label: string }> = [
 ];
 
 /**
- * MOCKUP (owner's request, 12.09): sample prices until a price source is connected. The card always says "örnek" next
- * to them, so nobody takes them for real prices.
+ * MOCKUP (owner's request, 12.09): sample prices and a sample taxi driver until real sources are connected. The card
+ * always says "örnek" next to them, so nobody takes them for real.
  */
 const SAMPLE_PRICE: Partial<Record<PoiKind, string>> = { ev_charge: "8,50 TL/kWh", fuel: "47,90 TL/L" };
+const SAMPLE_HAIRCUT = "Kesim 350 TL";
+const SAMPLE_DRIVER = "Ali Yıldız";
 
 const PARK_CATEGORIES = new Set(["park", "tabiat_parki"]);
 /** Businesses that read as a hairdresser or barber (name or category). */
 const HAIR_OR = ["kuaför", "kuafor", "berber"].flatMap((k) => [`name.ilike.*${k}*`, `category_label.ilike.*${k}*`]).join(",");
 const PINK = "bg-pink-100 text-pink-600 dark:bg-pink-500/15 dark:text-pink-300";
 const LIME = "bg-lime-100 text-lime-700 dark:bg-lime-500/15 dark:text-lime-300";
+/** "Yürüyerek N dk" at about 4.8 km/h, for parks up to this many minutes away. */
+const WALK_M_PER_MIN = 80;
+const MAX_WALK_MIN = 45;
 
 const RADIUS_M = 25_000;
 const NEXT_BUSES = 2;
@@ -48,6 +54,8 @@ const CARD =
   "flex h-full min-h-[8.5rem] w-full flex-col rounded-[1.75rem] bg-card p-4 text-left outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50";
 /** No scroll snapping: a snapped strip jumps to its old card when the location card is added in front after hydration. */
 const ITEM = "w-[12.5rem] shrink-0";
+/** The Nöbetçi Eczane card is a little wider: its duty hours ("Bugün 08:30 - Yarın 08:30") fit on one line. */
+const DUTY_ITEM = "w-[13.5rem] shrink-0";
 const LABEL = "min-w-0 flex-1 truncate text-[15px] font-semibold text-muted-foreground";
 const NAME = "mt-auto truncate pt-2.5 text-[17px] leading-snug font-semibold";
 const FOOT = "mt-1 truncate text-sm font-semibold";
@@ -56,10 +64,12 @@ const PILL = "inline-flex h-8 max-w-full items-center gap-1.5 rounded-full px-3 
 /** What the card shows under the name. */
 type Foot =
   | { kind: "text" }
+  | { kind: "duty"; start: string; end: string }
   | { kind: "stop"; stopId: string | null; lat: number; lng: number; lines: string[] }
   | { kind: "prayer" }
-  | { kind: "taxi"; phone: string | null }
-  | { kind: "price"; price: string };
+  | { kind: "taxi" }
+  | { kind: "price"; price: string }
+  | { kind: "park"; category: string };
 
 type Nearest = {
   key: string;
@@ -79,12 +89,12 @@ function footFor(r: PoiRow): Foot {
     return { kind: "stop", stopId: stop.stopId, lat: r.lat, lng: r.lng, lines: stop.lines };
   }
   if (r.kind === "mosque") return { kind: "prayer" };
-  if (r.kind === "taxi") return { kind: "taxi", phone: r.phone };
+  if (r.kind === "taxi") return { kind: "taxi" };
   const price = SAMPLE_PRICE[r.kind];
   return price ? { kind: "price", price } : { kind: "text" };
 }
 
-function fromPoi(r: PoiRow, label: string, extra: Partial<Pick<Nearest, "key" | "icon" | "tone">> = {}): Nearest {
+function fromPoi(r: PoiRow, label: string, extra: Partial<Pick<Nearest, "key" | "icon" | "tone" | "foot">> = {}): Nearest {
   const meta = KIND_META[r.kind];
   return {
     key: r.kind,
@@ -126,7 +136,7 @@ async function loadNearest(point: { lat: number; lng: number }, dutyMode: DutyMo
           href: routes.nearby.pharmacy(duty.slug),
           distance: duty.distance_m ?? null,
           district: districtLabel(duty),
-          foot: { kind: "text" },
+          foot: { kind: "duty", start: duty.duty_start, end: duty.duty_end },
         };
       }
     }
@@ -136,7 +146,8 @@ async function loadNearest(point: { lat: number; lng: number }, dutyMode: DutyMo
   // Optional cards: when they cannot be read the strip goes on without them.
   const park = async (): Promise<Nearest | null> => {
     const r = (await nearestPois("place", 40)).find((p) => PARK_CATEGORIES.has(parsePlaceDetails(p.details).category));
-    return r ? fromPoi(r, "Park", { key: "park", icon: Trees, tone: LIME }) : null;
+    if (!r) return null;
+    return fromPoi(r, "Park", { key: "park", icon: Trees, tone: LIME, foot: { kind: "park", category: parsePlaceDetails(r.details).category } });
   };
   const hairdresser = async (): Promise<Nearest | null> => {
     const { data, error } = await supabase
@@ -167,7 +178,7 @@ async function loadNearest(point: { lat: number; lng: number }, dutyMode: DutyMo
       href: routes.businesses.detail(best.slug),
       distance: bestD,
       district: districtBySlug(best.district_id)?.name ?? null,
-      foot: { kind: "text" },
+      foot: { kind: "price", price: SAMPLE_HAIRCUT },
     };
   };
   const optional = (job: () => Promise<Nearest | null>) => job().catch(() => null);
@@ -186,6 +197,16 @@ function MiniIcon({ icon: Icon, tone }: { icon: LucideIcon; tone: string }) {
     <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", tone)} aria-hidden>
       <Icon className="size-[18px]" strokeWidth={2.2} />
     </span>
+  );
+}
+
+/** Nöbetçi Eczane: today's duty hours ("Bugün 08:30 - Yarın 08:30"); the sample duty list keeps its warning under it. */
+function DutyFoot({ start, end, sample }: { start: string; end: string; sample: boolean }) {
+  return (
+    <>
+      <span className={cn(FOOT, "text-[13px] font-bold text-red-600 tabular-nums")}>{describeDutyWindow({ start, end })}</span>
+      {sample ? <span className="truncate text-xs font-semibold text-muted-foreground">Örnek liste</span> : null}
+    </>
   );
 }
 
@@ -245,19 +266,20 @@ function PrayerFoot({ days, fallback }: { days: PrayerDay[]; fallback: string | 
   );
 }
 
-/** Taksi: a round profile spot (no photos of drivers yet) and whether the stand can be called. */
-function TaxiFoot({ phone, fallback }: { phone: string | null; fallback: string | null }) {
+/** Taksi: a round profile picture (3D avatar, not a real person) and a sample driver name, marked "örnek" (mockup). */
+function TaxiFoot() {
   return (
     <span className="mt-2 flex items-center gap-2">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300" aria-hidden>
-        <UserRound className="size-4" strokeWidth={2.2} />
+      <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-yellow-100" aria-hidden>
+        <Image src="/images/emoji/man-3d.webp" alt="" width={28} height={28} className="size-7" />
       </span>
-      <span className="min-w-0 truncate text-sm font-semibold text-muted-foreground">{phone ? "Telefonla çağır" : fallback}</span>
+      <span className="min-w-0 truncate text-sm font-semibold">{SAMPLE_DRIVER}</span>
+      <span className="shrink-0 text-xs font-semibold text-muted-foreground">örnek</span>
     </span>
   );
 }
 
-/** Şarj / akaryakıt: the price pill, marked as a sample (mockup). */
+/** Şarj / akaryakıt / kuaför: the price pill, marked as a sample (mockup). */
 function PriceFoot({ price }: { price: string }) {
   return (
     <span className="mt-2 flex items-center gap-1.5">
@@ -267,35 +289,46 @@ function PriceFoot({ price }: { price: string }) {
   );
 }
 
+/** Park: the walk from the user's GPS position ("Yürüyerek 6 dk"); without it, what kind of green space it is. */
+function ParkFoot({ category, distance }: { category: string; distance: number | null }) {
+  const walk = distance != null ? Math.max(1, Math.round(distance / WALK_M_PER_MIN)) : null;
+  const text = walk != null && walk <= MAX_WALK_MIN ? `Yürüyerek ${walk} dk` : category === "tabiat_parki" ? "Tabiat parkı" : "Yeşil alan";
+  return <span className={cn(FOOT, "text-lime-700")}>{text}</span>;
+}
+
 function NearestCard({ n, showDistance, sample, prayerDays }: { n: Nearest; showDistance: boolean; sample: boolean; prayerDays: PrayerDay[] }) {
-  const place = showDistance && n.distance != null ? formatDistance(n.distance) : n.district;
+  // With a GPS fix the distance sits on the right of the kind ("Durak 120 m"); the Nöbetçi Eczane card shows its hours.
+  const distance = showDistance && n.distance != null ? n.distance : null;
+  const right = distance != null && n.foot.kind !== "duty" ? formatDistance(distance) : null;
   let foot: React.ReactNode;
   switch (n.foot.kind) {
+    case "duty":
+      foot = <DutyFoot start={n.foot.start} end={n.foot.end} sample={sample} />;
+      break;
     case "stop":
       foot = <StopFoot stop={n.foot} />;
       break;
     case "prayer":
-      foot = <PrayerFoot days={prayerDays} fallback={place} />;
+      foot = <PrayerFoot days={prayerDays} fallback={right ? null : n.district} />;
       break;
     case "taxi":
-      foot = <TaxiFoot phone={n.foot.phone} fallback={place} />;
+      foot = <TaxiFoot />;
       break;
     case "price":
       foot = <PriceFoot price={n.foot.price} />;
       break;
+    case "park":
+      foot = <ParkFoot category={n.foot.category} distance={distance} />;
+      break;
     default:
-      // The sample duty list keeps its warning, even on this small card.
-      foot = sample ? (
-        <span className={cn(FOOT, "text-red-600 dark:text-red-400")}>Örnek liste</span>
-      ) : place ? (
-        <span className={cn(FOOT, "text-muted-foreground tabular-nums")}>{place}</span>
-      ) : null;
+      foot = !right && n.district ? <span className={cn(FOOT, "text-muted-foreground")}>{n.district}</span> : null;
   }
   return (
     <Link href={n.href} className={CARD}>
       <span className="flex items-center gap-2">
         <MiniIcon icon={n.icon} tone={n.tone} />
         <span className={LABEL}>{n.label}</span>
+        {right ? <span className="shrink-0 text-sm font-semibold text-muted-foreground tabular-nums">{right}</span> : null}
       </span>
       <span className={NAME}>{n.name}</span>
       {foot}
@@ -304,11 +337,12 @@ function NearestCard({ n, showDistance, sample, prayerDays }: { n: Nearest; show
 }
 
 /**
- * Home "Yakınımda": what is near the user, one short sideways card each: the nearest Nöbetçi Eczane (else the nearest
- * eczane), durak with its next buses, cami with the next prayer, taksi, şarj and akaryakıt (sample prices), kuaför and
- * park; a card opens the place's page. Client-only (the location lives on the device); the first card asks for the
- * location when there is no GPS fix. Only the rounded point is sent. `dutyMode`: app setting (the sample duty list is
- * marked "Örnek liste"); `prayerDays`: today's and tomorrow's prayer times (Gebze).
+ * Home "Yakınımda": what is near the user, one short sideways card each: the nearest Nöbetçi Eczane with today's duty
+ * hours (else the nearest eczane), durak with its next buses, cami with the next prayer, taksi (sample driver), şarj,
+ * akaryakıt and kuaför (sample prices) and park; with a GPS fix the distance sits on the right. A card opens the
+ * place's page. Client-only (the location lives on the device); the first card asks for the location when there is no
+ * GPS fix. Only the rounded point is sent. `dutyMode`: app setting (the sample duty list is marked "Örnek liste");
+ * `prayerDays`: today's and tomorrow's prayer times (Gebze).
  */
 export function HomeNearby({ dutyMode, prayerDays }: { dutyMode: DutyMode; prayerDays: PrayerDay[] }) {
   const isClient = useIsClient();
@@ -356,7 +390,7 @@ export function HomeNearby({ dutyMode, prayerDays }: { dutyMode: DutyMode; praye
           ))
         : state.items?.length
           ? state.items.map((n) => (
-              <li key={n.key} className={ITEM}>
+              <li key={n.key} className={n.key === "duty" ? DUTY_ITEM : ITEM}>
                 <NearestCard n={n} showDistance={gps} sample={n.key === "duty" && dutyMode === "demo"} prayerDays={prayerDays} />
               </li>
             ))
