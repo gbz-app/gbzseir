@@ -36,6 +36,8 @@ const KINDS: ReadonlyArray<{ kind: PoiKind; label: string }> = [
 const SAMPLE_PRICE: Partial<Record<PoiKind, string>> = { ev_charge: "8,50 TL/kWh", fuel: "47,90 TL/L" };
 const SAMPLE_HAIRCUT = "Kesim 350 TL";
 const SAMPLE_DRIVER = "Ali Yıldız";
+/** Taximeter minimum fare ("indi-bindi"), a sample until the UKOME tariff is connected. */
+const SAMPLE_TAXI_MIN = "İndi-bindi 100 TL";
 
 const PARK_CATEGORIES = new Set(["park", "tabiat_parki"]);
 /** Businesses that read as a hairdresser or barber (name or category). */
@@ -55,7 +57,7 @@ const CARD =
 /** No scroll snapping: a snapped strip jumps to its old card when the location card is added in front after hydration. */
 const ITEM = "w-[12.5rem] shrink-0";
 /** The Nöbetçi Eczane card is a little wider: its duty hours ("Bugün 08:30 - Yarın 08:30") fit on one line. */
-const DUTY_ITEM = "w-[13.5rem] shrink-0";
+const DUTY_ITEM = "w-[14.25rem] shrink-0";
 const LABEL = "min-w-0 flex-1 truncate text-[15px] font-semibold text-muted-foreground";
 const NAME = "mt-auto truncate pt-2.5 text-[17px] leading-snug font-semibold";
 const FOOT = "mt-1 truncate text-sm font-semibold";
@@ -200,14 +202,9 @@ function MiniIcon({ icon: Icon, tone }: { icon: LucideIcon; tone: string }) {
   );
 }
 
-/** Nöbetçi Eczane: today's duty hours ("Bugün 08:30 - Yarın 08:30"); the sample duty list keeps its warning under it. */
-function DutyFoot({ start, end, sample }: { start: string; end: string; sample: boolean }) {
-  return (
-    <>
-      <span className={cn(FOOT, "text-[13px] font-bold text-red-600 tabular-nums")}>{describeDutyWindow({ start, end })}</span>
-      {sample ? <span className="truncate text-xs font-semibold text-muted-foreground">Örnek liste</span> : null}
-    </>
-  );
+/** Nöbetçi Eczane: today's duty hours ("Bugün 08:30 - Yarın 08:30"). A sample duty list says "örnek" in the kind row. */
+function DutyFoot({ start, end }: { start: string; end: string }) {
+  return <span className={cn(FOOT, "text-[13px] font-bold text-red-600 tabular-nums")}>{describeDutyWindow({ start, end })}</span>;
 }
 
 /** A coming bus: red with a pulsing dot at "Şimdi", green within 5 minutes, calm blue otherwise. */
@@ -266,15 +263,23 @@ function PrayerFoot({ days, fallback }: { days: PrayerDay[]; fallback: string | 
   );
 }
 
-/** Taksi: a round profile picture (3D avatar, not a real person) and a sample driver name, marked "örnek" (mockup). */
+/**
+ * Taksi: a round profile picture (3D avatar, not a real person), a sample driver name and the taximeter's minimum fare
+ * ("İndi-bindi"), marked "örnek" (mockup).
+ */
 function TaxiFoot() {
   return (
     <span className="mt-2 flex items-center gap-2">
-      <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-yellow-100" aria-hidden>
-        <Image src="/images/emoji/man-3d.webp" alt="" width={28} height={28} className="size-7" />
+      <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-yellow-100" aria-hidden>
+        <Image src="/images/emoji/man-3d.webp" alt="" width={32} height={32} className="size-8" />
       </span>
-      <span className="min-w-0 truncate text-sm font-semibold">{SAMPLE_DRIVER}</span>
-      <span className="shrink-0 text-xs font-semibold text-muted-foreground">örnek</span>
+      <span className="min-w-0 leading-tight">
+        <span className="flex items-baseline gap-1.5">
+          <span className="min-w-0 truncate text-sm font-semibold">{SAMPLE_DRIVER}</span>
+          <span className="shrink-0 text-xs font-semibold text-muted-foreground">örnek</span>
+        </span>
+        <span className="block truncate text-[13px] font-bold text-amber-700 tabular-nums">{SAMPLE_TAXI_MIN}</span>
+      </span>
     </span>
   );
 }
@@ -300,10 +305,13 @@ function NearestCard({ n, showDistance, sample, prayerDays }: { n: Nearest; show
   // With a GPS fix the distance sits on the right of the kind ("Durak 120 m"); the Nöbetçi Eczane card shows its hours.
   const distance = showDistance && n.distance != null ? n.distance : null;
   const right = distance != null && n.foot.kind !== "duty" ? formatDistance(distance) : null;
+  // The sample duty list (demo mode) is marked with a small "örnek", like the sample prices: a made-up duty would send
+  // people to a closed pharmacy at night.
+  const tag = n.foot.kind === "duty" && sample ? "örnek" : null;
   let foot: React.ReactNode;
   switch (n.foot.kind) {
     case "duty":
-      foot = <DutyFoot start={n.foot.start} end={n.foot.end} sample={sample} />;
+      foot = <DutyFoot start={n.foot.start} end={n.foot.end} />;
       break;
     case "stop":
       foot = <StopFoot stop={n.foot} />;
@@ -329,6 +337,7 @@ function NearestCard({ n, showDistance, sample, prayerDays }: { n: Nearest; show
         <MiniIcon icon={n.icon} tone={n.tone} />
         <span className={LABEL}>{n.label}</span>
         {right ? <span className="shrink-0 text-sm font-semibold text-muted-foreground tabular-nums">{right}</span> : null}
+        {tag ? <span className="shrink-0 text-xs font-semibold text-muted-foreground">{tag}</span> : null}
       </span>
       <span className={NAME}>{n.name}</span>
       {foot}
