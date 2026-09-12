@@ -3,15 +3,12 @@ import { Clock3, MapPin, PhoneOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { describeDutyWindow, isDutyActive } from "@/core/duty";
 import { formatDistance } from "@/core/geo";
-import { routes } from "@/core/routes";
 import { Button } from "@/components/ui/button";
 import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
 import { DemoBadge, DutyBadge, OpenStatusBadge, VerifiedBadge } from "@/components/shared/badges";
 import { openStatus } from "../lib/hours";
-import { taxiReportSubject } from "../lib/taxi";
 import type { NearbyItem } from "../types";
-import { InfoReportSheet } from "./info-report-sheet";
 import { KindIcon } from "./kind-icon";
 
 /** Black "Ara" (same look as the firm page's call bar). */
@@ -90,16 +87,7 @@ export function NearbyCard({ item, now, showDistance, selected, demoDuty, onShow
           ) : null}
         </div>
       </div>
-      {isTaxi && !item.phone ? (
-        <div className="relative z-10 mt-2.5 text-[13px]">
-          <p className="flex items-center gap-1.5 text-muted-foreground">
-            <PhoneOff className="size-3.5 shrink-0" aria-hidden />
-            Telefon bilgisi yok
-          </p>
-          <InfoReportSheet mode="phone" subject={taxiReportSubject(item)} path={routes.nearby.root("taksi")} />
-        </div>
-      ) : null}
-      <div className={cn("relative z-10 flex gap-2", isTaxi && !item.phone ? "mt-1" : "mt-3.5")}>
+      <div className="relative z-10 mt-3.5 flex gap-2">
         {item.phone ? (
           <CallButton
             phone={item.phone}
@@ -108,6 +96,11 @@ export function NearbyCard({ item, now, showDistance, selected, demoDuty, onShow
             variant={isTaxi ? "default" : "success"}
             className={cn("flex-1 rounded-full", isTaxi && TAXI_CALL)}
           />
+        ) : isTaxi ? (
+          // Same card as the others; without a number the call button stays, passive, with a crossed-out phone.
+          <Button type="button" disabled aria-label="Ara (telefon numarası yok)" className={cn("flex-1 rounded-full", TAXI_CALL)}>
+            <PhoneOff aria-hidden /> Ara
+          </Button>
         ) : null}
         <DirectionsButton
           lat={item.lat}

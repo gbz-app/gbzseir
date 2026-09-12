@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ChevronRight, Loader2, LocateFixed, Search, SearchX, X } from "lucide-react";
+import { ChevronRight, LayoutGrid, Loader2, LocateFixed, Search, SearchX, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { isDutyActive } from "@/core/duty";
@@ -249,8 +249,23 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-background/95 via-background/70 to-transparent px-4 pt-2.5 pb-5">
-        <div ref={chipsRef} className="pointer-events-auto">
-          <ChipFilter options={CHIP_OPTIONS} value={filter} onChange={onFilterChange} ariaLabel="Ne arıyorsun?" centerSelected />
+        {/* "Hepsi" (the whole city guide) stays pinned on the left; the filter chips scroll beside it to the screen edge. */}
+        <div ref={chipsRef} className="pointer-events-auto flex items-center gap-2">
+          <Link
+            href={routes.guide.root()}
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-card px-4 text-sm font-semibold whitespace-nowrap text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <LayoutGrid className="size-4" aria-hidden /> Hepsi
+          </Link>
+          <ChipFilter
+            options={CHIP_OPTIONS}
+            value={filter}
+            onChange={onFilterChange}
+            ariaLabel="Ne arıyorsun?"
+            centerSelected
+            bleed={false}
+            className="-mr-4 min-w-0 flex-1 pr-4"
+          />
         </div>
       </div>
 
@@ -277,13 +292,15 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
             </>
           }
           header={
-            <div className="flex items-center justify-between gap-2">
+            // Title on the left, the count in the right corner ("60 taksi durağı"); the sort note under the title.
+            <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h2 className="truncate text-lg leading-tight font-bold">{meta.title}</h2>
-                <p className="mt-0.5 truncate text-xs text-muted-foreground" aria-live="polite">
-                  {data.loading ? "Yükleniyor…" : `${visible.length} ${meta.noun}`} · {sortHint}
-                </p>
+                <h2 className="truncate text-xl leading-tight font-bold">{meta.title}</h2>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">{sortHint}</p>
               </div>
+              <p className="shrink-0 pt-0.5 text-sm font-semibold text-muted-foreground tabular-nums" aria-live="polite">
+                {data.loading ? "Yükleniyor…" : `${visible.length} ${meta.noun}`}
+              </p>
             </div>
           }
           toolbar={

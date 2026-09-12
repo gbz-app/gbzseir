@@ -57,7 +57,7 @@ export const NEARBY_FILTERS: FilterMeta[] = [
   { value: "eczane", label: "Eczane", icon: Pill, marker: "pharmacy", title: "Yakındaki eczaneler", noun: "eczane" },
   { value: "cami", label: "Cami", icon: MoonStar, marker: "mosque", title: "Yakındaki camiler", noun: "cami" },
   { value: "durak", label: "Durak", icon: Bus, marker: "bus_stop", title: "Yakındaki duraklar", noun: "durak" },
-  { value: "taksi", label: "Taksi", icon: CarTaxiFront, marker: "taxi", title: "Yakındaki taksi durakları", noun: "taksi durağı" },
+  { value: "taksi", label: "Taksi", icon: CarTaxiFront, marker: "taxi", title: "Taksi Durakları", noun: "taksi durağı" },
   { value: "atm", label: "ATM", icon: Banknote, marker: "atm", title: "Yakındaki ATM'ler", noun: "ATM" },
   { value: "banka", label: "Banka", icon: Vault, marker: "bank", title: "Yakındaki banka şubeleri", noun: "banka şubesi" },
   { value: "akaryakit", label: "Akaryakıt", icon: Fuel, marker: "fuel", title: "Yakındaki akaryakıt istasyonları", noun: "akaryakıt istasyonu" },
