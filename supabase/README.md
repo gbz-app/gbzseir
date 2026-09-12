@@ -93,7 +93,21 @@ Data sources and licences (the /kaynaklar page should credit them):
 ## Demo accounts
 
 All demo rows carry `is_demo = true` (profiles, businesses, listings, reviews, announcements, events, finance, news
-articles). Login is phone + SMS OTP; in demo mode the OTP of normal/demo accounts is shown by the login screen (`rpc get_demo_otp`).
+articles). Login is phone + SMS OTP. In demo mode (`app_settings.otp_demo_mode = true`, no SMS provider) the code
+screen shows the OTP (`rpc get_demo_otp`) of demo numbers (+90 555 000 XXXX) and of brand-new sign-ups: a Turkish
+mobile with no confirmed account that is not an admin (owner decision 2026-09-12, `2026091387_otp_signup_on_screen.sql`).
+Numbers with a confirmed account and admins are refused by the hook ("this number already has an account") and their
+codes are never readable. Residual prototype risks: anyone can claim a number that has no account yet, the refusal
+tells whether a number has an account, and captcha is off. Every number that got a code on screen is recorded in
+`private.otp_onscreen_signups` (phone, first_at; no client access); `supabase/golive/otp_golive.sql` closes those
+accounts at go-live (sessions, refresh tokens and MFA factors deleted) and drops the ledger.
+
+**Passwords: only admins keep one** (owner decision 2026-09-12). The trigger `private.auth_users_password_guard` on
+`auth.users` wipes `encrypted_password` of every non-admin row on insert and update, and wipes any password at the
+moment a phone gets confirmed (this blocks the pre-account takeover through `POST /auth/v1/signup {phone, password}`).
+Side effects: a non-admin `updateUser({ password })` succeeds but stores nothing; a new admin created with a password
+loses it on insert, so create the user, promote the profile to `admin`, confirm the phone, then set the password.
+This design depends on Auth `sms_autoconfirm = false`.
 
 | Phone | Role |
 |---|---|
@@ -122,7 +136,10 @@ admin exists; it also removes the `media/demo/` photos and stops the demo duty r
 OTP (valid until 2027-06-30), and the **Send SMS hook as a Postgres function**:
 `pg-functions://postgres/public/send_sms_hook`. The hook accepts only Turkish mobile numbers (+905XXXXXXXXX, login and
 phone change) and stores the code in `public.demo_otp` (no RLS access; codes older than 1 day are deleted)
-instead of sending an SMS. Inspect the config with `node --env-file=.env.local scripts/db/auth-config.mjs get sms`.
+instead of sending an SMS. It issues a code only when `get_demo_otp` may show it: demo numbers (login and phone
+change), and on login a brand-new sign-up while demo mode is on (`private.otp_signup_code_visible`: TR mobile, no
+confirmed `auth.users` row, no admin profile; `get_demo_otp` re-checks it at read time). Everything else is refused with
+an `SMS provider not configured: ...` error that the app maps to a Turkish message (`src/lib/auth/otp.ts`). Inspect the config with `node --env-file=.env.local scripts/db/auth-config.mjs get sms`.
 
 ### Switching off demo OTP (when a real SMS provider such as Netgsm or İleti Merkezi is added)
 
@@ -134,8 +151,11 @@ was removed).
    signature with `SEND_SMS_HOOK_SECRET`) that calls the provider's OTP API in under 2 s.
 2. Point Auth at it: `hook_send_sms_uri = https://<domain>/api/hooks/send-sms`, `hook_send_sms_secrets = v1,whsec_...`
    (PATCH `/v1/projects/{ref}/config/auth`), or disable the hook and configure a built-in provider.
-3. `update public.app_settings set value = 'false' where key = 'otp_demo_mode';`
-4. Optionally `truncate public.demo_otp;` and remove the admin test OTP (`sms_test_otp = ""`).
+3. Run `supabase/golive/otp_golive.sql` (dry-run it first with `scripts/dev/sql-dryrun.mjs`): demo mode off,
+   `get_demo_otp`, the demo hook and `demo_otp` dropped, the on-screen sign-ups of the ledger closed and the ledger
+   dropped, non-admin passwords wiped again, never-verified sign-ups older than 1 day purged (an optional daily
+   `cron.schedule` for that purge is in the file, commented out). Keep `sms_autoconfirm = false`.
+4. Optionally remove the admin test OTP (`sms_test_otp = ""`).
 
 ## Account delete
 

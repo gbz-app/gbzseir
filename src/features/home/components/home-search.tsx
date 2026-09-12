@@ -19,7 +19,7 @@ export function HomeSearch() {
         router.push(value ? routes.search(value) : routes.search());
       }}
     >
-      <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" strokeWidth={1.75} aria-hidden />
+      <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" strokeWidth={2.25} aria-hidden />
       <input
         type="search"
         value={q}

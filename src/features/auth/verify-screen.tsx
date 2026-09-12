@@ -6,6 +6,7 @@ import { MessageSquareText } from "lucide-react";
 import { toast } from "sonner";
 import { OtpForm } from "@/components/auth/otp-form";
 import { EmptyState } from "@/components/shared/empty-state";
+import { IS_ADMIN_SITE } from "@/config/app-mode";
 import { createClient } from "@/lib/supabase/client";
 import { TABLES } from "@/lib/db-contract";
 import { useAuth } from "@/lib/auth/auth-provider";
@@ -65,10 +66,18 @@ export function VerifyScreen({ phone, next, demoMode }: { phone: string | null; 
         step={2}
         title="Kodu gir"
         description={
-          <>
-            <span className="font-bold whitespace-nowrap text-foreground tabular-nums">{maskPhone(phone)}</span> numarasına gönderdiğimiz 6 haneli
-            kodu yaz.
-          </>
+          demoMode && !IS_ADMIN_SITE ? (
+            // Prototype mode: no SMS is sent, the code is shown in the banner below.
+            <>
+              <span className="font-bold whitespace-nowrap text-foreground tabular-nums">{maskPhone(phone)}</span> numarası için oluşturduğumuz 6
+              haneli kodu yaz.
+            </>
+          ) : (
+            <>
+              <span className="font-bold whitespace-nowrap text-foreground tabular-nums">{maskPhone(phone)}</span> numarasına gönderdiğimiz 6
+              haneli kodu yaz.
+            </>
+          )
         }
       />
       <Link

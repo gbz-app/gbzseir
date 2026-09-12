@@ -109,7 +109,8 @@ export function OtpForm({
     setResendAt(Date.now() + resendAfter * 1000);
     setCode("");
     setNonce((n) => n + 1);
-    toast.success("Yeni kod gönderildi");
+    // Prototype mode sends no SMS: the new code appears in the banner.
+    toast.success(showDemo ? "Yeni kod oluşturuldu" : "Yeni kod gönderildi");
   };
 
   return (

@@ -41,7 +41,8 @@ export function LoginScreen({ next, demoMode = false }: { next: string; demoMode
         <p className="mt-5 flex items-start gap-2 rounded-2xl bg-highlight-soft px-4 py-3 text-xs leading-relaxed text-highlight-foreground dark:text-foreground">
           <FlaskConical className="mt-0.5 size-4 shrink-0 text-highlight" aria-hidden />
           <span>
-            <strong>Prototip modu:</strong> Gerçek SMS gönderilmez. Demo numaralarında kod bir sonraki ekranda gösterilir.
+            <strong>Prototip modu:</strong> SMS gönderilmez. Yeni kayıt oluyorsan ya da demo numarası kullanıyorsan kodun bir
+            sonraki ekranda gösterilir.
           </span>
         </p>
       ) : null}

@@ -45,13 +45,11 @@ export function useOtpDemoModeSetting(enabled: boolean): boolean {
 /**
  * PROTOTYPE ONLY (app_settings.otp_demo_mode = true): no SMS is sent; the code captured by the Send-SMS hook
  * is read with rpc('get_demo_otp') and shown in a clearly labelled amber banner.
- * Demo numbers (+90555000XXXX) only: for any other number nothing is rendered (testers type their own code).
+ * The RPC decides who sees a code: demo numbers (+90555000XXXX) and brand-new sign-ups. For a number with a
+ * confirmed account (or an admin) it stays null; after the tries the banner shows a neutral text (it cannot tell a
+ * slow new sign-up from an existing account) instead of retrying.
  */
-export function DemoOtpBanner(props: DemoOtpBannerProps) {
-  return isDemoOtpPhone(props.phone) ? <DemoOtpCode {...props} /> : null;
-}
-
-function DemoOtpCode({ phone, nonce = 0, onFill }: DemoOtpBannerProps) {
+export function DemoOtpBanner({ phone, nonce = 0, onFill }: DemoOtpBannerProps) {
   const [state, setState] = React.useState<{ key: string; code: string | null; done: boolean }>({ key: "", code: null, done: false });
   const [retry, setRetry] = React.useState(0);
   const key = `${phone}|${nonce}|${retry}`;
@@ -97,6 +95,10 @@ function DemoOtpCode({ phone, nonce = 0, onFill }: DemoOtpBannerProps) {
             Kodu doldur
           </Button>
         </div>
+      ) : current.done && !isDemoOtpPhone(phone) ? (
+        <p className="mt-2 text-sm">
+          {"Bu numara için kod gösterilemiyor. Yeni kayıtsan 'Kodu tekrar gönder'e bas; kayıtlı hesabın varsa şimdilik demo numarayla giriş yap."}
+        </p>
       ) : current.done ? (
         <div className="mt-2 flex items-center justify-between gap-3 text-sm">
           <span>Kod henüz alınamadı.</span>

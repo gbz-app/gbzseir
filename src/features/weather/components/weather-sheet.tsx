@@ -40,7 +40,7 @@ export function WeatherButton({ className }: { className?: string }) {
           aria-label={data ? `Hava durumu: ${round(data.now.temperature)} derece, ${info?.label}` : "Hava durumu"}
           className={cn(ROUND_ICON_BUTTON, data && "w-auto gap-1 px-3", className)}
         >
-          <Icon className="size-5" strokeWidth={1.75} />
+          <Icon className="size-5" strokeWidth={2.25} />
           {data ? <span className="text-sm font-semibold tabular-nums">{round(data.now.temperature)}°</span> : null}
         </button>
       </DrawerTrigger>
@@ -112,8 +112,6 @@ function ForecastBody({ data }: { data: Forecast }) {
           <DayRow key={d.date} day={d} lo={lo} span={span} />
         ))}
       </ul>
-
-      <p className="text-xs text-muted-foreground">Kaynak: Open-Meteo. Tahminler saatlik güncellenir.</p>
     </div>
   );
 }
