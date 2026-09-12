@@ -118,14 +118,14 @@ export const AI_PROVIDERS: Record<AiProvider, AiProviderInfo> = {
     label: "OpenAI",
     keyEnv: "OPENAI_API_KEY",
     defaultModel: "gpt-5.4-mini",
-    privacy: "Mesajların yanıt üretmek için OpenAI'ye (ABD) gönderilir ve saklanmaz.",
+    privacy: "Mesajların ve eklediğin fotoğraflar yanıt üretmek için OpenAI'ye (ABD) gönderilir ve saklanmaz.",
     modelHelp: "OpenAI modelleri. GPT-5.4 mini hızlı ve ekonomiktir; çoğu soru için yeterlidir.",
   },
   anthropic: {
     label: "Anthropic",
     keyEnv: "ANTHROPIC_API_KEY",
     defaultModel: "claude-haiku-4-5",
-    privacy: "Mesajların yanıt üretmek için Anthropic'e (ABD) gönderilir ve saklanmaz.",
+    privacy: "Mesajların ve eklediğin fotoğraflar yanıt üretmek için Anthropic'e (ABD) gönderilir ve saklanmaz.",
     modelHelp: "Anthropic (Claude) modelleri. Haiku 4.5 en erken 15 Ekim 2026'da kullanımdan kalkabilir; o zaman Sonnet 5'e geç.",
   },
 };

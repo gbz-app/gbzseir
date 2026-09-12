@@ -16,6 +16,10 @@ export const AI_HISTORY_ASSISTANT_CHARS = 3000;
 export const AI_HISTORY_TOTAL_CHARS = 12_000;
 /** Cards shown under one answer. */
 export const AI_MAX_CARDS = 12;
+/** A photo sent with a question: a data URL of at most this many characters (about 750 KB of image). */
+export const AI_MAX_IMAGE_CHARS = 1_000_000;
+/** Accepted photo data URL (the client re-encodes to WebP or JPEG): 1 = MIME type, 2 = base64 data. */
+export const AI_IMAGE_DATA_URL = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/;
 
 /** Example questions (intro chips). `href` is the app page used while GebzemAI is off. */
 export const AI_EXAMPLES: ReadonlyArray<{ text: string; href: string }> = [

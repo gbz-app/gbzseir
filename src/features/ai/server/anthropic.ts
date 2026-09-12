@@ -20,7 +20,10 @@ export type ApiThinkingBlock = { type: "thinking"; thinking: string; signature: 
 export type ApiRedactedThinkingBlock = { type: "redacted_thinking"; data: string };
 export type ApiContentBlock = ApiTextBlock | ApiToolUseBlock | ApiThinkingBlock | ApiRedactedThinkingBlock;
 export type ApiToolResultBlock = { type: "tool_result"; tool_use_id: string; content: string; is_error?: boolean };
-export type ApiMessage = { role: "user"; content: string | ApiToolResultBlock[] } | { role: "assistant"; content: string | ApiContentBlock[] };
+export type ApiImageBlock = { type: "image"; source: { type: "base64"; media_type: string; data: string } };
+export type ApiMessage =
+  | { role: "user"; content: string | Array<ApiToolResultBlock | ApiImageBlock | ApiTextBlock> }
+  | { role: "assistant"; content: string | ApiContentBlock[] };
 export type ApiTool = AgentTool;
 export type RunAgentOptions = AgentRunOptions;
 
@@ -202,7 +205,17 @@ async function streamOnce(
  * and continue. At most maxToolRounds tool rounds; the next request forbids tools so the model answers.
  */
 export async function runAgent(o: AgentRunOptions): Promise<AgentResult> {
-  const convo: ApiMessage[] = o.messages.map((m): ApiMessage => (m.role === "user" ? { role: "user", content: m.content } : { role: "assistant", content: m.content }));
+  const convo: ApiMessage[] = o.messages.map((m): ApiMessage => {
+    if (m.role === "assistant") return { role: "assistant", content: m.content };
+    if (!m.image) return { role: "user", content: m.content };
+    return {
+      role: "user",
+      content: [
+        { type: "image", source: { type: "base64", media_type: m.image.mime, data: m.image.data } },
+        { type: "text", text: m.content },
+      ],
+    };
+  });
   const maxRounds = o.maxToolRounds ?? 4;
   const out = createTextOutput(o.emit);
 

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowUp, Clock, Info, LogIn, MessageCirclePlus, Plus, RotateCcw, Square, TrendingUp, TriangleAlert } from "lucide-react";
+import { ArrowLeft, ArrowUp, Clock, Info, LogIn, MessageCirclePlus, Plus, RotateCcw, Square, TrendingUp, TriangleAlert, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { BottomDock } from "@/components/shared/bottom-dock";
@@ -11,6 +11,7 @@ import { routes } from "@/core/routes";
 import { formatDayLabel, formatTime } from "@/core/format";
 import { nameWords } from "@/core/name";
 import { useAuth } from "@/lib/auth/auth-provider";
+import { ACCEPTED_IMAGE_TYPES, processImage } from "@/lib/images";
 import { canGoBack } from "@/lib/navigation-history";
 import { notify } from "@/lib/notify";
 import { readJSON, removeItem, writeJSON } from "@/lib/storage";
@@ -23,7 +24,9 @@ import {
   AI_EXAMPLES,
   AI_HISTORY_ASSISTANT_CHARS,
   AI_HISTORY_LIMIT,
+  AI_IMAGE_DATA_URL,
   AI_MAX_CARDS,
+  AI_MAX_IMAGE_CHARS,
   AI_MAX_INPUT_CHARS,
   type AiCard,
   type AiErrorBody,
@@ -35,7 +38,9 @@ import {
 export type GebzemAiMode = "inactive" | "guest" | "chat";
 export type AiLimitState = { reason: AiLimitReason; resetAt: string | null };
 
-type UserMsg = { id: string; role: "user"; text: string };
+/** A photo picked for the question: the sent image and a small preview, both data URLs (memory only). */
+type PickedImage = { dataUrl: string; thumbUrl: string };
+type UserMsg = { id: string; role: "user"; text: string; image?: PickedImage };
 type AssistantMsg = {
   id: string;
   role: "assistant";
@@ -47,13 +52,18 @@ type AssistantMsg = {
 };
 type ChatMsg = UserMsg | AssistantMsg;
 
-/** Chat of this tab (sessionStorage: survives opening a card and coming back, gone when the tab closes). */
+/** Chat of this tab (sessionStorage: survives opening a card and coming back, gone when the tab closes). Photos are not kept. */
 const STORAGE_KEY = "gebzemai:chat:v1";
+/** A guest's question, kept for the chat after sign-in (this tab only). */
+const DRAFT_KEY = "gebzemai:draft";
 const MAX_STORED = 30;
 const TEXTAREA_MAX_PX = 144;
+/** Sent with a photo when nothing is typed. */
+const PHOTO_ONLY_QUESTION = "Bu fotoğrafla ilgili yardımcı olur musun?";
+const PLACEHOLDER = "GebzemAI'a sorun";
 const PRIVACY = <AiPrivacyText />;
 const BLACK_CTA = "bg-foreground text-background shadow-none hover:bg-foreground/90";
-/** The white composer card (chat and the sign-in / search stand-ins of the other modes). */
+/** The white composer card. */
 const COMPOSER_CARD = "rounded-[1.75rem] bg-card px-4 pt-3 pb-2";
 const SEND_BUTTON = "flex size-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
@@ -117,6 +127,15 @@ function plain(text: string): string {
 
 const isLimitReason = (v: unknown): v is AiLimitReason => v === "daily" || v === "minute" || v === "budget";
 
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Fotoğraf okunamadı."));
+    reader.readAsDataURL(blob);
+  });
+}
+
 // ---------------------------------------------------------------------------------------------------------------------------
 // Shared pieces
 // ---------------------------------------------------------------------------------------------------------------------------
@@ -131,10 +150,11 @@ function AiHeader({ onNewChat }: { onNewChat?: () => void }) {
   return (
     <header className={cn("sticky top-0 z-40 pt-safe", onNewChat ? "bg-background" : "bg-transparent")}>
       <div className="grid h-(--topbar-h) grid-cols-[2.75rem_1fr_2.75rem] items-center gap-1 px-2">
-        <Button variant="ghost" size="icon" className="rounded-full bg-foreground/[0.06] hover:bg-foreground/10" onClick={goBack} aria-label="Geri">
-          <ArrowLeft className="size-5" strokeWidth={2.2} />
+        {/* Bare arrow, no circle behind it. */}
+        <Button variant="ghost" size="icon" className="rounded-full hover:bg-transparent active:opacity-60" onClick={goBack} aria-label="Geri">
+          <ArrowLeft className="size-6" strokeWidth={2.6} />
         </Button>
-        <h1 className="truncate text-center text-[17px] leading-tight font-bold">GebzemAI</h1>
+        <h1 className="truncate text-center text-xl leading-tight font-bold">GebzemAI</h1>
         {onNewChat ? (
           <Button variant="ghost" size="icon" className="rounded-full" onClick={onNewChat} aria-label="Yeni sohbet">
             <MessageCirclePlus className="size-5" strokeWidth={2} />
@@ -221,15 +241,6 @@ function TypedSuggestion({ onPick, hrefFor }: { onPick?: (text: string) => void;
   );
 }
 
-function Note({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="mb-2 flex items-start gap-1.5 px-1 text-[13px] leading-snug text-muted-foreground">
-      <Info className="mt-px size-4 shrink-0" aria-hidden />
-      <span>{children}</span>
-    </p>
-  );
-}
-
 /** "Bu sohbet kaydedilmiyor." above the composer; a tap shows where the messages go (provider line). */
 function PrivacyNote() {
   const [open, setOpen] = React.useState(false);
@@ -248,20 +259,93 @@ function PrivacyNote() {
   );
 }
 
-/** Composer look-alike that opens a page (sign-in for guests, search while GebzemAI is off). */
-function ComposerLink({ href, label }: { href: string; label: string }) {
+type ComposerProps = {
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  /** "+": adds a photo in the chat (sign-in / a notice in the other modes). */
+  onPlus: () => void;
+  canSend: boolean;
+  disabled?: boolean;
+  placeholder?: string;
+  streaming?: boolean;
+  onStop?: () => void;
+  inputRef?: React.RefObject<HTMLTextAreaElement | null>;
+  /** Picked photo, shown above the text. */
+  preview?: React.ReactNode;
+  describedBy?: string;
+};
+
+/** White card: the question (grows up to TEXTAREA_MAX_PX), "+" on the left, black send / stop on the right. */
+function Composer({ value, onChange, onSubmit, onPlus, canSend, disabled, placeholder = PLACEHOLDER, streaming, onStop, inputRef, preview, describedBy }: ComposerProps) {
+  const ownRef = React.useRef<HTMLTextAreaElement>(null);
+  const ref = inputRef ?? ownRef;
+  // Also when the value is set from outside (a question taken back into the composer).
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, TEXTAREA_MAX_PX)}px`;
+  }, [value, ref]);
+
   return (
-    <Link href={href} className={cn(COMPOSER_CARD, "block outline-none focus-visible:ring-3 focus-visible:ring-ring/50")}>
-      <span className="block min-h-7 py-0.5 text-base leading-6 text-muted-foreground">{label}</span>
-      <span className="mt-1 flex items-center justify-between" aria-hidden>
-        <span className="-ml-2 flex size-10 items-center justify-center">
-          <Plus className="size-6" strokeWidth={1.75} />
-        </span>
-        <span className={cn(SEND_BUTTON, "opacity-30")}>
-          <ArrowUp className="size-5" strokeWidth={2.4} />
-        </span>
-      </span>
-    </Link>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+      className={cn(COMPOSER_CARD, "has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring/40")}
+    >
+      {preview}
+      <label htmlFor="gebzemai-input" className="sr-only">
+        GebzemAI&apos;a sor
+      </label>
+      <textarea
+        id="gebzemai-input"
+        ref={ref}
+        rows={1}
+        value={value}
+        maxLength={AI_MAX_INPUT_CHARS}
+        disabled={disabled}
+        placeholder={placeholder}
+        enterKeyHint="send"
+        aria-describedby={describedBy}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && streaming) {
+            e.preventDefault();
+            onStop?.();
+            return;
+          }
+          if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+          // Phones: the return key adds a line; the send button sends.
+          const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
+          if (touch) return;
+          e.preventDefault();
+          onSubmit();
+        }}
+        className="block max-h-36 min-h-7 w-full resize-none bg-transparent py-0.5 text-base leading-6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+      />
+      <div className="mt-1 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={onPlus}
+          aria-label="Fotoğraf ekle"
+          className="-ml-2 flex size-10 items-center justify-center rounded-full text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <Plus className="size-6" strokeWidth={1.75} aria-hidden />
+        </button>
+        {streaming ? (
+          <button type="button" onClick={onStop} aria-label="Yanıtı durdur" className={SEND_BUTTON}>
+            <Square className="size-3.5 fill-current" aria-hidden />
+          </button>
+        ) : (
+          <button type="submit" disabled={!canSend} aria-label="Gönder" className={cn(SEND_BUTTON, "transition-opacity disabled:opacity-30")}>
+            <ArrowUp className="size-5" strokeWidth={2.4} aria-hidden />
+          </button>
+        )}
+      </div>
+    </form>
   );
 }
 
@@ -283,8 +367,10 @@ export function GebzemAiScreen({
   return <ChatGate initialLimit={initialLimit} initialRemaining={initialRemaining} onInactive={() => setCurrent("inactive")} />;
 }
 
-/** Key missing or switched off: same screen, the suggestions open the matching app pages and the composer opens search. */
+/** Key missing or switched off: same screen; the question can be typed, sending (or "+") says GebzemAI is not on yet. */
 function InactiveView() {
+  const [value, setValue] = React.useState("");
+  const notYet = () => notify.info("GebzemAI henüz aktif değil", "Yakında buradan sorabileceksin. Şimdilik aradığını aramada bulabilirsin.");
   return (
     <>
       <AiGlow />
@@ -295,15 +381,23 @@ function InactiveView() {
         </Welcome>
       </div>
       <BottomDock inFlow className="sticky bottom-0 z-30 bg-transparent">
-        <Note>GebzemAI henüz aktif değil. Şimdilik aradığını aramada bulabilirsin.</Note>
-        <ComposerLink href={routes.search()} label="Kocaeli'de ara" />
+        <PrivacyNote />
+        <Composer value={value} onChange={setValue} onSubmit={notYet} onPlus={notYet} canSend={!!value.trim()} />
       </BottomDock>
     </>
   );
 }
 
+/** Guests type the question here; sending (or "+") signs in and the question waits in the chat. */
 function GuestView() {
+  const router = useRouter();
   const login = routes.auth.login(routes.ai());
+  const [value, setValue] = React.useState("");
+  const signIn = () => {
+    const text = value.trim();
+    if (text) writeJSON(DRAFT_KEY, text.slice(0, AI_MAX_INPUT_CHARS), "session");
+    router.push(login);
+  };
   return (
     <>
       <AiGlow />
@@ -314,8 +408,8 @@ function GuestView() {
         </Welcome>
       </div>
       <BottomDock inFlow className="sticky bottom-0 z-30 bg-transparent">
-        <Note>Soru sormak için giriş yapman yeterli.</Note>
-        <ComposerLink href={login} label="GebzemAI'a sor" />
+        <PrivacyNote />
+        <Composer value={value} onChange={setValue} onSubmit={signIn} onPlus={signIn} canSend={!!value.trim()} />
       </BottomDock>
     </>
   );
@@ -347,22 +441,32 @@ function Chat({ initialLimit, initialRemaining, onInactive }: { initialLimit: Ai
   const { profile } = useAuth();
   const firstName = nameWords(profile?.full_name)[0];
   const [messages, setMessages] = React.useState<ChatMsg[]>(loadStored);
-  const [input, setInput] = React.useState("");
+  // A question typed before signing in (GuestView) comes back here once.
+  const [input, setInput] = React.useState(() => {
+    const draft = readJSON<unknown>(DRAFT_KEY, "", "session");
+    return typeof draft === "string" ? draft.slice(0, AI_MAX_INPUT_CHARS) : "";
+  });
+  const [image, setImage] = React.useState<PickedImage | null>(null);
+  const [imageBusy, setImageBusy] = React.useState(false);
   const [streaming, setStreaming] = React.useState(false);
   const [limit, setLimit] = React.useState<AiLimitState | null>(initialLimit);
   const [remaining, setRemaining] = React.useState<number | null>(initialRemaining);
   const [needsLogin, setNeedsLogin] = React.useState(false);
   const [announce, setAnnounce] = React.useState("");
-  const [showExamples, setShowExamples] = React.useState(false);
   const abortRef = React.useRef<AbortController | null>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const fileRef = React.useRef<HTMLInputElement>(null);
   const stickRef = React.useRef(true);
 
-  // Keep the chat of this tab (not while an answer is still streaming).
+  React.useEffect(() => removeItem(DRAFT_KEY, "session"), []);
+
+  // Keep the chat of this tab (not while an answer is still streaming); photos stay in memory only.
   React.useEffect(() => {
     if (streaming) return;
-    if (messages.length) writeJSON(STORAGE_KEY, { v: 1, messages: messages.slice(-MAX_STORED) }, "session");
-    else removeItem(STORAGE_KEY, "session");
+    if (messages.length) {
+      const stored = messages.slice(-MAX_STORED).map((m) => (m.role === "user" ? { id: m.id, role: m.role, text: m.text } : m));
+      writeJSON(STORAGE_KEY, { v: 1, messages: stored }, "session");
+    } else removeItem(STORAGE_KEY, "session");
   }, [messages, streaming]);
 
   // Follow the answer while the reader is at the bottom.
@@ -389,14 +493,23 @@ function Chat({ initialLimit, initialRemaining, onInactive }: { initialLimit: Ai
     return () => window.clearTimeout(id);
   }, [limit]);
 
-  const resizeTextarea = () => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, TEXTAREA_MAX_PX)}px`;
+  /** Resized and re-encoded on the phone (metadata and location dropped) before it is attached. */
+  const pickImage = async (file: File | undefined) => {
+    if (!file) return;
+    setImageBusy(true);
+    try {
+      const { full, thumb } = await processImage(file, { maxSize: 1024, thumbSize: 320, quality: 0.75 });
+      const [dataUrl, thumbUrl] = await Promise.all([blobToDataUrl(full.blob), blobToDataUrl(thumb.blob)]);
+      if (dataUrl.length > AI_MAX_IMAGE_CHARS || !AI_IMAGE_DATA_URL.test(dataUrl)) throw new Error("Bu fotoğraf gönderilemiyor. Başka bir fotoğraf dene.");
+      setImage({ dataUrl, thumbUrl });
+    } catch (e) {
+      notify.warning("Fotoğraf eklenemedi", e instanceof Error ? e.message : undefined);
+    } finally {
+      setImageBusy(false);
+    }
   };
 
-  const ask = async (conversation: ChatMsg[], opts: { userId?: string; question?: string } = {}) => {
+  const ask = async (conversation: ChatMsg[], opts: { userId?: string; question?: string; image?: PickedImage } = {}) => {
     const assistantId = newId();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -405,12 +518,12 @@ function Chat({ initialLimit, initialRemaining, onInactive }: { initialLimit: Ai
     setAnnounce("GebzemAI yanıtlıyor");
     const patch = (fn: (m: AssistantMsg) => AssistantMsg) =>
       setMessages((ms) => ms.map((m) => (m.id === assistantId && m.role === "assistant" ? fn(m) : m)));
-    // Nothing was answered (limit, sign-in, bad input): take the question back into the composer.
+    // Nothing was answered (limit, sign-in, bad input): take the question and its photo back into the composer.
     const takeBack = () => {
       setMessages((ms) => ms.filter((m) => m.id !== assistantId && m.id !== opts.userId));
       if (opts.userId && opts.question) {
-        setInput(opts.question);
-        window.requestAnimationFrame(resizeTextarea);
+        setInput(opts.question === PHOTO_ONLY_QUESTION && opts.image ? "" : opts.question);
+        if (opts.image) setImage(opts.image);
       }
     };
 
@@ -420,7 +533,7 @@ function Chat({ initialLimit, initialRemaining, onInactive }: { initialLimit: Ai
       const res = await fetch("/api/gebzemai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: buildHistory(conversation) }),
+        body: JSON.stringify({ messages: buildHistory(conversation), ...(opts.image ? { image: opts.image.dataUrl } : {}) }),
         signal: ctrl.signal,
         cache: "no-store",
       });
@@ -496,20 +609,19 @@ function Chat({ initialLimit, initialRemaining, onInactive }: { initialLimit: Ai
   const blocked = !!limit || needsLogin;
 
   const send = (raw: string) => {
-    const text = raw.trim();
-    if (!text || streaming || blocked) return;
+    const text = raw.trim() || (image ? PHOTO_ONLY_QUESTION : "");
+    if (!text || streaming || blocked || imageBusy) return;
     if (text.length > AI_MAX_INPUT_CHARS) {
       notify.warning("Soru çok uzun", `En fazla ${AI_MAX_INPUT_CHARS} karakter yazabilirsin.`);
       return;
     }
-    const user: UserMsg = { id: newId(), role: "user", text };
+    const user: UserMsg = { id: newId(), role: "user", text, ...(image ? { image } : {}) };
     const conversation = [...messages, user];
     setMessages(conversation);
     setInput("");
-    setShowExamples(false);
-    window.requestAnimationFrame(resizeTextarea);
+    setImage(null);
     stickRef.current = true;
-    void ask(conversation, { userId: user.id, question: text });
+    void ask(conversation, { userId: user.id, question: text, image: image ?? undefined });
   };
 
   const retry = (assistantId: string) => {
@@ -517,10 +629,11 @@ function Chat({ initialLimit, initialRemaining, onInactive }: { initialLimit: Ai
     const index = messages.findIndex((m) => m.id === assistantId);
     if (index < 0) return;
     const conversation = messages.slice(0, index);
-    if (conversation[conversation.length - 1]?.role !== "user") return;
+    const question = conversation[conversation.length - 1];
+    if (question?.role !== "user") return;
     setMessages(conversation);
     stickRef.current = true;
-    void ask(conversation);
+    void ask(conversation, { image: question.image });
   };
 
   const stop = () => abortRef.current?.abort();
@@ -529,17 +642,39 @@ function Chat({ initialLimit, initialRemaining, onInactive }: { initialLimit: Ai
     abortRef.current?.abort();
     setMessages([]);
     setInput("");
+    setImage(null);
     setAnnounce("");
     removeItem(STORAGE_KEY, "session");
-    window.requestAnimationFrame(() => {
-      resizeTextarea();
-      textareaRef.current?.focus();
-    });
+    window.requestAnimationFrame(() => textareaRef.current?.focus());
   };
 
   const count = input.length;
-  const canSend = !!input.trim() && !streaming && !blocked;
+  const canSend = (!!input.trim() || !!image) && !streaming && !blocked && !imageBusy;
   const empty = messages.length === 0;
+
+  const preview =
+    image || imageBusy ? (
+      <div className="mb-2 flex">
+        <span className="relative size-16 overflow-hidden rounded-xl bg-muted">
+          {image ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={image.thumbUrl} alt="Eklenen fotoğraf" className="size-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setImage(null)}
+                aria-label="Fotoğrafı kaldır"
+                className="absolute top-1 right-1 flex size-7 items-center justify-center rounded-full bg-foreground/70 text-background outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </>
+          ) : (
+            <span className="absolute inset-0 animate-pulse bg-muted-foreground/15 motion-reduce:animate-none" aria-label="Fotoğraf hazırlanıyor" role="status" />
+          )}
+        </span>
+      </div>
+    ) : null;
 
   return (
     <>
@@ -555,7 +690,11 @@ function Chat({ initialLimit, initialRemaining, onInactive }: { initialLimit: Ai
         ) : (
           messages.map((m) =>
             m.role === "user" ? (
-              <div key={m.id} className="flex justify-end">
+              <div key={m.id} className="flex flex-col items-end gap-1.5">
+                {m.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={m.image.thumbUrl} alt="Gönderdiğin fotoğraf" className="max-h-48 max-w-[70%] rounded-2xl object-cover" />
+                ) : null}
                 <p className="max-w-[85%] rounded-3xl rounded-br-lg bg-foreground px-4 py-2.5 text-[15px] leading-relaxed break-words whitespace-pre-wrap text-background">
                   <span className="sr-only">Sen: </span>
                   {m.text}
@@ -574,105 +713,55 @@ function Chat({ initialLimit, initialRemaining, onInactive }: { initialLimit: Ai
 
       {/* Shared dock kept in flow and stuck to the bottom: see-through over the glow until the chat starts, then solid. */}
       <BottomDock inFlow className={cn("sticky bottom-0 z-30", empty && "bg-transparent")}>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            send(input);
-          }}
-        >
-          {limit ? <LimitNotice limit={limit} /> : null}
-          {needsLogin ? (
-            <div role="status" className="mb-2 flex items-center gap-3 rounded-2xl bg-card p-3">
-              <LogIn className="size-5 shrink-0 text-primary" aria-hidden />
-              <p className="min-w-0 flex-1 text-sm">Oturumun kapanmış görünüyor.</p>
-              <Button asChild size="sm" className={BLACK_CTA}>
-                <Link href={routes.auth.login(routes.ai())}>Giriş yap</Link>
-              </Button>
-            </div>
-          ) : null}
-          {!limit && remaining !== null && remaining <= 5 ? (
-            <p className="mb-1.5 text-center text-xs text-muted-foreground">{remaining > 0 ? `Bugün ${remaining} soru hakkın kaldı` : "Bugünlük son sorunu sordun"}</p>
-          ) : null}
-          {showExamples ? (
-            <ul id="gebzemai-examples" className="no-scrollbar -mx-4 mb-2 flex gap-2 overflow-x-auto px-4" aria-label="Hazır sorular">
-              {SUGGESTIONS.map((s) => (
-                <li key={s.text} className="shrink-0">
-                  <button
-                    type="button"
-                    disabled={streaming || blocked}
-                    onClick={() => send(s.text)}
-                    className="inline-flex min-h-10 items-center rounded-full bg-card px-4 text-sm font-medium whitespace-nowrap outline-none transition-colors active:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
-                  >
-                    {s.text}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <PrivacyNote />
-          <div className={cn(COMPOSER_CARD, "has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring/40")}>
-            <label htmlFor="gebzemai-input" className="sr-only">
-              GebzemAI&apos;a sor
-            </label>
-            <textarea
-              id="gebzemai-input"
-              ref={textareaRef}
-              rows={1}
-              value={input}
-              maxLength={AI_MAX_INPUT_CHARS}
-              disabled={blocked}
-              placeholder={blocked ? "Şu an soru gönderilemiyor" : "GebzemAI'a sor"}
-              enterKeyHint="send"
-              aria-describedby={count >= AI_COUNTER_FROM ? "gebzemai-count" : undefined}
-              onChange={(e) => {
-                setInput(e.target.value);
-                resizeTextarea();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Escape" && streaming) {
-                  e.preventDefault();
-                  stop();
-                  return;
-                }
-                if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
-                // Phones: the return key adds a line; the send button sends.
-                const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
-                if (touch) return;
-                e.preventDefault();
-                send(input);
-              }}
-              className="block max-h-36 min-h-7 w-full resize-none bg-transparent py-0.5 text-base leading-6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
-            />
-            <div className="mt-1 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setShowExamples((v) => !v)}
-                aria-label="Hazır sorular"
-                aria-expanded={showExamples}
-                aria-controls={showExamples ? "gebzemai-examples" : undefined}
-                className="-ml-2 flex size-10 items-center justify-center rounded-full text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <Plus className={cn("size-6 transition-transform", showExamples && "rotate-45")} strokeWidth={1.75} aria-hidden />
-              </button>
-              {streaming ? (
-                <button type="button" onClick={stop} aria-label="Yanıtı durdur" className={SEND_BUTTON}>
-                  <Square className="size-3.5 fill-current" aria-hidden />
-                </button>
-              ) : (
-                <button type="submit" disabled={!canSend} aria-label="Gönder" className={cn(SEND_BUTTON, "transition-opacity disabled:opacity-30")}>
-                  <ArrowUp className="size-5" strokeWidth={2.4} aria-hidden />
-                </button>
-              )}
-            </div>
+        {limit ? <LimitNotice limit={limit} /> : null}
+        {needsLogin ? (
+          <div role="status" className="mb-2 flex items-center gap-3 rounded-2xl bg-card p-3">
+            <LogIn className="size-5 shrink-0 text-primary" aria-hidden />
+            <p className="min-w-0 flex-1 text-sm">Oturumun kapanmış görünüyor.</p>
+            <Button asChild size="sm" className={BLACK_CTA}>
+              <Link href={routes.auth.login(routes.ai())}>Giriş yap</Link>
+            </Button>
           </div>
-          {count >= AI_COUNTER_FROM ? (
-            // Not live (it would be read on every keystroke); the textarea points to it with aria-describedby.
-            <p id="gebzemai-count" className={cn("mt-1 pr-2 text-right text-xs tabular-nums", count >= AI_MAX_INPUT_CHARS ? "font-semibold text-destructive" : "text-muted-foreground")}>
-              {count}/{AI_MAX_INPUT_CHARS}
-              <span className="sr-only"> karakter</span>
-            </p>
-          ) : null}
-        </form>
+        ) : null}
+        {!limit && remaining !== null && remaining <= 5 ? (
+          <p className="mb-1.5 text-center text-xs text-muted-foreground">{remaining > 0 ? `Bugün ${remaining} soru hakkın kaldı` : "Bugünlük son sorunu sordun"}</p>
+        ) : null}
+        <PrivacyNote />
+        <input
+          ref={fileRef}
+          type="file"
+          accept={ACCEPTED_IMAGE_TYPES}
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden
+          onChange={(e) => {
+            void pickImage(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
+        <Composer
+          inputRef={textareaRef}
+          value={input}
+          onChange={setInput}
+          onSubmit={() => send(input)}
+          onPlus={() => {
+            if (!blocked && !streaming) fileRef.current?.click();
+          }}
+          canSend={canSend}
+          disabled={blocked}
+          placeholder={blocked ? "Şu an soru gönderilemiyor" : PLACEHOLDER}
+          streaming={streaming}
+          onStop={stop}
+          preview={preview}
+          describedBy={count >= AI_COUNTER_FROM ? "gebzemai-count" : undefined}
+        />
+        {count >= AI_COUNTER_FROM ? (
+          // Not live (it would be read on every keystroke); the textarea points to it with aria-describedby.
+          <p id="gebzemai-count" className={cn("mt-1 pr-2 text-right text-xs tabular-nums", count >= AI_MAX_INPUT_CHARS ? "font-semibold text-destructive" : "text-muted-foreground")}>
+            {count}/{AI_MAX_INPUT_CHARS}
+            <span className="sr-only"> karakter</span>
+          </p>
+        ) : null}
       </BottomDock>
     </>
   );

@@ -33,9 +33,10 @@ import {
 export const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 
 export type OaToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
+export type OaUserPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail: "low" } };
 export type OaMessage =
   | { role: "system"; content: string }
-  | { role: "user"; content: string }
+  | { role: "user"; content: string | OaUserPart[] }
   | { role: "assistant"; content: string | null; tool_calls?: OaToolCall[] }
   | { role: "tool"; tool_call_id: string; content: string };
 export type OaTool = { type: "function"; function: { name: string; description: string; parameters: Record<string, unknown> } };
@@ -194,7 +195,9 @@ async function streamOnce(o: AgentRunOptions, body: Record<string, unknown>, onT
     } else {
       // The usage chunk comes last. A stream cut before it (stop, error) is still billed, so the budget gets a
       // conservative estimate: about 3 characters per input token, 2 per output token.
-      o.usage.input += Math.ceil(payload.length / 3);
+      // A photo counts as its low-detail view (about 100 tokens), not as its base64 text.
+      const photos = payload.match(/;base64,[A-Za-z0-9+/=]+/g) ?? [];
+      o.usage.input += Math.ceil((payload.length - photos.join("").length) / 3) + photos.length * 100;
       o.usage.output += Math.ceil(streamedChars / 2);
     }
     if (!readDone) reader.cancel().catch(() => {});
@@ -215,7 +218,13 @@ async function streamOnce(o: AgentRunOptions, body: Record<string, unknown>, onT
 export async function runOpenAiAgent(o: AgentRunOptions): Promise<AgentResult> {
   const convo: OaMessage[] = [
     { role: "system", content: o.system },
-    ...o.messages.map((m): OaMessage => (m.role === "user" ? { role: "user", content: m.content } : { role: "assistant", content: m.content })),
+    ...o.messages.map((m): OaMessage => {
+      if (m.role === "assistant") return { role: "assistant", content: m.content };
+      if (!m.image) return { role: "user", content: m.content };
+      // detail "low": one small fixed-size view, enough for "what is this" and cheap for the daily budget.
+      const url = `data:${m.image.mime};base64,${m.image.data}`;
+      return { role: "user", content: [{ type: "text", text: m.content }, { type: "image_url", image_url: { url, detail: "low" } }] };
+    }),
   ];
   const tools = toOpenAiTools(o.tools);
   const maxRounds = o.maxToolRounds ?? 4;

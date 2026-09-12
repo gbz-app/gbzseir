@@ -30,8 +30,11 @@ export class AiUpstreamError extends Error {
 /** A tool definition (JSON Schema input). Anthropic takes it as is; OpenAI wraps it as a function tool. */
 export type AgentTool = { name: string; description: string; input_schema: Record<string, unknown> };
 
-/** Conversation history as plain text (the route builds it; it starts with the user and alternates). */
-export type AgentMessage = { role: "user" | "assistant"; content: string };
+/** A photo attached to the question: MIME type and base64 data (no data: prefix). */
+export type AgentImage = { mime: string; data: string };
+
+/** Conversation history as plain text (the route builds it; it starts with the user and alternates). The last question may carry a photo. */
+export type AgentMessage = { role: "user" | "assistant"; content: string; image?: AgentImage };
 
 export type ToolRunResult = { content: string; isError?: boolean };
 

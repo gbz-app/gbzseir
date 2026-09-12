@@ -8,6 +8,8 @@ import {
   AI_HISTORY_ASSISTANT_CHARS,
   AI_HISTORY_LIMIT,
   AI_HISTORY_TOTAL_CHARS,
+  AI_IMAGE_DATA_URL,
+  AI_MAX_IMAGE_CHARS,
   AI_MAX_INPUT_CHARS,
   type AiErrorBody,
   type AiErrorCode,
@@ -32,6 +34,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+/** Text of the request; a photo may add up to AI_MAX_IMAGE_CHARS. */
 const MAX_BODY_CHARS = 48_000;
 /** Whole turn (all model calls and tools); the function itself may run 60 s. */
 const DEADLINE_MS = 50_000;
@@ -43,6 +46,8 @@ const bodySchema = z.object({
     .array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(20_000) }))
     .min(1)
     .max(40),
+  /** Photo of the last question (data URL, re-encoded on the phone); sent to the provider for this turn only. */
+  image: z.string().max(AI_MAX_IMAGE_CHARS).regex(AI_IMAGE_DATA_URL).optional(),
 });
 
 type BeginResult = {
@@ -140,7 +145,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const raw = await request.text().catch(() => "");
-  if (!raw || raw.length > MAX_BODY_CHARS) return errorJson(413, { code: "too_long", message: "Mesaj çok uzun." });
+  if (!raw || raw.length > MAX_BODY_CHARS + AI_MAX_IMAGE_CHARS) return errorJson(413, { code: "too_long", message: "Mesaj ya da fotoğraf çok büyük." });
   let json: unknown;
   try {
     json = JSON.parse(raw);
@@ -157,6 +162,9 @@ export async function POST(request: Request): Promise<Response> {
   }
   const messages = toApiMessages(capHistory(items));
   if (!messages.length) return errorJson(400, { code: "bad_request", message: "Bir soru yaz." });
+  // The photo goes with the question it was sent with (the last message is that question); never stored or logged.
+  const photo = parsed.data.image ? AI_IMAGE_DATA_URL.exec(parsed.data.image) : null;
+  if (photo) messages[messages.length - 1].image = { mime: photo[1], data: photo[2] };
 
   const config = await getAiConfig();
   const provider = config.provider;
