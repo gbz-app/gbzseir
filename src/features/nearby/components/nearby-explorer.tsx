@@ -55,7 +55,38 @@ function defaultFilterFor(now: number, dutyMode: DutyMode): NearbyFilter {
   return minutes >= 19 * 60 || minutes < 8 * 60 + 30 ? "nobetci" : "eczane";
 }
 
-const CHIP_OPTIONS: ChipOption<NearbyFilter>[] = NEARBY_FILTERS.map((f) => ({ value: f.value, label: f.label, icon: f.icon }));
+/** No "Nöbetçi" chip: it is the second option of the Eczane tab (PharmacySwitch in the list). */
+const CHIP_OPTIONS: ChipOption<NearbyFilter>[] = NEARBY_FILTERS.filter((f) => f.value !== "nobetci").map((f) => ({ value: f.value, label: f.label, icon: f.icon }));
+
+/** Tüm eczaneler / Nöbetçi, above the pharmacy list (same look as the guide's ATM / banka switch). */
+function PharmacySwitch({ value, onChange }: { value: "eczane" | "nobetci"; onChange: (f: NearbyFilter) => void }) {
+  const options = [
+    { value: "eczane", label: "Tüm eczaneler" },
+    { value: "nobetci", label: "Nöbetçi" },
+  ] as const;
+  return (
+    <div role="radiogroup" aria-label="Eczaneler" className="grid grid-cols-2 rounded-full bg-card p-1">
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => onChange(o.value)}
+            className={cn(
+              "h-9 rounded-full text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              on ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function sourceFor(filter: NearbyFilter, dutyMode: DutyMode): { source: string; sourceUrl?: string; callAhead?: boolean; note?: React.ReactNode } {
   switch (filter) {
@@ -246,7 +277,8 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-background/95 via-background/70 to-transparent px-4 pt-2.5 pb-5">
         <div ref={chipsRef} className="pointer-events-auto">
-          <ChipFilter options={CHIP_OPTIONS} value={filter} onChange={onFilterChange} ariaLabel="Ne arıyorsun?" centerSelected />
+          {/* Nöbetçi is part of the Eczane tab: its chip stays on while the switch below picks the list. */}
+          <ChipFilter options={CHIP_OPTIONS} value={filter === "nobetci" ? "eczane" : filter} onChange={onFilterChange} ariaLabel="Ne arıyorsun?" centerSelected />
         </div>
       </div>
 
@@ -282,32 +314,38 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
             </div>
           }
           toolbar={
-            !data.loading && !data.error && items.length > 0 ? (
-              <div role="search" className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-                <input
-                  ref={searchRef}
-                  type="search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onFocus={() => {
-                    if (snap === "peek") setSnap("half");
-                  }}
-                  placeholder="Ara"
-                  aria-label={`${meta.title} içinde ara`}
-                  enterKeyHint="search"
-                  autoComplete="off"
-                  className="h-11 w-full rounded-full bg-card pr-11 pl-12 text-[15px] outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:hidden"
-                />
-                {query ? (
-                  <button
-                    type="button"
-                    onClick={clearQuery}
-                    aria-label="Aramayı temizle"
-                    className="absolute top-1/2 right-1 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    <X className="size-4" aria-hidden />
-                  </button>
+            // Eczane tab: the Tüm eczaneler / Nöbetçi switch (also while loading or empty), then the search.
+            filter === "eczane" || filter === "nobetci" || (!data.loading && !data.error && items.length > 0) ? (
+              <div className="flex flex-col gap-3">
+                {filter === "eczane" || filter === "nobetci" ? <PharmacySwitch value={filter} onChange={onFilterChange} /> : null}
+                {!data.loading && !data.error && items.length > 0 ? (
+                  <div role="search" className="relative">
+                    <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                    <input
+                      ref={searchRef}
+                      type="search"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onFocus={() => {
+                        if (snap === "peek") setSnap("half");
+                      }}
+                      placeholder="Ara"
+                      aria-label={`${meta.title} içinde ara`}
+                      enterKeyHint="search"
+                      autoComplete="off"
+                      className="h-11 w-full rounded-full bg-card pr-11 pl-12 text-[15px] outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:hidden"
+                    />
+                    {query ? (
+                      <button
+                        type="button"
+                        onClick={clearQuery}
+                        aria-label="Aramayı temizle"
+                        className="absolute top-1/2 right-1 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+                      >
+                        <X className="size-4" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             ) : null
