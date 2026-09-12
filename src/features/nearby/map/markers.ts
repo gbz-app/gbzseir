@@ -34,8 +34,14 @@ const GLYPHS: Record<GlyphKind, string> = {
 };
 
 /**
- * 40x40 round pin SVG, centred on the point: the kind's light colour with a thin (1.25px) white border and its dark
- * glyph, or the letter "E" for pharmacies. Same 38px outer size as before; flat (no shadow, maps.css).
+ * Rendered pin size in px. The drawing below is in a 40x40 viewBox, so circle, white ring, glyph, letter and stroke
+ * widths all scale together with this one number (34 = 85% of the old 40, owner 12.09: pins one notch smaller).
+ */
+const PIN_PX = 34;
+
+/**
+ * Round pin SVG, centred on the point: the kind's light colour with a thin white border (1.25 viewBox units, ~1.06px)
+ * and its dark glyph, or the letter "E" for pharmacies. ~32px outer circle; flat (no shadow, maps.css).
  */
 export function pinSvg(kind: MarkerKind): string {
   const meta = KIND_META[kind];
@@ -44,7 +50,7 @@ export function pinSvg(kind: MarkerKind): string {
     ? `<text x="20" y="20.5" text-anchor="middle" dominant-baseline="central" font-size="19" font-weight="700" fill="${meta.glyph}">${letter}</text>`
     : `<g transform="translate(9.2 9.2) scale(0.9)" fill="none" stroke="${meta.glyph}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">${GLYPHS[kind as GlyphKind]}</g>`;
   return (
-    '<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" focusable="false">' +
+    `<svg width="${PIN_PX}" height="${PIN_PX}" viewBox="0 0 40 40" aria-hidden="true" focusable="false">` +
     `<circle cx="20" cy="20" r="18.4" fill="${meta.pin}" stroke="#fff" stroke-width="1.25"/>` +
     inner +
     "</svg>"

@@ -35,8 +35,9 @@
   background-color: #1c1c1e;
 }
 
-/* Pins: positioned by the overlay (translate3d to the point); round pins are centred on the point. The 44px box is the
-   hit target around the 38px circle. Flat: no shadow (the thin white border separates them). */
+/* Pins: positioned by the overlay (translate3d to the point); round pins are centred on the point. The 44px box stays
+   the touch target around the ~32px circle (34px SVG, markers.ts PIN_PX), so the -22px anchor is unchanged. Flat: no
+   shadow (the thin white border separates them). */
 .gz-pin-layer {
   position: absolute;
   top: 0;
@@ -73,9 +74,10 @@
 .gz-pin svg {
   display: block;
 }
+/* Pulled 3px into the 44px box so the ring keeps its ~3px gap around the smaller circle. */
 .gz-pin:focus-visible {
   outline: 3px solid oklch(0.6 0.118 184.704 / 0.7);
-  outline-offset: 0;
+  outline-offset: -3px;
 }
 .gz-pin-static {
   cursor: default;
@@ -84,12 +86,13 @@
   transform: scale(1.28);
 }
 
+/* User location: 18px halo box, centred on the point (-9px), with a 14px dot (2px white border) inside. */
 .gz-user {
   position: absolute;
-  top: -11px;
-  left: -11px;
-  width: 22px;
-  height: 22px;
+  top: -9px;
+  left: -9px;
+  width: 18px;
+  height: 18px;
   pointer-events: none;
 }
 .gz-user::before {
@@ -103,7 +106,7 @@
 .gz-user::after {
   content: "";
   position: absolute;
-  inset: 3px;
+  inset: 2px;
   border-radius: 9999px;
   background: #2563eb;
   border: 2px solid #fff;
