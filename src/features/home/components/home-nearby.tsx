@@ -40,8 +40,8 @@ const SAMPLE_PRICES: Partial<Record<PoiKind, PriceRow[]>> = {
     { label: "Motorin", price: "49,10 TL" },
   ],
   ev_charge: [
-    { label: "AC şarj", price: "8,50 TL/kWh" },
-    { label: "DC hızlı", price: "12,90 TL/kWh" },
+    { label: "AC", price: "8,50 TL/kWh" },
+    { label: "DC", price: "12,90 TL/kWh" },
   ],
 };
 const SAMPLE_HAIR: PriceRow[] = [
@@ -62,21 +62,28 @@ const WALK_M_PER_MIN = 80;
 const MAX_WALK_MIN = 45;
 
 const RADIUS_M = 25_000;
-const NEXT_BUSES = 2;
-const MAX_LINES = 3;
-/** Short sideways cards with the home page's 28 px corners: kind on top, the name and one small line at the bottom. */
-const CARD =
-  "flex h-full min-h-[8.5rem] w-full flex-col rounded-[1.75rem] bg-card p-4 text-left outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50";
-/** Soft snapping (proximity), so a swipe comes to rest on a card without pulling the strip back. */
-const ITEM = "w-[12.5rem] shrink-0 snap-start";
-/** The Nöbetçi Eczane card is wider: kind, distance and tag on one row, the duty hours on one line. */
-const DUTY_ITEM = "w-[17.5rem] shrink-0 snap-start";
-const LABEL = "min-w-0 flex-1 truncate text-[15px] font-semibold text-muted-foreground";
-const NAME = "mt-auto truncate pt-2.5 text-[17px] leading-snug font-semibold";
-const FOOT = "mt-1 truncate text-sm font-semibold";
-const PILL = "inline-flex h-8 max-w-full items-center gap-1.5 rounded-full px-3 text-[13px] font-bold whitespace-nowrap tabular-nums";
+/** Buses in the durak card's pill row (it scrolls sideways). */
+const NEXT_BUSES = 6;
+const MAX_LINES = 6;
 
-/** What the card shows under the name. */
+/*
+ * Every card is the same (owner, 12.09): 15 rem wide, three rows - the kind (and the distance), the name, a row of
+ * pills that scrolls sideways inside the card - with the same type sizes, so the names line up across the strip.
+ */
+const CARD =
+  "flex h-full w-full flex-col rounded-[1.75rem] bg-card p-4 text-left outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50";
+/** Soft snapping (proximity), so a swipe comes to rest on a card without pulling the strip back. */
+const ITEM = "w-[15rem] shrink-0 snap-start";
+const LABEL = "min-w-0 flex-1 truncate text-[15px] font-semibold text-muted-foreground";
+const NAME = "mt-3 truncate text-[17px] leading-snug font-semibold";
+/** Third row: one line of pills, scrolling sideways inside the card (to its edges). */
+const PILLS = "no-scrollbar -mx-4 mt-3 flex h-8 gap-1.5 overflow-x-auto px-4";
+const PILL = "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold whitespace-nowrap tabular-nums";
+const MUTED_PILL = `${PILL} bg-muted text-foreground`;
+/** A card's height (p-4, the three rows and their gaps), for the loading placeholders. */
+const CARD_H = "h-[9.25rem]";
+
+/** What the card shows in its pill row. */
 type Foot =
   | { kind: "text" }
   | { kind: "duty"; start: string; end: string }
@@ -215,11 +222,6 @@ function MiniIcon({ icon: Icon, tone }: { icon: LucideIcon; tone: string }) {
   );
 }
 
-/** Nöbetçi Eczane: today's duty hours ("Bugün 08:30 - Yarın 08:30"). A sample duty list says "örnek" in the kind row. */
-function DutyFoot({ start, end }: { start: string; end: string }) {
-  return <span className={cn(FOOT, "text-[13px] font-bold text-red-600 tabular-nums")}>{describeDutyWindow({ start, end })}</span>;
-}
-
 /** A coming bus: red with a pulsing dot at "Şimdi", green within 5 minutes, calm blue otherwise. */
 function BusPill({ d }: { d: Departure }) {
   const now = d.inMin <= 1;
@@ -233,114 +235,90 @@ function BusPill({ d }: { d: Departure }) {
   );
 }
 
-/** Durak: the next buses by the timetable, soonest first; else the stop's lines. */
-function StopFoot({ stop }: { stop: Extract<Foot, { kind: "stop" }> }) {
+/** Durak: the next buses by the timetable, soonest first (the row scrolls); else the stop's lines. */
+function StopPills({ stop, fallback }: { stop: Extract<Foot, { kind: "stop" }>; fallback: string | null }) {
   const times = useStopTimes(stop.stopId, stop.lat, stop.lng, NEXT_BUSES);
-  if (times.upcoming.length) {
-    return (
-      <span className="mt-2 flex gap-1.5 overflow-hidden" aria-label="Yaklaşan otobüsler">
-        {times.upcoming.map((d) => (
-          <BusPill key={`${d.line}-${d.minutes}`} d={d} />
-        ))}
-      </span>
-    );
-  }
+  if (times.upcoming.length) return times.upcoming.map((d) => <BusPill key={`${d.line}-${d.minutes}`} d={d} />);
   const lines = stop.lines.length ? stop.lines : times.lines;
-  if (!lines.length) return null;
-  return (
-    <span className="mt-2 flex gap-1 overflow-hidden" aria-label={`Hatlar: ${lines.join(", ")}`}>
-      {lines.slice(0, MAX_LINES).map((l) => (
-        <span key={l} className={cn(PILL, "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-200")}>
-          {l}
-        </span>
-      ))}
-      {lines.length > MAX_LINES ? <span className="self-center text-[13px] font-semibold text-muted-foreground">+{lines.length - MAX_LINES}</span> : null}
+  if (!lines.length) return fallback ? <span className={MUTED_PILL}>{fallback}</span> : null;
+  return lines.slice(0, MAX_LINES).map((l) => (
+    <span key={l} className={cn(PILL, "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-200")}>
+      {l}
     </span>
-  );
+  ));
 }
 
 /** Cami: the next prayer and the time left ("Öğle 13:05 · 42 dk"), deep green in its last 15 minutes. */
-function PrayerFoot({ days, fallback }: { days: PrayerDay[]; fallback: string | null }) {
+function PrayerPills({ days, fallback }: { days: PrayerDay[]; fallback: string | null }) {
   const now = useNow();
   const next = now ? nextPrayer(days, now) : null;
-  if (!next) return fallback ? <span className={cn(FOOT, "text-muted-foreground")}>{fallback}</span> : null;
+  if (!next) return fallback ? <span className={MUTED_PILL}>{fallback}</span> : null;
   const left = next.at - now;
   const soon = left <= 15 * 60_000;
   return (
-    <span className="mt-2 flex" aria-label={`Sıradaki vakit ${next.label} ${next.time}`}>
-      <span className={cn(PILL, soon ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200")}>
-        {next.label} {next.time}
-        <span className={cn("font-semibold", soon ? "text-white/85" : "text-emerald-700 dark:text-emerald-300")}>{formatCountdown(left)}</span>
-      </span>
+    <span className={cn(PILL, soon ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200")}>
+      {next.label} {next.time}
+      <span className={cn("font-semibold", soon ? "text-white/85" : "text-emerald-700 dark:text-emerald-300")}>{formatCountdown(left)}</span>
     </span>
   );
 }
 
-/** Taksi: a round profile picture (3D avatar, not a real person), the driver's name and the taximeter's minimum fare. */
-function TaxiFoot() {
+/** Taksi: the driver (3D avatar, not a real person) and the taximeter's minimum fare. */
+function TaxiPills() {
   return (
-    <span className="mt-2 flex items-center gap-2">
-      <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-yellow-100" aria-hidden>
-        <Image src="/images/emoji/man-3d.webp" alt="" width={32} height={32} className="size-8" />
+    <>
+      <span className={cn(PILL, "bg-yellow-100 pl-1 text-yellow-900")}>
+        <Image src="/images/emoji/man-3d.webp" alt="" width={24} height={24} className="size-6 rounded-full" />
+        {SAMPLE_DRIVER}
       </span>
-      <span className="min-w-0 leading-tight">
-        <span className="block truncate text-sm font-semibold">{SAMPLE_DRIVER}</span>
-        <span className="block truncate text-[13px] font-bold text-amber-700 tabular-nums">{SAMPLE_TAXI_MIN}</span>
-      </span>
-    </span>
+      <span className={cn(PILL, "bg-amber-50 text-amber-800")}>{SAMPLE_TAXI_MIN}</span>
+    </>
   );
 }
 
-/** Şarj / akaryakıt / kuaför: two price rows ("Benzin 47,90 TL", "Motorin 49,10 TL"). */
-function PriceFoot({ rows }: { rows: PriceRow[] }) {
-  return (
-    <span className="mt-2 flex flex-col gap-0.5 text-[13px] tabular-nums">
-      {rows.slice(0, 2).map((r) => (
-        <span key={r.label} className="flex items-baseline justify-between gap-2">
-          <span className="min-w-0 truncate font-medium text-muted-foreground">{r.label}</span>
-          <span className="shrink-0 font-bold">{r.price}</span>
-        </span>
-      ))}
+/** Şarj / akaryakıt / kuaför: one pill per price ("Benzin 47,90 TL", "Motorin 49,10 TL"). */
+function PricePills({ rows }: { rows: PriceRow[] }) {
+  return rows.map((r) => (
+    <span key={r.label} className={MUTED_PILL}>
+      <span className="font-semibold text-muted-foreground">{r.label}</span>
+      {r.price}
     </span>
-  );
+  ));
 }
 
 /** Park: the walk from the user's GPS position ("Yürüyerek 6 dk"); without it, what kind of green space it is. */
-function ParkFoot({ category, distance }: { category: string; distance: number | null }) {
+function ParkPill({ category, distance }: { category: string; distance: number | null }) {
   const walk = distance != null ? Math.max(1, Math.round(distance / WALK_M_PER_MIN)) : null;
   const text = walk != null && walk <= MAX_WALK_MIN ? `Yürüyerek ${walk} dk` : category === "tabiat_parki" ? "Tabiat parkı" : "Yeşil alan";
-  return <span className={cn(FOOT, "text-lime-700")}>{text}</span>;
+  return <span className={cn(PILL, "bg-lime-100 text-lime-800")}>{text}</span>;
 }
 
-function NearestCard({ n, showDistance, sample, prayerDays }: { n: Nearest; showDistance: boolean; sample: boolean; prayerDays: PrayerDay[] }) {
+function NearestCard({ n, showDistance, prayerDays }: { n: Nearest; showDistance: boolean; prayerDays: PrayerDay[] }) {
   // With a GPS fix the distance sits on the right of the kind ("Durak 120 m", "Nöbetçi Eczane 850 m").
   const distance = showDistance && n.distance != null ? n.distance : null;
   const right = distance != null ? formatDistance(distance) : null;
-  // The sample duty list (demo mode) is marked with a small "örnek", like the sample prices: a made-up duty would send
-  // people to a closed pharmacy at night.
-  const tag = n.foot.kind === "duty" && sample ? "örnek" : null;
-  let foot: React.ReactNode;
+  let pills: React.ReactNode;
   switch (n.foot.kind) {
     case "duty":
-      foot = <DutyFoot start={n.foot.start} end={n.foot.end} />;
+      pills = <span className={cn(PILL, "bg-red-50 text-red-700")}>{describeDutyWindow({ start: n.foot.start, end: n.foot.end })}</span>;
       break;
     case "stop":
-      foot = <StopFoot stop={n.foot} />;
+      pills = <StopPills stop={n.foot} fallback={n.district} />;
       break;
     case "prayer":
-      foot = <PrayerFoot days={prayerDays} fallback={right ? null : n.district} />;
+      pills = <PrayerPills days={prayerDays} fallback={n.district} />;
       break;
     case "taxi":
-      foot = <TaxiFoot />;
+      pills = <TaxiPills />;
       break;
     case "price":
-      foot = <PriceFoot rows={n.foot.rows} />;
+      pills = <PricePills rows={n.foot.rows} />;
       break;
     case "park":
-      foot = <ParkFoot category={n.foot.category} distance={distance} />;
+      pills = <ParkPill category={n.foot.category} distance={distance} />;
       break;
     default:
-      foot = !right && n.district ? <span className={cn(FOOT, "text-muted-foreground")}>{n.district}</span> : null;
+      pills = n.district ? <span className={MUTED_PILL}>{n.district}</span> : null;
   }
   return (
     <Link href={n.href} className={CARD}>
@@ -348,21 +326,20 @@ function NearestCard({ n, showDistance, sample, prayerDays }: { n: Nearest; show
         <MiniIcon icon={n.icon} tone={n.tone} />
         <span className={LABEL}>{n.label}</span>
         {right ? <span className="shrink-0 text-sm font-semibold text-muted-foreground tabular-nums">{right}</span> : null}
-        {tag ? <span className="shrink-0 text-xs font-semibold text-muted-foreground">{tag}</span> : null}
       </span>
       <span className={NAME}>{n.name}</span>
-      {foot}
+      <span className={PILLS}>{pills}</span>
     </Link>
   );
 }
 
 /**
- * Home "Yakınımda": what is near the user, one short sideways card each: the nearest Nöbetçi Eczane with today's duty
- * hours (else the nearest eczane), durak with its next buses, cami with the next prayer, taksi (driver and minimum
- * fare), şarj, akaryakıt and kuaför (two price rows) and park; with a GPS fix the distance sits on the right. A card
- * opens the place's page. Client-only (the location lives on the device); the first card asks for the location when
- * there is no GPS fix. Only the rounded point is sent. `dutyMode`: app setting (the sample duty list gets a small
- * "örnek"); `prayerDays`: today's and tomorrow's prayer times (Gebze).
+ * Home "Yakınımda": what is near the user, one card each (all the same: kind and distance, the name, a pill row that
+ * scrolls sideways): the nearest Nöbetçi Eczane with today's duty hours (else the nearest eczane), durak with its next
+ * buses, cami with the next prayer, taksi (driver and minimum fare), şarj, akaryakıt and kuaför (prices) and park. A
+ * card opens the place's page. Client-only (the location lives on the device); the first card asks for the location
+ * when there is no GPS fix. Only the rounded point is sent. `dutyMode`: app setting; `prayerDays`: today's and
+ * tomorrow's prayer times (Gebze).
  */
 export function HomeNearby({ dutyMode, prayerDays }: { dutyMode: DutyMode; prayerDays: PrayerDay[] }) {
   const isClient = useIsClient();
@@ -398,20 +375,22 @@ export function HomeNearby({ dutyMode, prayerDays }: { dutyMode: DutyMode; praye
               <span className={LABEL}>Konum</span>
             </span>
             <span className={NAME}>Konumunu kullan</span>
-            <span className={cn(FOOT, "font-medium text-muted-foreground")}>Şu an {place} merkezine göre</span>
+            <span className={PILLS}>
+              <span className={cn(PILL, "bg-brand-soft text-primary")}>{place} merkezine göre</span>
+            </span>
           </button>
         </li>
       ) : null}
       {!settled
         ? Array.from({ length: 3 }, (_, i) => (
             <li key={`bos-${i}`} className={ITEM} aria-hidden>
-              <span className="block h-[8.5rem] animate-pulse rounded-[1.75rem] bg-card motion-reduce:animate-none" />
+              <span className={cn("block animate-pulse rounded-[1.75rem] bg-card motion-reduce:animate-none", CARD_H)} />
             </li>
           ))
         : state.items?.length
           ? state.items.map((n) => (
-              <li key={n.key} className={n.key === "duty" ? DUTY_ITEM : ITEM}>
-                <NearestCard n={n} showDistance={gps} sample={n.key === "duty" && dutyMode === "demo"} prayerDays={prayerDays} />
+              <li key={n.key} className={ITEM}>
+                <NearestCard n={n} showDistance={gps} prayerDays={prayerDays} />
               </li>
             ))
           : (
@@ -424,7 +403,9 @@ export function HomeNearby({ dutyMode, prayerDays }: { dutyMode: DutyMode; praye
                     <span className={LABEL}>Keşfet</span>
                   </span>
                   <span className={NAME}>Haritayı aç</span>
-                  <span className={cn(FOOT, "font-medium text-muted-foreground")}>Yakındakiler şu an yüklenemedi</span>
+                  <span className={PILLS}>
+                    <span className={MUTED_PILL}>Yakındakiler şu an yüklenemedi</span>
+                  </span>
                 </Link>
               </li>
             )}
