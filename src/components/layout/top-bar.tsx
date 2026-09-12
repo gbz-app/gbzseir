@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { Bell, CloudSun, Smile } from "lucide-react";
+import { Bell, CloudSun } from "lucide-react";
 import { routes } from "@/core/routes";
 import { nameWords } from "@/core/name";
 import { istanbulParts } from "@/core/time";
@@ -96,7 +97,9 @@ export function TopBar() {
           className="flex min-w-0 items-center gap-1.5 rounded-full pr-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <span className="truncate text-[21px] leading-tight font-semibold tracking-tight">{line}</span>
-          <Smile className="size-[22px] shrink-0 text-amber-500" strokeWidth={2.25} aria-hidden />
+          {/* The smile is an image, so it looks the same on iPhone and Android: Microsoft Fluent Emoji 3D "smiling face with
+              smiling eyes" (MIT, public/images/emoji/LICENSE-fluentui-emoji.txt); Apple's own emoji art may not be used. */}
+          <Image src="/images/emoji/smiling-face.webp" alt="" width={24} height={24} className="size-6 shrink-0" priority />
         </Link>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {painted ? <WeatherButton className={BARE_BUTTON} /> : <WeatherPlaceholder />}

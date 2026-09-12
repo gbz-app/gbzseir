@@ -60,10 +60,7 @@ const TONE = {
 
 const guide = routes.guide.category;
 
-/**
- * Şehir Rehberi (two rows, scrolls sideways), most needed first; the grid fills column by column, so the first
- * columns on screen hold the top of the list. Same destinations as the rows of the /rehber hub.
- */
+/** Şehir Rehberi (one row, scrolls sideways), most needed first. Same destinations as the rows of the /rehber hub. */
 const GUIDE: Tile[] = [
   // Opens Keşfet on the Eczane tab with "Nöbetçi" already selected.
   { href: routes.nearby.root("nobetci"), label: "Nöbetçi Eczane", ...kind(KIND_META.duty) },
@@ -152,7 +149,7 @@ async function EventsSection() {
 
 /**
  * C1 - Ana sayfa: başlık, arama, Yakınımda (Nöbetçi Eczane, durak, cami, taksi, şarj, akaryakıt kartları), Şehir
- * Rehberi (iki satır, yana kayan), kategoriler (başta GebzemAI), kesintiler ve afet, yaklaşan etkinlikler, sinema,
+ * Rehberi (tek satır, yana kayan), kategoriler (başta GebzemAI), kesintiler ve afet, yaklaşan etkinlikler, sinema,
  * gezilecek yerler, haberler.
  */
 export default function HomePage() {
@@ -190,12 +187,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* @container: tiles are 15% narrower than a category tile, 0.85 x (width - 3 gaps) / 4; two rows, filled by column. */}
+      {/* @container: tiles are 15% narrower than a category tile, 0.85 x (width - 3 gaps) / 4; one row, scrolls sideways. */}
       <section aria-labelledby="sehir-rehberi" className="@container">
         <SectionHeader id="sehir-rehberi" title="Şehir Rehberi" href={routes.guide.root()} />
-        <ul className="no-scrollbar -mx-4 mt-1 grid auto-cols-[calc((100cqw-2.25rem)*0.2125)] grid-flow-col grid-rows-2 gap-x-3 gap-y-3 overflow-x-auto px-4">
+        <ul className="no-scrollbar -mx-4 mt-1 flex gap-3 overflow-x-auto px-4">
           {GUIDE.map((t) => (
-            <li key={t.href}>
+            <li key={t.href} className="w-[calc((100cqw-2.25rem)*0.2125)] shrink-0">
               <ImageTile href={t.href} label={t.label} icon={t.icon} tone={t.tone} size="sm" />
             </li>
           ))}
