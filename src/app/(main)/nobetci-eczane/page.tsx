@@ -1,32 +1,10 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { routes } from "@/core/routes";
-import { CITY } from "@/config/site";
-import { PageHeader } from "@/components/shared/page-header";
-import { DutyBrowser } from "@/features/nearby/components/duty-browser";
-import { DutyUnverified } from "@/features/nearby/components/duty-unverified";
-import { getDutyData } from "@/features/nearby/server/queries";
 
-export const revalidate = 300;
-
-export const metadata: Metadata = {
-  title: `${CITY.province} Nöbetçi Eczaneler`,
-  description: `${CITY.province}'deki bugünkü ve yarınki nöbetçi eczaneler: adres, telefon ve yol tarifi. Gitmeden önce eczaneyi ara.`,
-  alternates: { canonical: routes.nearby.dutyPharmacies() },
-};
-
-/** D2 - Nöbetçi eczaneler (ISR 5 dk; the list is filtered by the current time on the client). Mode "off": official link only. */
-export default async function DutyPharmaciesPage() {
-  const data = await getDutyData();
-  return (
-    <>
-      <PageHeader title="Nöbetçi Eczaneler" subtitle={CITY.province} backHref={routes.home()} />
-      <div className="px-4 pt-4 pb-6">
-        {data.mode === "off" ? (
-          <DutyUnverified />
-        ) : (
-          <DutyBrowser rows={data.rows} serverNow={data.generatedAt} fetchedAt={data.fetchedAt} ok={data.ok} mode={data.mode} />
-        )}
-      </div>
-    </>
-  );
+/**
+ * The separate duty list page is gone (owner, 12.09): Keşfet's Eczane tab with "Nöbetçi" selected is the duty list.
+ * Old links, the app shortcut and bookmarks land there.
+ */
+export default function DutyPharmaciesPage() {
+  redirect(routes.nearby.root("nobetci"));
 }

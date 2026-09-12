@@ -35,7 +35,6 @@ import { HEPSI_GROUPS, useNearbyData } from "../lib/use-nearby-data";
 import { useNow } from "../lib/use-now";
 import type { DutyMode, NearbyFilter, NearbyItem } from "../types";
 import { CoachMarks, type CoachStep } from "./coach-marks";
-import { DutyDemoNote } from "./duty-card";
 import { DutyUnverified } from "./duty-unverified";
 import { LocationPrompt } from "./location-prompt";
 import { NearbyCard } from "./nearby-card";
@@ -255,7 +254,8 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
   };
 
   const fitKey = !data.loading && visible.length > 0 ? `${data.cacheKey}|${fitQuery}` : "";
-  const source = filter ? sourceFor(filter, dutyMode) : null;
+  // The Nöbetçi list ends with its cards (no source box, owner 12.09).
+  const source = filter && filter !== "nobetci" ? sourceFor(filter, dutyMode) : null;
 
   const coachSteps: CoachStep[] = [
     { targetRef: chipsRef, text: "Ne arıyorsan seç: nöbetçi eczane, cami, durak, ATM…", placement: "bottom" },
@@ -376,7 +376,6 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
         >
           {/* Hidden while searching so the matches start right under the search bar. */}
           {query.trim() ? null : <LocationPrompt loc={loc} onLocate={locate} className="mb-3" />}
-          {filter === "nobetci" && demoDuty && !query.trim() && !data.loading && !data.error && items.length > 0 ? <DutyDemoNote className="mb-3" /> : null}
 
           {data.loading ? (
             <ListSkeleton count={3} variant="card" />
@@ -438,12 +437,12 @@ export function NearbyExplorer({ dutyMode }: { dutyMode: DutyMode }) {
             </ul>
           )}
 
-          {filter === "nobetci" || filter === "gezilecek" ? (
+          {filter === "gezilecek" ? (
             <Link
-              href={filter === "nobetci" ? routes.nearby.dutyPharmacies() : routes.nearby.places()}
+              href={routes.nearby.places()}
               className="mt-3 flex min-h-12 items-center justify-between gap-2 rounded-2xl bg-muted/70 px-4 text-sm font-semibold text-primary outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              {filter === "nobetci" ? "Tüm nöbetçi eczaneler ve yarının listesi" : "Tüm gezilecek yerler"}
+              Tüm gezilecek yerler
               <ChevronRight className="size-4" aria-hidden />
             </Link>
           ) : null}

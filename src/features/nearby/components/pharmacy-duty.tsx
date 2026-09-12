@@ -8,7 +8,6 @@ import { ECZACI_ODASI_NAME, ECZACI_ODASI_URL } from "../config";
 import { useNow } from "../lib/use-now";
 import type { DutyMode, PharmacyDuty } from "../types";
 import { DetailSection } from "./detail-parts";
-import { DutyDemoNote } from "./duty-card";
 
 /** "Şu an nöbetçi" badge (evaluated at render time on the client); demo mode or a sample row also gets "Örnek veri". */
 export function PharmacyDutyBadges({ duties, serverNow, mode }: { duties: PharmacyDuty[]; serverNow: number; mode: DutyMode }) {
@@ -55,7 +54,6 @@ export function PharmacyDutySchedule({ duties, serverNow, mode }: { duties: Phar
               );
             })}
           </ul>
-          {demo ? <DutyDemoNote className="mt-2.5" /> : null}
         </>
       )}
     </DetailSection>
