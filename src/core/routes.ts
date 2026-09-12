@@ -98,6 +98,13 @@ export const routes = {
      * (nufus, aile-sagligi-merkezi); query: alt, banka, marka, operator, sahiplik, ilce, q, sayfa (GUIDE_PARAMS).
      */
     category: (kategori: string, query?: QueryRecord) => withQuery(`/rehber/${enc(kategori)}`, query),
+    /** JSON index of every guide row (route handler; the /rehber hub search). */
+    index: () => "/rehber/dizin",
+    /**
+     * JSON of one list (route handler): {ok, config, entries, chips, bankCounts?}; `kategori` as in category() (an
+     * institution category slug answers with its section's list and the category as config.preset).
+     */
+    dataset: (kategori: string) => `/rehber/dizin/${enc(kategori)}`,
     /** Detail of an institution, ATM, bank branch, fuel or EV charging station (places keep /gezilecek-yerler/<slug>). */
     detail: (slug: string) => `/kurum/${enc(slug)}`,
   },

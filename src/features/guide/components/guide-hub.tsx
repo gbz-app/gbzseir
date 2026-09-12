@@ -80,7 +80,7 @@ export function GuideHubSearch({
 
   const loadIndex = React.useCallback(() => {
     setIndex((s) => (s.status === "idle" || s.status === "error" ? { status: "loading", entries: [] } : s));
-    fetch(routes.guide.root() + "/dizin")
+    fetch(routes.guide.index())
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((data: { ok: boolean; entries: GuideEntry[] }) => setIndex({ status: data.entries?.length ? "ready" : "error", entries: data.entries ?? [] }))
       .catch(() => setIndex({ status: "error", entries: [] }));

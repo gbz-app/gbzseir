@@ -43,6 +43,29 @@ export type GuideListConfig = {
   bankSwitch: boolean;
 };
 
+/**
+ * The serializable part of a GuideListConfig the client needs (no icon, no queries): the list's props on
+ * /rehber/[kategori] and the `config` of the /rehber/dizin/<slug> JSON. `presetLabel` is optional so older callers
+ * that build the object by hand keep compiling; toClientListConfig always sets it.
+ */
+export type ClientListConfig = Pick<GuideListConfig, "slug" | "title" | "kind" | "chip" | "chipParam" | "preset" | "ownership" | "bankSwitch"> &
+  Partial<Pick<GuideListConfig, "presetLabel">>;
+
+/** The client part of a list configuration (see ClientListConfig). */
+export function toClientListConfig(cfg: GuideListConfig): ClientListConfig {
+  return {
+    slug: cfg.slug,
+    title: cfg.title,
+    kind: cfg.kind,
+    chip: cfg.chip,
+    chipParam: cfg.chipParam,
+    preset: cfg.preset,
+    presetLabel: cfg.presetLabel,
+    ownership: cfg.ownership,
+    bankSwitch: cfg.bankSwitch,
+  };
+}
+
 const CHIP_PARAM: Record<GuideChipDim, string> = { group: "alt", category: "alt", subkind: "alt", bank: "banka", brand: "marka", operator: "operator" };
 
 export const SCHOOL_CATEGORIES = ["anaokulu", "ilkokul", "ortaokul", "lise", "ozel_egitim"] as const;

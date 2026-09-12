@@ -35,22 +35,49 @@ import {
 type Labels = { institution: readonly InstitutionCategoryDef[]; place: readonly PlaceCategoryDef[] };
 
 const PAGE_SIZE = 100;
-/** Safety cap per query (the largest group, egitim, has ~230 rows). */
-const MAX_PAGES = 10;
+/**
+ * Safety cap per query of a list page / list JSON: 6000 rows. Lists must be whole (the map and the A-Z list show every
+ * row, and the explore screen's ATM / Banka / Kurum chips load them): today the largest queries are ATM (~1350 rows)
+ * and all institutions (a few thousand). A query past the cap comes back with `truncated`, which /rehber/dizin/<slug>
+ * never lets the CDN cache.
+ */
+const LIST_MAX_PAGES = 60;
+/**
+ * Cap per kind of the /rehber hub search index (loadGuideIndex): 1000 rows, as before, to keep that one JSON (all
+ * kinds at once, ~1.9 MB raw) small. The index is knowingly partial for the big kinds (ATM, institutions, places).
+ */
+const INDEX_MAX_PAGES = 10;
+/** Pages fetched in parallel per query. */
+const PAGE_WAVE = 6;
 
 export async function loadLabels(): Promise<Labels> {
   const [institution, vocab] = await Promise.all([getInstitutionCategories(), getVocabularies()]);
   return { institution, place: vocab.placeCategories };
 }
 
-/** Every row of one query. ok: false when any page failed. */
-async function loadAll(q: GuideListQuery): Promise<{ items: GuideItem[]; ok: boolean }> {
+type LoadResult = { items: GuideItem[]; ok: boolean; truncated: boolean };
+
+/** Every row of one query, up to `maxPages` pages (truncated: the query has more). ok: false when any page failed. */
+async function loadAll(q: GuideListQuery, maxPages: number): Promise<LoadResult> {
   const first = await listGuideItems({ ...q, page: 1, pageSize: PAGE_SIZE });
-  if (!first.ok) return { items: [], ok: false };
-  const pages = Math.min(first.pageCount, MAX_PAGES);
-  if (pages <= 1) return { items: first.items, ok: true };
-  const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, i) => listGuideItems({ ...q, page: i + 2, pageSize: PAGE_SIZE })));
-  return { items: [...first.items, ...rest.flatMap((r) => r.items)], ok: rest.every((r) => r.ok) };
+  if (!first.ok) return { items: [], ok: false, truncated: false };
+  const truncated = first.pageCount > maxPages;
+  const pages = Math.min(first.pageCount, maxPages);
+  const items = [...first.items];
+  let ok = true;
+  const page = (n: number) => listGuideItems({ ...q, page: n, pageSize: PAGE_SIZE });
+  // The other pages in small waves: a cold cache firing dozens of queries at once gets Gateway Timeouts from the API.
+  for (let start = 2; start <= pages; start += PAGE_WAVE) {
+    const numbers = Array.from({ length: Math.min(PAGE_WAVE, pages - start + 1) }, (_, i) => start + i);
+    const wave = await Promise.all(numbers.map(page));
+    for (let i = 0; i < wave.length; i++) {
+      // One retry for a failed page; if it fails again, keep the other rows and report the list as not ok.
+      const r = wave[i].ok ? wave[i] : await page(numbers[i]);
+      if (!r.ok) ok = false;
+      items.push(...r.items);
+    }
+  }
+  return { items, ok, truncated };
 }
 
 /** Kind-specific "what is it" label of a row. */
@@ -106,9 +133,15 @@ function sortEntries(list: GuideEntry[]): GuideEntry[] {
   return list.sort((a, b) => trCompare(a.name, b.name));
 }
 
-/** Every row of a list page, sorted by name. */
-export async function loadGuideList(cfg: Pick<GuideListConfig, "queries" | "categories">): Promise<{ entries: GuideEntry[]; ok: boolean; labels: Labels }> {
-  const [labels, results] = await Promise.all([loadLabels(), Promise.all(cfg.queries.map(loadAll))]);
+/**
+ * Every row of a list page, sorted by name. `truncated`: a query hit the page cap, so rows are missing (treat the answer
+ * as incomplete, like ok: false, when caching it).
+ */
+export async function loadGuideList(
+  cfg: Pick<GuideListConfig, "queries" | "categories">,
+  maxPages: number = LIST_MAX_PAGES,
+): Promise<{ entries: GuideEntry[]; ok: boolean; truncated: boolean; labels: Labels }> {
+  const [labels, results] = await Promise.all([loadLabels(), Promise.all(cfg.queries.map((q) => loadAll(q, maxPages)))]);
   const seen = new Set<string>();
   const entries: GuideEntry[] = [];
   for (const r of results) {
@@ -120,12 +153,12 @@ export async function loadGuideList(cfg: Pick<GuideListConfig, "queries" | "cate
       entries.push(e);
     }
   }
-  return { entries: sortEntries(entries), ok: results.every((r) => r.ok), labels };
+  return { entries: sortEntries(entries), ok: results.every((r) => r.ok), truncated: results.some((r) => r.truncated), labels };
 }
 
-/** Every guide row (all list kinds) for the hub search. */
+/** Guide rows of every list kind for the hub search, up to INDEX_MAX_PAGES pages per kind (see there). */
 export async function loadGuideIndex(): Promise<{ entries: GuideEntry[]; ok: boolean }> {
-  const { entries, ok } = await loadGuideList({ queries: GUIDE_LIST_KINDS.map((kind) => ({ kind })) });
+  const { entries, ok } = await loadGuideList({ queries: GUIDE_LIST_KINDS.map((kind) => ({ kind })) }, INDEX_MAX_PAGES);
   return { entries, ok };
 }
 

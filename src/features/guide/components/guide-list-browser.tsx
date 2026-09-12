@@ -25,11 +25,11 @@ import type { GuideListKind, Ownership } from "@/features/guide/lib/types";
 import { KBB_SOURCE, KIND_META, OSM_COPYRIGHT_URL, OSM_SOURCE } from "@/features/nearby/config";
 import { NEARBY_AREA_CLASS } from "@/features/nearby/components/nearby-explorer-skeleton";
 import { NearbySheet, sheetOffsets, type SheetSnap } from "@/features/nearby/components/nearby-sheet";
-import { entryDimValue, guideListHref, type GuideChipDef, type GuideEntry, type GuideListConfig } from "./list-config";
+import { entryDimValue, guideListHref, type ClientListConfig, type GuideChipDef, type GuideEntry } from "./list-config";
 import { GuideCard } from "./guide-card";
 
-/** The serializable part of a GuideListConfig the client needs. */
-export type ClientListConfig = Pick<GuideListConfig, "slug" | "title" | "kind" | "chip" | "chipParam" | "preset" | "ownership" | "bankSwitch">;
+/** Moved to ./list-config (shared with the explore screen and /rehber/dizin/<slug>); re-exported for older imports. */
+export type { ClientListConfig } from "./list-config";
 
 export type GuideListBrowserProps = {
   config: ClientListConfig;
