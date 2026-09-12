@@ -30,8 +30,8 @@ const TOPICS: readonly Topic[] = [
     title: "Elektrik kesintileri",
     text: "Planlı bakım ve arıza kesintileri",
     notices: [
-      { title: "Arıza", place: "Körfez · Merkez", time: "Bugün 11:20'den beri", status: "Devam ediyor", live: true },
-      { title: "Planlı bakım", place: "Darıca · Sahil yolu çevresi", time: "Yarın 09:00 - 15:00", status: "Planlı" },
+      { title: "Arıza", place: "Gebze · Hacıhalil", time: "Bugün 11:20'den beri", status: "Devam ediyor", live: true },
+      { title: "Planlı bakım", place: "Gebze · Sultan Orhan", time: "Yarın 09:00 - 15:00", status: "Planlı" },
     ],
   },
   {
@@ -42,7 +42,7 @@ const TOPICS: readonly Topic[] = [
     title: "Su kesintileri",
     text: "Planlı çalışmalar ve arızalar",
     notices: [
-      { title: "Arıza onarımı", place: "İzmit · Kent merkezi", time: "Bugün 09:30 - 13:00", status: "Devam ediyor", live: true },
+      { title: "Arıza onarımı", place: "Gebze · Güzeller", time: "Bugün 09:30 - 13:00", status: "Devam ediyor", live: true },
       { title: "Planlı çalışma", place: "Gebze · İstanbul Caddesi çevresi", time: "Bugün 10:00 - 16:00", status: "Planlı" },
     ],
   },
@@ -53,7 +53,7 @@ const TOPICS: readonly Topic[] = [
     tone: "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-300",
     title: "Afet ve acil durum",
     text: "Uyarılar ve toplanma alanları",
-    notices: [{ title: "Kuvvetli rüzgâr", place: "Kocaeli geneli", time: "Bugün 18:00'e kadar", status: "Sarı uyarı", live: true }],
+    notices: [{ title: "Kuvvetli rüzgâr", place: "Gebze geneli", time: "Bugün 18:00'e kadar", status: "Sarı uyarı", live: true }],
   },
   {
     key: "deprem",
@@ -61,10 +61,10 @@ const TOPICS: readonly Topic[] = [
     icon: Activity,
     tone: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
     title: "Son depremler",
-    text: "Kocaeli ve çevresinde hissedilen depremler",
+    text: "Gebze ve çevresinde hissedilen depremler",
     notices: [
-      { title: "Büyüklük 2,4", place: "Marmara Denizi, Gölcük açıkları", time: "Bugün 06:12 · 7 km derinlik", status: "Hafif" },
-      { title: "Büyüklük 1,8", place: "Kartepe", time: "Dün 22:40 · 9 km derinlik", status: "Hafif" },
+      { title: "Büyüklük 2,4", place: "Marmara Denizi, Gebze açıkları", time: "Bugün 06:12 · 7 km derinlik", status: "Hafif" },
+      { title: "Büyüklük 1,8", place: "Gebze · Kirazpınar", time: "Dün 22:40 · 9 km derinlik", status: "Hafif" },
     ],
   },
   {
@@ -74,7 +74,7 @@ const TOPICS: readonly Topic[] = [
     tone: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
     title: "İnternet kesintileri",
     text: "Altyapı çalışmaları ve arıza bildirimleri",
-    notices: [{ title: "Altyapı çalışması", place: "Çayırova · Merkez", time: "Bugün 01:00 - 05:00", status: "Planlı" }],
+    notices: [{ title: "Altyapı çalışması", place: "Gebze · Beylikbağı", time: "Bugün 01:00 - 05:00", status: "Planlı" }],
   },
   {
     key: "dogalgaz",
@@ -83,7 +83,7 @@ const TOPICS: readonly Topic[] = [
     tone: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300",
     title: "Doğalgaz kesintileri",
     text: "Hat çalışmaları ve planlı kesintiler",
-    notices: [{ title: "Hat çalışması", place: "Başiskele · Sahil çevresi", time: "Yarın 10:00 - 14:00", status: "Planlı" }],
+    notices: [{ title: "Hat çalışması", place: "Gebze · Osman Yılmaz", time: "Yarın 10:00 - 14:00", status: "Planlı" }],
   },
 ];
 
@@ -185,7 +185,7 @@ export function HomeOutages() {
           <h2 id="kesintiler" className="text-xl leading-tight font-semibold">
             Kesintiler ve afet
           </h2>
-          <p className="mt-0.5 text-[15px] text-muted-foreground">Kocaeli&apos;de şu an</p>
+          <p className="mt-0.5 text-[15px] text-muted-foreground">Gebze&apos;de şu an</p>
         </div>
         {live.length ? (
           <span className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full bg-red-50 px-2.5 text-xs font-bold text-red-700">

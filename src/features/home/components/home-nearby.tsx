@@ -70,8 +70,10 @@ const MAX_LINES = 6;
  * Every card is the same (owner, 12.09): 15 rem wide, three rows - the kind (and the distance), the name, a row of
  * pills that scrolls sideways inside the card - with the same type sizes, so the names line up across the strip.
  * The card stays still under the finger (no press scale): a shrinking card made the pill row hard to swipe on a phone.
+ * overflow-hidden clips the pill row at the card's rounded corners (pills slid out past the corners while scrolling).
  */
-const CARD = "flex h-full w-full flex-col rounded-[1.75rem] bg-card p-4 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+const CARD =
+  "flex h-full w-full flex-col overflow-hidden rounded-[1.75rem] bg-card p-4 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 /** No scroll snapping on the strip: snapping fought the pill rows' own sideways scroll. */
 const ITEM = "w-[15rem] shrink-0";
 const LABEL = "min-w-0 flex-1 truncate text-[15px] font-semibold text-muted-foreground";
@@ -218,24 +220,27 @@ async function loadNearest(point: { lat: number; lng: number }, dutyMode: DutyMo
   return rows.filter((r): r is Nearest => !!r);
 }
 
-/** Small icon tile in the card's colours (red with a white pill for pharmacies). */
-function MiniIcon({ icon: Icon, tone }: { icon: LucideIcon; tone: string }) {
+/**
+ * Small icon tile in the card's colours. Pharmacies (nöbetçi too) show the map pin's white "E" on full red instead of
+ * an icon (owner, 12.09).
+ */
+function MiniIcon({ icon: Icon, tone, letter }: { icon: LucideIcon; tone: string; letter?: string }) {
   return (
     <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", tone)} aria-hidden>
-      <Icon className="size-[18px]" strokeWidth={2.2} />
+      {letter ? <span className="text-[17px] leading-none font-extrabold">{letter}</span> : <Icon className="size-[18px]" strokeWidth={2.2} />}
     </span>
   );
 }
 
-/** A coming bus: red with a pulsing dot at "Şimdi", green within 5 minutes, calm blue otherwise. */
+/** A coming bus: red with a pulsing dot at "Şimdi", green within 5 minutes, grey otherwise (like the price pills). */
 function BusPill({ d }: { d: Departure }) {
   const now = d.inMin <= 1;
   const soon = d.inMin <= 5;
   return (
-    <span className={cn(PILL, now ? "bg-red-600 text-white" : soon ? "bg-emerald-600 text-white" : "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-200")}>
+    <span className={cn(PILL, now ? "bg-red-600 text-white" : soon ? "bg-emerald-600 text-white" : "bg-muted text-foreground")}>
       {now ? <span className="size-1.5 animate-pulse rounded-full bg-white motion-reduce:animate-none" aria-hidden /> : null}
       {d.line}
-      <span className={cn("font-semibold", now || soon ? "text-white/85" : "text-sky-700 dark:text-sky-300")}>{formatWait(d)}</span>
+      <span className={cn("font-semibold", now || soon ? "text-white/85" : "text-muted-foreground")}>{formatWait(d)}</span>
     </span>
   );
 }
@@ -247,7 +252,7 @@ function StopPills({ stop, fallback }: { stop: Extract<Foot, { kind: "stop" }>; 
   const lines = stop.lines.length ? stop.lines : times.lines;
   if (!lines.length) return fallback ? <span className={MUTED_PILL}>{fallback}</span> : null;
   return lines.slice(0, MAX_LINES).map((l) => (
-    <span key={l} className={cn(PILL, "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-200")}>
+    <span key={l} className={MUTED_PILL}>
       {l}
     </span>
   ));
@@ -329,7 +334,7 @@ function NearestCard({ n, showDistance, prayerDays }: { n: Nearest; showDistance
   return (
     <Link href={n.href} draggable={false} className={CARD}>
       <span className="flex items-center gap-2">
-        <MiniIcon icon={n.icon} tone={n.tone} />
+        <MiniIcon icon={n.icon} tone={n.tone} letter={n.key === "duty" || n.key === "pharmacy" ? "E" : undefined} />
         <span className={LABEL}>{n.label}</span>
         {right ? <span className="shrink-0 text-sm font-semibold text-muted-foreground tabular-nums">{right}</span> : null}
       </span>
