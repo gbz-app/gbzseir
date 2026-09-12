@@ -10,21 +10,21 @@ import { hasDoctors, type DirectoryDoctor } from "@/features/business/components
 import { getDoctorBranches, listSaglikDoctors } from "@/features/business/components/doctors/queries";
 import { listVerticalBusinesses } from "@/features/business/lib/vertical-queries";
 import { getVocabularies } from "@/features/business/lib/vocabularies";
-import { LISTABLE_VERTICALS, VERTICAL_INFO, parseVertical, type Vertical } from "@/features/business/lib/verticals";
+import { DISCOVER_VERTICALS, VERTICAL_INFO, VERTICAL_SUBCATEGORIES, parseVertical, type Vertical } from "@/features/business/lib/verticals";
 
 export const revalidate = 300;
-/** generateStaticParams lists every LISTABLE_VERTICALS value and listable() accepts nothing else, so any other tur is a real 404. */
+/** generateStaticParams lists every DISCOVER_VERTICALS value and listable() accepts nothing else, so any other tur is a real 404. */
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return LISTABLE_VERTICALS.map((tur) => ({ tur }));
+  return DISCOVER_VERTICALS.map((tur) => ({ tur }));
 }
 
 type Props = { params: Promise<{ tur: string }> };
 
 function listable(tur: string): Vertical | null {
   const v = parseVertical(tur);
-  return v && LISTABLE_VERTICALS.includes(v) ? v : null;
+  return v && DISCOVER_VERTICALS.includes(v) ? v : null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -81,7 +81,8 @@ export default async function VerticalPage({ params }: Props) {
         vertical={v}
         items={items}
         applicationsOpen={settings.businessApplications}
-        subcategories={vocab.subcategories[v] ?? []}
+        // Spor chips are built in until spor becomes a database type (verticals.ts).
+        subcategories={v === "spor" ? VERTICAL_SUBCATEGORIES.spor : (vocab.subcategories[v] ?? [])}
         doctors={doctors}
         doctorBranches={doctorBranches}
       />

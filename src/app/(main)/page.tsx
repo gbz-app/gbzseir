@@ -51,6 +51,7 @@ const CATEGORIES: Tile[] = [
   vertical("saglik"),
   vertical("dugun"),
   vertical("egitim"),
+  vertical("spor"),
   vertical("etkinlik"),
 ];
 

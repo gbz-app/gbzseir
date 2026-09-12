@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createPublicClient } from "./public-client";
-import { resolveVertical, type Vertical } from "./verticals";
+import { VERTICAL_SUBCATEGORIES, resolveVertical, subcategoryMatcher, type Vertical } from "./verticals";
 import { SERVICE_COLUMNS, toBusinessService, type BusinessService, type RawBusinessService } from "./service-catalog";
 
 /** Card data for the vertical list pages (/kesfet/[tur]). Anon client, ISR friendly. */
@@ -136,20 +136,29 @@ export const getBusinessServices = cache(async (businessId: string): Promise<Bus
   return ((data ?? []) as unknown as RawBusinessService[]).map(toBusinessService);
 });
 
+/** Keşfet-only "spor" (verticals.ts): the types a sports business picks today. */
+const SPOR_HOSTS = ["egitim", "saglik", "diger"];
+const SPOR_CHIPS = VERTICAL_SUBCATEGORIES.spor ?? [];
+/** Substring filter for PostgREST (may over-fetch); rows are then kept only when a Spor chip matches at a word start. */
+const SPOR_OR = [...new Set(SPOR_CHIPS.flatMap((s) => s.keywords))].flatMap((k) => [`name.ilike.*${k}*`, `category_label.ilike.*${k}*`]).join(",");
+const SPOR_MATCHERS = SPOR_CHIPS.map(subcategoryMatcher);
+
 export const listVerticalBusinesses = cache(async (vertical: Vertical): Promise<VerticalCard[]> => {
-  const { data, error } = await createPublicClient()
+  const query = createPublicClient()
     .from("businesses")
     .select(
       "id,slug,name,cover_url,logo_url,category_label,description,lat,lng,rating_avg,rating_count,price_level,star_rating,amenities,vertical,kinds,working_hours,vacation_mode,vacation_until,is_demo,district_id,business_photos(url,sort),business_rooms(price_try,is_available)",
     )
-    .eq("status", "approved")
-    .eq("vertical", vertical)
+    .eq("status", "approved");
+  const { data, error } = await (vertical === "spor" ? query.in("vertical", SPOR_HOSTS).or(SPOR_OR) : query.eq("vertical", vertical))
     .order("rating_avg", { ascending: false })
     .order("rating_count", { ascending: false })
     .order("name")
     .limit(300);
   if (error) throw new Error(error.message);
-  return ((data ?? []) as unknown as Raw[]).map((b) => {
+  const rows = (data ?? []) as unknown as Raw[];
+  const listed = vertical === "spor" ? rows.filter((b) => SPOR_MATCHERS.some((m) => m(`${b.category_label ?? ""} ${b.name}`))) : rows;
+  return listed.map((b) => {
     const photos = [...(b.business_photos ?? [])].sort((x, y) => x.sort - y.sort);
     const prices = (b.business_rooms ?? []).filter((r) => r.is_available).map((r) => num(r.price_try)).filter((p): p is number => p !== null);
     return {

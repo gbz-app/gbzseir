@@ -26,7 +26,7 @@ import { VenueCard, VenuePhotoFallback } from "./venue-card";
 
 type Row = { item: VerticalCard; distance: number | null; open: OpenStatus | null };
 
-const NOUN: Partial<Record<Vertical, string>> = { hizmet: "firma", otel: "otel", magaza: "mağaza", saglik: "işletme", dugun: "işletme", egitim: "kurum" };
+const NOUN: Partial<Record<Vertical, string>> = { hizmet: "firma", otel: "otel", magaza: "mağaza", saglik: "işletme", dugun: "işletme", egitim: "kurum", spor: "işletme" };
 
 const NO_SUBCATEGORIES: readonly VerticalSubcategory[] = [];
 

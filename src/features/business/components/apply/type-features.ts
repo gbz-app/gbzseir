@@ -43,6 +43,7 @@ export const TYPE_FEATURES: Record<Vertical, readonly TypeFeature[]> = {
   saglik: [...PLACE, f("doctors", "Doktorlar", Stethoscope)],
   dugun: PLACE,
   egitim: PLACE,
+  spor: PLACE,
   etkinlik: [EVENTS, GALLERY],
   diger: PLACE,
 };
@@ -58,6 +59,7 @@ export const TYPE_DESCRIPTIONS: Record<Vertical, string> = {
   saglik: "Klinik, diş hekimi, poliklinik",
   dugun: "Düğün salonu, organizasyon, gelinlik",
   egitim: "Kurs, etüt, anaokulu ve özel ders",
+  spor: "Pilates, fitness, yoga ve spor salonu",
   etkinlik: "Etkinlik alanı",
   diger: "Oto yıkama, kuru temizleme ve diğerleri",
 };

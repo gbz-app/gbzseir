@@ -93,6 +93,7 @@ const LABEL_PLACEHOLDER: Record<Vertical, string> = {
   saglik: "Diş kliniği, Fizik tedavi",
   dugun: "Düğün salonu, Organizasyon",
   egitim: "Dil kursu, Etüt merkezi",
+  spor: "Pilates stüdyosu, Spor salonu",
   etkinlik: "Etkinlik alanı",
   diger: "Oto yıkama, Kuru temizleme",
 };

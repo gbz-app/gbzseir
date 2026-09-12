@@ -70,7 +70,11 @@ import {
 } from "lucide-react";
 import { trNormalize } from "@/core/tr";
 
-export const VERTICALS = ["yemek", "restoran", "kafe", "otel", "hizmet", "magaza", "saglik", "dugun", "egitim", "etkinlik", "diger"] as const;
+/**
+ * "spor" is keşfet-only for now: businesses.vertical has no such value (check constraint), so /kesfet/spor lists approved
+ * businesses of other types whose name or category matches a Spor chip (vertical-queries.ts). Not a type a business can pick.
+ */
+export const VERTICALS = ["yemek", "restoran", "kafe", "otel", "hizmet", "magaza", "saglik", "dugun", "egitim", "spor", "etkinlik", "diger"] as const;
 export type Vertical = (typeof VERTICALS)[number];
 
 export type VerticalInfo = {
@@ -143,6 +147,13 @@ export const VERTICAL_INFO: Record<Vertical, VerticalInfo> = {
     icon: GraduationCap,
     tone: "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300",
   },
+  spor: {
+    label: "Spor",
+    plural: "Spor",
+    subtitle: "Pilates, fitness, yoga ve spor salonları",
+    icon: Dumbbell,
+    tone: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+  },
   etkinlik: {
     label: "Etkinlik",
     plural: "Etkinlikler",
@@ -155,6 +166,9 @@ export const VERTICAL_INFO: Record<Vertical, VerticalInfo> = {
 
 /** Verticals with their own list page (/firmalar/tur/[tur]). */
 export const LISTABLE_VERTICALS: readonly Vertical[] = ["yemek", "restoran", "kafe", "otel", "hizmet", "magaza", "saglik", "dugun", "egitim"];
+
+/** Every /kesfet/[tur] page: the listable database types plus the keşfet-only "spor" (no admin chips yet). */
+export const DISCOVER_VERTICALS: readonly Vertical[] = [...LISTABLE_VERTICALS, "spor"];
 
 /** Verticals a business can pick for itself ("etkinlik" is not a business type). */
 export const BUSINESS_VERTICALS: readonly Vertical[] = ["yemek", "restoran", "kafe", "otel", "hizmet", "saglik", "dugun", "egitim", "magaza", "diger"];
@@ -488,6 +502,16 @@ export const VERTICAL_SUBCATEGORIES: Partial<Record<Vertical, readonly VerticalS
     subcat("etut", "Etüt", ["etüt", "etüd", "ödev", "lgs", "yks", "kpss", "birebir ders"]),
     subcat("anaokulu", "Anaokulu", ["anaokul", "kreş", "ana sınıf", "anasınıf", "okul öncesi", "gündüz bakım", "montessori"]),
     subcat("surucu-kursu", "Sürücü kursu", ["sürücü", "ehliyet", "direksiyon"]),
+  ],
+  // Keşfet-only: these keywords also pick the businesses of /kesfet/spor (vertical-queries.ts).
+  spor: [
+    subcat("pilates", "Pilates", ["pilates", "reformer"]),
+    subcat("fitness", "Fitness", ["fitnes", "gym", "crossfit", "spor salon", "spor merkez", "vücut geliştirme"]),
+    subcat("yoga", "Yoga", ["yoga"]),
+    subcat("dovus", "Dövüş sporları", ["boks", "kickboks", "kick boks", "muay thai", "karate", "tekvando", "taekwondo", "judo", "aikido", "wushu", "dövüş", "savunma sanat"]),
+    subcat("yuzme", "Yüzme", ["yüzme"]),
+    subcat("dans", "Dans", ["dans", "zumba", "bale"]),
+    subcat("saha-kulup", "Saha & kulüp", ["halı saha", "halısaha", "hali saha", "tenis", "basketbol", "voleybol", "futbol", "spor kulüb", "spor akademi", "spor okul"]),
   ],
 };
 
