@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { routes } from "@/core/routes";
 
-/** Home search field: submits to /ara?q=... */
+/** Home search field (rounded like the home cards, not a pill): submits to /ara?q=... */
 export function HomeSearch() {
   const router = useRouter();
   const [q, setQ] = React.useState("");
@@ -28,7 +28,7 @@ export function HomeSearch() {
         aria-label="Ara"
         enterKeyHint="search"
         maxLength={80}
-        className="h-13 w-full rounded-full bg-card pr-4 pl-12 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="h-13 w-full rounded-[1.25rem] bg-card pr-4 pl-12 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       />
     </form>
   );

@@ -12,9 +12,9 @@ import { useUnreadNotifications } from "@/lib/notifications/use-unread-notificat
 import { useIsClient } from "@/lib/use-is-client";
 import { WeatherButton } from "@/features/weather/components/weather-sheet";
 
-/** Home header buttons: plain white circles, no border or shadow. */
+/** Home header buttons: plain white rounded squares (the home page's corner family, not circles), no border or shadow. */
 const BARE_BUTTON =
-  "relative flex size-11 shrink-0 items-center justify-center rounded-full bg-card text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50";
+  "relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-card text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50";
 
 /** Stroke of the header icons (weather, notifications): a notch bolder than the 1.75 used elsewhere in the app. */
 const ICON_STROKE = 2.25;
@@ -52,7 +52,7 @@ function usePainted(): boolean {
 /** Same size and look as WeatherButton before its data arrives (icon only), shown until the page has painted. */
 function WeatherPlaceholder() {
   return (
-    <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-full bg-card text-foreground">
+    <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-card text-foreground">
       <CloudSun className="size-5" strokeWidth={ICON_STROKE} />
     </span>
   );

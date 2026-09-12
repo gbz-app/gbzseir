@@ -230,7 +230,7 @@ export function SearchScreen({ initialQ, initial, focus, popular, newsCategories
             autoCorrect="off"
             spellCheck={false}
             maxLength={SEARCH_MAX}
-            className="h-13 w-full rounded-full bg-card pr-22 pl-12 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:appearance-none"
+            className="h-13 w-full rounded-[1.25rem] bg-card pr-22 pl-12 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:appearance-none"
           />
           <div className="absolute inset-y-0 right-1 flex items-center">
             {pending ? <Loader2 className="mr-1 size-4 animate-spin text-muted-foreground" aria-hidden /> : null}
@@ -239,7 +239,7 @@ export function SearchScreen({ initialQ, initial, focus, popular, newsCategories
                 type="button"
                 onClick={clear}
                 aria-label="Aramayı temizle"
-                className="flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="flex size-11 items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <X className="size-5" aria-hidden />
               </button>
