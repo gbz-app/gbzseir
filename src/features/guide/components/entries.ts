@@ -109,6 +109,8 @@ export function toEntry(item: GuideItem, labels: Labels): GuideEntry {
     kind: item.kind,
     name: item.name,
     href: item.href,
+    address: item.address,
+    phone: item.phone,
     type,
     sub: [type, item.districtName].filter(Boolean).join(" · ") || null,
     district: item.districtId,
@@ -159,7 +161,8 @@ export async function loadGuideList(
 /** Guide rows of every list kind for the hub search, up to INDEX_MAX_PAGES pages per kind (see there). */
 export async function loadGuideIndex(): Promise<{ entries: GuideEntry[]; ok: boolean }> {
   const { entries, ok } = await loadGuideList({ queries: GUIDE_LIST_KINDS.map((kind) => ({ kind })) }, INDEX_MAX_PAGES);
-  return { entries, ok };
+  // The hub search needs no address or phone: they stay out of that one big JSON.
+  return { entries: entries.map((e) => ({ ...e, address: undefined, phone: undefined })), ok };
 }
 
 /** Chips of a list page: only values that occur, in the vocabulary's order (banks / brands / operators by count). */

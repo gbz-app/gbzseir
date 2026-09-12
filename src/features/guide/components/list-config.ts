@@ -193,6 +193,10 @@ export type GuideEntry = {
   kind: GuideListKind;
   name: string;
   href: string;
+  /** Street address (the explore cards show it); left out of the /rehber hub search index. */
+  address?: string | null;
+  /** Public phone (the explore cards' "Ara"); left out of the /rehber hub search index. */
+  phone?: string | null;
   /** What the row is: "Aile sağlığı merkezi", "Ziraat Bankası ATM", "Tarihi cami". */
   type: string | null;
   /** "<type> · <ilçe>" */

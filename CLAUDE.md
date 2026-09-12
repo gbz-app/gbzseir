@@ -427,8 +427,17 @@ sahip: "şimdilik işletmeler için yorumlar yeterli"). Admin'deki Şikayetler (
 pre-script, izin hazırlığı adımı; install prompt 2. ziyaretten itibaren. Admin sitesinde SW, analitik ve tanıtım yok.
 
 ### 7.2 Yakınımda / Keşfet ve nöbet (`src/features/nearby`)
-- `/yakinimda?tur=eczane|nobetci|cami|durak|taksi|atm|banka|akaryakit|sarj|kurum|gezilecek`: tam ekran Google haritası (hemen yüklenir),
-  Google POI'leri gizli, bizim daire pinlerimiz, alt çekmecede Türkçe duyarsız arama.
+- **Tek harita kuralı (sahip, 12.09: "keşfet ve şehir rehberinden seçtiğin şeyler aynı haritada olmak zorunda"):** Keşfet
+  (`/yakinimda`) ve Şehir Rehberi listeleri (`/rehber/[kategori]`) aynı ekrandır: tek bileşen `ExploreMap`
+  (`components/explore-map.tsx`), tek çip ağacı (`explore-tree.ts`), tek Google haritası, tek kart (`NearbyCard`). Haritanın üstünde
+  çip yok; çipler alt çekmecede (`drill-chips.tsx`): üst seviyede "Tümü" (rehbere gider) + türler, seçilen siyah; bir alt seviyede
+  seçilen yol siyah ve X'li (Kurum ✕ → Belediye ve kamu ✕ → Kaymakamlık ✕), X o seviyeye geri çıkar, kök X "Yakınımdakiler"e gider.
+  ATM/Şube ve Tüm eczaneler/Nöbetçi anahtarları çipin altında. Eczane, Cami, Durak, Taksi, Gezilecek, Yakınımdakiler yakındaki ilk 60
+  (`useNearbyData`); ATM, Banka, Akaryakıt, Şarj, Kurum ve bütün rehber listeleri listenin tamamı (`useGuideDataset` ←
+  `GET /rehber/dizin/<slug>`, 10 dk önbellek). Seçim adres çubuğuna `replaceState` ile yazılır; eski `?tur=` linkleri çalışır. Bu iki
+  kapıyı yeniden ayırma, ikinci bir liste/harita bileşeni yazma.
+- `/yakinimda?tur=eczane|nobetci|cami|durak|taksi|atm|banka|akaryakit|sarj|kurum|gezilecek` (ya da `?kategori=<rehber slug'ı>`): tam ekran
+  Google haritası (hemen yüklenir), Google POI'leri gizli, bizim daire pinlerimiz, alt çekmecede Türkçe duyarsız arama.
 - `/nobetci-eczane` (ISR 5 dk, 08:30 → 08:30 penceresi `src/core/duty.ts`), `/eczane/[id]`, `/cami/[id]` (namaz vakitleri AlAdhan),
   `/durak/[id]` (geçen hatlar), `/gezilecek-yerler` + `[slug]`. Detaylarda `MapPreviewCard` dokununca yüklenir (kota).
 - Nöbet `duty_data_mode=demo` (demo nöbet yalnız Gebze'de); elle giriş `/admin/nobet` (`admin_set_duty`), otomatik import NosyAPI
@@ -865,6 +874,7 @@ node --env-file=.env.local scripts/db/verify-all.mjs
 - Bilerek FK'siz bırakılan kolonlara (`events.venue_business_id`, `reviewed_by`) FK ekleme; ana sayfadan kaldırılanları geri getirme.
 - Tasarımda gölge, kenarlık, emoji, logo, yatay sayfa kaydırması, yatay ekran, zoom ekleme; alt menüyü sayfaya göre farklılaştırma.
 - Uygulama içi mesajlaşma ekleme; mahalle alanını geri getirme; OpenStreetMap karosu kullanma.
+- Keşfet ile Şehir Rehberi listelerini ayırma (tek `ExploreMap`, bölüm 7.2); filtre çiplerini haritanın üstüne geri koyma.
 - Telifli ya da lisanssız fotoğraf koyma; Google Places içeriğini kalıcı saklama; doktor bilgisini internetten toplama.
 - Vercel bölgesini `hnd1`'den ya da Supabase bölgesini değiştirme; `vercel.json`'a cron ekleme (zamanlanmış işler pg_cron'da).
 - "bekle" denince araç çağırma; sorulana cevap vermeden işe devam etme; istenmeyen kapsama girme.

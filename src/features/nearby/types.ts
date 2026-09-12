@@ -2,6 +2,7 @@
  * Types for the nearby module (Yakınımda, nöbetçi eczane, cami, durak, gezilecek yerler).
  * The generated RPC types mark every column as non-null; these mirror what the DB really returns.
  */
+import type { LucideIcon } from "lucide-react";
 import type { Json } from "@/lib/database.types";
 import type { ContactSubjectType } from "@/lib/db-contract";
 
@@ -209,4 +210,8 @@ export type NearbyItem = {
   hours?: Json | null;
   vacation?: boolean;
   verified?: boolean;
+  /** Category icon (guide rows: the institution or place category); the kind's icon when absent. */
+  icon?: LucideIcon;
+  /** No map location yet (guide rows without a pin): lat / lng are 0 and the card has no Yol tarifi / Haritada göster. */
+  noPin?: boolean;
 };

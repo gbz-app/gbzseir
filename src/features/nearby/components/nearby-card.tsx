@@ -44,7 +44,7 @@ export function NearbyCard({ item, now, showDistance, selected, demoDuty, onShow
       className={cn("relative rounded-card bg-card p-4 transition-shadow", selected && "ring-2 ring-primary")}
     >
       <div className="flex items-start gap-3">
-        <KindIcon kind={item.kind === "pharmacy" && onDuty ? "duty" : item.kind} size="sm" />
+        <KindIcon kind={item.kind === "pharmacy" && onDuty ? "duty" : item.kind} icon={item.icon} size="sm" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <h3 className="min-w-0 text-base leading-snug font-semibold break-words">
@@ -90,6 +90,7 @@ export function NearbyCard({ item, now, showDistance, selected, demoDuty, onShow
           ) : null}
         </div>
       </div>
+      {item.phone || blackCall || !item.noPin ? (
       <div className="relative z-10 mt-3.5 flex gap-2">
         {item.phone ? (
           <CallButton
@@ -105,20 +106,24 @@ export function NearbyCard({ item, now, showDistance, selected, demoDuty, onShow
             <PhoneOff aria-hidden /> Ara
           </Button>
         ) : null}
-        <DirectionsButton
-          lat={item.lat}
-          lng={item.lng}
-          name={item.name}
-          subjectType={item.subjectType}
-          subjectId={item.id}
-          className="flex-1 rounded-full border-0 bg-muted hover:bg-muted/70"
-        />
-        {onShowOnMap ? (
+        {/* A row without a map location (guide lists) has no route and no pin to show. */}
+        {item.noPin ? null : (
+          <DirectionsButton
+            lat={item.lat}
+            lng={item.lng}
+            name={item.name}
+            subjectType={item.subjectType}
+            subjectId={item.id}
+            className="flex-1 rounded-full border-0 bg-muted hover:bg-muted/70"
+          />
+        )}
+        {onShowOnMap && !item.noPin ? (
           <Button type="button" variant="secondary" size="icon" className="rounded-full" aria-label={`${item.name}: haritada göster`} onClick={() => onShowOnMap(item)}>
             <MapPin />
           </Button>
         ) : null}
       </div>
+      ) : null}
     </article>
   );
 }
