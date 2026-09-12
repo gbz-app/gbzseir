@@ -20,14 +20,18 @@ import { HomePlaces } from "@/features/home/components/home-places";
 import { HomeSearch } from "@/features/home/components/home-search";
 import { ImageTile } from "@/features/home/components/image-tile";
 import { KIND_META, type KindMeta } from "@/features/nearby/config";
+import { getPrayerDays } from "@/features/nearby/server/external";
 import { getDutyMode, getPlaces } from "@/features/nearby/server/queries";
 
 export const revalidate = 300;
 
-/** Yakınımda strip: the duty mode (cached app setting) decides the pharmacy card; the rest happens on the device. */
+/**
+ * Yakınımda strip: the duty mode (cached app setting) decides the pharmacy card and today's / tomorrow's prayer times
+ * feed the cami card; everything else happens on the device.
+ */
 async function NearbyStrip() {
-  const dutyMode = await getDutyMode().catch(() => "off" as const);
-  return <HomeNearby dutyMode={dutyMode} />;
+  const [dutyMode, prayerDays] = await Promise.all([getDutyMode().catch(() => "off" as const), getPrayerDays().catch(() => [])]);
+  return <HomeNearby dutyMode={dutyMode} prayerDays={prayerDays} />;
 }
 
 type Tile = { href: string; label: string; image?: string; icon?: LucideIcon; tone?: string; imageClassName?: string };
