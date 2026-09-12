@@ -15,6 +15,7 @@ import { listUpcomingEvents } from "@/features/events/queries";
 import { HomeHero } from "@/features/home/components/home-hero";
 import { HomeNearby } from "@/features/home/components/home-nearby";
 import { HomeNews } from "@/features/home/components/home-news";
+import { HomeOutages } from "@/features/home/components/home-outages";
 import { HomePlaces } from "@/features/home/components/home-places";
 import { HomeSearch } from "@/features/home/components/home-search";
 import { ImageTile } from "@/features/home/components/image-tile";
@@ -55,29 +56,33 @@ const TONE = {
 
 const guide = routes.guide.category;
 
-/** Şehir Rehberi strip (scrolls sideways): the same destinations as the rows of the /rehber hub. */
+/**
+ * Şehir Rehberi (two rows, scrolls sideways), most needed first; the grid fills column by column, so the first
+ * columns on screen hold the top of the list. Same destinations as the rows of the /rehber hub.
+ */
 const GUIDE: Tile[] = [
   // Opens Keşfet on the Eczane tab with "Nöbetçi" already selected.
   { href: routes.nearby.root("nobetci"), label: "Nöbetçi Eczane", ...kind(KIND_META.duty) },
+  { href: guide("saglik"), label: "Hastane", icon: Hospital, tone: TONE.rose },
   { href: routes.nearby.root("taksi"), label: "Taksi", ...kind(KIND_META.taxi) },
   { href: routes.nearby.root("durak"), label: "Durak", ...kind(KIND_META.bus_stop) },
-  { href: guide("sarj"), label: "Şarj", ...kind(KIND_META.ev_charge) },
-  { href: guide("noter"), label: "Noter", icon: Stamp, tone: TONE.slate },
+  { href: guide("guvenlik"), label: "Emniyet", icon: Siren, tone: TONE.red },
+  { href: guide("kamu"), label: "Belediye", icon: Landmark, tone: TONE.indigo },
   { href: guide("atm"), label: "ATM", ...kind(KIND_META.atm) },
   { href: guide("banka"), label: "Banka", ...kind(KIND_META.bank) },
-  { href: guide("saglik"), label: "Hastane", icon: Hospital, tone: TONE.rose },
-  { href: guide("kamu"), label: "Belediye", icon: Landmark, tone: TONE.indigo },
-  { href: guide("guvenlik"), label: "Emniyet", icon: Siren, tone: TONE.red },
+  { href: guide("noter"), label: "Noter", icon: Stamp, tone: TONE.slate },
+  { href: guide("sarj"), label: "Şarj", ...kind(KIND_META.ev_charge) },
   { href: guide("adalet"), label: "Adliye", icon: Scale, tone: TONE.slate },
-  { href: guide("okullar"), label: "Okul", icon: School, tone: TONE.sky },
   { href: guide("ptt"), label: "PTT", icon: Mail, tone: TONE.yellow },
-  { href: guide("tarihi"), label: "Tarihi Yer", icon: Castle, tone: TONE.amber },
+  { href: guide("okullar"), label: "Okul", icon: School, tone: TONE.sky },
   { href: guide("parklar-ve-doga"), label: "Park", icon: Trees, tone: TONE.lime },
+  { href: guide("tarihi"), label: "Tarihi Yer", icon: Castle, tone: TONE.amber },
 ];
 
-/** Category cards, 4 per row. */
+/** Category cards, 4 per row; GebzemAI leads them. Icons only (no photos). */
 const CATEGORIES: Tile[] = [
-  { ...vertical("yemek"), image: "/images/home/yemek.webp", imageClassName: "bg-card" },
+  { href: routes.ai(), label: "GebzemAI", icon: Sparkles, tone: "bg-brand-soft text-primary" },
+  vertical("yemek"),
   vertical("restoran"),
   vertical("kafe"),
   vertical("hizmet", "Hizmetler"),
@@ -103,25 +108,6 @@ function SectionHeader({ id, title, href }: { id?: string; title: string; href?:
         </Link>
       ) : null}
     </div>
-  );
-}
-
-/** Wide GebzemAI card under the categories: plain white, icon, name and one line (opens GebzemAI). */
-function AiCard() {
-  return (
-    <Link
-      href={routes.ai()}
-      className="flex items-center gap-3 rounded-3xl bg-card p-4 outline-none transition-transform active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-ring/50"
-    >
-      <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-primary" aria-hidden>
-        <Sparkles className="size-6" strokeWidth={1.75} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-lg leading-tight font-bold">GebzemAI</span>
-        <span className="block truncate text-sm text-muted-foreground">Kocaeli hakkında ne istersen sor</span>
-      </span>
-      <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-    </Link>
   );
 }
 
@@ -161,8 +147,9 @@ async function EventsSection() {
 }
 
 /**
- * C1 - Ana sayfa: başlık, arama, Yakınımda (en yakın eczane, durak, cami, taksi, şarj, akaryakıt kartları), Şehir
- * Rehberi (yana kayan şerit), kategoriler, GebzemAI, yaklaşan etkinlikler, sinema, gezilecek yerler, haberler.
+ * C1 - Ana sayfa: başlık, arama, Yakınımda (Nöbetçi Eczane, durak, cami, taksi, şarj, akaryakıt kartları), Şehir
+ * Rehberi (iki satır, yana kayan), kategoriler (başta GebzemAI), kesintiler ve afet, yaklaşan etkinlikler, sinema,
+ * gezilecek yerler, haberler.
  */
 export default function HomePage() {
   return (
@@ -193,18 +180,18 @@ export default function HomePage() {
       <section aria-labelledby="yakinimda">
         <SectionHeader id="yakinimda" title="Yakınımda" href={routes.nearby.root()} />
         <div className="mt-1">
-          <Suspense fallback={<div className="h-[7.75rem]" />}>
+          <Suspense fallback={<div className="h-[7.5rem]" />}>
             <NearbyStrip />
           </Suspense>
         </div>
       </section>
 
-      {/* @container: the strip's tiles are 15% narrower than a category tile, 0.85 x (width - 3 gaps) / 4. */}
+      {/* @container: tiles are 15% narrower than a category tile, 0.85 x (width - 3 gaps) / 4; two rows, filled by column. */}
       <section aria-labelledby="sehir-rehberi" className="@container">
         <SectionHeader id="sehir-rehberi" title="Şehir Rehberi" href={routes.guide.root()} />
-        <ul className="no-scrollbar -mx-4 mt-1 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4">
+        <ul className="no-scrollbar -mx-4 mt-1 grid auto-cols-[calc((100cqw-2.25rem)*0.2125)] grid-flow-col grid-rows-2 gap-x-3 gap-y-3 overflow-x-auto px-4">
           {GUIDE.map((t) => (
-            <li key={t.href} className="w-[calc((100cqw-2.25rem)*0.2125)] shrink-0 snap-start">
+            <li key={t.href}>
               <ImageTile href={t.href} label={t.label} icon={t.icon} tone={t.tone} size="sm" />
             </li>
           ))}
@@ -222,7 +209,7 @@ export default function HomePage() {
         </ul>
       </section>
 
-      <AiCard />
+      <HomeOutages />
 
       <Suspense fallback={null}>
         <EventsSection />
