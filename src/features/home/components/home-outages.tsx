@@ -1,12 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Activity, Clock3, Droplets, Flame, Info, MapPin, Phone, Siren, Wifi, Zap, type LucideIcon } from "lucide-react";
+import { Activity, CircleCheck, Droplets, ExternalLink, Flame, Phone, Siren, Wifi, Zap, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 
-/** `live`: going on right now; the home card lists these. */
-type Notice = { title: string; place: string; time: string; status: string; live?: boolean };
 type Topic = {
   key: string;
   label: string;
@@ -14,14 +12,19 @@ type Topic = {
   tone: string;
   title: string;
   text: string;
-  /** Where the real data will come from. */
-  source: string;
-  notices: readonly Notice[];
+  /** Short line on the home card's quick-call row. */
+  line?: string;
+  /** Nationwide number (tel:). */
+  call?: { number: string; who: string };
+  /** Official site with the current notices. */
+  site?: { label: string; href: string };
+  tips: readonly string[];
 };
 
 /**
- * MOCKUP (owner's request, 12.09): the notices below are made-up samples to show the layout. The card and every sheet
- * say so ("Önizleme"); replace them with the real feeds (AFAD / Kandilli, İSU, SEDAŞ, operators, İZGAZ, AFAD).
+ * Real, fixed information (no made-up notices): who runs each service in Kocaeli, the nationwide numbers (185 su, 186
+ * elektrik, 187 doğalgaz, 112 acil) and the official sites with the current outages. Live feeds (SEDAŞ, İSU, İZGAZ,
+ * AFAD / Kandilli) can replace the site links later.
  */
 const TOPICS: readonly Topic[] = [
   {
@@ -29,26 +32,36 @@ const TOPICS: readonly Topic[] = [
     label: "Elektrik",
     icon: Zap,
     tone: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
-    title: "Elektrik kesintileri",
-    text: "Planlı bakım ve arıza kesintileri",
-    source: "SEDAŞ",
-    notices: [
-      { title: "Arıza", place: "Körfez · Merkez", time: "Bugün 11:20'den beri", status: "Devam ediyor", live: true },
-      { title: "Planlı bakım", place: "Darıca · Sahil yolu çevresi", time: "Yarın 09:00 - 15:00", status: "Planlı" },
-    ],
+    title: "Elektrik arızası ve kesintiler",
+    text: "Kocaeli'de elektrik dağıtımı SEDAŞ'ta",
+    line: "SEDAŞ arıza hattı",
+    call: { number: "186", who: "SEDAŞ arıza" },
+    site: { label: "Planlı kesintiler: sedas.com", href: "https://www.sedas.com" },
+    tips: ["Arızayı 186'ya bildir; adresini ve sayaç numaranı hazırla.", "Planlı kesintiler genellikle bir gün önceden duyurulur."],
   },
   {
     key: "su",
     label: "Su",
     icon: Droplets,
     tone: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
-    title: "Su kesintileri",
-    text: "Planlı çalışmalar ve arızalar",
-    source: "İSU",
-    notices: [
-      { title: "Arıza onarımı", place: "İzmit · Kent merkezi", time: "Bugün 09:30 - 13:00", status: "Devam ediyor", live: true },
-      { title: "Planlı çalışma", place: "Gebze · İstanbul Caddesi çevresi", time: "Bugün 10:00 - 16:00", status: "Planlı" },
-    ],
+    title: "Su arızası ve kesintiler",
+    text: "Kocaeli'de su ve kanalizasyon İSU'da",
+    line: "İSU arıza hattı",
+    call: { number: "185", who: "İSU arıza" },
+    site: { label: "Kesinti duyuruları: isu.gov.tr", href: "https://www.isu.gov.tr" },
+    tips: ["Patlak boru ve su kesintisini 185'e bildir.", "Kesinti sonrası ilk suyu bir süre akıtıp öyle kullan."],
+  },
+  {
+    key: "dogalgaz",
+    label: "Doğalgaz",
+    icon: Flame,
+    tone: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300",
+    title: "Doğalgaz acil",
+    text: "Kocaeli'de doğalgaz dağıtımı İZGAZ'da",
+    line: "Gaz kokusu ve kaçak",
+    call: { number: "187", who: "Doğalgaz acil" },
+    site: { label: "izgaz.com.tr", href: "https://www.izgaz.com.tr" },
+    tips: ["Gaz kokusu alırsan elektrik düğmelerine dokunma, ateş yakma.", "Pencereleri aç, vanayı kapat, binadan çık ve 187'yi ara."],
   },
   {
     key: "afet",
@@ -56,9 +69,11 @@ const TOPICS: readonly Topic[] = [
     icon: Siren,
     tone: "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-300",
     title: "Afet ve acil durum",
-    text: "Uyarılar ve toplanma alanları",
-    source: "AFAD",
-    notices: [{ title: "Kuvvetli rüzgâr", place: "Kocaeli geneli", time: "Bugün 18:00'e kadar", status: "Sarı uyarı", live: true }],
+    text: "Ambulans, itfaiye, polis, jandarma ve AFAD tek numarada",
+    line: "Ambulans, itfaiye, polis, AFAD",
+    call: { number: "112", who: "Acil çağrı" },
+    site: { label: "afad.gov.tr", href: "https://www.afad.gov.tr" },
+    tips: ["Toplanma alanını önceden öğren: e-Devlet'te \"Acil Toplanma Alanı Sorgulama\".", "Deprem çantan hazır olsun: su, ilk yardım, fener, düdük, powerbank."],
   },
   {
     key: "deprem",
@@ -66,49 +81,23 @@ const TOPICS: readonly Topic[] = [
     icon: Activity,
     tone: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
     title: "Son depremler",
-    text: "Kocaeli ve çevresinde hissedilen depremler",
-    source: "AFAD ve Kandilli",
-    notices: [
-      { title: "Büyüklük 2,4", place: "Marmara Denizi, Gölcük açıkları", time: "Bugün 06:12 · 7 km derinlik", status: "Hafif" },
-      { title: "Büyüklük 1,8", place: "Kartepe", time: "Dün 22:40 · 9 km derinlik", status: "Hafif" },
-    ],
+    text: "Güncel liste AFAD ve Kandilli'de",
+    site: { label: "AFAD son depremler", href: "https://deprem.afad.gov.tr" },
+    tips: ["Deprem anında: çök, kapan, tutun.", "Sarsıntı bitince asansör kullanmadan binadan çık, toplanma alanına git."],
   },
   {
     key: "internet",
     label: "İnternet",
     icon: Wifi,
     tone: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
-    title: "İnternet kesintileri",
-    text: "Altyapı çalışmaları ve arıza bildirimleri",
-    source: "servis sağlayıcılar",
-    notices: [{ title: "Altyapı çalışması", place: "Çayırova · Merkez", time: "Bugün 01:00 - 05:00", status: "Planlı" }],
-  },
-  {
-    key: "dogalgaz",
-    label: "Doğalgaz",
-    icon: Flame,
-    tone: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300",
-    title: "Doğalgaz kesintileri",
-    text: "Hat çalışmaları ve planlı kesintiler",
-    source: "İZGAZ",
-    notices: [{ title: "Hat çalışması", place: "Başiskele · Sahil çevresi", time: "Yarın 10:00 - 14:00", status: "Planlı" }],
+    title: "İnternet kesintisi",
+    text: "Arızayı servis sağlayıcına bildir",
+    tips: ["Modemi 30 saniye kapatıp yeniden aç.", "Sorun sürerse servis sağlayıcının çağrı merkezini ara; bölgesel bir arıza varsa söylerler."],
   },
 ];
 
-const STATUS_TONE: Record<string, string> = {
-  "Devam ediyor": "bg-red-100 text-red-700",
-  "Sarı uyarı": "bg-amber-100 text-amber-800",
-  Planlı: "bg-sky-100 text-sky-700",
-  Hafif: "bg-emerald-100 text-emerald-700",
-};
-
-function StatusPill({ status }: { status: string }) {
-  return (
-    <span className={cn("inline-flex h-7 shrink-0 items-center rounded-full px-2.5 text-xs font-bold whitespace-nowrap", STATUS_TONE[status] ?? "bg-muted text-muted-foreground")}>
-      {status}
-    </span>
-  );
-}
+/** The quick-call rows of the home card: the topics with a number. */
+const CALL_TOPICS = TOPICS.filter((t) => t.call);
 
 function TopicIcon({ topic, size = "md" }: { topic: Topic; size?: "sm" | "md" | "lg" }) {
   const box = size === "lg" ? "size-12 rounded-2xl" : size === "sm" ? "size-7 rounded-lg" : "size-10 rounded-xl";
@@ -120,7 +109,7 @@ function TopicIcon({ topic, size = "md" }: { topic: Topic; size?: "sm" | "md" | 
   );
 }
 
-/** One topic: white notice cards on the sheet's lavender ground, each with its status, place and time. */
+/** One topic: the number to call, what to do, the official site. White cards on the sheet's lavender ground. */
 function OutageSheet({ topic, onClose }: { topic: Topic | null; onClose: () => void }) {
   return (
     <Drawer open={!!topic} onOpenChange={(o) => !o && onClose()}>
@@ -135,40 +124,42 @@ function OutageSheet({ topic, onClose }: { topic: Topic | null; onClose: () => v
               </div>
             </div>
 
-            <ul className="mt-4 flex flex-col gap-2">
-              {topic.notices.map((n) => (
-                <li key={`${n.title}-${n.place}`} className="rounded-[1.25rem] bg-card p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="min-w-0 text-base leading-snug font-semibold">{n.title}</p>
-                    <StatusPill status={n.status} />
-                  </div>
-                  <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="size-4 shrink-0" aria-hidden />
-                    <span className="truncate">{n.place}</span>
-                  </p>
-                  <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock3 className="size-4 shrink-0" aria-hidden />
-                    <span className="truncate">{n.time}</span>
-                  </p>
+            {topic.call ? (
+              <a
+                href={`tel:${topic.call.number}`}
+                className="mt-4 flex items-center gap-3 rounded-[1.25rem] bg-card p-4 outline-none transition-transform active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm text-muted-foreground">{topic.call.who}</span>
+                  <span className="block text-3xl leading-tight font-bold tracking-tight tabular-nums">{topic.call.number}</span>
+                </span>
+                <span className="inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl bg-foreground px-4 text-base font-semibold text-background">
+                  <Phone className="size-5" aria-hidden /> Ara
+                </span>
+              </a>
+            ) : null}
+
+            <ul className="mt-2 flex flex-col gap-2.5 rounded-[1.25rem] bg-card p-4">
+              {topic.tips.map((tip) => (
+                <li key={tip} className="flex items-start gap-2.5 text-[15px] leading-snug">
+                  <CircleCheck className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden />
+                  {tip}
                 </li>
               ))}
             </ul>
 
-            <p className="mt-3 flex items-start gap-2 px-1 text-xs leading-relaxed text-muted-foreground">
-              <Info className="mt-px size-3.5 shrink-0" aria-hidden />
-              <span>
-                <strong className="font-semibold text-foreground">Önizleme:</strong> bu bilgiler örnektir. {topic.source} verisi yakında bağlanacak.
-              </span>
-            </p>
-
-            {topic.key === "afet" ? (
+            {topic.site ? (
               <a
-                href="tel:112"
-                className="mt-4 flex h-12 items-center justify-center gap-2 rounded-2xl bg-red-600 text-base font-semibold text-white outline-none focus-visible:ring-3 focus-visible:ring-red-600/40"
+                href={topic.site.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 flex min-h-12 items-center justify-between gap-2 rounded-[1.25rem] bg-card px-4 text-[15px] font-semibold text-primary outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
               >
-                <Phone className="size-5" aria-hidden /> 112&apos;yi ara
+                {topic.site.label}
+                <ExternalLink className="size-4 shrink-0" aria-hidden />
               </a>
             ) : null}
+
             <DrawerClose asChild>
               <button
                 type="button"
@@ -185,50 +176,44 @@ function OutageSheet({ topic, onClose }: { topic: Topic | null; onClose: () => v
 }
 
 /**
- * Home "Kesintiler ve afet": what is going on right now (live notices, each with its status) and a row of topic chips
- * (elektrik, su, afet, deprem, internet, doğalgaz); a tap opens that topic's sheet. Mockup for now (see TOPICS): the
- * card and every sheet say the notices are samples.
+ * Home "Kesintiler ve afet": quick-call rows (elektrik 186, su 185, doğalgaz 187, acil 112; the row opens its sheet, the
+ * number calls) and a row of topic chips (also deprem and internet). Each sheet: the number, what to do and the
+ * official site with the current notices.
  */
 export function HomeOutages() {
   const [openKey, setOpenKey] = React.useState<string | null>(null);
   const topic = TOPICS.find((t) => t.key === openKey) ?? null;
-  const live = TOPICS.flatMap((t) => t.notices.filter((n) => n.live).map((n) => ({ topic: t, notice: n })));
 
   return (
     <section aria-labelledby="kesintiler" className="rounded-[1.75rem] bg-card p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 id="kesintiler" className="text-xl leading-tight font-semibold">
-            Kesintiler ve afet
-          </h2>
-          <p className="mt-0.5 text-[15px] text-muted-foreground">Kocaeli&apos;de şu an</p>
-        </div>
-        {live.length ? (
-          <span className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full bg-red-50 px-2.5 text-xs font-bold text-red-700">
-            <span className="size-1.5 animate-pulse rounded-full bg-red-600 motion-reduce:animate-none" aria-hidden />
-            {live.length} aktif
-          </span>
-        ) : null}
-      </div>
+      <h2 id="kesintiler" className="text-xl leading-tight font-semibold">
+        Kesintiler ve afet
+      </h2>
+      <p className="mt-0.5 text-[15px] text-muted-foreground">Arızayı bildir, acil durumda tek dokunuşla ara</p>
 
       <ul className="mt-3 flex flex-col gap-2">
-        {live.map(({ topic: t, notice: n }) => (
-          <li key={`${t.key}-${n.title}`}>
+        {CALL_TOPICS.map((t) => (
+          <li key={t.key} className="flex items-center gap-2 rounded-[1.25rem] bg-muted/60 p-2 pl-3">
             <button
               type="button"
               onClick={() => setOpenKey(t.key)}
               aria-haspopup="dialog"
-              className="flex w-full items-center gap-3 rounded-[1.25rem] bg-muted/60 p-3 text-left outline-none transition-transform active:scale-[0.98] focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl py-1 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               <TopicIcon topic={t} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[15px] font-semibold">
-                  {t.label} · {n.title}
-                </span>
-                <span className="block truncate text-[13px] text-muted-foreground">{n.place}</span>
+                <span className="block truncate text-[15px] font-semibold">{t.label}</span>
+                <span className="block truncate text-[13px] text-muted-foreground">{t.line}</span>
               </span>
-              <StatusPill status={n.status} />
             </button>
+            <a
+              href={`tel:${t.call!.number}`}
+              aria-label={`${t.call!.who}: ${t.call!.number} ara`}
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-2xl bg-foreground px-3.5 text-[15px] font-bold text-background tabular-nums outline-none transition-transform active:scale-95 focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <Phone className="size-4" aria-hidden />
+              {t.call!.number}
+            </a>
           </li>
         ))}
       </ul>
@@ -247,11 +232,6 @@ export function HomeOutages() {
           </button>
         ))}
       </div>
-
-      <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Info className="size-3.5 shrink-0" aria-hidden />
-        Önizleme: örnek bilgiler, gerçek veriler yakında.
-      </p>
 
       <OutageSheet topic={topic} onClose={() => setOpenKey(null)} />
     </section>
