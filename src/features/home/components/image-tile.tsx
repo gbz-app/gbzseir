@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils";
  * Square picture card with the title underneath (Şehir Rehberi / Kategoriler on the home page). Shows `image` when
  * given, otherwise a large icon on the `tone` colour. `size="sm"` (the Şehir Rehberi strip, tiles 15% smaller than the
  * categories): smaller icon and a title of up to two lines. Width comes from the parent or `className`. Corners follow
- * the home page's 28 px (22 px on the small tiles). Server-safe.
+ * the home page's 28 px (22 px on the small tiles). Pictures sit on white (the owner's 3D art has a white ground);
+ * `imageFit` moves the picture inside the tile (e.g. "translate-x-[12%]"). Server-safe.
  */
 export function ImageTile({
   href,
@@ -20,6 +21,7 @@ export function ImageTile({
   size = "md",
   className,
   imageClassName,
+  imageFit,
 }: {
   href: string;
   label: string;
@@ -31,6 +33,7 @@ export function ImageTile({
   size?: "md" | "sm";
   className?: string;
   imageClassName?: string;
+  imageFit?: string;
 }) {
   const small = size === "sm";
   return (
@@ -39,12 +42,12 @@ export function ImageTile({
         className={cn(
           "relative flex aspect-square items-center justify-center overflow-hidden transition-transform group-active:scale-[0.97] group-focus-visible:ring-3 group-focus-visible:ring-ring/50",
           small ? "rounded-[1.375rem]" : "rounded-[1.75rem]",
-          image ? "bg-muted" : tone,
+          image ? "bg-card" : tone,
           imageClassName,
         )}
       >
         {image ? (
-          <Image src={image} alt="" fill sizes={sizes} className="object-cover" />
+          <Image src={image} alt="" fill sizes={sizes} className={cn("object-cover", imageFit)} />
         ) : Icon ? (
           <Icon className={small ? "size-8" : "size-10"} strokeWidth={1.5} aria-hidden />
         ) : null}

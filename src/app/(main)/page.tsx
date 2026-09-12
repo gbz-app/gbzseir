@@ -34,7 +34,7 @@ async function NearbyStrip() {
   return <HomeNearby dutyMode={dutyMode} prayerDays={prayerDays} />;
 }
 
-type Tile = { href: string; label: string; image?: string; icon?: LucideIcon; tone?: string; imageClassName?: string };
+type Tile = { href: string; label: string; image?: string; icon?: LucideIcon; tone?: string; imageClassName?: string; imageFit?: string };
 
 const vertical = (v: Vertical, label?: string): Tile => ({
   href: v === "etkinlik" ? routes.events.root() : routes.businesses.vertical(v),
@@ -62,10 +62,10 @@ const guide = routes.guide.category;
 
 /** Şehir Rehberi (one row, scrolls sideways), most needed first. Same destinations as the rows of the /rehber hub. */
 const GUIDE: Tile[] = [
-  // Opens Keşfet on the Eczane tab with "Nöbetçi" already selected.
-  { href: routes.nearby.root("nobetci"), label: "Nöbetçi Eczane", ...kind(KIND_META.duty) },
+  // Opens Keşfet on the Eczane tab with "Nöbetçi" already selected. The owner's 3D art: red cross, taxi (moved right a bit).
+  { href: routes.nearby.root("nobetci"), label: "Nöbetçi Eczane", ...kind(KIND_META.duty), image: "/images/home/eczane.webp" },
   { href: guide("saglik"), label: "Hastane", icon: Hospital, tone: TONE.rose },
-  { href: routes.nearby.root("taksi"), label: "Taksi", ...kind(KIND_META.taxi) },
+  { href: routes.nearby.root("taksi"), label: "Taksi", ...kind(KIND_META.taxi), image: "/images/home/taksi.webp", imageFit: "translate-x-[14%]" },
   { href: routes.nearby.root("durak"), label: "Durak", ...kind(KIND_META.bus_stop) },
   { href: guide("guvenlik"), label: "Emniyet", icon: Siren, tone: TONE.red },
   { href: guide("kamu"), label: "Belediye", icon: Landmark, tone: TONE.indigo },
@@ -80,10 +80,10 @@ const GUIDE: Tile[] = [
   { href: guide("tarihi"), label: "Tarihi Yer", icon: Castle, tone: TONE.amber },
 ];
 
-/** Category cards, 4 per row; GebzemAI leads them. Icons only (no photos). */
+/** Category cards, 4 per row; GebzemAI leads them. Icons, except Yemek: the owner's 3D döner. */
 const CATEGORIES: Tile[] = [
   { href: routes.ai(), label: "GebzemAI", icon: Sparkles, tone: "bg-brand-soft text-primary" },
-  vertical("yemek"),
+  { ...vertical("yemek"), image: "/images/home/yemek-doner.webp" },
   vertical("restoran"),
   vertical("kafe"),
   vertical("hizmet", "Hizmetler"),
@@ -194,7 +194,7 @@ export default function HomePage() {
         <ul className="no-scrollbar -mx-4 mt-1 flex gap-3 overflow-x-auto px-4">
           {GUIDE.map((t) => (
             <li key={t.href} className="w-[calc((100cqw-2.25rem)*0.2125)] shrink-0">
-              <ImageTile href={t.href} label={t.label} icon={t.icon} tone={t.tone} size="sm" />
+              <ImageTile href={t.href} label={t.label} image={t.image} imageFit={t.imageFit} icon={t.icon} tone={t.tone} size="sm" sizes="80px" />
             </li>
           ))}
         </ul>
@@ -205,7 +205,7 @@ export default function HomePage() {
         <ul className="mt-3 grid grid-cols-4 gap-x-3 gap-y-3">
           {CATEGORIES.map((c) => (
             <li key={c.label}>
-              <ImageTile href={c.href} label={c.label} image={c.image} icon={c.icon} tone={c.tone} imageClassName={c.imageClassName} sizes="80px" />
+              <ImageTile href={c.href} label={c.label} image={c.image} imageFit={c.imageFit} icon={c.icon} tone={c.tone} imageClassName={c.imageClassName} sizes="80px" />
             </li>
           ))}
         </ul>
