@@ -8,13 +8,15 @@ import { cn } from "@/lib/utils";
  * given, otherwise a large icon on the `tone` colour. `size="sm"` (the Şehir Rehberi strip, tiles 15% smaller than the
  * categories): smaller icon and a title of up to two lines. Width comes from the parent or `className`. Corners follow
  * the home page's 28 px (22 px on the small tiles). Pictures sit on white (the owner's 3D art has a white ground);
- * `imageFit` moves the picture inside the tile (e.g. "translate-x-[12%]"). Server-safe.
+ * `imageFit` moves the picture inside the tile (e.g. "translate-x-[12%]"). `video`: a short silent loop over the picture
+ * (the picture is its poster; people who ask for less motion see only the picture). Server-safe.
  */
 export function ImageTile({
   href,
   label,
   sub,
   image,
+  video,
   icon: Icon,
   tone,
   sizes = "8rem",
@@ -27,6 +29,8 @@ export function ImageTile({
   label: string;
   sub?: string;
   image?: string;
+  /** Path of a short silent mp4 under /public (a constant from the code, never user input). */
+  video?: string;
   icon?: LucideIcon;
   tone?: string;
   sizes?: string;
@@ -46,9 +50,19 @@ export function ImageTile({
           imageClassName,
         )}
       >
-        {image ? (
-          <Image src={image} alt="" fill sizes={sizes} className={cn("object-cover", imageFit)} />
-        ) : Icon ? (
+        {image ? <Image src={image} alt="" fill sizes={sizes} className={cn("object-cover", imageFit)} /> : null}
+        {video ? (
+          // Written as plain HTML so the server HTML carries `muted` (React leaves that attribute out, and iPhones only
+          // autoplay a video that is muted in the markup).
+          <span
+            aria-hidden
+            className="absolute inset-0 motion-reduce:hidden"
+            dangerouslySetInnerHTML={{
+              __html: `<video src="${encodeURI(video)}" autoplay muted loop playsinline preload="auto" disablepictureinpicture disableremoteplayback class="size-full object-cover"></video>`,
+            }}
+          />
+        ) : null}
+        {image || video ? null : Icon ? (
           <Icon className={small ? "size-8" : "size-10"} strokeWidth={1.5} aria-hidden />
         ) : null}
       </span>

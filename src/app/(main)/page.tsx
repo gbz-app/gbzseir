@@ -33,7 +33,7 @@ async function NearbyStrip() {
   return <HomeNearby dutyMode={dutyMode} prayerDays={prayerDays} />;
 }
 
-type Tile = { href: string; label: string; image?: string; icon?: LucideIcon; tone?: string; imageClassName?: string; imageFit?: string };
+type Tile = { href: string; label: string; image?: string; video?: string; icon?: LucideIcon; tone?: string; imageClassName?: string; imageFit?: string };
 
 const vertical = (v: Vertical, label?: string): Tile => ({
   href: v === "etkinlik" ? routes.events.root() : routes.businesses.vertical(v),
@@ -80,11 +80,19 @@ const GUIDE: Tile[] = [
 ];
 
 /**
- * Category cards, 4 per row; GebzemAI leads them. All icons (owner, 12.09: no döner picture on Yemek). No Restoran tile
- * (owner, 12.09): restaurants are one tap away in the Yemek page's "Yemek · Restoran" title.
+ * Category cards, 4 per row; GebzemAI leads them with the owner's short video (its first frame is the poster). The others
+ * are icons (owner, 12.09: no döner picture on Yemek). No Restoran tile (owner, 12.09): restaurants are one tap away in
+ * the Yemek page's "Yemek · Restoran" title.
  */
 const CATEGORIES: Tile[] = [
-  { href: routes.ai(), label: "GebzemAI", icon: Sparkles, tone: "bg-brand-soft text-primary" },
+  {
+    href: routes.ai(),
+    label: "GebzemAI",
+    icon: Sparkles,
+    tone: "bg-brand-soft text-primary",
+    image: "/images/home/gebzemai.webp",
+    video: "/images/home/gebzemai.mp4",
+  },
   vertical("yemek"),
   vertical("kafe"),
   vertical("hizmet", "Hizmetler"),
@@ -209,7 +217,17 @@ export default function HomePage() {
         <ul className="mt-3 grid grid-cols-4 gap-x-3 gap-y-3">
           {CATEGORIES.map((c) => (
             <li key={c.label}>
-              <ImageTile href={c.href} label={c.label} image={c.image} imageFit={c.imageFit} icon={c.icon} tone={c.tone} imageClassName={c.imageClassName} sizes="80px" />
+              <ImageTile
+                href={c.href}
+                label={c.label}
+                image={c.image}
+                video={c.video}
+                imageFit={c.imageFit}
+                icon={c.icon}
+                tone={c.tone}
+                imageClassName={c.imageClassName}
+                sizes="80px"
+              />
             </li>
           ))}
         </ul>
