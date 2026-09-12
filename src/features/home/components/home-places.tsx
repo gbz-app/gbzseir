@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Navigation, Ticket } from "lucide-react";
+import { Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { districtName } from "@/config/districts";
 import { routes } from "@/core/routes";
@@ -15,7 +15,8 @@ import type { PlaceSummary } from "@/features/nearby/types";
 
 /**
  * Home "Gezilecek Yerler": category tabs (admin order, labels and icons of place_categories) and tall photo cards with
- * a white info card. Layout follows the travel-app reference the user sent.
+ * a white info card holding only two things: the name (always two lines tall, so every card is the same) and where it
+ * is, after a filled navigation arrow. Nothing on the photo. Layout follows the travel-app reference the user sent.
  */
 export function HomePlaces({ places, categories = PLACE_CATEGORY_DEFS }: { places: PlaceSummary[]; categories?: readonly PlaceCategoryDef[] }) {
   const [tab, setTab] = React.useState<string>("tumu");
@@ -38,7 +39,7 @@ export function HomePlaces({ places, categories = PLACE_CATEGORY_DEFS }: { place
               aria-selected={active}
               onClick={() => setTab(c.value)}
               className={cn(
-                "relative shrink-0 pb-2 text-[15px] transition-colors outline-none focus-visible:text-foreground",
+                "relative shrink-0 pb-2 text-base transition-colors outline-none focus-visible:text-foreground",
                 active ? "font-semibold text-foreground" : "font-medium text-muted-foreground hover:text-foreground",
               )}
             >
@@ -51,7 +52,6 @@ export function HomePlaces({ places, categories = PLACE_CATEGORY_DEFS }: { place
 
       <ul className="no-scrollbar -mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
         {big.map((p) => {
-          const meta = placeCategoryMeta(p.details.category, categories);
           const photo = p.details.photos[0];
           // The 1024 px variant first (as PlaceVisual does), and whichever candidate is in our stores gets resized.
           const candidates = photo ? [photo.thumbUrl, photo.url].filter((u): u is string => !!u) : [];
@@ -71,29 +71,12 @@ export function HomePlaces({ places, categories = PLACE_CATEGORY_DEFS }: { place
                 ) : (
                   <PlaceVisual category={p.details.category} categories={categories} photo={null} name={p.name} className="absolute inset-0" />
                 )}
-                <span className="absolute top-3 right-3 inline-flex h-7 items-center gap-1 rounded-full bg-white/95 px-2.5 text-xs font-semibold text-neutral-900">
-                  <meta.icon className="size-3.5" aria-hidden />
-                  {meta.label}
-                </span>
                 <span className="absolute inset-x-2.5 bottom-2.5 rounded-[1.25rem] bg-card p-3.5">
-                  {/* Always two lines tall (22 px each), so a one-line name (Eskihisar) gives the same card as a long one. */}
-                  <span className="line-clamp-2 min-h-[2.75rem] text-base leading-snug font-semibold">{p.name}</span>
-                  <span className="mt-1 block truncate text-sm text-muted-foreground">{districtName(p.districtId)}</span>
-                  <span className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                    {p.details.hours ? (
-                      <span className="inline-flex min-w-0 items-center gap-1">
-                        <Clock className="size-3.5 shrink-0" aria-hidden />
-                        <span className="truncate">{p.details.hours}</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1">
-                        <Navigation className="size-3.5" fill="currentColor" aria-hidden /> Yol tarifi
-                      </span>
-                    )}
-                    <span className="inline-flex shrink-0 items-center gap-1">
-                      <Ticket className="size-3.5" aria-hidden />
-                      {p.details.fee || "Ücretsiz"}
-                    </span>
+                  {/* Always two lines tall, so a one-line name (Eskihisar) gives the same card as a long one. */}
+                  <span className="line-clamp-2 min-h-[2.75em] text-[17px] leading-snug font-semibold">{p.name}</span>
+                  <span className="mt-1.5 flex min-w-0 items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                    <Navigation className="size-3.5 shrink-0" fill="currentColor" aria-hidden />
+                    <span className="truncate">{districtName(p.districtId)}</span>
                   </span>
                 </span>
               </Link>

@@ -86,7 +86,7 @@ export function HomeCinema({
               aria-selected={active}
               onClick={() => setPicked(t.value)}
               className={cn(
-                "relative shrink-0 pb-2 text-[15px] transition-colors outline-none focus-visible:text-foreground",
+                "relative shrink-0 pb-2 text-base transition-colors outline-none focus-visible:text-foreground",
                 active ? "font-semibold text-foreground" : "font-medium text-muted-foreground hover:text-foreground",
               )}
             >
@@ -111,9 +111,9 @@ export function HomeCinema({
                   <FilmPoster url={e.film.posterUrl} width={342} className="rounded-card" />
                   <span className="flex flex-1 flex-col px-1.5 pt-2 pb-1.5">
                     {/* The title is always two lines tall; genre and times sit together at the bottom, so the cards line up. */}
-                    <span className="line-clamp-2 min-h-[2.75em] text-sm leading-snug font-semibold">{e.film.title}</span>
+                    <span className="line-clamp-2 min-h-[2.75em] text-[15px] leading-snug font-semibold">{e.film.title}</span>
                     <span className="mt-auto block pt-1">
-                      {meta ? <span className="block truncate text-xs text-muted-foreground">{meta}</span> : null}
+                      {meta ? <span className="block truncate text-[13px] text-muted-foreground">{meta}</span> : null}
                       <CardFoot entry={e} tab={tab} now={now} />
                     </span>
                   </span>

@@ -60,7 +60,7 @@ export function HomeNewsTabs({
                 aria-selected={active}
                 onClick={() => setTab(c.value)}
                 className={cn(
-                  "relative shrink-0 pb-2 text-[15px] transition-colors outline-none focus-visible:text-foreground",
+                  "relative shrink-0 pb-2 text-base transition-colors outline-none focus-visible:text-foreground",
                   active ? "font-semibold text-foreground" : "font-medium text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -84,9 +84,9 @@ export function HomeNewsTabs({
                 {newsCategoryLabel(a.category, categories)}
               </span>
               <span className="absolute inset-x-2.5 bottom-2.5 rounded-[1.25rem] bg-card p-3.5">
-                <span className="line-clamp-2 text-[15px] leading-snug font-semibold">{a.title}</span>
+                <span className="line-clamp-2 min-h-[2.75em] text-[17px] leading-snug font-semibold">{a.title}</span>
                 {/* The home HTML is cached, so the server's "x saat önce" can differ from the client's; like RelativeTime. */}
-                <span className="mt-2 block text-xs text-muted-foreground" suppressHydrationWarning>
+                <span className="mt-1.5 block text-sm text-muted-foreground" suppressHydrationWarning>
                   {ago(a.publishedAt)}
                 </span>
               </span>

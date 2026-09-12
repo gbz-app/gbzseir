@@ -23,12 +23,13 @@ export async function HomeCinemaSection() {
 
   return (
     <section aria-labelledby="vizyondaki-filmler">
+      {/* Same header as the other home sections (SectionHeader in app/(main)/page.tsx). */}
       <div className="flex items-center justify-between gap-3">
-        <h2 id="vizyondaki-filmler" className="text-lg font-semibold">
+        <h2 id="vizyondaki-filmler" className="text-xl font-semibold">
           Vizyondaki filmler
         </h2>
-        <Link href={routes.cinema.root()} className="inline-flex min-h-11 items-center gap-0.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-          Tümü <ChevronRight className="size-4" aria-hidden />
+        <Link href={routes.cinema.root()} className="inline-flex min-h-11 items-center gap-0.5 text-base font-medium text-muted-foreground transition-colors hover:text-foreground">
+          Tümü <ChevronRight className="size-[18px]" aria-hidden />
         </Link>
       </div>
       <HomeCinema
