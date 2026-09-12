@@ -133,7 +133,7 @@ export function DutyBrowser({ rows, serverNow, fetchedAt, ok, mode }: DutyBrowse
               )}
             >
               {t.label}
-              <span className={cn("rounded-full px-1.5 text-xs tabular-nums", active ? "bg-highlight-soft text-highlight-foreground" : "bg-background/60")}>
+              <span className={cn("rounded-full px-1.5 text-xs tabular-nums", active ? "bg-red-600 text-white" : "bg-background/60")}>
                 {t.count}
               </span>
             </button>
@@ -143,7 +143,7 @@ export function DutyBrowser({ rows, serverNow, fetchedAt, ok, mode }: DutyBrowse
 
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1 text-sm">
         <p className="flex items-center gap-1.5 font-semibold">
-          <Clock3 className="size-4 text-highlight" aria-hidden />
+          <Clock3 className="size-4 text-red-600 dark:text-red-400" aria-hidden />
           {tab === "now" ? view.currentText : view.nextText}
         </p>
         <p className="text-xs text-muted-foreground">Nöbet her gün 08:30&apos;da değişir.</p>

@@ -12,7 +12,7 @@ import type { NearbyItem } from "../types";
 import { KindIcon } from "./kind-icon";
 
 /** Black "Ara" (same look as the firm page's call bar). */
-const TAXI_CALL = "bg-foreground text-background shadow-none hover:bg-foreground/90";
+const BLACK_CALL = "bg-foreground text-background shadow-none hover:bg-foreground/90";
 
 export type NearbyCardProps = {
   item: NearbyItem;
@@ -27,13 +27,16 @@ export type NearbyCardProps = {
 
 const MAX_LINES = 6;
 
-/** List card on /yakinimda: icon, name, distance, address, status badges, Ara + Yol tarifi + Haritada göster. */
+/**
+ * List card on /yakinimda: icon, name, distance, address, status badges, Ara + Yol tarifi + Haritada göster. Taxi stands
+ * and pharmacies (the taxi layout): a black "Ara" that stays, passive with a crossed-out phone, when there is no number.
+ */
 export function NearbyCard({ item, now, showDistance, selected, demoDuty, onShowOnMap }: NearbyCardProps) {
   const onDuty = !!item.duty && isDutyActive(item.duty.start, item.duty.end, now);
   const status = item.kind === "business" ? openStatus(item.hours, now, item.vacation) : null;
   const lines = item.lines ?? [];
   const hasBadges = onDuty || !!status || !!item.verified || lines.length > 0;
-  const isTaxi = item.kind === "taxi";
+  const blackCall = item.kind === "taxi" || item.kind === "pharmacy" || item.kind === "duty";
 
   return (
     <article
@@ -59,7 +62,7 @@ export function NearbyCard({ item, now, showDistance, selected, demoDuty, onShow
           {item.subtitle ? <p className="mt-0.5 truncate text-[13px] text-muted-foreground">{item.subtitle}</p> : null}
           {item.address ? <p className="mt-1 line-clamp-1 text-[13px] leading-snug">{item.address}</p> : null}
           {item.kind === "duty" && item.duty && onDuty ? (
-            <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-highlight-foreground dark:text-highlight">
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-700 dark:text-red-300">
               <Clock3 className="size-3.5 shrink-0" aria-hidden />
               {describeDutyWindow(item.duty, now)}
             </p>
@@ -93,12 +96,12 @@ export function NearbyCard({ item, now, showDistance, selected, demoDuty, onShow
             phone={item.phone}
             subjectType={item.subjectType}
             subjectId={item.id}
-            variant={isTaxi ? "default" : "success"}
-            className={cn("flex-1 rounded-full", isTaxi && TAXI_CALL)}
+            variant={blackCall ? "default" : "success"}
+            className={cn("flex-1 rounded-full", blackCall && BLACK_CALL)}
           />
-        ) : isTaxi ? (
+        ) : blackCall ? (
           // Same card as the others; without a number the call button stays, passive, with a crossed-out phone.
-          <Button type="button" disabled aria-label="Ara (telefon numarası yok)" className={cn("flex-1 rounded-full", TAXI_CALL)}>
+          <Button type="button" disabled aria-label="Ara (telefon numarası yok)" className={cn("flex-1 rounded-full", BLACK_CALL)}>
             <PhoneOff aria-hidden /> Ara
           </Button>
         ) : null}

@@ -1,15 +1,18 @@
-import { BadgeCheck, Briefcase, Cross, FlaskConical, Clock } from "lucide-react";
+import { BadgeCheck, Briefcase, FlaskConical, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IS_ADMIN_SITE } from "@/config/app-mode";
 import { Badge } from "@/components/ui/badge";
 
 type BadgeProps = { className?: string; label?: string };
 
-/** Amber "Nöbetçi" badge (duty pharmacy). */
+/** Solid red "Nöbetçi" pill (duty pharmacy) with a small pulsing white dot: minimal and easy to spot. */
 export function DutyBadge({ className, label = "Nöbetçi" }: BadgeProps) {
   return (
-    <Badge variant="duty" className={cn("h-6 px-2.5", className)}>
-      <Cross aria-hidden />
+    <Badge variant="duty" className={cn("h-6 gap-1.5 px-2.5", className)}>
+      <span className="relative flex size-1.5" aria-hidden>
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-white/80 motion-reduce:hidden" />
+        <span className="relative inline-flex size-1.5 rounded-full bg-white" />
+      </span>
       {label}
     </Badge>
   );

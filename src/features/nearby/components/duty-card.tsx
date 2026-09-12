@@ -50,14 +50,17 @@ export function DutyCard({ row, distance, windowText, onDuty, demo, className }:
             {district ? <span className="text-sm text-muted-foreground">{district}</span> : null}
           </div>
           {row.address ? <p className="mt-1.5 line-clamp-2 text-sm leading-snug">{row.address}</p> : null}
-          <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-highlight-foreground dark:text-highlight">
+          <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-red-700 dark:text-red-300">
             <Clock3 className="size-3.5 shrink-0" aria-hidden />
             {windowText}
           </p>
         </div>
       </div>
       <div className="relative z-10 mt-3 flex gap-2">
-        {row.phone ? <CallButton phone={row.phone} subjectType="poi" subjectId={row.poi_id} className="flex-1" /> : null}
+        {/* Black "Ara" like the Keşfet pharmacy and taxi cards. */}
+        {row.phone ? (
+          <CallButton phone={row.phone} subjectType="poi" subjectId={row.poi_id} variant="default" className="flex-1 bg-foreground text-background shadow-none hover:bg-foreground/90" />
+        ) : null}
         <DirectionsButton lat={row.lat} lng={row.lng} name={row.name} subjectType="poi" subjectId={row.poi_id} className="flex-1" />
       </div>
     </article>
@@ -67,7 +70,7 @@ export function DutyCard({ row, distance, windowText, onDuty, demo, className }:
 /** One-line "Örnek veri" band for sample duty data, with the official list link. Server-safe. */
 export function DutyDemoNote({ className }: { className?: string }) {
   return (
-    <DemoDataBanner compact className={className}>
+    <DemoDataBanner compact tone="danger" className={className}>
       Gerçek nöbet listesi değil - resmi liste için{" "}
       <a href={ECZACI_ODASI_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">
         {ECZACI_ODASI_NAME}

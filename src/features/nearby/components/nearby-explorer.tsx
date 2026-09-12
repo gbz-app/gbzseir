@@ -77,7 +77,8 @@ function PharmacySwitch({ value, onChange }: { value: "eczane" | "nobetci"; onCh
             onClick={() => onChange(o.value)}
             className={cn(
               "h-9 rounded-full text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-              on ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+              // Nöbetçi picked: solid red like the pins and badges (never yellow); "Tüm eczaneler" stays black.
+              on ? (o.value === "nobetci" ? "bg-red-600 text-white dark:bg-red-500" : "bg-foreground text-background") : "text-muted-foreground hover:text-foreground",
             )}
           >
             {o.label}

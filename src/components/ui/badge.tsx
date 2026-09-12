@@ -19,7 +19,7 @@ const badgeVariants = cva(
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
         /** Amber: "Nöbetçi" and other highlights. */
-        duty: "bg-highlight text-highlight-foreground font-semibold",
+        duty: "bg-red-600 text-white font-semibold dark:bg-red-500",
         /** Teal outline + check: "Onaylı" businesses. */
         verified: "bg-brand-soft text-primary font-semibold",
         /** Dashed amber: "Örnek veri" / "Demo". */

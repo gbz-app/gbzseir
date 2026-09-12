@@ -47,8 +47,8 @@ export function PharmacyDutySchedule({ duties, serverNow, mode }: { duties: Phar
             {upcoming.map((d) => {
               const active = isDutyActive(d.duty_start, d.duty_end, now);
               return (
-                <li key={d.id} className={cn("flex min-h-12 items-center gap-3 px-4 py-2.5", active && "bg-highlight-soft/60")}>
-                  <Clock3 className={cn("size-4 shrink-0", active ? "text-highlight" : "text-muted-foreground")} aria-hidden />
+                <li key={d.id} className={cn("flex min-h-12 items-center gap-3 px-4 py-2.5", active && "bg-red-50 dark:bg-red-500/10")}>
+                  <Clock3 className={cn("size-4 shrink-0", active ? "text-red-600 dark:text-red-400" : "text-muted-foreground")} aria-hidden />
                   <span className="min-w-0 flex-1 text-sm font-medium">{describeDutyWindow({ start: d.duty_start, end: d.duty_end }, now)}</span>
                   {active ? <DutyBadge label="Şu an" /> : null}
                 </li>
