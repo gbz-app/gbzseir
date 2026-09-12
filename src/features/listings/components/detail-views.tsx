@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarDays, Eye, FileText, Hash, Images, MapPin, MapPinned, SlidersHorizontal, Sparkles, UserRound } from "lucide-react";
+import { BadgeCheck, CalendarDays, Eye, FileText, Hash, Images, MapPinned, Navigation, SlidersHorizontal, Sparkles, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { districtBySlug } from "@/config/districts";
 import { formatDate, formatNumber } from "@/core/format";
@@ -61,7 +61,7 @@ function MetaLine({ place, postedAt, children }: { place: string; postedAt: stri
   return (
     <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
       <span className="inline-flex min-w-0 items-center gap-1">
-        <MapPin className="size-4 shrink-0" aria-hidden />
+        <Navigation className="size-4 shrink-0" aria-hidden />
         <span className="truncate">{place}</span>
       </span>
       {postedAt ? <RelativeTime date={postedAt} /> : null}

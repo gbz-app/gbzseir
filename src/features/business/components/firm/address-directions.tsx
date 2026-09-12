@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, MapPin } from "lucide-react";
+import { ChevronRight, Navigation } from "lucide-react";
 import { appleDirectionsUrl, googleDirectionsUrl } from "@/core/geo";
 import { logContactEvent } from "@/lib/contact";
 import { isIOS } from "@/lib/platform";
@@ -40,7 +40,7 @@ export function AddressDirections({ businessId, name, address, lat, lng, query }
       className="flex items-center gap-3 rounded-3xl bg-card p-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:bg-muted/60"
     >
       <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-muted text-foreground">
-        <MapPin className="size-5" aria-hidden />
+        <Navigation className="size-5" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[15px] leading-snug font-medium">{address}</span>

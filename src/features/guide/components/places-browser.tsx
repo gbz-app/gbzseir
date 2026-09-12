@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { BookOpen, ChevronRight, Landmark, MapPin } from "lucide-react";
+import { BookOpen, ChevronRight, Landmark, Navigation } from "lucide-react";
 import { districtBySlug } from "@/config/districts";
 import { routes } from "@/core/routes";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -41,7 +41,7 @@ function PlaceTile({ place, categories, priority }: { place: PlaceSummary; categ
         <span className="mt-0.5 line-clamp-2 text-[15px] leading-snug font-semibold underline-offset-2 group-hover:underline">{place.name}</span>
         {where ? (
           <span className="mt-auto flex min-w-0 items-center gap-1 pt-1.5 text-xs text-muted-foreground">
-            <MapPin className="size-3.5 shrink-0" aria-hidden />
+            <Navigation className="size-3.5 shrink-0" aria-hidden />
             <span className="truncate">{where}</span>
           </span>
         ) : null}

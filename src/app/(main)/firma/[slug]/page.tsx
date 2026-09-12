@@ -1,25 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import {
-  AtSign,
-  Briefcase,
-  CalendarDays,
-  ChevronRight,
-  Globe,
-  Handshake,
-  Images,
-  MapPin,
-  MessageSquareReply,
-  Phone,
-  QrCode,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Tag,
-  TreePalm,
-  Wrench,
-} from "lucide-react";
+import { AtSign, Briefcase, CalendarDays, ChevronRight, Globe, Handshake, Images, MessageSquareReply, Navigation, Phone, QrCode, ShieldCheck, Sparkles, Star, Tag, TreePalm, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VerifiedBadge } from "@/components/shared/badges";
 import { CallButton } from "@/components/shared/call-button";
@@ -406,7 +388,7 @@ export default async function FirmPage({ params }: Props) {
       ) : null}
 
       {b.address || hasLocation ? (
-        <Section title="Konum" icon={MapPin}>
+        <Section title="Konum" icon={Navigation}>
           <AddressDirections
             businessId={b.id}
             name={b.name}
@@ -572,7 +554,7 @@ export default async function FirmPage({ params }: Props) {
       ) : null}
 
       {serviceDistricts.length > 0 ? (
-        <Section title="Hizmet verdiği ilçeler" icon={MapPin}>
+        <Section title="Hizmet verdiği ilçeler" icon={Navigation}>
           {coversAll ? (
             <p className="rounded-2xl bg-brand-soft px-4 py-3 text-sm font-semibold text-primary">{CITY.province}&apos;nin tüm ilçelerine hizmet veriyor.</p>
           ) : (
@@ -688,7 +670,7 @@ export default async function FirmPage({ params }: Props) {
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1">
-                <MapPin className="size-4" aria-hidden />
+                <Navigation className="size-4" aria-hidden />
                 {areaLine}
               </span>
               {verified ? <VerifiedBadge /> : null}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, MapPin, Star } from "lucide-react";
+import { ArrowUpRight, Navigation, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { districtBySlug } from "@/config/districts";
 import { formatPrice } from "@/core/format";
@@ -114,7 +114,7 @@ export function VenueCard(props: VenueCardProps) {
               <h3 className="min-w-0 truncate text-base leading-snug font-semibold">{item.name}</h3>
               {where ? (
                 <p className="mt-0.5 flex items-center gap-1 text-[13px] text-muted-foreground">
-                  <MapPin className="size-3.5 shrink-0" aria-hidden />
+                  <Navigation className="size-3.5 shrink-0" aria-hidden />
                   <span className="truncate">{where}</span>
                 </p>
               ) : null}
@@ -176,7 +176,7 @@ function CompactVenueCard({ item, distance, open, eager }: VenueCardProps) {
             <div className="mt-auto flex flex-col gap-0.5 pt-1.5 text-xs">
               {where ? (
                 <p className="flex items-center gap-1 text-muted-foreground">
-                  <MapPin className="size-3.5 shrink-0" aria-hidden />
+                  <Navigation className="size-3.5 shrink-0" aria-hidden />
                   <span className="truncate">{where}</span>
                 </p>
               ) : null}

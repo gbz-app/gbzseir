@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Globe, MapPin, Phone } from "lucide-react";
+import { Globe, Navigation, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { formatPhoneTR } from "@/core/format";
@@ -100,7 +100,7 @@ export default async function MosquePage({ params }: Props) {
         />
 
         <InfoList>
-          <InfoRow icon={MapPin} label="Adres">
+          <InfoRow icon={Navigation} label="Adres">
             {poi.address ?? (district ? `${district}, Kocaeli` : "Adres bilgisi yok")}
           </InfoRow>
           {poi.phone ? (

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { BadgeCheck, Banknote, Briefcase, BriefcaseBusiness, Bus, CircleCheck, Clock, Eye, MapPin, PhoneCall, ShieldAlert, UtensilsCrossed } from "lucide-react";
+import { BadgeCheck, Banknote, Briefcase, BriefcaseBusiness, Bus, CircleCheck, Clock, Eye, Navigation, PhoneCall, ShieldAlert, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatNumber, formatPhoneTR } from "@/core/format";
 import { routes } from "@/core/routes";
@@ -72,7 +72,7 @@ export function JobMetaLine({ place, postedAt, views, isDemo }: { place: string;
   return (
     <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[13px] text-muted-foreground">
       <span className="inline-flex min-w-0 items-center gap-1">
-        <MapPin className="size-3.5 shrink-0" aria-hidden />
+        <Navigation className="size-3.5 shrink-0" aria-hidden />
         <span className="truncate">{place}</span>
       </span>
       {postedAt ? (
@@ -192,7 +192,7 @@ export function EmployerCard({
           <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
             {verified ? <VerifiedBadge /> : null}
             <span className="inline-flex min-w-0 items-center gap-1">
-              <MapPin className="size-3.5 shrink-0" aria-hidden />
+              <Navigation className="size-3.5 shrink-0" aria-hidden />
               <span className="truncate">{listingPlace(districtName)}</span>
             </span>
           </div>
@@ -263,7 +263,7 @@ export function JobApplyInfo({ isDemo, verified, phone, closed }: { isDemo?: boo
             </>
           )}
         </InfoRow>
-        <InfoRow icon={MapPin} title="Adres">
+        <InfoRow icon={Navigation} title="Adres">
           Tam adresi işverenle telefonda görüşürken öğrenebilirsin.
         </InfoRow>
         {verified ? (

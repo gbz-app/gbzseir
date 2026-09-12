@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, BadgeCheck, Banknote, Clock, MapPin, Play, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, Banknote, Clock, Navigation, Play, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CITY } from "@/config/site";
 import { districtBySlug, districtName } from "@/config/districts";
@@ -105,7 +105,7 @@ export function ClassifiedCard({
           <p className="text-[17px] leading-tight font-bold tabular-nums">{listingPriceText(item.price)}</p>
           <H className="mt-1 line-clamp-2 text-sm leading-snug font-medium">{item.title}</H>
           <p className="mt-auto flex min-w-0 items-center gap-1 pt-2 text-xs text-muted-foreground">
-            <MapPin className="size-3.5 shrink-0" aria-hidden />
+            <Navigation className="size-3.5 shrink-0" aria-hidden />
             <span className="truncate">{districtName(item.districtId, CITY.province)}</span>
             <span aria-hidden>·</span>
             <RelativeTime date={item.postedAt} className="shrink-0" />
@@ -188,7 +188,7 @@ export function JobCard({ item, headingLevel: H = "h3", className }: { item: Lis
           <InfoPill icon={Banknote} className={showSalary ? "bg-brand-soft font-semibold text-primary tabular-nums" : undefined}>
             {showSalary ? salaryText(item.salaryMin, item.salaryMax, item.salaryHidden) : "Maaş görüşülür"}
           </InfoPill>
-          <InfoPill icon={MapPin}>{place}</InfoPill>
+          <InfoPill icon={Navigation}>{place}</InfoPill>
           {work ? <InfoPill icon={Clock}>{work}</InfoPill> : null}
           {benefits.map((b) => (
             <InfoPill key={b.value}>{b.label}</InfoPill>

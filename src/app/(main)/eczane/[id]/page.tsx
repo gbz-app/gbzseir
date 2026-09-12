@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { MapPin, Phone } from "lucide-react";
+import { Navigation, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { formatPhoneTR } from "@/core/format";
@@ -72,7 +72,7 @@ export default async function PharmacyPage({ params }: Props) {
         {poi.address || poi.phone ? (
           <InfoList>
             {poi.address ? (
-              <InfoRow icon={MapPin} label="Adres">
+              <InfoRow icon={Navigation} label="Adres">
                 {poi.address}
               </InfoRow>
             ) : null}

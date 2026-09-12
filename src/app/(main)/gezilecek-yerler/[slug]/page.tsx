@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Clock, Globe, History, Mail, MapPin, MapPinOff, Phone, Ticket } from "lucide-react";
+import { Clock, Globe, History, Mail, MapPinOff, Navigation, Phone, Ticket } from "lucide-react";
 import { CallButton } from "@/components/shared/call-button";
 import { DirectionsButton } from "@/components/shared/directions-button";
 import { DetailActions, DetailHero, DetailSheet, PRIMARY_CTA, SECONDARY_CTA } from "@/components/shared/detail-hero";
@@ -129,7 +129,7 @@ export default async function PlacePage({ params }: Props) {
             <h1 className="mt-3 text-[1.625rem] leading-tight font-semibold tracking-tight text-balance break-words">{item.name}</h1>
             <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1">
-                <MapPin className="size-4" aria-hidden />
+                <Navigation className="size-4" aria-hidden />
                 {areaLine}
               </span>
               <DistanceLabel lat={item.lat} lng={item.lng} withIcon className="font-semibold text-primary" />
@@ -162,7 +162,7 @@ export default async function PlacePage({ params }: Props) {
                   </InfoItem>
                 ) : null}
                 {item.address ? (
-                  <InfoItem icon={MapPin} label="Adres">
+                  <InfoItem icon={Navigation} label="Adres">
                     {item.address}
                   </InfoItem>
                 ) : null}

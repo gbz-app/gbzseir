@@ -347,6 +347,11 @@
   min-height: 44px;
   min-width: 44px;
 }
+/* Navigation arrows (addresses, directions, routes) are always the filled arrow (owner, 12.09). */
+svg.lucide-navigation {
+  fill: currentColor;
+}
+
 /* Horizontal scrollers (chips, carousels) without a visible scrollbar. */
 @utility no-scrollbar {
   scrollbar-width: none;

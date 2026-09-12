@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, CalendarDays, ChevronRight, Clock, MapPin, UserRound } from "lucide-react";
+import { BadgeCheck, CalendarDays, ChevronRight, Clock, Navigation, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BOTTOM_DOCK_SPACE } from "@/components/shared/bottom-dock";
 import { CallButton } from "@/components/shared/call-button";
@@ -188,7 +188,7 @@ export default async function DoctorPage({ params }: Props) {
               ) : null}
             </span>
             <span className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="size-3.5 shrink-0" aria-hidden />
+              <Navigation className="size-3.5 shrink-0" aria-hidden />
               <span className="truncate">{district}</span>
             </span>
           </span>

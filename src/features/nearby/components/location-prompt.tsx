@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, LocateFixed, MapPin } from "lucide-react";
+import { Loader2, LocateFixed, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { districtBySlug } from "@/config/districts";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ export function LocationPrompt({ loc, onLocate, className }: LocationPromptProps
   if (district) {
     return (
       <div className={cn("flex items-center gap-2 rounded-2xl bg-muted/70 py-1 pr-1 pl-3.5 text-sm", className)}>
-        <MapPin className="size-4 shrink-0 text-primary" aria-hidden />
+        <Navigation className="size-4 shrink-0 text-primary" aria-hidden />
         <p className="min-w-0 flex-1 truncate">
           <span className="font-semibold">{district.name}</span> merkezine göre
         </p>

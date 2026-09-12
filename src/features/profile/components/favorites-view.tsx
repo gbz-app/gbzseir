@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { BadgeCheck, Heart, MapPin, Star, Store, Tag } from "lucide-react";
+import { BadgeCheck, Heart, Navigation, Star, Store, Tag } from "lucide-react";
 import { routes } from "@/core/routes";
 import { ChipFilter, type ChipOption } from "@/components/shared/chip-filter";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -130,7 +130,7 @@ export function FavoritesView({ listings, businesses, pois }: { listings: Listin
                     <span className="block truncate font-semibold">{p.name}</span>
                     {p.districtName ? (
                       <span className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
-                        <MapPin className="size-3.5" aria-hidden /> {p.districtName}
+                        <Navigation className="size-3.5" aria-hidden /> {p.districtName}
                       </span>
                     ) : null}
                   </span>
@@ -140,7 +140,7 @@ export function FavoritesView({ listings, businesses, pois }: { listings: Listin
             ))}
           </ul>
         ) : (
-          <EmptyState compact icon={MapPin} title="Favori yerin yok" />
+          <EmptyState compact icon={Navigation} title="Favori yerin yok" />
         )
       ) : null}
     </div>

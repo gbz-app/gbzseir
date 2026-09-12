@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, Banknote, CalendarDays, CalendarPlus, ChevronRight, ExternalLink, MapPin, Ticket, UserRound, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Banknote, CalendarDays, CalendarPlus, ChevronRight, ExternalLink, Navigation, Ticket, UserRound, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DemoBadge } from "@/components/shared/badges";
@@ -196,7 +196,7 @@ export default async function EventPage({ params }: Props) {
             </InfoRow>
 
             {placeName || placeSub ? (
-              <InfoRow icon={MapPin} label="Yer">
+              <InfoRow icon={Navigation} label="Yer">
                 {hasLocation ? (
                   <EventPlaceLink targetId="konum">{placeText}</EventPlaceLink>
                 ) : (

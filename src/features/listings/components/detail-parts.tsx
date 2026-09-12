@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { ChevronRight, CircleCheck, CirclePause, CircleX, Hourglass, MapPin, ShieldAlert, Timer } from "lucide-react";
+import { ChevronRight, CircleCheck, CirclePause, CircleX, Hourglass, Navigation, ShieldAlert, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { initials } from "@/core/format";
@@ -171,7 +171,7 @@ export function LocationCard({ title, note }: { title: string; note?: string }) 
   return (
     <div className="flex items-center gap-3 rounded-3xl bg-card p-4">
       <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-primary">
-        <MapPin className="size-5" aria-hidden />
+        <Navigation className="size-5" aria-hidden />
       </span>
       <div className="min-w-0">
         <p className="font-semibold break-words">{title}</p>

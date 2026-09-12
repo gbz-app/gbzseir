@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Hash, MapPin } from "lucide-react";
+import { Hash, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { routes } from "@/core/routes";
 import { districtBySlug, districtName } from "@/config/districts";
@@ -62,7 +62,7 @@ export default async function StopPage({ params }: Props) {
         {poi.address || stop.stopCode ? (
           <InfoList>
             {poi.address ? (
-              <InfoRow icon={MapPin} label="Adres">
+              <InfoRow icon={Navigation} label="Adres">
                 {poi.address}
               </InfoRow>
             ) : null}

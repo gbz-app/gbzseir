@@ -1,4 +1,4 @@
-import { CalendarClock, Info, MapPin } from "lucide-react";
+import { CalendarClock, Info, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { DemoBadge } from "@/components/shared/badges";
@@ -57,7 +57,7 @@ export function AnnouncementCard({ item, now, mine }: { item: Announcement; now:
             <AnnouncementPhaseBadge item={item} now={now} />
             {mine ? (
               <Badge variant="info" className="h-6 px-2.5">
-                <MapPin aria-hidden />
+                <Navigation aria-hidden />
                 İlçende
               </Badge>
             ) : null}
@@ -82,7 +82,7 @@ export function AnnouncementCard({ item, now, mine }: { item: Announcement; now:
         {item.districts.length ? (
           <div className="flex items-start gap-2.5">
             <dt className="shrink-0">
-              <MapPin className="mt-1 size-4 text-muted-foreground" aria-hidden />
+              <Navigation className="mt-1 size-4 text-muted-foreground" aria-hidden />
               <span className="sr-only">Etkilenen ilçeler</span>
             </dt>
             <dd className="min-w-0">
@@ -98,7 +98,7 @@ export function AnnouncementCard({ item, now, mine }: { item: Announcement; now:
         ) : !meta.outage ? (
           <div className="flex items-start gap-2.5">
             <dt className="shrink-0">
-              <MapPin className="mt-0.5 size-4 text-muted-foreground" aria-hidden />
+              <Navigation className="mt-0.5 size-4 text-muted-foreground" aria-hidden />
               <span className="sr-only">Kapsam</span>
             </dt>
             <dd className="text-muted-foreground">Tüm Kocaeli</dd>
