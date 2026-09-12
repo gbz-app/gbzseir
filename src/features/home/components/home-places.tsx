@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Navigation } from "lucide-react";
+import { Navigation, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { districtName } from "@/config/districts";
 import { routes } from "@/core/routes";
@@ -15,8 +15,9 @@ import type { PlaceSummary } from "@/features/nearby/types";
 
 /**
  * Home "Gezilecek Yerler": category tabs (admin order, labels and icons of place_categories) and tall photo cards with
- * a white info card holding only two things: the name (always two lines tall, so every card is the same) and where it
- * is, after a filled navigation arrow. Nothing on the photo. Layout follows the travel-app reference the user sent.
+ * a white info card: the name (always two lines tall, so every card is the same), then where it is after a filled
+ * navigation arrow and, on its right, the entry ("Ücretsiz" or the fee). Nothing on the photo. Layout follows the
+ * travel-app reference the user sent.
  */
 export function HomePlaces({ places, categories = PLACE_CATEGORY_DEFS }: { places: PlaceSummary[]; categories?: readonly PlaceCategoryDef[] }) {
   const [tab, setTab] = React.useState<string>("tumu");
@@ -74,9 +75,16 @@ export function HomePlaces({ places, categories = PLACE_CATEGORY_DEFS }: { place
                 <span className="absolute inset-x-2.5 bottom-2.5 rounded-[1.25rem] bg-card p-3.5">
                   {/* Always two lines tall, so a one-line name (Eskihisar) gives the same card as a long one. */}
                   <span className="line-clamp-2 min-h-[2.75em] text-[17px] leading-snug font-semibold">{p.name}</span>
-                  <span className="mt-1.5 flex min-w-0 items-center gap-1.5 text-sm font-medium text-muted-foreground">
-                    <Navigation className="size-3.5 shrink-0" fill="currentColor" aria-hidden />
-                    <span className="truncate">{districtName(p.districtId)}</span>
+                  <span className="mt-1.5 flex min-w-0 items-center gap-3 text-sm font-medium text-muted-foreground">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <Navigation className="size-3.5 shrink-0" fill="currentColor" aria-hidden />
+                      <span className="truncate">{districtName(p.districtId)}</span>
+                    </span>
+                    {/* On the right of the place: its entry (the admin's fee text, "Ücretsiz" when none is stored). */}
+                    <span className="ml-auto flex min-w-0 shrink-0 items-center gap-1">
+                      <Ticket className="size-3.5 shrink-0" aria-hidden />
+                      <span className="max-w-[7.5rem] truncate">{p.details.fee || "Ücretsiz"}</span>
+                    </span>
                   </span>
                 </span>
               </Link>
