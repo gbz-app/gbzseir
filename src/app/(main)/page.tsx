@@ -51,7 +51,8 @@ const guide = routes.guide.category;
 
 /** Şehir Rehberi strip (scrolls sideways): the same destinations as the rows of the /rehber hub. */
 const GUIDE: Tile[] = [
-  { href: routes.nearby.dutyPharmacies(), label: "Nöbetçi Eczane", ...kind(KIND_META.duty) },
+  // Opens Keşfet on the Eczane tab with "Nöbetçi" already selected.
+  { href: routes.nearby.root("nobetci"), label: "Nöbetçi Eczane", ...kind(KIND_META.duty) },
   { href: routes.nearby.root("taksi"), label: "Taksi", ...kind(KIND_META.taxi) },
   { href: routes.nearby.root("durak"), label: "Durak", ...kind(KIND_META.bus_stop) },
   { href: guide("sarj"), label: "Şarj", ...kind(KIND_META.ev_charge) },
