@@ -1,6 +1,6 @@
 # Gebzem — Değişiklik geçmişi (commit commit)
 
-Bu dosya `git log` çıktısından üretildi: projenin bütün commitleri eskiden yeniye, mesajları ve değişen dosya sayılarıyla. Zamanlar Türkiye saati. Ne istendiği ve neden yapıldığı için `docs/OTURUM-GUNLUGU.md`, sahibin mesajları için `docs/SOHBET-KAYDI.md`.
+Bu dosya `git log` çıktısından üretildi: projenin bütün commitleri eskiden yeniye, mesajları ve değişen dosya sayılarıyla. Zamanlar Türkiye saati. Ne istendiği ve neden yapıldığı için `OTURUM.md`, sahibin mesajları için `docs/SOHBET-KAYDI.md`.
 ## 2026-09-10 18:50 — `87b268a`
 **chore: Next.js 16 iskeleti ve mimari plan**
  20 files changed, 9356 insertions(+)
@@ -373,7 +373,7 @@ The home HTML is cached (ISR), so the server's 'x saat önce' can differ from th
   minimal detail with calendar export, home tile and rail.
 - Search page with categories, popular searches and places; city guide hub, institution
   pages, doctors for health businesses; GebzemAI chat (OpenAI, off until enabled).
-- Handoff docs (docs/PROJE-DURUMU.md, docs/OTURUM-GUNLUGU.md), dev helper scripts.
+- Handoff docs (docs/PROJE-DURUMU.md, OTURUM.md), dev helper scripts.
  329 files changed, 31094 insertions(+), 2973 deletions(-)
 ## 2026-09-11 21:15 — `9c9a164`
 **Home guide tile opens /rehber; imported city-guide places are hidden, not deleted, in admin**

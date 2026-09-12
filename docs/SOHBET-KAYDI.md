@@ -3,7 +3,7 @@
 Bu dosya 10-12 Eylül 2026 oturumunun dökümünden betikle (`sohbet-kaydi.mjs`) üretildi. Sahibin her mesajı olduğu gibi, Claude'un
 ekranda görünen yanıtları sırasıyla yer alır. Araç çağrıları ve çıktıları çıkarıldı; arka plan işlerinin bitişi ve bağlam
 sıkıştırmaları tek satırla gösterilir. **Gizli değerler** (token, anahtar, şifre, kod) `[GİZLİ]` / `[KOD]`, gerçek telefon numaraları
-`[TELEFON]` ile değiştirildi. Zamanlar UTC (Türkiye saati = UTC+3). Özet ve dersler için `docs/OTURUM-GUNLUGU.md`.
+`[TELEFON]` ile değiştirildi. Zamanlar UTC (Türkiye saati = UTC+3). Özet ve dersler için `OTURUM.md`.
 
 
 ## 2026-09-10
@@ -2932,7 +2932,7 @@ _17:54 — arka plan işi bitti: Dynamic workflow "Read-only map: every use of m
 > dostum birde bu zamana kadar yaptıklarımıızı claude md ve otorumdaki tüm sohbetimizi yanlışlarımıızı vs otorum md gibi hereşyi md dosyasına yazarım derin ağaç sisteminide tek tek anlatan sohbet kapanırsa sıkıtnıya gireriz onuda arada yap isteren
 
 **Claude (18:04):** Dostum, bu turdaki küçük işler bitti:
-- **Belgeler:** `docs/PROJE-DURUMU.md`, `docs/OTURUM-GUNLUGU.md` ve `CLAUDE.md` hazır. Oturum kapanırsa yeni oturum bunlardan devam edebilir.
+- **Belgeler:** `docs/PROJE-DURUMU.md`, `OTURUM.md` ve `CLAUDE.md` hazır. Oturum kapanırsa yeni oturum bunlardan devam edebilir.
 - **Test araçları:** gizli bilgi olmadığını kontrol ederek repo'ya kopyaladım (`scripts/dev/`). Bir aracın açıklamasındaki eski geçici klasör yolunu düzelttim.
 - **GebzemAI:** gizlilik satırı artık OpenAI diyor.
 - **Araştırma verisi:** Gebze araştırmasını git dışındaki `kocaeli/_arastirma/` klasörüne kaydettim.
@@ -3359,14 +3359,14 @@ SMS sağlayıcısını dediğin gibi sonraya bıraktım. İncelemede İleti Merk
 
 Belge işi devam ediyor. Sohbet kaydı (senin 168 mesajın birebir ve cevaplarım) ve commit geçmişi (55 commit) hazır. A'dan Z'ye günlüğü şu an 11 okuyucu yazıyor. Bitince hepsini GitHub'a göndereceğim.
 
-**Claude (23:30):** Everything left depends on the session-log workflow finishing: 11 readers, then the writer, then the completeness critic. After it completes I'll check the new `OTURUM-GUNLUGU.md`, run the secret scan on all five docs, then commit, push and check the deploy.
+**Claude (23:30):** Everything left depends on the session-log workflow finishing: 11 readers, then the writer, then the completeness critic. After it completes I'll check the new `OTURUM.md`, run the secret scan on all five docs, then commit, push and check the deploy.
 
 The message fixes on the sign-up screens are waiting for your go-ahead.
 
 
 ## 2026-09-12
 
-_00:19 — arka plan işi bitti: Dynamic workflow "Deep A-Z session log (OTURUM-GUNLUGU.md) from the redacted transcript, git history and docs, then a completeness critic" completed_
+_00:19 — arka plan işi bitti: Dynamic workflow "Deep A-Z session log (OTURUM.md) from the redacted transcript, git history and docs, then a completeness critic" completed_
 
 **Claude (00:20):** The session log is ready: 1,289 lines, and all 55 commits and all 168 of your messages are covered. But the writer found a serious gap. `SOHBET-KAYDI.md`, which isn't committed yet, contained the admin password and a fixed test code in plain text, and my redaction script had missed them. The writer masked them in the file. They can still reappear on regeneration, and I also need to check whether they're anywhere in git history.
 

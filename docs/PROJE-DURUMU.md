@@ -3,7 +3,7 @@
 Son güncelleme: 12 Eylül 2026. Bu dosya, sohbet kapanırsa yeni bir oturumun (Claude Code ya da bir geliştirici) kaldığı yerden devam edebilmesi için yazıldı. Gizli değer içermez; sadece değişken ve kaynak adları geçer.
 
 Diğer belgeler:
-- `docs/OTURUM-GUNLUGU.md`: sohbetin kronolojik özeti, yapılan hatalar ve dersler
+- `OTURUM.md`: sohbetin kronolojik özeti, yapılan hatalar ve dersler
 - `docs/MIMARI-AGAC.md`: kod ağacı, veritabanı ve akışların ayrıntılı açıklaması
 - `CLAUDE.md`: yeni oturumda ilk okunacak kurallar
 
@@ -40,7 +40,7 @@ Diğer belgeler:
 - **Canlı veritabanında gerçek kullanıcıları etkileyen yazma** (bildirim gönderen değişiklikler vb.) öncesi sahibin açık onayı alınır.
 - **Sonraki büyük hedef:** prototip bitince Flutter + Go ile sıfırdan native uygulama (bu PWA şartname olacak).
 
-Ayrıntılı ürün kararları: `docs/OTURUM-GUNLUGU.md` bölüm "Kararlar".
+Ayrıntılı ürün kararları: `OTURUM.md` bölüm "Kararlar".
 
 ---
 

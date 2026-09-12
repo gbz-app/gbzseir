@@ -613,7 +613,7 @@ admin ayarlar kategori oluşturma kategori filtreleme ayarları ... hepsinin ver
   sağlık merkezi rehberde; doktorlar klinikten), *"etkinliklerde görünmüyor uygulama güncel mi"*: canlı son deploy hâlâ `d3bf2ac`'ydı, 246
   dosya bekliyordu. Claude toplu deploy için beklediğini itiraf etti.
 - **20:56–21:04** Sahip: *"bu zamana kadar yaptıklarımızı claude md ve oturumdaki tüm sohbetimizi yanlışlarımızı vs ... md dosyasına yaz ...
-  derin ağaç sistemini de"*. `docs/PROJE-DURUMU.md`, kısa bir `docs/OTURUM-GUNLUGU.md`, `CLAUDE.md` yazıldı; test yardımcıları `scripts/dev/`'e
+  derin ağaç sistemini de"*. `docs/PROJE-DURUMU.md`, kısa bir `OTURUM.md`, `CLAUDE.md` yazıldı; test yardımcıları `scripts/dev/`'e
   kopyalandı; mimari belge workflow'u başladı. **21:04 (SK 18:04)** *"şuan deploy ettin mi güncel halini"*: Claude "hayır" dedi ve ara deploy
   kararı aldı (tsc 0, build, gizli tarama, 390px testleri).
   - **`1c9eb03` (21:09) — Big batch: Kocaeli-ready guide, events for everyone, business rules, listing stats/video, security fixes,
