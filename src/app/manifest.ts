@@ -33,7 +33,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: BRAND_COLORS.backgroundLight,
+    // Android's own launch screen (icon on this colour) runs straight into the app's splash: the logo's top lilac.
+    background_color: "#D4B0FD",
     theme_color: BRAND_COLORS.backgroundLight,
     categories: ["lifestyle", "navigation", "utilities", "shopping"],
     icons: [

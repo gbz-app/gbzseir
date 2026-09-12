@@ -6,6 +6,7 @@ import { KOCAELI_DISTRICTS } from "@/config/districts";
 import { IS_ADMIN_SITE } from "@/config/app-mode";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { AppProviders } from "@/components/providers/app-providers";
+import { AppSplash } from "@/components/pwa/app-splash";
 import { OrientationGuard } from "@/components/pwa/orientation-guard";
 import { NoZoom } from "@/components/layout/no-zoom";
 import { OnboardingPreScript } from "@/features/onboarding/onboarding-pre-script";
@@ -67,6 +68,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {IS_ADMIN_SITE ? null : <OnboardingPreScript />}
       </head>
       <body className="min-h-dvh bg-background font-sans text-foreground">
+        {/* Launch splash first, so it covers the page from the very first paint (public app only). */}
+        {IS_ADMIN_SITE ? null : <AppSplash />}
         <AppProviders>{children}</AppProviders>
         {/* App-only behaviour; the admin site is used on desktop too. */}
         {IS_ADMIN_SITE ? null : <OrientationGuard />}

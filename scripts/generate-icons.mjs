@@ -1,4 +1,5 @@
-// Generates the app's PNG/ICO/SVG assets from Lucide icons: flat 2D, solid colors, no logo, no gradients.
+// Generates the manifest shortcut icons and the Open Graph image from Lucide icons: flat 2D, solid colors.
+// The app / home screen icons and favicons are the brand logo: scripts/generate-logo-icons.mjs.
 // Usage: node scripts/generate-icons.mjs   (sharp ships with Next.js)
 // The primary color mirrors BRAND_COLORS in src/config/site.ts; the name/tagline are read from there.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -46,51 +47,10 @@ async function png(svgString, file, size) {
   return buf;
 }
 
-// 1) "any" icons: flat rounded teal square + white map pin.
-const anyIcon = (size) => svg(size, size, `<rect width="${size}" height="${size}" rx="${size * 0.22}" fill="${TEAL}"/>${glyph("map-pin", size, 0.56, WHITE)}`);
-await png(anyIcon(512), "icon-512.png", 512);
-await png(anyIcon(512), "icon-192.png", 192);
+// App / home screen icons, apple-touch-icon, badge, icon.svg and favicon.ico come from the brand logo since 12.09:
+// scripts/generate-logo-icons.mjs. This script only makes the shortcut icons and the Open Graph image.
 
-// 2) maskable: full bleed, glyph inside the 80% safe zone.
-await png(svg(512, 512, `<rect width="512" height="512" fill="${TEAL}"/>${glyph("map-pin", 512, 0.46, WHITE)}`), "maskable-512.png", 512);
-
-// 3) apple-touch-icon: full bleed (iOS rounds the corners).
-await png(svg(180, 180, `<rect width="180" height="180" fill="${TEAL}"/>${glyph("map-pin", 180, 0.56, WHITE)}`), "apple-touch-icon.png", 180);
-
-// 4) notification badge: white glyph on transparent (Android uses the alpha channel only).
-await png(svg(72, 72, glyph("map-pin", 72, 0.82, WHITE, 2.4)), "badge-72.png", 72);
-
-// 5) SVG favicon + favicon.ico (16/32/48 PNG entries; thicker stroke so it stays legible when tiny).
-const favSvg = svg(64, 64, `<rect width="64" height="64" rx="14" fill="${TEAL}"/>${glyph("map-pin", 64, 0.66, WHITE, 2.6)}`);
-writeFileSync(join(outDir, "icon.svg"), favSvg);
-const icoEntries = [];
-for (const size of [16, 32, 48]) {
-  icoEntries.push({ size, buf: await sharp(Buffer.from(favSvg), { density: 384 }).resize(size, size).png().toBuffer() });
-}
-function ico(entries) {
-  const header = Buffer.alloc(6);
-  header.writeUInt16LE(0, 0);
-  header.writeUInt16LE(1, 2);
-  header.writeUInt16LE(entries.length, 4);
-  const dir = Buffer.alloc(16 * entries.length);
-  let offset = 6 + 16 * entries.length;
-  entries.forEach((e, i) => {
-    const o = i * 16;
-    dir.writeUInt8(e.size >= 256 ? 0 : e.size, o);
-    dir.writeUInt8(e.size >= 256 ? 0 : e.size, o + 1);
-    dir.writeUInt8(0, o + 2);
-    dir.writeUInt8(0, o + 3);
-    dir.writeUInt16LE(1, o + 4);
-    dir.writeUInt16LE(32, o + 6);
-    dir.writeUInt32LE(e.buf.length, o + 8);
-    dir.writeUInt32LE(offset, o + 12);
-    offset += e.buf.length;
-  });
-  return Buffer.concat([header, dir, ...entries.map((e) => e.buf)]);
-}
-writeFileSync(join(root, "src/app/favicon.ico"), ico(icoEntries));
-
-// 6) Manifest shortcut icons (96px): white Lucide glyph on a flat teal circle.
+// Manifest shortcut icons (96px): white Lucide glyph on a flat teal circle.
 const shortcut = (name) => svg(96, 96, `<circle cx="48" cy="48" r="48" fill="${TEAL}"/>${glyph(name, 96, 0.5, WHITE)}`);
 await png(shortcut("cross"), "shortcut-pharmacy.png", 96);
 await png(shortcut("plus"), "shortcut-post.png", 96);
