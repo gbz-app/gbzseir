@@ -96,19 +96,19 @@ export type KindMeta = {
 };
 
 export const KIND_META: Record<MarkerKind, KindMeta> = {
-  // Pharmacies (nöbetçi too) are solid red with a white "E" on the map and a white pill in lists; the other pins use
-  // Tailwind 400 fills with a dark glyph of the same hue.
+  // Pharmacies (nöbetçi too) are solid red with a white "E", on the map and in the list cards (KindIcon); the pin red is
+  // the cards' bg-red-600 (#E7000B). The other pins use Tailwind 400 fills with a dark glyph of the same hue.
   duty: {
     label: "Nöbetçi eczane",
     icon: Pill,
-    pin: "#DC2626",
+    pin: "#E7000B",
     glyph: "#FFFFFF",
     tone: "bg-red-600 text-white dark:bg-red-500",
   },
   pharmacy: {
     label: "Eczane",
     icon: Pill,
-    pin: "#DC2626",
+    pin: "#E7000B",
     glyph: "#FFFFFF",
     tone: "bg-red-600 text-white dark:bg-red-500",
   },
