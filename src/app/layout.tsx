@@ -9,7 +9,6 @@ import { AppProviders } from "@/components/providers/app-providers";
 import { AppSplash } from "@/components/pwa/app-splash";
 import { OrientationGuard } from "@/components/pwa/orientation-guard";
 import { NoZoom } from "@/components/layout/no-zoom";
-import { OnboardingPreScript } from "@/features/onboarding/onboarding-pre-script";
 
 // The whole UI uses Google Sans (variable, 400-700). latin-ext is required for ğ, ş, ı, İ.
 const googleSans = Google_Sans({
@@ -38,13 +37,14 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: APP_FULL_NAME, description: APP_DESCRIPTION, images: ["/icons/og-image.png"] },
   // The separate admin site must never be indexed.
   ...(IS_ADMIN_SITE ? { robots: { index: false, follow: false, nocache: true } } : {}),
+  // Logo icons under /icons/v2: a new folder so phones do not keep the old, week-long cached files.
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
-      { url: "/icons/icon.svg", type: "image/svg+xml" },
-      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icons/v2/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/v2/icon-192.png", type: "image/png", sizes: "192x192" },
     ],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/icons/v2/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
@@ -54,10 +54,9 @@ export const viewport: Viewport = {
   // App-like: no pinch / double-tap zoom (iOS gestures are also blocked by <NoZoom />). The admin site can zoom.
   ...(IS_ADMIN_SITE ? {} : { maximumScale: 1, userScalable: false }),
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: BRAND_COLORS.backgroundLight },
-    { media: "(prefers-color-scheme: dark)", color: BRAND_COLORS.backgroundDark },
-  ],
+  // Light only (no dark mode).
+  themeColor: BRAND_COLORS.backgroundLight,
+  colorScheme: "light",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -65,7 +64,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="tr" className={googleSans.variable} suppressHydrationWarning>
       <head>
         <ThemeScript />
-        {IS_ADMIN_SITE ? null : <OnboardingPreScript />}
       </head>
       <body className="min-h-dvh bg-background font-sans text-foreground">
         {/* Launch splash first, so it covers the page from the very first paint (public app only). */}

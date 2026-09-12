@@ -1,11 +1,11 @@
 import { BottomNav } from "@/components/layout/bottom-nav";
-import { OnboardingGate } from "@/features/onboarding/onboarding-gate";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { AnnouncementBanner } from "@/components/layout/announcement-banner";
 
 /**
- * Main app shell: content + BottomNav + onboarding + install prompt. The home header (TopBar) is rendered by the home page
- * itself: a path-dependent header here made the cached home HTML differ from the client (React hydration error 418).
+ * Main app shell: content + BottomNav + install prompt. No first-launch intro (owner, 12.09: the launch splash is the only
+ * opening screen). The home header (TopBar) is rendered by the home page itself: a path-dependent header here made the
+ * cached home HTML differ from the client (React hydration error 418).
  */
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -21,7 +21,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         {children}
       </main>
       <BottomNav />
-      <OnboardingGate />
       <InstallPrompt />
     </div>
   );

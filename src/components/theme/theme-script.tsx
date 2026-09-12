@@ -1,10 +1,10 @@
 import { STORAGE_KEYS } from "@/config/site";
 
 /**
- * Inline, render-blocking script placed in <head> of the root layout.
- * Applies the stored theme ('light' | 'dark' | 'system') before first paint (no flash).
+ * Inline, render-blocking script placed in <head> of the root layout. The app is light only (owner, 12.09: no dark
+ * mode): it drops a theme saved by the old Görünüm setting and makes sure the page paints light.
  */
 export function ThemeScript() {
-  const js = `(function(){try{var t=localStorage.getItem(${JSON.stringify(STORAGE_KEYS.theme)});var d=t==='dark'||((!t||t==='system')&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;if(d){r.classList.add('dark')}else{r.classList.remove('dark')}r.style.colorScheme=d?'dark':'light';}catch(e){}})();`;
+  const js = `(function(){try{var r=document.documentElement;r.classList.remove('dark');r.style.colorScheme='light';localStorage.removeItem(${JSON.stringify(STORAGE_KEYS.theme)});}catch(e){}})();`;
   return <script dangerouslySetInnerHTML={{ __html: js }} />;
 }

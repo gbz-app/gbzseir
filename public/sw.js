@@ -11,7 +11,7 @@
  *   cross-origin requests (Supabase, maps), RSC payloads, non-GET requests.
  * - A page can opt out of caching with the response header "X-SW-Cache: no".
  */
-const VERSION = "v6-2026-09-12";
+const VERSION = "v7-2026-09-12";
 const PREFIX = "gebzem";
 const STATIC_CACHE = `${PREFIX}-static-${VERSION}`;
 const PAGES_CACHE = `${PREFIX}-pages-${VERSION}`;
@@ -23,12 +23,12 @@ const NAV_TIMEOUT_MS = 3000;
 const PRECACHE = [
   "/manifest.webmanifest",
   "/favicon.ico",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/icons/maskable-512.png",
-  "/icons/apple-touch-icon.png",
-  "/icons/badge-72.png",
-  "/icons/icon.svg",
+  "/icons/v2/icon-192.png",
+  "/icons/v2/icon-512.png",
+  "/icons/v2/maskable-512.png",
+  "/icons/v2/apple-touch-icon.png",
+  "/icons/v2/badge-72.png",
+  "/icons/v2/icon.svg",
 ];
 
 /** Public pages that may be kept for offline use (never personal pages). */
@@ -233,8 +233,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Bildirim";
   const options = {
     body: data.body || "",
-    icon: "/icons/icon-192.png",
-    badge: "/icons/badge-72.png",
+    icon: "/icons/v2/icon-192.png",
+    badge: "/icons/v2/badge-72.png",
     lang: "tr",
     tag: data.tag || undefined,
     renotify: !!data.tag,

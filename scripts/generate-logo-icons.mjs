@@ -4,8 +4,10 @@
 // - assets/brand/logo-mark.png (black "g" on transparent) -> the notification badge (white on transparent) and the
 //   launch splash image (public/brand/logo-mark.webp, src/components/pwa/app-splash.tsx).
 // Shortcut icons and the Open Graph image still come from scripts/generate-icons.mjs.
-// Usage: node scripts/generate-logo-icons.mjs   (sharp ships with Next.js). Bump VERSION in public/sw.js afterwards:
-// /icons/ is cached cache-first by the service worker.
+// Usage: node scripts/generate-logo-icons.mjs   (sharp ships with Next.js).
+// The icons go to public/icons/v2: /icons/ is cached for a week (next.config.ts) and cache-first by the service worker,
+// so phones only pick up a new logo under a new path. For the next logo change use a new folder (v3), update the paths
+// in src/app/manifest.ts, src/app/layout.tsx and public/sw.js, and bump VERSION in public/sw.js.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
@@ -13,7 +15,7 @@ import sharp from "sharp";
 const root = process.cwd();
 const APP = join(root, "assets/brand/logo-app.png");
 const MARK = join(root, "assets/brand/logo-mark.png");
-const icons = join(root, "public/icons");
+const icons = join(root, "public/icons/v2");
 const brand = join(root, "public/brand");
 mkdirSync(icons, { recursive: true });
 mkdirSync(brand, { recursive: true });
@@ -68,7 +70,7 @@ const badge = await sharp({ create: { width: 72, height: 72, channels: 3, backgr
   .toBuffer();
 writeFileSync(join(icons, "badge-72.png"), badge);
 
-// Launch splash mark: black "g" on transparent, 360 px (shown at 120 px, 3x for sharp phones).
-await sharp(MARK).resize(360, 360, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 90 }).toFile(join(brand, "logo-mark.webp"));
+// Launch splash mark: black "g" on transparent, 720 px (shown at 240 px, 3x for sharp phones).
+await sharp(MARK).resize(720, 720, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 90 }).toFile(join(brand, "logo-mark.webp"));
 
-console.log("Logo icons written to public/icons, src/app/favicon.ico and public/brand/logo-mark.webp");
+console.log("Logo icons written to public/icons/v2, src/app/favicon.ico and public/brand/logo-mark.webp");

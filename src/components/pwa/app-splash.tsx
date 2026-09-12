@@ -26,8 +26,8 @@ export function AppSplash() {
         aria-hidden
         className="gz-splash fixed inset-0 z-[1000] flex items-center justify-center bg-linear-to-b from-[#d4b0fd] via-[#eddefd] via-50% to-white to-90%"
       >
-        <Image src="/brand/logo-mark.webp" alt="" width={120} height={120} priority className="size-30" />
-        <span className="absolute inset-x-0 bottom-[calc(50px+env(safe-area-inset-bottom,0px))] text-center text-[15px] font-semibold tracking-wide text-neutral-900/70">
+        <Image src="/brand/logo-mark.webp" alt="" width={240} height={240} priority className="size-60" />
+        <span className="absolute inset-x-0 bottom-[calc(50px+env(safe-area-inset-bottom,0px))] text-center text-[18px] font-bold tracking-wide text-neutral-900/70">
           Akse Digital
         </span>
       </div>

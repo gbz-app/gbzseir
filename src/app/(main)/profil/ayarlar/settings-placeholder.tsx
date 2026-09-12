@@ -3,13 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronRight, MapPinOff, Megaphone, PlayCircle, Smartphone, Trash2, type LucideIcon } from "lucide-react";
+import { Bell, ChevronRight, MapPinOff, Megaphone, Smartphone, Trash2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { openInstallGuide } from "@/components/pwa/install-prompt";
-import { resetOnboarding } from "@/features/onboarding/storage";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { clearLocationPrefs } from "@/lib/location/store";
 import { getPushState, isPushSubscribed, subscribePush, unsubscribePush, type PushState } from "@/lib/push/client";
@@ -92,7 +90,7 @@ function consentHint(p: ConsentProfile | null): string {
   return date ? `${date} tarihinde izni geri aldın.` : "Kampanya ve duyuru bildirimleri için izin.";
 }
 
-/** Ayarlar: theme, notifications on/off, marketing consent, app helpers and account. Legal texts: login + help page. */
+/** Ayarlar: notifications on/off, marketing consent, app helpers and account (no theme: light only). Legal texts: login + help page. */
 export function SettingsScreen() {
   const router = useRouter();
   const { user, profile, refreshProfile } = useAuth();
@@ -168,12 +166,6 @@ export function SettingsScreen() {
 
   return (
     <div className="flex flex-col gap-6 px-4 py-5">
-      <Section title="Görünüm">
-        <div className="p-3">
-          <ThemeToggle />
-        </div>
-      </Section>
-
       <Section title="Bildirimler">
         <ToggleRow
           id="ayarlar-bildirimler"
@@ -201,14 +193,6 @@ export function SettingsScreen() {
       ) : null}
 
       <Section title="Uygulama">
-        <ActionRow
-          icon={PlayCircle}
-          label="Tanıtımı tekrar izle"
-          onClick={() => {
-            resetOnboarding();
-            router.push(routes.home());
-          }}
-        />
         <ActionRow
           icon={MapPinOff}
           label="Konum ve ilçe bilgimi sil"
