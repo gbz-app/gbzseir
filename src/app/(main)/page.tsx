@@ -19,9 +19,15 @@ import { HomePlaces } from "@/features/home/components/home-places";
 import { HomeSearch } from "@/features/home/components/home-search";
 import { ImageTile } from "@/features/home/components/image-tile";
 import { KIND_META, type KindMeta } from "@/features/nearby/config";
-import { getPlaces } from "@/features/nearby/server/queries";
+import { getDutyMode, getPlaces } from "@/features/nearby/server/queries";
 
 export const revalidate = 300;
+
+/** Yakınımda strip: the duty mode (cached app setting) decides the pharmacy card; the rest happens on the device. */
+async function NearbyStrip() {
+  const dutyMode = await getDutyMode().catch(() => "off" as const);
+  return <HomeNearby dutyMode={dutyMode} />;
+}
 
 type Tile = { href: string; label: string; image?: string; icon?: LucideIcon; tone?: string; imageClassName?: string };
 
@@ -187,7 +193,9 @@ export default function HomePage() {
       <section aria-labelledby="yakinimda">
         <SectionHeader id="yakinimda" title="Yakınımda" href={routes.nearby.root()} />
         <div className="mt-1">
-          <HomeNearby />
+          <Suspense fallback={<div className="h-[7.75rem]" />}>
+            <NearbyStrip />
+          </Suspense>
         </div>
       </section>
 
