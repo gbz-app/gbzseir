@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { Briefcase, Castle, ChevronRight, Hospital, Landmark, Mail, Scale, School, Siren, Sparkles, Stamp, Tag, Trees, type LucideIcon } from "lucide-react";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/config/site";
@@ -14,6 +13,7 @@ import { listPublishedArticles } from "@/features/content/articles/queries";
 import { EventsRail } from "@/features/events/components/events-rail";
 import { listUpcomingEvents } from "@/features/events/queries";
 import { HomeHero } from "@/features/home/components/home-hero";
+import { HomeNearby } from "@/features/home/components/home-nearby";
 import { HomeNews } from "@/features/home/components/home-news";
 import { HomePlaces } from "@/features/home/components/home-places";
 import { HomeSearch } from "@/features/home/components/home-search";
@@ -34,14 +34,6 @@ const vertical = (v: Vertical, label?: string): Tile => ({
 
 /** Icon and colour of a map pin kind (same as the Keşfet list and the Şehir Rehberi hub). */
 const kind = (k: KindMeta): Pick<Tile, "icon" | "tone"> => ({ icon: k.icon, tone: k.tone });
-
-/** Yakınımda: right of the big Nöbetçi Eczane card, 2 x 2; each opens the Keşfet map on its tab. */
-const NEARBY: Tile[] = [
-  { href: routes.nearby.root("durak"), label: "Durak", ...kind(KIND_META.bus_stop) },
-  { href: routes.nearby.root("taksi"), label: "Taksi", image: "/images/home/taksi.webp", imageClassName: "bg-card" },
-  { href: routes.nearby.root("akaryakit"), label: "Akaryakıt", ...kind(KIND_META.fuel) },
-  { href: routes.nearby.root("cami"), label: "Cami", ...kind(KIND_META.mosque) },
-];
 
 /** Tones of the Şehir Rehberi hub rows without a pin kind of their own (rehber/page.tsx). */
 const TONE = {
@@ -107,21 +99,6 @@ function SectionHeader({ id, title, href }: { id?: string; title: string; href?:
   );
 }
 
-/** Yakınımda: the big first card (2 x 2 tiles), opens the Keşfet map on the duty pharmacies. */
-function DutyCard() {
-  return (
-    <Link
-      href={routes.nearby.root("nobetci")}
-      className="col-span-2 row-span-2 flex flex-col justify-between rounded-3xl bg-card p-4 outline-none transition-transform active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-ring/50"
-    >
-      <span className="relative block size-16" aria-hidden>
-        <Image src="/images/home/eczane.webp" alt="" fill sizes="64px" className="object-contain" />
-      </span>
-      <span className="text-xl leading-tight font-bold">Nöbetçi Eczane</span>
-    </Link>
-  );
-}
-
 /** Wide GebzemAI card under the categories: plain white, icon, name and one line (opens GebzemAI). */
 function AiCard() {
   return (
@@ -177,8 +154,8 @@ async function EventsSection() {
 }
 
 /**
- * C1 - Ana sayfa: başlık, arama, Yakınımda (Nöbetçi Eczane + 4 kart), Şehir Rehberi (yana kayan şerit), kategoriler,
- * GebzemAI, yaklaşan etkinlikler, sinema, gezilecek yerler, haberler.
+ * C1 - Ana sayfa: başlık, arama, Yakınımda (en yakın eczane, durak, cami, taksi, şarj, akaryakıt kartları), Şehir
+ * Rehberi (yana kayan şerit), kategoriler, GebzemAI, yaklaşan etkinlikler, sinema, gezilecek yerler, haberler.
  */
 export default function HomePage() {
   return (
@@ -208,11 +185,8 @@ export default function HomePage() {
 
       <section aria-labelledby="yakinimda">
         <SectionHeader id="yakinimda" title="Yakınımda" href={routes.nearby.root()} />
-        <div className="mt-1 grid grid-cols-4 gap-x-3 gap-y-3">
-          <DutyCard />
-          {NEARBY.map((t) => (
-            <ImageTile key={t.label} href={t.href} label={t.label} image={t.image} icon={t.icon} tone={t.tone} imageClassName={t.imageClassName} sizes="80px" />
-          ))}
+        <div className="mt-1">
+          <HomeNearby />
         </div>
       </section>
 
