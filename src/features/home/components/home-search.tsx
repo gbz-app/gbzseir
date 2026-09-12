@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { routes } from "@/core/routes";
 
-/** Ideas shown in the empty field, one after another (owner, 12.09: ten of them, a new one every ~2 seconds). */
+/** Ideas typed into the empty field one after another (owner, 12.09: ten of them). */
 const HINTS = [
   "Nöbetçi eczane ara",
   "En yakın taksi durağı",
@@ -18,23 +18,36 @@ const HINTS = [
   "İkinci el ilanlar",
   "İş ilanları",
 ] as const;
-const HINT_MS = 2000;
+
+/** Types a hint, holds it, deletes it and types the next one; while `paused` it stays where it is. */
+function useTypedHint(paused: boolean): string {
+  const [state, setState] = React.useState({ index: 0, len: HINTS[0].length, deleting: false });
+  React.useEffect(() => {
+    if (paused || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const full = HINTS[state.index];
+    let next = state;
+    let delay: number;
+    if (!state.deleting) {
+      if (state.len < full.length) [next, delay] = [{ ...state, len: state.len + 1 }, 60];
+      else [next, delay] = [{ ...state, deleting: true }, 1400];
+    } else if (state.len > 0) [next, delay] = [{ ...state, len: state.len - 1 }, 30];
+    else [next, delay] = [{ index: (state.index + 1) % HINTS.length, len: 0, deleting: false }, 250];
+    const id = window.setTimeout(() => setState(next), delay);
+    return () => window.clearTimeout(id);
+  }, [state, paused]);
+  return HINTS[state.index].slice(0, state.len);
+}
 
 /**
  * Home search field (rounded like the home cards, not a pill): submits to /ara?q=... While it is empty and not focused
- * the placeholder cycles through HINTS (the first one on the server, so hydration matches).
+ * the placeholder types and deletes the HINTS one after another (the first hint in full on the server, so hydration
+ * matches; reduced motion keeps it still).
  */
 export function HomeSearch() {
   const router = useRouter();
   const [q, setQ] = React.useState("");
   const [focused, setFocused] = React.useState(false);
-  const [hint, setHint] = React.useState(0);
-
-  React.useEffect(() => {
-    if (q || focused) return;
-    const id = window.setInterval(() => setHint((i) => (i + 1) % HINTS.length), HINT_MS);
-    return () => window.clearInterval(id);
-  }, [q, focused]);
+  const hint = useTypedHint(!!q || focused);
 
   return (
     <form
@@ -53,7 +66,7 @@ export function HomeSearch() {
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        placeholder={HINTS[hint]}
+        placeholder={focused ? "Ara" : hint}
         aria-label="Ara"
         enterKeyHint="search"
         maxLength={80}
