@@ -1,6 +1,7 @@
 import { Suspense } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { Briefcase, Bus, ChevronRight, Map as MapIcon, Sparkles, Tag, type LucideIcon } from "lucide-react";
+import { Briefcase, Castle, ChevronRight, Hospital, Landmark, Mail, Scale, School, Siren, Sparkles, Stamp, Tag, Trees, type LucideIcon } from "lucide-react";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/config/site";
 import { routes } from "@/core/routes";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +18,7 @@ import { HomeNews } from "@/features/home/components/home-news";
 import { HomePlaces } from "@/features/home/components/home-places";
 import { HomeSearch } from "@/features/home/components/home-search";
 import { ImageTile } from "@/features/home/components/image-tile";
+import { KIND_META, type KindMeta } from "@/features/nearby/config";
 import { getPlaces } from "@/features/nearby/server/queries";
 
 export const revalidate = 300;
@@ -30,13 +32,48 @@ const vertical = (v: Vertical, label?: string): Tile => ({
   tone: VERTICAL_INFO[v].tone,
 });
 
-/** Right of the AI card: 2 x 2 quick cards. */
-const QUICK: Tile[] = [
-  // Opens the map like the other pharmacies (Yakınımda > Nöbetçi).
-  { href: routes.nearby.root("nobetci"), label: "Nöbetçi Eczane", image: "/images/home/eczane.webp", imageClassName: "bg-card" },
-  { href: routes.nearby.root("durak"), label: "Durak", icon: Bus, tone: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" },
-  { href: routes.guide.root(), label: "Şehir Rehberi", icon: MapIcon, tone: "bg-brand-soft text-primary" },
+/** Icon and colour of a map pin kind (same as the Keşfet list and the Şehir Rehberi hub). */
+const kind = (k: KindMeta): Pick<Tile, "icon" | "tone"> => ({ icon: k.icon, tone: k.tone });
+
+/** Yakınımda: right of the big Nöbetçi Eczane card, 2 x 2; each opens the Keşfet map on its tab. */
+const NEARBY: Tile[] = [
+  { href: routes.nearby.root("durak"), label: "Durak", ...kind(KIND_META.bus_stop) },
   { href: routes.nearby.root("taksi"), label: "Taksi", image: "/images/home/taksi.webp", imageClassName: "bg-card" },
+  { href: routes.nearby.root("akaryakit"), label: "Akaryakıt", ...kind(KIND_META.fuel) },
+  { href: routes.nearby.root("cami"), label: "Cami", ...kind(KIND_META.mosque) },
+];
+
+/** Tones of the Şehir Rehberi hub rows without a pin kind of their own (rehber/page.tsx). */
+const TONE = {
+  slate: "bg-slate-200 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300",
+  rose: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300",
+  indigo: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  red: "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-300",
+  sky: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+  yellow: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
+  amber: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  lime: "bg-lime-100 text-lime-700 dark:bg-lime-500/15 dark:text-lime-300",
+} as const;
+
+const guide = routes.guide.category;
+
+/** Şehir Rehberi strip (scrolls sideways): the same destinations as the rows of the /rehber hub. */
+const GUIDE: Tile[] = [
+  { href: routes.nearby.dutyPharmacies(), label: "Nöbetçi Eczane", ...kind(KIND_META.duty) },
+  { href: routes.nearby.root("taksi"), label: "Taksi", ...kind(KIND_META.taxi) },
+  { href: routes.nearby.root("durak"), label: "Durak", ...kind(KIND_META.bus_stop) },
+  { href: guide("sarj"), label: "Şarj", ...kind(KIND_META.ev_charge) },
+  { href: guide("noter"), label: "Noter", icon: Stamp, tone: TONE.slate },
+  { href: guide("atm"), label: "ATM", ...kind(KIND_META.atm) },
+  { href: guide("banka"), label: "Banka", ...kind(KIND_META.bank) },
+  { href: guide("saglik"), label: "Hastane", icon: Hospital, tone: TONE.rose },
+  { href: guide("kamu"), label: "Belediye", icon: Landmark, tone: TONE.indigo },
+  { href: guide("guvenlik"), label: "Emniyet", icon: Siren, tone: TONE.red },
+  { href: guide("adalet"), label: "Adliye", icon: Scale, tone: TONE.slate },
+  { href: guide("okullar"), label: "Okul", icon: School, tone: TONE.sky },
+  { href: guide("ptt"), label: "PTT", icon: Mail, tone: TONE.yellow },
+  { href: guide("tarihi"), label: "Tarihi Yer", icon: Castle, tone: TONE.amber },
+  { href: guide("parklar-ve-doga"), label: "Park", icon: Trees, tone: TONE.lime },
 ];
 
 /** Category cards, 4 per row. */
@@ -70,16 +107,36 @@ function SectionHeader({ id, title, href }: { id?: string; title: string; href?:
   );
 }
 
-/** Wide GebzemAI card on the left of the quick cards: plain white, icon + name only (opens GebzemAI). */
+/** Yakınımda: the big first card (2 x 2 tiles), opens the Keşfet map on the duty pharmacies. */
+function DutyCard() {
+  return (
+    <Link
+      href={routes.nearby.root("nobetci")}
+      className="col-span-2 row-span-2 flex flex-col justify-between rounded-3xl bg-card p-4 outline-none transition-transform active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      <span className="relative block size-16" aria-hidden>
+        <Image src="/images/home/eczane.webp" alt="" fill sizes="64px" className="object-contain" />
+      </span>
+      <span className="text-xl leading-tight font-bold">Nöbetçi Eczane</span>
+    </Link>
+  );
+}
+
+/** Wide GebzemAI card under the categories: plain white, icon, name and one line (opens GebzemAI). */
 function AiCard() {
   return (
     <Link
       href={routes.ai()}
-      aria-label="GebzemAI"
-      className="col-span-2 row-span-2 flex flex-col justify-between rounded-3xl bg-card p-4 outline-none transition-transform active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="flex items-center gap-3 rounded-3xl bg-card p-4 outline-none transition-transform active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-ring/50"
     >
-      <Sparkles className="size-8 text-primary" strokeWidth={1.75} aria-hidden />
-      <span className="text-xl leading-tight font-bold">GebzemAI</span>
+      <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-primary" aria-hidden>
+        <Sparkles className="size-6" strokeWidth={1.75} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-lg leading-tight font-bold">GebzemAI</span>
+        <span className="block truncate text-sm text-muted-foreground">Kocaeli hakkında ne istersen sor</span>
+      </span>
+      <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
     </Link>
   );
 }
@@ -119,7 +176,10 @@ async function EventsSection() {
   );
 }
 
-/** C1 - Ana sayfa: başlık, arama, yapay zeka + hızlı kartlar, kategoriler, yaklaşan etkinlikler, gezilecek yerler, haberler. */
+/**
+ * C1 - Ana sayfa: başlık, arama, Yakınımda (Nöbetçi Eczane + 4 kart), Şehir Rehberi (yana kayan şerit), kategoriler,
+ * GebzemAI, yaklaşan etkinlikler, sinema, gezilecek yerler, haberler.
+ */
 export default function HomePage() {
   return (
     <>
@@ -146,15 +206,31 @@ export default function HomePage() {
         <HomeSearch />
       </div>
 
-      <section aria-label="Hızlı erişim" className="grid grid-cols-4 gap-x-3 gap-y-3">
-        <AiCard />
-        {QUICK.map((q) => (
-          <ImageTile key={q.label} href={q.href} label={q.label} image={q.image} icon={q.icon} tone={q.tone} imageClassName={q.imageClassName} sizes="80px" />
-        ))}
+      <section aria-labelledby="yakinimda">
+        <SectionHeader id="yakinimda" title="Yakınımda" href={routes.nearby.root()} />
+        <div className="mt-1 grid grid-cols-4 gap-x-3 gap-y-3">
+          <DutyCard />
+          {NEARBY.map((t) => (
+            <ImageTile key={t.label} href={t.href} label={t.label} image={t.image} icon={t.icon} tone={t.tone} imageClassName={t.imageClassName} sizes="80px" />
+          ))}
+        </div>
       </section>
 
-      <section aria-label="Kategoriler">
-        <ul className="grid grid-cols-4 gap-x-3 gap-y-3">
+      {/* @container: the strip's tiles are 15% narrower than a category tile, 0.85 x (width - 3 gaps) / 4. */}
+      <section aria-labelledby="sehir-rehberi" className="@container">
+        <SectionHeader id="sehir-rehberi" title="Şehir Rehberi" href={routes.guide.root()} />
+        <ul className="no-scrollbar -mx-4 mt-1 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4">
+          {GUIDE.map((t) => (
+            <li key={t.href} className="w-[calc((100cqw-2.25rem)*0.2125)] shrink-0 snap-start">
+              <ImageTile href={t.href} label={t.label} icon={t.icon} tone={t.tone} size="sm" />
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="kategoriler">
+        <SectionHeader id="kategoriler" title="Kategoriler" />
+        <ul className="mt-3 grid grid-cols-4 gap-x-3 gap-y-3">
           {CATEGORIES.map((c) => (
             <li key={c.label}>
               <ImageTile href={c.href} label={c.label} image={c.image} icon={c.icon} tone={c.tone} imageClassName={c.imageClassName} sizes="80px" />
@@ -162,6 +238,8 @@ export default function HomePage() {
           ))}
         </ul>
       </section>
+
+      <AiCard />
 
       <Suspense fallback={null}>
         <EventsSection />
