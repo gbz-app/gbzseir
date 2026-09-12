@@ -5,10 +5,37 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { routes } from "@/core/routes";
 
-/** Home search field (rounded like the home cards, not a pill): submits to /ara?q=... */
+/** Ideas shown in the empty field, one after another (owner, 12.09: ten of them, a new one every ~2 seconds). */
+const HINTS = [
+  "Nöbetçi eczane ara",
+  "En yakın taksi durağı",
+  "Gebze'de kahvaltı mekânları",
+  "Usta mı arıyorsun?",
+  "Bu hafta sonu etkinlikler",
+  "Otobüs durakları ve saatleri",
+  "Kocaeli'de gezilecek yerler",
+  "Kafe ve restoranlar",
+  "İkinci el ilanlar",
+  "İş ilanları",
+] as const;
+const HINT_MS = 2000;
+
+/**
+ * Home search field (rounded like the home cards, not a pill): submits to /ara?q=... While it is empty and not focused
+ * the placeholder cycles through HINTS (the first one on the server, so hydration matches).
+ */
 export function HomeSearch() {
   const router = useRouter();
   const [q, setQ] = React.useState("");
+  const [focused, setFocused] = React.useState(false);
+  const [hint, setHint] = React.useState(0);
+
+  React.useEffect(() => {
+    if (q || focused) return;
+    const id = window.setInterval(() => setHint((i) => (i + 1) % HINTS.length), HINT_MS);
+    return () => window.clearInterval(id);
+  }, [q, focused]);
+
   return (
     <form
       role="search"
@@ -24,7 +51,9 @@ export function HomeSearch() {
         type="search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Eczane, usta, ilan ya da yer ara"
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder={HINTS[hint]}
         aria-label="Ara"
         enterKeyHint="search"
         maxLength={80}
