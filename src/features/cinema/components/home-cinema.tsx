@@ -13,7 +13,7 @@ import { FilmPoster } from "./film-poster";
 
 const RAIL_MAX = 12;
 
-/** Card line under the title: today's next times, the next day + time, or the release date. */
+/** Card's bottom line, under the genre: today's next times, the next day + time, or the release date. */
 function CardFoot({ entry, tab, now }: { entry: FilmEntry; tab: CinemaTab; now: Date }) {
   if (entry.upcoming && entry.film.releaseDate) {
     return (
@@ -105,14 +105,17 @@ export function HomeCinema({
               <li key={e.film.id} className="w-[9.5rem] shrink-0 snap-start">
                 <Link
                   href={routes.cinema.film(e.film.slug)}
-                  className="block h-full rounded-media bg-card p-1.5 outline-none transition-transform focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]"
+                  className="flex h-full flex-col rounded-media bg-card p-1.5 outline-none transition-transform focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99]"
                 >
                   {/* Below the fold: every poster is lazy, so none competes with the first paint. */}
                   <FilmPoster url={e.film.posterUrl} width={342} className="rounded-card" />
-                  <span className="block px-1.5 pt-2 pb-1.5">
-                    <span className="line-clamp-2 text-sm leading-snug font-semibold">{e.film.title}</span>
-                    {meta ? <span className="mt-0.5 block truncate text-xs text-muted-foreground">{meta}</span> : null}
-                    <CardFoot entry={e} tab={tab} now={now} />
+                  <span className="flex flex-1 flex-col px-1.5 pt-2 pb-1.5">
+                    {/* The title is always two lines tall; genre and times sit together at the bottom, so the cards line up. */}
+                    <span className="line-clamp-2 min-h-[2.75em] text-sm leading-snug font-semibold">{e.film.title}</span>
+                    <span className="mt-auto block pt-1">
+                      {meta ? <span className="block truncate text-xs text-muted-foreground">{meta}</span> : null}
+                      <CardFoot entry={e} tab={tab} now={now} />
+                    </span>
                   </span>
                 </Link>
               </li>
